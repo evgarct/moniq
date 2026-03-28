@@ -129,7 +129,7 @@
   }
 
   body {
-    @apply min-h-screen bg-[#cfcfd1] text-foreground;
+    @apply h-screen overflow-hidden bg-[#ece8e4] text-foreground;
   }
 
   button,

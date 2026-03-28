@@ -15,13 +15,14 @@ const titles: Record<string, string> = {
 };
 
 export function AppHeader({
-  user,
-  onSignOut,
+  user: _user,
+  onSignOut: _onSignOut,
 }: {
   user: AuthUser;
   onSignOut: () => Promise<void>;
 }) {
-  void onSignOut;
+  void _user;
+  void _onSignOut;
   const pathname = usePathname();
   const title = titles[pathname] ?? "Moniq";
 
@@ -52,9 +53,6 @@ export function AppHeader({
           <Button variant="ghost" size="icon-sm" className="rounded-xl bg-white text-slate-600 hover:bg-slate-100">
             <Bell className="h-4 w-4" />
           </Button>
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-[11px] font-semibold text-slate-700">
-            {user.email?.slice(0, 1).toUpperCase() ?? "M"}
-          </div>
         </div>
       </PageContainer>
     </header>

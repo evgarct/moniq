@@ -4,9 +4,9 @@ Moniq should feel like a polished product workspace, not a generic admin dashboa
 
 ## Direction
 
-- Use a soft light shell with subtle framing, pale neutrals, and one restrained green accent.
-- Prefer compact side navigation, lightweight separators, and generous alignment over heavy borders.
-- Keep the page centered inside a rounded app frame instead of stretching every region edge to edge.
+- Use a soft light shell with pale neutrals and one restrained green accent.
+- Prefer a narrow icon rail for navigation so the content area gets the maximum possible width.
+- Let the authenticated app fill the full browser viewport without decorative outer margins.
 
 ## Typography
 
