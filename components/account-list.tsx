@@ -1,5 +1,10 @@
 import { AccountGroup } from "@/components/account-group";
-import { getAvailableMoneyAccounts, getDebtAccounts } from "@/lib/finance-selectors";
+import {
+  getCashAccounts,
+  getCreditCardAccounts,
+  getDebtAccounts,
+  getSavingAccounts,
+} from "@/lib/finance-selectors";
 import type { Account, Allocation } from "@/types/finance";
 
 export function AccountList({
@@ -13,22 +18,40 @@ export function AccountList({
   selectedAccountId: string;
   onSelect: (accountId: string) => void;
 }) {
-  const availableMoneyAccounts = getAvailableMoneyAccounts(accounts);
+  const cashAccounts = getCashAccounts(accounts);
+  const savingAccounts = getSavingAccounts(accounts);
+  const creditCardAccounts = getCreditCardAccounts(accounts);
   const debtAccounts = getDebtAccounts(accounts);
 
   return (
     <div className="space-y-6">
       <AccountGroup
-        title="Available Money"
-        description="Real balances you can spend or reserve."
-        accounts={availableMoneyAccounts}
+        title="Cash"
+        description="Debit cards and cash wallets you can spend from directly."
+        accounts={cashAccounts}
         allocations={allocations}
         selectedAccountId={selectedAccountId}
         onSelect={onSelect}
       />
       <AccountGroup
-        title="Debts"
-        description="Liabilities tracked separately from available cash."
+        title="Savings"
+        description="Savings wallets hold money first, then split it into subgroups."
+        accounts={savingAccounts}
+        allocations={allocations}
+        selectedAccountId={selectedAccountId}
+        onSelect={onSelect}
+      />
+      <AccountGroup
+        title="Credit Cards"
+        description="Direct spend wallets with a card balance. Advanced handling comes later."
+        accounts={creditCardAccounts}
+        allocations={allocations}
+        selectedAccountId={selectedAccountId}
+        onSelect={onSelect}
+      />
+      <AccountGroup
+        title="Debt"
+        description="Loans, mortgages, and other debt balances tracked in the model."
         accounts={debtAccounts}
         allocations={allocations}
         selectedAccountId={selectedAccountId}

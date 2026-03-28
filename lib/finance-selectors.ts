@@ -35,8 +35,16 @@ export function getTransactionsForAccount(transactions: Transaction[], accountId
   return transactions.filter((transaction) => transaction.account.id === accountId);
 }
 
-export function getAvailableMoneyAccounts(accounts: Account[]) {
-  return accounts.filter((account) => getAccountGroup(account.type) === "available_money");
+export function getCashAccounts(accounts: Account[]) {
+  return accounts.filter((account) => getAccountGroup(account.type) === "cash");
+}
+
+export function getSavingAccounts(accounts: Account[]) {
+  return accounts.filter((account) => getAccountGroup(account.type) === "saving");
+}
+
+export function getCreditCardAccounts(accounts: Account[]) {
+  return accounts.filter((account) => getAccountGroup(account.type) === "credit_card");
 }
 
 export function getDebtAccounts(accounts: Account[]) {
@@ -45,7 +53,7 @@ export function getDebtAccounts(accounts: Account[]) {
 
 export function getAllocationCoverage(accounts: Account[], allocations: Allocation[]) {
   return accounts
-    .filter((account) => account.type === "savings")
+    .filter((account) => account.type === "saving")
     .map((account) => ({
       accountId: account.id,
       allocated: getAllocatedTotalForAccount(allocations, account.id),

@@ -6,10 +6,12 @@ export function AllocationList({
   allocations,
   currency,
   onEdit,
+  onDelete,
 }: {
   allocations: Allocation[];
   currency: string;
   onEdit: (allocation: Allocation) => void;
+  onDelete?: (allocation: Allocation) => void;
 }) {
   if (!allocations.length) {
     return (
@@ -28,6 +30,7 @@ export function AllocationList({
           allocation={allocation}
           currency={currency}
           onEdit={onEdit}
+          onDelete={onDelete}
         />
       ))}
     </div>

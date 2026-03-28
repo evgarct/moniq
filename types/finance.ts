@@ -3,14 +3,18 @@ export type Category = {
   name: string;
 };
 
-export type AccountType = "checking" | "savings" | "credit_card" | "loan" | "mortgage";
-export type AccountGroupType = "available_money" | "debt";
+export type AccountType = "cash" | "saving" | "credit_card" | "debt";
+export type DebtKind = "loan" | "mortgage" | "personal";
+export type CashKind = "debit_card" | "cash_wallet";
+export type AccountGroupType = "cash" | "saving" | "credit_card" | "debt";
 
 export type Account = {
   id: string;
   user_id: string;
   name: string;
   type: AccountType;
+  cash_kind?: CashKind | null;
+  debt_kind?: DebtKind | null;
   balance: number;
   currency: string;
   created_at: string;

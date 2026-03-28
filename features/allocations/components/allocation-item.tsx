@@ -1,4 +1,4 @@
-import { PencilLine } from "lucide-react";
+import { PencilLine, Trash2 } from "lucide-react";
 
 import { MoneyAmount } from "@/components/money-amount";
 import { Button } from "@/components/ui/button";
@@ -8,10 +8,12 @@ export function AllocationItem({
   allocation,
   currency,
   onEdit,
+  onDelete,
 }: {
   allocation: Allocation;
   currency: string;
   onEdit: (allocation: Allocation) => void;
+  onDelete?: (allocation: Allocation) => void;
 }) {
   return (
     <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-3">
@@ -25,6 +27,12 @@ export function AllocationItem({
           <PencilLine className="h-4 w-4" />
           <span className="sr-only">Edit allocation</span>
         </Button>
+        {onDelete ? (
+          <Button type="button" variant="ghost" size="icon-sm" onClick={() => onDelete(allocation)}>
+            <Trash2 className="h-4 w-4" />
+            <span className="sr-only">Delete allocation</span>
+          </Button>
+        ) : null}
       </div>
     </div>
   );
