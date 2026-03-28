@@ -25,6 +25,7 @@ Moniq should read like a finance product, not an admin dashboard.
 
 ## Accounts UI
 
-- Accounts list should read like a ledger sidebar: name, type, balance, light separators.
+- The balance workspace should use a dark blue finance canvas with a narrow icon rail and a compact top bar.
+- Account sections should use muted header bars with totals aligned right, followed by ledger-like rows with the amount shown under the account name.
 - Savings details should stack as compact summary strips, free money emphasis, allocation rows, and register rows.
-- Register and allocations should scan vertically like tables, not stacked cards.
+- Register and allocations should scan vertically like operational lists, with colored amount chips only for the final money value.

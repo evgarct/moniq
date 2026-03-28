@@ -20,10 +20,10 @@ export default async function AuthenticatedLayout({
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="grid min-h-screen lg:grid-cols-[220px_minmax(0,1fr)]">
+    <div className="min-h-screen bg-[#203847]">
+      <div className="grid min-h-screen lg:grid-cols-[76px_minmax(0,1fr)]">
         <AppSidebar user={user} onSignOut={signOut} />
-        <div className="min-w-0 border-l border-border/60">
+        <div className="min-w-0 bg-[radial-gradient(circle_at_top,#315160_0%,#203847_55%,#152733_100%)]">
           <AppHeader user={user} onSignOut={signOut} />
           <main>{children}</main>
         </div>

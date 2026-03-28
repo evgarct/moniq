@@ -20,7 +20,6 @@ export function AccountList({
     <div className="space-y-5">
       <AccountGroup
         title="Available Money"
-        description="Real balances you can spend or reserve."
         accounts={availableMoneyAccounts}
         allocations={allocations}
         selectedAccountId={selectedAccountId}
@@ -28,7 +27,6 @@ export function AccountList({
       />
       <AccountGroup
         title="Debts"
-        description="Liabilities tracked separately from available cash."
         accounts={debtAccounts}
         allocations={allocations}
         selectedAccountId={selectedAccountId}

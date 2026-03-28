@@ -1,23 +1,20 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Plus, Search } from "lucide-react";
+import { Download, Plus, Search } from "lucide-react";
 
 import type { AuthUser } from "@/types/auth";
 import { LogoutButton } from "@/features/auth/components/logout-button";
-import { PageContainer } from "@/components/page-container";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 const titles: Record<string, string> = {
   "/dashboard": "Dashboard",
   "/calendar": "Calendar",
   "/today": "Today",
-  "/accounts": "Accounts",
+  "/accounts": "Balance",
 };
 
 export function AppHeader({
-  user,
   onSignOut,
 }: {
   user: AuthUser;
@@ -27,31 +24,32 @@ export function AppHeader({
   const title = titles[pathname] ?? "Moniq";
 
   return (
-    <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80">
-      <PageContainer className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-[22px] font-semibold tracking-[-0.03em]">{title}</h1>
-          <p className="text-[12px] text-muted-foreground">Dense finance workspace with mock operational data.</p>
-        </div>
-
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <div className="relative min-w-0 sm:w-56">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Search" className="h-8 rounded-sm border-transparent bg-muted/70 pl-8 shadow-none" />
-          </div>
-          <Button size="sm">
-            <Plus className="h-3.5 w-3.5" />
-            Add
+    <header className="sticky top-0 z-20 border-b border-white/12 bg-[#203847] text-slate-50">
+      <div className="grid h-[52px] grid-cols-[1fr_auto_1fr] items-center px-4 sm:px-6">
+        <div className="justify-self-start text-[13px] font-medium text-slate-100">Edit</div>
+        <h1 className="text-[18px] font-semibold tracking-[-0.02em]">{title}</h1>
+        <div className="flex items-center justify-self-end">
+          <Button variant="ghost" size="icon-sm" className="text-slate-200 hover:bg-white/5 hover:text-white">
+            <Download className="h-4 w-4" />
+            <span className="sr-only">Export</span>
           </Button>
-          <div className="hidden items-center justify-between gap-3 border-l pl-3 sm:flex sm:min-w-48">
-            <div className="min-w-0">
-              <p className="truncate text-[12px] font-medium">{user.email}</p>
-              <p className="text-[11px] text-muted-foreground">Authenticated session</p>
-            </div>
-            <LogoutButton action={onSignOut} variant="ghost" size="sm" label="Logout" />
-          </div>
+          <Button variant="ghost" size="icon-sm" className="text-slate-200 hover:bg-white/5 hover:text-white">
+            <Search className="h-4 w-4" />
+            <span className="sr-only">Search</span>
+          </Button>
+          <Button variant="ghost" size="icon-sm" className="text-slate-200 hover:bg-white/5 hover:text-white">
+            <Plus className="h-4 w-4" />
+            <span className="sr-only">Add</span>
+          </Button>
+          <LogoutButton
+            action={onSignOut}
+            variant="ghost"
+            size="icon-sm"
+            className="ml-1 text-slate-200 hover:bg-white/5 hover:text-white"
+            label=""
+          />
         </div>
-      </PageContainer>
+      </div>
     </header>
   );
 }

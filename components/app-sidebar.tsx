@@ -21,7 +21,7 @@ const navigation = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/calendar", label: "Calendar", icon: CalendarDays },
   { href: "/today", label: "Today", icon: ListChecks },
-  { href: "/accounts", label: "Accounts", icon: Wallet },
+  { href: "/accounts", label: "Balance", icon: Wallet },
 ];
 
 export function AppSidebar({
@@ -35,12 +35,11 @@ export function AppSidebar({
 
   return (
     <>
-      <aside className="hidden border-r border-slate-700/70 bg-slate-800 text-slate-100 lg:flex lg:flex-col">
-        <div className="border-b border-slate-700/70 px-4 py-4">
-          <p className="text-[15px] font-semibold tracking-[-0.02em] text-slate-50">Moniq</p>
-          <p className="mt-0.5 text-[11px] text-slate-400">Personal finance</p>
+      <aside className="hidden bg-[#334551] text-slate-100 lg:flex lg:flex-col">
+        <div className="flex h-[52px] items-center justify-center border-b border-white/12">
+          <div className="size-2 rounded-full bg-cyan-300" />
         </div>
-        <nav className="space-y-0.5 p-2.5">
+        <nav className="flex flex-1 flex-col items-center gap-1.5 px-2 py-3">
           {navigation.map((item) => {
             const Icon = item.icon;
             const active = pathname === item.href;
@@ -49,24 +48,25 @@ export function AppSidebar({
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-2.5 border-l-2 border-transparent px-3 py-2 text-[12px] transition-colors",
+                  "flex w-full flex-col items-center gap-1 border-l-2 border-l-transparent px-1 py-2.5 text-center text-[11px] leading-4 transition-colors",
                   active
-                    ? "border-cyan-400 bg-slate-700/60 text-slate-50"
-                    : "text-slate-300 hover:bg-slate-700/35 hover:text-slate-50",
+                    ? "border-l-cyan-400 bg-white/8 text-slate-50"
+                    : "text-slate-300 hover:bg-white/5 hover:text-slate-50",
                 )}
               >
-                <Icon className="h-4 w-4" />
+                <Icon className="h-[22px] w-[22px]" />
                 {item.label}
               </Link>
             );
           })}
         </nav>
-        <div className="mt-auto border-t border-slate-700/70 px-4 py-3">
-          <div className="mb-2 min-w-0">
-            <p className="truncate text-[12px] font-medium text-slate-100">{user.email}</p>
-            <p className="text-[11px] text-slate-400">Signed in</p>
-          </div>
-          <LogoutButton action={onSignOut} variant="ghost" className="w-full justify-start px-2 text-slate-300 hover:bg-slate-700/35 hover:text-slate-50" />
+        <div className="border-t border-white/12 px-1.5 py-2.5">
+          <LogoutButton
+            action={onSignOut}
+            variant="ghost"
+            className="flex w-full flex-col items-center gap-1 px-1 py-2.5 text-[11px] text-slate-300 hover:bg-white/5 hover:text-slate-50"
+            label="Logout"
+          />
         </div>
       </aside>
 
@@ -74,7 +74,7 @@ export function AppSidebar({
         <div className="flex items-center justify-between px-4 py-2.5">
           <div>
             <p className="text-[15px] font-semibold tracking-[-0.02em]">Moniq</p>
-            <p className="text-[11px] text-muted-foreground">Personal finance</p>
+            <p className="text-[11px] text-muted-foreground">{user.email}</p>
           </div>
           <Sheet>
             <SheetTrigger render={<Button variant="outline" size="icon-sm" />}>
@@ -83,7 +83,7 @@ export function AppSidebar({
             <SheetContent side="left" className="w-72">
               <SheetHeader>
                 <SheetTitle>Navigation</SheetTitle>
-                <SheetDescription>Browse the first Moniq product surfaces.</SheetDescription>
+                <SheetDescription>Browse the finance workspace.</SheetDescription>
               </SheetHeader>
               <nav className="space-y-0.5 px-4 pb-4">
                 {navigation.map((item) => {
@@ -105,10 +105,6 @@ export function AppSidebar({
                 })}
               </nav>
               <div className="border-t px-4 py-4">
-                <div className="mb-2 min-w-0">
-                  <p className="truncate text-[12px] font-medium">{user.email}</p>
-                  <p className="text-[11px] text-muted-foreground">Signed in</p>
-                </div>
                 <LogoutButton action={onSignOut} variant="ghost" className="w-full justify-start px-2 text-muted-foreground hover:text-foreground" />
               </div>
             </SheetContent>

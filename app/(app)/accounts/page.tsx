@@ -8,7 +8,7 @@ export default function AccountsPage() {
   const { data } = useFinanceData();
 
   return (
-    <PageContainer>
+    <PageContainer className="max-w-none px-0 py-0">
       <AccountsView
         accounts={data?.accounts ?? []}
         allocations={data?.allocations ?? []}
