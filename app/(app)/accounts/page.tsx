@@ -9,7 +9,11 @@ export default function AccountsPage() {
 
   return (
     <PageContainer>
-      <AccountsView accounts={data?.accounts ?? []} transactions={data?.transactions ?? []} />
+      <AccountsView
+        accounts={data?.accounts ?? []}
+        allocations={data?.allocations ?? []}
+        transactions={data?.transactions ?? []}
+      />
     </PageContainer>
   );
 }

@@ -1,9 +1,11 @@
 import { isSameDay, parseISO } from "date-fns";
 
-import type { Account, FinanceSnapshot, Transaction } from "@/types/finance";
+import { getAccountGroup, getNetWorthTotal } from "@/features/accounts/lib/account-utils";
+import { getAllocatedTotalForAccount } from "@/features/allocations/lib/allocation-utils";
+import type { Account, Allocation, FinanceSnapshot, Transaction } from "@/types/finance";
 
 export function getTotalBalance(accounts: Account[]) {
-  return accounts.reduce((sum, account) => sum + account.balance, 0);
+  return getNetWorthTotal(accounts);
 }
 
 export function getIncomeExpenseSummary(transactions: Transaction[]) {
@@ -31,4 +33,21 @@ export function getTransactionsForDate(transactions: Transaction[], date: Date) 
 
 export function getTransactionsForAccount(transactions: Transaction[], accountId: string) {
   return transactions.filter((transaction) => transaction.account.id === accountId);
+}
+
+export function getAvailableMoneyAccounts(accounts: Account[]) {
+  return accounts.filter((account) => getAccountGroup(account.type) === "available_money");
+}
+
+export function getDebtAccounts(accounts: Account[]) {
+  return accounts.filter((account) => getAccountGroup(account.type) === "debt");
+}
+
+export function getAllocationCoverage(accounts: Account[], allocations: Allocation[]) {
+  return accounts
+    .filter((account) => account.type === "savings")
+    .map((account) => ({
+      accountId: account.id,
+      allocated: getAllocatedTotalForAccount(allocations, account.id),
+    }));
 }

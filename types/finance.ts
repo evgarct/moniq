@@ -3,14 +3,26 @@ export type Category = {
   name: string;
 };
 
-export type AccountType = "checking" | "savings" | "cash";
+export type AccountType = "checking" | "savings" | "credit_card" | "loan" | "mortgage";
+export type AccountGroupType = "available_money" | "debt";
 
 export type Account = {
   id: string;
+  user_id: string;
   name: string;
   type: AccountType;
   balance: number;
   currency: string;
+  created_at: string;
+};
+
+export type Allocation = {
+  id: string;
+  user_id: string;
+  account_id: string;
+  name: string;
+  amount: number;
+  created_at: string;
 };
 
 export type TransactionStatus = "planned" | "paid";
@@ -29,6 +41,7 @@ export type Transaction = {
 
 export type FinanceSnapshot = {
   accounts: Account[];
+  allocations: Allocation[];
   categories: Category[];
   transactions: Transaction[];
 };
