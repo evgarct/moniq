@@ -120,7 +120,7 @@ export function AccountsView({
 
   return (
     <>
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
         <SectionCard title="Accounts" description="Available money and liabilities in one ledger view.">
           <AccountList
             accounts={accounts}
@@ -149,9 +149,12 @@ export function AccountsView({
               }
             >
               <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <AccountTypeBadge type={selectedAccount.type} />
-                  <p className="text-[12px] text-muted-foreground">{selectedAccount.currency} savings reserve</p>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <AccountTypeBadge type={selectedAccount.type} />
+                    <p className="text-[12px] text-muted-foreground">{selectedAccount.currency} savings reserve</p>
+                  </div>
+                  <MoneyAmount amount={selectedAccount.balance} currency={selectedAccount.currency} display="absolute" className="text-[24px] font-semibold" />
                 </div>
                 <div className="space-y-1">
                   <SavingsSummaryCard
@@ -183,7 +186,7 @@ export function AccountsView({
               title={selectedAccount.name}
               description="Liabilities stay distinct from available money accounts."
             >
-              <div className="grid gap-3 border-t border-border/70 py-2.5 md:grid-cols-2">
+              <div className="grid gap-0 border-t border-border/70 py-2.5 md:grid-cols-3">
                 <div>
                   <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Current balance</p>
                   <MoneyAmount
@@ -199,7 +202,10 @@ export function AccountsView({
                   <div className="mt-1">
                     <AccountTypeBadge type={selectedAccount.type} />
                   </div>
-                  <p className="mt-2 text-[12px] text-muted-foreground">
+                </div>
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Notes</p>
+                  <p className="mt-1 text-[12px] text-muted-foreground">
                     This is a real account balance, not a planned allocation bucket.
                   </p>
                 </div>

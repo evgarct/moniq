@@ -19,7 +19,7 @@ export function TransactionRow({
   return (
     <div
       className={cn(
-        "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-border/70 py-2.5",
+        "grid grid-cols-[minmax(0,1fr)_88px_120px] items-center gap-4 border-b border-border/70 py-2.5",
         compact && "items-start",
         className,
       )}
@@ -32,17 +32,19 @@ export function TransactionRow({
           </Badge>
         </div>
         <p className="text-[11px] text-muted-foreground">
-          {transaction.category.name} · {transaction.account.name} · {format(parseISO(transaction.date), "MMM d")}
+          {transaction.category.name} · {transaction.account.name}
         </p>
       </div>
 
-      <div className="flex shrink-0 items-center gap-3">
+      <p className="text-[12px] text-muted-foreground">{format(parseISO(transaction.date), "MMM d")}</p>
+
+      <div className="flex shrink-0 items-center justify-end gap-2">
         <MoneyAmount
           amount={transaction.amount}
           currency={transaction.account.currency}
           display="absolute"
           tone={transaction.type === "income" ? "positive" : "default"}
-          className="text-[13px] font-semibold"
+          className="text-[15px] font-semibold text-right"
         />
         {action}
       </div>

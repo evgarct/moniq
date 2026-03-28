@@ -24,17 +24,17 @@ export function AccountRow({
       type="button"
       onClick={onSelect}
       className={cn(
-        "grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border/70 px-0 py-2.5 text-left transition-colors",
-        selected && "bg-muted/55",
+        "grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-border/70 border-l-2 border-l-transparent px-3 py-3 text-left transition-colors",
+        selected && "border-l-primary bg-muted/55",
         !selected && "hover:bg-muted/35",
       )}
     >
       <div className="min-w-0">
         <div className="flex items-center gap-2">
-          <p className="truncate text-[13px] font-medium">{account.name}</p>
+          <p className="truncate text-[15px] font-medium text-foreground">{account.name}</p>
           <AccountTypeBadge type={account.type} />
         </div>
-        <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground">
+        <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
           <span>{account.currency}</span>
           {account.type === "savings" && freeMoney !== null ? (
             <>
@@ -56,7 +56,7 @@ export function AccountRow({
         currency={account.currency}
         display={debt ? "signed" : "absolute"}
         tone={debt ? "negative" : "default"}
-        className="text-[15px] font-semibold"
+        className="text-[20px] font-semibold"
       />
     </button>
   );

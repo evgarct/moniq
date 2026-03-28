@@ -14,18 +14,16 @@ export function AllocationItem({
   onEdit: (allocation: Allocation) => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-border/70 py-2">
-      <div className="min-w-0">
+    <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 border-b border-border/70 py-2">
+      <div className="min-w-0 pr-4">
         <p className="truncate text-[13px] font-medium">{allocation.name}</p>
         <p className="text-[11px] text-muted-foreground">Reserved inside this savings account.</p>
       </div>
-      <div className="flex items-center gap-2">
-        <MoneyAmount amount={allocation.amount} currency={currency} display="absolute" className="text-[13px] font-semibold" />
-        <Button type="button" variant="ghost" size="icon-sm" className="size-7 rounded-sm" onClick={() => onEdit(allocation)}>
-          <PencilLine className="h-3.5 w-3.5" />
-          <span className="sr-only">Edit allocation</span>
-        </Button>
-      </div>
+      <MoneyAmount amount={allocation.amount} currency={currency} display="absolute" className="text-[15px] font-semibold text-right" />
+      <Button type="button" variant="ghost" size="icon-sm" className="size-7 rounded-sm justify-self-end" onClick={() => onEdit(allocation)}>
+        <PencilLine className="h-3.5 w-3.5" />
+        <span className="sr-only">Edit allocation</span>
+      </Button>
     </div>
   );
 }
