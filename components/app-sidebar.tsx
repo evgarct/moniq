@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CalendarDays, LayoutDashboard, ListChecks, Menu, Wallet } from "lucide-react";
 
+import type { AuthUser } from "@/types/auth";
+import { LogoutButton } from "@/features/auth/components/logout-button";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -22,7 +24,13 @@ const navigation = [
   { href: "/accounts", label: "Accounts", icon: Wallet },
 ];
 
-export function AppSidebar() {
+export function AppSidebar({
+  user,
+  onSignOut,
+}: {
+  user: AuthUser;
+  onSignOut: () => Promise<void>;
+}) {
   const pathname = usePathname();
 
   return (
@@ -51,6 +59,13 @@ export function AppSidebar() {
             );
           })}
         </nav>
+        <div className="mt-auto border-t p-4">
+          <div className="mb-3 min-w-0">
+            <p className="truncate text-sm font-medium">{user.email}</p>
+            <p className="text-xs text-muted-foreground">Signed in</p>
+          </div>
+          <LogoutButton action={onSignOut} variant="outline" className="w-full justify-center" />
+        </div>
       </aside>
 
       <div className="border-b bg-background lg:hidden">
@@ -87,6 +102,13 @@ export function AppSidebar() {
                   );
                 })}
               </nav>
+              <div className="border-t px-4 py-4">
+                <div className="mb-3 min-w-0">
+                  <p className="truncate text-sm font-medium">{user.email}</p>
+                  <p className="text-xs text-muted-foreground">Signed in</p>
+                </div>
+                <LogoutButton action={onSignOut} variant="outline" className="w-full justify-center" />
+              </div>
             </SheetContent>
           </Sheet>
         </div>
