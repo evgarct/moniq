@@ -52,7 +52,7 @@ export function AccountCard({
         <div className="mt-4 grid gap-3 rounded-lg border border-border/70 bg-background/80 p-3 sm:grid-cols-2">
           <div>
             <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Allocated</p>
-            <MoneyAmount amount={allocatedTotal} currency={account.currency} className="mt-1 text-sm" />
+            <MoneyAmount amount={allocatedTotal} currency={account.currency} display="absolute" className="mt-1 text-sm" />
           </div>
           <div>
             <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Free money</p>

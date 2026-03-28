@@ -18,13 +18,14 @@ export function SavingsSummaryCard({
         <CardTitle>Savings summary</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-4 pt-4 sm:grid-cols-3">
-        <SummaryMetric label="Account balance" amount={balance} currency={currency} />
-        <SummaryMetric label="Allocated total" amount={allocated} currency={currency} />
+        <SummaryMetric label="Account balance" amount={balance} currency={currency} display="absolute" />
+        <SummaryMetric label="Allocated total" amount={allocated} currency={currency} display="absolute" />
         <SummaryMetric
           label="Free money"
           amount={freeMoney}
           currency={currency}
           tone={freeMoney <= 0 ? "negative" : "positive"}
+          display="signed"
         />
       </CardContent>
     </Card>
@@ -36,16 +37,18 @@ function SummaryMetric({
   amount,
   currency,
   tone = "default",
+  display = "signed",
 }: {
   label: string;
   amount: number;
   currency: string;
   tone?: "default" | "positive" | "negative";
+  display?: "absolute" | "signed";
 }) {
   return (
     <div className="space-y-2 rounded-lg bg-muted/40 p-3">
       <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
-      <MoneyAmount amount={amount} currency={currency} tone={tone} className="text-lg font-semibold" />
+      <MoneyAmount amount={amount} currency={currency} tone={tone} display={display} className="text-lg font-semibold" />
     </div>
   );
 }

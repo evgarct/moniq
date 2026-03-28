@@ -13,11 +13,11 @@ export function SummaryCard({
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="rounded-lg border border-border bg-background px-4 py-3">
           <p className="text-sm text-muted-foreground">Income</p>
-          <MoneyAmount amount={-income} className="mt-2 text-xl font-semibold" />
+          <MoneyAmount amount={income} display="absolute" tone="positive" className="mt-2 text-xl font-semibold" />
         </div>
         <div className="rounded-lg border border-border bg-background px-4 py-3">
           <p className="text-sm text-muted-foreground">Expenses</p>
-          <MoneyAmount amount={expenses} className="mt-2 text-xl font-semibold text-foreground" />
+          <MoneyAmount amount={expenses} display="absolute" className="mt-2 text-xl font-semibold text-foreground" />
         </div>
       </div>
     </SectionCard>

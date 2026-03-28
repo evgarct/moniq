@@ -38,8 +38,10 @@ export function TransactionRow({
 
       <div className="flex shrink-0 items-center gap-3">
         <MoneyAmount
-          amount={transaction.type === "income" ? -transaction.amount : transaction.amount}
+          amount={transaction.amount}
           currency={transaction.account.currency}
+          display="absolute"
+          tone={transaction.type === "income" ? "positive" : "default"}
           className="text-sm"
         />
         {action}
