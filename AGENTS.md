@@ -9,6 +9,7 @@ This version has breaking changes ? APIs, conventions, and file structure may al
 - When starting a new feature in this repo, first update from the latest remote `main`, then create a fresh feature branch from that current base.
 - Before opening a PR in this repo, update the relevant documentation first, then prepare the PR.
 - After finishing implementation work, always run the relevant local verification for this repo.
+- For wallet, allocation, and other finance-state mutations in this repo, keep invariants in pure domain helpers and cover them with node-level tests. Do not leave critical create/edit/delete rules only inside React component handlers.
 - After completing meaningful work in this repo, invoke the `instruction-retrospective` skill to review execution problems and update durable instructions.
 - In the final response, always include:
   - the PR link, if a PR exists
