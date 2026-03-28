@@ -131,16 +131,6 @@ export function AccountsView({
     [pending],
   );
 
-  if (!accounts.length) {
-    return (
-      <EmptyState
-        title="No wallets yet"
-        description="Create your first wallet to start organizing real balances in Supabase."
-        action={emptyAction}
-      />
-    );
-  }
-
   function openAddWallet(type: Account["type"] = "cash") {
     setActionError(null);
     setWalletSheetMode("add");
@@ -253,138 +243,146 @@ export function AccountsView({
 
   return (
     <>
-      <div className="grid h-full gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
-        <aside className="h-full overflow-auto">
-          <Surface tone="canvas" padding="md" className="h-full rounded-[26px]">
-            <div className="mb-5 flex items-start justify-between gap-3">
-              <div>
+      {accounts.length ? (
+        <div className="grid h-full gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
+          <aside className="h-full overflow-auto">
+            <Surface tone="canvas" padding="md" className="h-full rounded-[26px]">
+              <div className="mb-5 flex items-start justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-[18px] font-medium text-slate-900">Wallets</h2>
+                    <Button
+                      variant={walletsEditMode ? "default" : "ghost"}
+                      size="icon-sm"
+                      className="rounded-lg"
+                      onClick={() => setWalletsEditMode((current) => !current)}
+                      title={walletsEditMode ? "Finish editing wallets" : "Edit wallets"}
+                      aria-label={walletsEditMode ? "Finish editing wallets" : "Edit wallets"}
+                    >
+                      <PencilLine className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-[18px] font-medium text-slate-900">Wallets</h2>
-                  <Button
-                    variant={walletsEditMode ? "default" : "ghost"}
-                    size="icon-sm"
-                    className="rounded-lg"
-                    onClick={() => setWalletsEditMode((current) => !current)}
-                    title={walletsEditMode ? "Finish editing wallets" : "Edit wallets"}
-                    aria-label={walletsEditMode ? "Finish editing wallets" : "Edit wallets"}
-                  >
-                    <PencilLine className="h-4 w-4" />
-                  </Button>
+                  {selectedAccount ? (
+                    <Button
+                      variant="outline"
+                      size="icon-sm"
+                      className="rounded-xl bg-white"
+                      onClick={() => setSelectedAccountId(null)}
+                      title="Clear wallet filter"
+                      aria-label="Clear wallet filter"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  ) : null}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              {actionError ? (
+                <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] text-rose-700">
+                  {actionError}
+                </div>
+              ) : null}
+              <AccountList
+                accounts={accounts}
+                allocations={allocations}
+                selectedAccountId={selectedAccountId}
+                editing={walletsEditMode}
+                onSelect={(accountId) => setSelectedAccountId((current) => (current === accountId ? null : accountId))}
+                onAddAccount={openAddWallet}
+                onEditAccount={openEditWallet}
+                onDeleteAccount={handleDeleteWallet}
+                onAddSubgroup={(account) => {
+                  setSelectedAccountId(account.id);
+                  openAddSubgroup();
+                }}
+                onEditAllocation={(allocation) => {
+                  setSelectedAccountId(allocation.account_id);
+                  setEditingAllocation(allocation);
+                  setAllocationSheetOpen(true);
+                }}
+                onDeleteAllocation={handleDeleteAllocation}
+              />
+            </Surface>
+          </aside>
+
+          <section className="h-full overflow-auto space-y-4 pr-1">
+            <Surface tone="panel" padding="lg" className="flex flex-col gap-3">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex items-center gap-3">
+                  <div>
+                    <h1 className="text-[22px] font-medium text-slate-900">
+                      {selectedAccount ? selectedAccount.name : "All transactions"}
+                    </h1>
+                    <p className="mt-1 text-[12px] text-slate-500">
+                      {selectedAccount
+                        ? savingsMode
+                          ? "Filtered to one savings wallet. Subgroups stay in the left list."
+                          : `${getAccountTypeLabel(selectedAccount.type)} wallet activity.`
+                        : "Default register across every wallet in the workspace."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-4 text-[12px] text-slate-500">
+                {selectedCreatedAt ? (
+                  <div className="flex items-center gap-2">
+                    <CalendarRange className="h-4 w-4" />
+                    {new Date(selectedCreatedAt).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </div>
+                ) : null}
                 {selectedAccount ? (
-                  <Button
-                    variant="outline"
-                    size="icon-sm"
-                    className="rounded-xl bg-white"
-                    onClick={() => setSelectedAccountId(null)}
-                    title="Clear wallet filter"
-                    aria-label="Clear wallet filter"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <span>{getAccountTypeLabel(selectedAccount.type)}</span>
+                    <MoneyAmount
+                      amount={selectedBalance}
+                      currency={selectedAccount.currency}
+                      display={isDebtAccount(selectedAccount) ? "signed" : "absolute"}
+                      className="text-[13px] font-semibold text-slate-700"
+                    />
+                  </div>
+                ) : (
+                  <span>{transactions.length} transactions across all wallets</span>
+                )}
+                {selectedAccount && savingsMode ? (
+                  <span>
+                    {accountAllocations.length} subgroups,{" "}
+                    <MoneyAmount
+                      amount={getAllocatedTotalForAccount(allocations, selectedAccount.id)}
+                      currency={selectedAccount.currency}
+                      display="absolute"
+                      className="text-[13px] font-semibold text-slate-700"
+                    />{" "}
+                    allocated
+                  </span>
                 ) : null}
               </div>
-            </div>
-            {actionError ? (
-              <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] text-rose-700">
-                {actionError}
-              </div>
-            ) : null}
-            <AccountList
-              accounts={accounts}
-              allocations={allocations}
-              selectedAccountId={selectedAccountId}
-              editing={walletsEditMode}
-              onSelect={(accountId) => setSelectedAccountId((current) => (current === accountId ? null : accountId))}
-              onAddAccount={openAddWallet}
-              onEditAccount={openEditWallet}
-              onDeleteAccount={handleDeleteWallet}
-              onAddSubgroup={(account) => {
-                setSelectedAccountId(account.id);
-                openAddSubgroup();
-              }}
-              onEditAllocation={(allocation) => {
-                setSelectedAccountId(allocation.account_id);
-                setEditingAllocation(allocation);
-                setAllocationSheetOpen(true);
-              }}
-              onDeleteAllocation={handleDeleteAllocation}
-            />
-          </Surface>
-        </aside>
+            </Surface>
 
-        <section className="h-full overflow-auto space-y-4 pr-1">
-          <Surface tone="panel" padding="lg" className="flex flex-col gap-3">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex items-center gap-3">
-                <div>
-                  <h1 className="text-[22px] font-medium text-slate-900">
-                    {selectedAccount ? selectedAccount.name : "All transactions"}
-                  </h1>
-                  <p className="mt-1 text-[12px] text-slate-500">
-                    {selectedAccount
-                      ? savingsMode
-                        ? "Filtered to one savings wallet. Subgroups stay in the left list."
-                        : `${getAccountTypeLabel(selectedAccount.type)} wallet activity.`
-                      : "Default register across every wallet in the workspace."}
-                  </p>
-                </div>
-              </div>
+            <div className="space-y-3">
+              <p className="text-[13px] font-medium text-slate-700">
+                {selectedAccount ? "Filtered transaction register" : "Full transaction register"}
+              </p>
+              <TransactionList
+                transactions={register}
+                emptyMessage={selectedAccount ? "No transactions for this wallet." : "No transactions yet."}
+                compact
+              />
             </div>
-
-            <div className="flex flex-wrap items-center gap-4 text-[12px] text-slate-500">
-              {selectedCreatedAt ? (
-                <div className="flex items-center gap-2">
-                  <CalendarRange className="h-4 w-4" />
-                  {new Date(selectedCreatedAt).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                </div>
-              ) : null}
-              {selectedAccount ? (
-                <div className="flex items-center gap-2">
-                  <span>{getAccountTypeLabel(selectedAccount.type)}</span>
-                  <MoneyAmount
-                    amount={selectedBalance}
-                    currency={selectedAccount.currency}
-                    display={isDebtAccount(selectedAccount) ? "signed" : "absolute"}
-                    className="text-[13px] font-semibold text-slate-700"
-                  />
-                </div>
-              ) : (
-                <span>{transactions.length} transactions across all wallets</span>
-              )}
-              {selectedAccount && savingsMode ? (
-                <span>
-                  {accountAllocations.length} subgroups,{" "}
-                  <MoneyAmount
-                    amount={getAllocatedTotalForAccount(allocations, selectedAccount.id)}
-                    currency={selectedAccount.currency}
-                    display="absolute"
-                    className="text-[13px] font-semibold text-slate-700"
-                  />{" "}
-                  allocated
-                </span>
-              ) : null}
-            </div>
-          </Surface>
-
-          <div className="space-y-3">
-            <p className="text-[13px] font-medium text-slate-700">
-              {selectedAccount ? "Filtered transaction register" : "Full transaction register"}
-            </p>
-            <TransactionList
-              transactions={register}
-              emptyMessage={selectedAccount ? "No transactions for this wallet." : "No transactions yet."}
-              compact
-            />
-          </div>
-        </section>
-      </div>
+          </section>
+        </div>
+      ) : (
+        <EmptyState
+          title="No wallets yet"
+          description="Create your first wallet to start organizing real balances in Supabase."
+          action={emptyAction}
+        />
+      )}
 
       <AccountFormSheet
         open={walletSheetOpen}
