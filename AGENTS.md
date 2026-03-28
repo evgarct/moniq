@@ -10,6 +10,7 @@ This version has breaking changes ? APIs, conventions, and file structure may al
 - Before opening a PR in this repo, update the relevant documentation first, then prepare the PR.
 - After finishing implementation work, always run the relevant local verification for this repo.
 - For wallet, allocation, and other finance-state mutations in this repo, keep invariants in pure domain helpers and cover them with node-level tests. Do not leave critical create/edit/delete rules only inside React component handlers.
+- For finance runtime code in this repo, do not import mock wallet or transaction snapshots into app pages or live data hooks. Mocks are only for stories, tests, and isolated fixtures once a domain slice has moved to Supabase.
 - After completing meaningful work in this repo, invoke the `instruction-retrospective` skill to review execution problems and update durable instructions.
 - In the final response, always include:
   - the PR link, if a PR exists
