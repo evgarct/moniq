@@ -1,0 +1,53 @@
+"use client";
+
+import { eachDayOfInterval, endOfMonth, endOfWeek, format, startOfMonth, startOfWeek } from "date-fns";
+
+import { CalendarCell } from "@/components/calendar-cell";
+import type { Transaction } from "@/types/finance";
+
+const weekdayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+export function CalendarGrid({
+  month,
+  selectedDate,
+  transactions,
+  onSelectDate,
+}: {
+  month: Date;
+  selectedDate: Date;
+  transactions: Transaction[];
+  onSelectDate: (date: Date) => void;
+}) {
+  const days = eachDayOfInterval({
+    start: startOfWeek(startOfMonth(month), { weekStartsOn: 1 }),
+    end: endOfWeek(endOfMonth(month), { weekStartsOn: 1 }),
+  });
+
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-7 gap-2">
+        {weekdayLabels.map((day) => (
+          <div key={day} className="px-2 py-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            {day}
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-7 gap-2">
+        {days.map((day) => {
+          const count = transactions.filter((transaction) => transaction.date === format(day, "yyyy-MM-dd")).length;
+          return (
+            <CalendarCell
+              key={day.toISOString()}
+              date={day}
+              currentMonth={month}
+              selectedDate={selectedDate}
+              onSelect={onSelectDate}
+              indicatorCount={count}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+}
