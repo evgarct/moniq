@@ -3,6 +3,8 @@
 import { usePathname } from "next/navigation";
 import { Plus, Search } from "lucide-react";
 
+import type { AuthUser } from "@/types/auth";
+import { LogoutButton } from "@/features/auth/components/logout-button";
 import { PageContainer } from "@/components/page-container";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +16,13 @@ const titles: Record<string, string> = {
   "/accounts": "Accounts",
 };
 
-export function AppHeader() {
+export function AppHeader({
+  user,
+  onSignOut,
+}: {
+  user: AuthUser;
+  onSignOut: () => Promise<void>;
+}) {
   const pathname = usePathname();
   const title = titles[pathname] ?? "Moniq";
 
@@ -35,6 +43,13 @@ export function AppHeader() {
             <Plus className="h-4 w-4" />
             Add
           </Button>
+          <div className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2 sm:min-w-52">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium">{user.email}</p>
+              <p className="text-xs text-muted-foreground">Authenticated session</p>
+            </div>
+            <LogoutButton action={onSignOut} size="sm" label="Logout" />
+          </div>
         </div>
       </PageContainer>
     </header>
