@@ -17,7 +17,7 @@ export function AccountList({
   const debtAccounts = getDebtAccounts(accounts);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <AccountGroup
         title="Available Money"
         description="Real balances you can spend or reserve."
