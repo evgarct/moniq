@@ -1,3 +1,5 @@
+import { BanknoteArrowDown, CreditCard, Landmark, PiggyBank } from "lucide-react";
+
 import { MoneyAmount } from "@/components/money-amount";
 import { getFreeMoney } from "@/features/allocations/lib/allocation-utils";
 import { isDebtAccount } from "@/features/accounts/lib/account-utils";
@@ -25,23 +27,40 @@ export function AccountCard({
           ? "cash wallet"
           : "debit card"
         : account.type.replace("_", " ");
+  const AccountIcon =
+    account.type === "saving"
+      ? PiggyBank
+      : account.type === "credit_card"
+        ? CreditCard
+        : account.type === "debt"
+          ? Landmark
+          : BanknoteArrowDown;
+  const freeMoneyLabel =
+    account.type === "saving" && freeMoney !== null ? `Free ${Math.round(freeMoney)} ${account.currency}` : null;
+  const tooltip = freeMoneyLabel ? `${detailLabel} - ${freeMoneyLabel}` : detailLabel;
 
   return (
     <button
       type="button"
       onClick={onSelect}
+      title={tooltip}
       className={cn(
-        "w-full rounded-2xl px-3 py-3 text-left transition-colors",
+        "relative w-full rounded-2xl px-3 py-3 text-left transition-colors",
         selected ? "bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05)]" : "hover:bg-white/70",
       )}
     >
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <p className="truncate text-[14px] font-medium text-slate-900">{account.name}</p>
-          <p className="mt-1 text-[11px] text-slate-500">
-            {detailLabel}
-            {account.type === "saving" && freeMoney !== null ? ` - Free ${Math.round(freeMoney)} ${account.currency}` : ""}
-          </p>
+      <span
+        className={cn(
+          "absolute inset-y-2 left-0 w-1 rounded-full transition-colors",
+          selected ? "bg-slate-700/70" : "bg-transparent",
+        )}
+      />
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-white/80 text-slate-500">
+            <AccountIcon className="h-4 w-4" />
+          </div>
+          <p className="truncate pr-2 text-[14px] font-medium text-slate-900">{account.name}</p>
         </div>
 
         <MoneyAmount
@@ -49,7 +68,7 @@ export function AccountCard({
           currency={account.currency}
           display={debt ? "signed" : "absolute"}
           tone={debt ? "negative" : "default"}
-          className="text-[14px] font-semibold text-slate-900"
+          className="shrink-0 text-[14px] font-semibold tabular-nums text-slate-900"
         />
       </div>
     </button>

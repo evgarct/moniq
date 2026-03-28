@@ -12,11 +12,15 @@ export function AccountList({
   allocations,
   selectedAccountId,
   onSelect,
+  onEditAllocation,
+  onDeleteAllocation,
 }: {
   accounts: Account[];
   allocations: Allocation[];
-  selectedAccountId: string;
+  selectedAccountId: string | null;
   onSelect: (accountId: string) => void;
+  onEditAllocation?: (allocation: Allocation) => void;
+  onDeleteAllocation?: (allocation: Allocation) => void;
 }) {
   const cashAccounts = getCashAccounts(accounts);
   const savingAccounts = getSavingAccounts(accounts);
@@ -27,7 +31,6 @@ export function AccountList({
     <div className="space-y-6">
       <AccountGroup
         title="Cash"
-        description="Debit cards and cash wallets you can spend from directly."
         accounts={cashAccounts}
         allocations={allocations}
         selectedAccountId={selectedAccountId}
@@ -35,15 +38,15 @@ export function AccountList({
       />
       <AccountGroup
         title="Savings"
-        description="Savings wallets hold money first, then split it into subgroups."
         accounts={savingAccounts}
         allocations={allocations}
         selectedAccountId={selectedAccountId}
         onSelect={onSelect}
+        onEditAllocation={onEditAllocation}
+        onDeleteAllocation={onDeleteAllocation}
       />
       <AccountGroup
         title="Credit Cards"
-        description="Direct spend wallets with a card balance. Advanced handling comes later."
         accounts={creditCardAccounts}
         allocations={allocations}
         selectedAccountId={selectedAccountId}
@@ -51,7 +54,6 @@ export function AccountList({
       />
       <AccountGroup
         title="Debt"
-        description="Loans, mortgages, and other debt balances tracked in the model."
         accounts={debtAccounts}
         allocations={allocations}
         selectedAccountId={selectedAccountId}
