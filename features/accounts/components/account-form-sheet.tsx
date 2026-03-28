@@ -5,12 +5,21 @@ import { useEffect } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 
+import {
+  DEFAULT_CURRENCY_CODE,
+  PRIMARY_CURRENCIES,
+  SECONDARY_CURRENCIES,
+  SUPPORTED_CURRENCY_CODES,
+} from "@/lib/currencies";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -22,13 +31,14 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import type { CurrencyCode } from "@/types/currency";
 import type { Account, AccountType, DebtKind } from "@/types/finance";
 
 const accountFormSchema = z.object({
   name: z.string().trim().min(1, "Wallet name is required."),
   type: z.enum(["cash", "saving", "credit_card", "debt"] satisfies [AccountType, ...AccountType[]]),
   balance: z.number(),
-  currency: z.string().trim().min(3).max(3),
+  currency: z.enum(SUPPORTED_CURRENCY_CODES),
   debt_kind: z.enum(["loan", "mortgage", "personal"] satisfies [DebtKind, ...DebtKind[]]).optional(),
 });
 
@@ -56,7 +66,7 @@ export function AccountFormSheet({
       name: account?.name ?? "",
       type: account?.type ?? initialType ?? "cash",
       balance: account?.balance ?? 0,
-      currency: account?.currency ?? "USD",
+      currency: account?.currency ?? DEFAULT_CURRENCY_CODE,
       debt_kind: account?.debt_kind ?? undefined,
     },
   });
@@ -66,7 +76,7 @@ export function AccountFormSheet({
       name: account?.name ?? "",
       type: account?.type ?? initialType ?? "cash",
       balance: account?.balance ?? 0,
-      currency: account?.currency ?? "USD",
+      currency: account?.currency ?? DEFAULT_CURRENCY_CODE,
       debt_kind: account?.debt_kind ?? undefined,
     });
   }, [account, form, initialType, open]);
@@ -91,7 +101,7 @@ export function AccountFormSheet({
           onSubmit={form.handleSubmit((values) => {
             onSubmit({
               ...values,
-              currency: values.currency.toUpperCase(),
+              currency: values.currency,
               debt_kind: values.type === "debt" ? values.debt_kind ?? "personal" : undefined,
             });
             onOpenChange(false);
@@ -165,10 +175,41 @@ export function AccountFormSheet({
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="wallet-currency">
+                <label className="text-sm font-medium">
                   Currency
                 </label>
-                <Input id="wallet-currency" maxLength={3} {...form.register("currency")} />
+                <Controller
+                  control={form.control}
+                  name="currency"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={(value) => field.onChange(value as CurrencyCode)}>
+                      <SelectTrigger className="w-full bg-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectLabel>Primary currencies</SelectLabel>
+                          {PRIMARY_CURRENCIES.map((currency) => (
+                            <SelectItem key={currency.code} value={currency.code}>
+                              <span>{currency.code}</span>
+                              <span className="text-muted-foreground">{currency.name}</span>
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                        <SelectSeparator />
+                        <SelectGroup>
+                          <SelectLabel>Other major currencies</SelectLabel>
+                          {SECONDARY_CURRENCIES.map((currency) => (
+                            <SelectItem key={currency.code} value={currency.code}>
+                              <span>{currency.code}</span>
+                              <span className="text-muted-foreground">{currency.name}</span>
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
             </div>
           </div>

@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { getFreeMoney } from "@/features/allocations/lib/allocation-utils";
+import type { CurrencyCode } from "@/types/currency";
 import type { Account, Allocation } from "@/types/finance";
 
 export function AccountGroup({
@@ -151,7 +152,7 @@ function SavingChildRow({
 }: {
   label: string;
   amount: number;
-  currency: string;
+  currency: CurrencyCode;
   tooltip: string;
   editing?: boolean;
   actions?: React.ReactNode;

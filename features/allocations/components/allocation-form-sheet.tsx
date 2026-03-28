@@ -15,6 +15,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { formatMoney } from "@/lib/formatters";
+import type { CurrencyCode } from "@/types/currency";
 import type { Allocation } from "@/types/finance";
 
 const allocationFormSchema = z.object({
@@ -36,7 +38,7 @@ export function AllocationFormSheet({
 }: {
   open: boolean;
   mode: "add" | "edit";
-  currency: string;
+  currency: CurrencyCode;
   freeMoney: number;
   allocation?: Allocation | null;
   onOpenChange: (open: boolean) => void;
@@ -92,7 +94,7 @@ export function AllocationFormSheet({
             <div className="rounded-lg border border-border bg-muted/40 px-3 py-3">
               <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Projected free money</p>
               <p className="mt-2 font-mono text-lg font-semibold">
-                {new Intl.NumberFormat("en-US", { style: "currency", currency }).format(projectedFreeMoney)}
+                {formatMoney(projectedFreeMoney, currency)}
               </p>
             </div>
 

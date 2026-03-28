@@ -1,5 +1,6 @@
 import { MoneyAmount } from "@/components/money-amount";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { CurrencyCode } from "@/types/currency";
 
 export function SavingsSummaryCard({
   balance,
@@ -10,7 +11,7 @@ export function SavingsSummaryCard({
   balance: number;
   allocated: number;
   freeMoney: number;
-  currency: string;
+  currency: CurrencyCode;
 }) {
   return (
     <Card className="border border-border shadow-none">
@@ -41,7 +42,7 @@ function SummaryMetric({
 }: {
   label: string;
   amount: number;
-  currency: string;
+  currency: CurrencyCode;
   tone?: "default" | "positive" | "negative";
   display?: "absolute" | "signed";
 }) {

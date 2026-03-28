@@ -32,6 +32,17 @@ export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("Savings")).toBeInTheDocument();
-    await expect(canvas.getByText("Rainy Day Savings")).toBeInTheDocument();
+    await expect(canvas.getByText("Euro Reserve")).toBeInTheDocument();
+  },
+};
+
+export const Multicurrency: Story = {
+  args: {
+    selectedAccountId: "everyday",
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("Prague Everyday Card")).toBeInTheDocument();
+    await expect(canvas.getByText("Ruble Credit Card")).toBeInTheDocument();
   },
 };

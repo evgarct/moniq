@@ -20,6 +20,7 @@ import {
   saveAllocation,
 } from "@/features/allocations/lib/allocation-utils";
 import { getTransactionsForAccount } from "@/lib/finance-selectors";
+import type { CurrencyCode } from "@/types/currency";
 import type { Account, Allocation, Transaction } from "@/types/finance";
 
 export function AccountsView({
@@ -92,7 +93,7 @@ export function AccountsView({
     name: string;
     type: Account["type"];
     balance: number;
-    currency: string;
+    currency: CurrencyCode;
     debt_kind?: Account["debt_kind"];
   }) {
     const result = saveAccount({

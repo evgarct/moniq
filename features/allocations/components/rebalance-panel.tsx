@@ -16,6 +16,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import type { CurrencyCode } from "@/types/currency";
 import type { Allocation } from "@/types/finance";
 
 const rebalanceSchema = z.object({
@@ -43,7 +44,7 @@ export function RebalancePanel({
   open: boolean;
   accountName: string;
   balance: number;
-  currency: string;
+  currency: CurrencyCode;
   allocations: Allocation[];
   onOpenChange: (open: boolean) => void;
   onSubmit: (allocations: Allocation[]) => void;

@@ -8,7 +8,11 @@ import { BalanceCard } from "@/features/dashboard/components/balance-card";
 import { RecentTransactions } from "@/features/dashboard/components/recent-transactions";
 import { SummaryCard } from "@/features/dashboard/components/summary-card";
 import { mockFinanceSnapshot } from "@/lib/mock-finance";
-import { getIncomeExpenseSummary, getRecentTransactions, getTotalBalance } from "@/lib/finance-selectors";
+import {
+  getIncomeExpenseSummaryByCurrency,
+  getRecentTransactions,
+  getTotalBalanceByCurrency,
+} from "@/lib/finance-selectors";
 import type { AuthUser } from "@/types/auth";
 import type { FinanceSnapshot } from "@/types/finance";
 
@@ -53,13 +57,13 @@ export function StoryWorkspace({
 
 export function DashboardStoryPage() {
   const snapshot = makeFinanceSnapshot();
-  const summary = getIncomeExpenseSummary(snapshot.transactions);
+  const summary = getIncomeExpenseSummaryByCurrency(snapshot.transactions);
 
   return (
     <PageContainer className="space-y-6">
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <BalanceCard totalBalance={getTotalBalance(snapshot.accounts)} />
-        <SummaryCard income={summary.income} expenses={summary.expenses} />
+        <BalanceCard totals={getTotalBalanceByCurrency(snapshot.accounts)} />
+        <SummaryCard summary={summary} />
       </div>
       <RecentTransactions transactions={getRecentTransactions(snapshot)} />
     </PageContainer>

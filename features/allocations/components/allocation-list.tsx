@@ -1,5 +1,6 @@
 import { EmptyState } from "@/components/empty-state";
 import { AllocationItem } from "@/features/allocations/components/allocation-item";
+import type { CurrencyCode } from "@/types/currency";
 import type { Allocation } from "@/types/finance";
 
 export function AllocationList({
@@ -9,7 +10,7 @@ export function AllocationList({
   onDelete,
 }: {
   allocations: Allocation[];
-  currency: string;
+  currency: CurrencyCode;
   onEdit: (allocation: Allocation) => void;
   onDelete?: (allocation: Allocation) => void;
 }) {

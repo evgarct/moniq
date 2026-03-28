@@ -2,6 +2,7 @@ import { PencilLine, Trash2 } from "lucide-react";
 
 import { MoneyAmount } from "@/components/money-amount";
 import { Button } from "@/components/ui/button";
+import type { CurrencyCode } from "@/types/currency";
 import type { Allocation } from "@/types/finance";
 
 export function AllocationItem({
@@ -11,7 +12,7 @@ export function AllocationItem({
   onDelete,
 }: {
   allocation: Allocation;
-  currency: string;
+  currency: CurrencyCode;
   onEdit: (allocation: Allocation) => void;
   onDelete?: (allocation: Allocation) => void;
 }) {

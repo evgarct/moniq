@@ -1,15 +1,16 @@
 import { formatMoney } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
+import type { CurrencyCode } from "@/types/currency";
 
 export function MoneyAmount({
   amount,
-  currency = "USD",
+  currency = "EUR",
   tone = "default",
   display = "signed",
   className,
 }: {
   amount: number;
-  currency?: string;
+  currency?: CurrencyCode;
   tone?: "default" | "muted" | "positive" | "negative";
   display?: "absolute" | "signed";
   className?: string;

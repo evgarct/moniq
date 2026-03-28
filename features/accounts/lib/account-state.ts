@@ -1,11 +1,13 @@
+import { normalizeCurrencyCode } from "@/lib/currencies";
 import { createClientId } from "@/lib/utils";
+import type { CurrencyCode } from "@/types/currency";
 import type { Account, Allocation, CashKind, DebtKind, Transaction } from "@/types/finance";
 
 export type AccountDraftValues = {
   name: string;
   type: Account["type"];
   balance: number;
-  currency: string;
+  currency: CurrencyCode;
   debt_kind?: DebtKind | null;
 };
 
@@ -66,7 +68,7 @@ export function createAccount({
     name: values.name,
     type: values.type,
     balance: normalizeAccountBalance(values.type, values.balance),
-    currency: values.currency,
+    currency: normalizeCurrencyCode(values.currency),
     created_at: now,
     cash_kind: getDefaultCashKind(values.type),
     debt_kind: getDefaultDebtKind(values.type, null, values.debt_kind),
@@ -79,7 +81,7 @@ export function updateAccount(account: Account, values: AccountDraftValues): Acc
     name: values.name,
     type: values.type,
     balance: normalizeAccountBalance(values.type, values.balance),
-    currency: values.currency,
+    currency: normalizeCurrencyCode(values.currency),
     cash_kind: getDefaultCashKind(values.type, account.cash_kind ?? null),
     debt_kind: getDefaultDebtKind(values.type, account.debt_kind ?? null, values.debt_kind),
   };
