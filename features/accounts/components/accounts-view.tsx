@@ -13,7 +13,6 @@ import { getAccountTypeLabel, isDebtAccount, isSavingsAccount } from "@/features
 import { AllocationFormSheet } from "@/features/allocations/components/allocation-form-sheet";
 import { AllocationList } from "@/features/allocations/components/allocation-list";
 import {
-  getAllocatedTotalForAccount,
   getAllocationsForAccount,
   getFreeMoney,
 } from "@/features/allocations/lib/allocation-utils";
