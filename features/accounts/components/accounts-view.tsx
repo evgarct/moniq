@@ -6,6 +6,7 @@ import { CalendarRange, Ellipsis, PencilLine, Plus, Trash2, X } from "lucide-rea
 import { AccountList } from "@/components/account-list";
 import { EmptyState } from "@/components/empty-state";
 import { MoneyAmount } from "@/components/money-amount";
+import { Surface } from "@/components/surface";
 import { TransactionList } from "@/components/transaction-list";
 import { Button } from "@/components/ui/button";
 import {
@@ -203,84 +204,86 @@ export function AccountsView({
   return (
     <>
       <div className="grid h-full gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
-        <aside className="h-full overflow-auto rounded-[26px] bg-[#f3efeb] p-4">
-          <div className="mb-5 flex items-start justify-between gap-3">
-            <div>
-              <h2 className="text-[18px] font-medium text-slate-900">Wallets</h2>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                size="icon-sm"
-                className="rounded-xl bg-emerald-600 text-white hover:bg-emerald-700"
-                onClick={openAddWallet}
-                title="Add wallet"
-                aria-label="Add wallet"
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger
-                  render={
-                    <Button
-                      variant="outline"
-                      size="icon-sm"
-                      className="rounded-xl bg-white"
-                      aria-label="More account actions"
-                    />
-                  }
+        <aside className="h-full overflow-auto">
+          <Surface tone="canvas" padding="md" className="h-full rounded-[26px]">
+            <div className="mb-5 flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-[18px] font-medium text-slate-900">Wallets</h2>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="icon-sm"
+                  className="rounded-xl bg-emerald-600 text-white hover:bg-emerald-700"
+                  onClick={openAddWallet}
+                  title="Add wallet"
+                  aria-label="Add wallet"
                 >
-                  <Ellipsis className="h-4 w-4" />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-44 rounded-xl bg-white p-1.5" align="end">
-                  {savingsMode ? (
-                    <DropdownMenuItem className="rounded-lg px-2 py-2 text-[13px]" onClick={openAddSubgroup}>
-                      <Plus className="h-4 w-4" />
-                      Add subgroup
-                    </DropdownMenuItem>
-                  ) : null}
-                  {selectedAccount ? (
-                    <DropdownMenuItem className="rounded-lg px-2 py-2 text-[13px]" onClick={openEditWallet}>
-                      <PencilLine className="h-4 w-4" />
-                      Edit wallet
-                    </DropdownMenuItem>
-                  ) : null}
-                  {selectedAccount ? (
-                    <DropdownMenuItem
-                      className="rounded-lg px-2 py-2 text-[13px]"
-                      variant="destructive"
-                      onClick={handleDeleteWallet}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Delete wallet
-                    </DropdownMenuItem>
-                  ) : null}
-                  {selectedAccount ? <DropdownMenuSeparator /> : null}
-                  {selectedAccount ? (
-                    <DropdownMenuItem className="rounded-lg px-2 py-2 text-[13px]" onClick={() => setSelectedAccountId(null)}>
-                      <X className="h-4 w-4" />
-                      Show all transactions
-                    </DropdownMenuItem>
-                  ) : null}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                  <Plus className="h-4 w-4" />
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    render={
+                      <Button
+                        variant="outline"
+                        size="icon-sm"
+                        className="rounded-xl bg-white"
+                        aria-label="More account actions"
+                      />
+                    }
+                  >
+                    <Ellipsis className="h-4 w-4" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-44 rounded-xl bg-white p-1.5" align="end">
+                    {savingsMode ? (
+                      <DropdownMenuItem className="rounded-lg px-2 py-2 text-[13px]" onClick={openAddSubgroup}>
+                        <Plus className="h-4 w-4" />
+                        Add subgroup
+                      </DropdownMenuItem>
+                    ) : null}
+                    {selectedAccount ? (
+                      <DropdownMenuItem className="rounded-lg px-2 py-2 text-[13px]" onClick={openEditWallet}>
+                        <PencilLine className="h-4 w-4" />
+                        Edit wallet
+                      </DropdownMenuItem>
+                    ) : null}
+                    {selectedAccount ? (
+                      <DropdownMenuItem
+                        className="rounded-lg px-2 py-2 text-[13px]"
+                        variant="destructive"
+                        onClick={handleDeleteWallet}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Delete wallet
+                      </DropdownMenuItem>
+                    ) : null}
+                    {selectedAccount ? <DropdownMenuSeparator /> : null}
+                    {selectedAccount ? (
+                      <DropdownMenuItem className="rounded-lg px-2 py-2 text-[13px]" onClick={() => setSelectedAccountId(null)}>
+                        <X className="h-4 w-4" />
+                        Show all transactions
+                      </DropdownMenuItem>
+                    ) : null}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
-          </div>
-          <AccountList
-            accounts={draftAccounts}
-            allocations={draftAllocations}
-            selectedAccountId={selectedAccountId}
-            onSelect={(accountId) => setSelectedAccountId((current) => (current === accountId ? null : accountId))}
-            onEditAllocation={(allocation) => {
-              setSelectedAccountId(allocation.account_id);
-              setEditingAllocation(allocation);
-              setAllocationSheetOpen(true);
-            }}
-            onDeleteAllocation={handleDeleteAllocation}
-          />
+            <AccountList
+              accounts={draftAccounts}
+              allocations={draftAllocations}
+              selectedAccountId={selectedAccountId}
+              onSelect={(accountId) => setSelectedAccountId((current) => (current === accountId ? null : accountId))}
+              onEditAllocation={(allocation) => {
+                setSelectedAccountId(allocation.account_id);
+                setEditingAllocation(allocation);
+                setAllocationSheetOpen(true);
+              }}
+              onDeleteAllocation={handleDeleteAllocation}
+            />
+          </Surface>
         </aside>
 
         <section className="h-full overflow-auto space-y-4 pr-1">
-          <div className="flex flex-col gap-3 rounded-[24px] bg-[#f7f3ef] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]">
+          <Surface tone="panel" padding="lg" className="flex flex-col gap-3">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex items-center gap-3">
                 <div>
@@ -341,7 +344,7 @@ export function AccountsView({
                 <span>{accountAllocations.length} subgroups in left rail</span>
               ) : null}
             </div>
-          </div>
+          </Surface>
 
           <div className="space-y-3">
             <p className="text-[13px] font-medium text-slate-700">
