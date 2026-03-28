@@ -24,6 +24,7 @@ import {
   getFreeMoney,
 } from "@/features/allocations/lib/allocation-utils";
 import { getTransactionsForAccount } from "@/lib/finance-selectors";
+import { createClientId } from "@/lib/utils";
 import type { Account, Allocation, Transaction } from "@/types/finance";
 
 export function AccountsView({
@@ -124,7 +125,7 @@ export function AccountsView({
     }
 
     const createdAccount: Account = {
-      id: `wallet-${crypto.randomUUID()}`,
+      id: createClientId("wallet"),
       user_id: baseUserId,
       name: values.name,
       type: values.type,
@@ -183,7 +184,7 @@ export function AccountsView({
     setDraftAllocations((current) => [
       ...current,
       {
-        id: `allocation-${crypto.randomUUID()}`,
+        id: createClientId("allocation"),
         user_id: selectedAccount.user_id,
         account_id: selectedAccount.id,
         name: values.name,
