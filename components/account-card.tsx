@@ -1,6 +1,13 @@
-import { BanknoteArrowDown, CreditCard, Landmark, PiggyBank } from "lucide-react";
+import { BanknoteArrowDown, CreditCard, Ellipsis, Landmark, PencilLine, PiggyBank, Plus, Trash2 } from "lucide-react";
 
 import { MoneyAmount } from "@/components/money-amount";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { getFreeMoney } from "@/features/allocations/lib/allocation-utils";
 import { isDebtAccount } from "@/features/accounts/lib/account-utils";
 import { cn } from "@/lib/utils";
@@ -11,11 +18,19 @@ export function AccountCard({
   allocations,
   selected = false,
   onSelect,
+  editing = false,
+  onEdit,
+  onDelete,
+  onAddSubgroup,
 }: {
   account: Account;
   allocations: Allocation[];
   selected?: boolean;
   onSelect?: () => void;
+  editing?: boolean;
+  onEdit?: (account: Account) => void;
+  onDelete?: (account: Account) => void;
+  onAddSubgroup?: (account: Account) => void;
 }) {
   const freeMoney = account.type === "saving" ? getFreeMoney(account.balance, allocations, account.id) : null;
   const debt = isDebtAccount(account);
@@ -40,12 +55,10 @@ export function AccountCard({
   const tooltip = freeMoneyLabel ? `${detailLabel} - ${freeMoneyLabel}` : detailLabel;
 
   return (
-    <button
-      type="button"
-      onClick={onSelect}
+    <div
       title={tooltip}
       className={cn(
-        "relative w-full rounded-2xl px-3 py-3 text-left transition-colors",
+        "relative flex items-center gap-2 rounded-2xl px-3 py-3 transition-colors",
         selected ? "bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05)]" : "hover:bg-white/70",
       )}
     >
@@ -55,7 +68,11 @@ export function AccountCard({
           selected ? "bg-slate-700/70" : "bg-transparent",
         )}
       />
-      <div className="flex items-center justify-between gap-4">
+      <button
+        type="button"
+        onClick={onSelect}
+        className="flex min-w-0 flex-1 items-center justify-between gap-4 text-left"
+      >
         <div className="flex min-w-0 items-center gap-3">
           <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-white/80 text-slate-500">
             <AccountIcon className="h-4 w-4" />
@@ -70,7 +87,47 @@ export function AccountCard({
           tone={debt ? "negative" : "default"}
           className="shrink-0 text-[14px] font-semibold tabular-nums text-slate-900"
         />
-      </div>
-    </button>
+      </button>
+      {editing && (onEdit || onDelete || (account.type === "saving" && onAddSubgroup)) ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="shrink-0 rounded-lg text-slate-400 hover:bg-white hover:text-slate-700"
+                aria-label={`More actions for ${account.name}`}
+              />
+            }
+          >
+            <Ellipsis className="h-4 w-4" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-40 rounded-xl bg-white p-1.5">
+            {account.type === "saving" && onAddSubgroup ? (
+              <DropdownMenuItem className="rounded-lg px-2 py-2 text-[13px]" onClick={() => onAddSubgroup(account)}>
+                <Plus className="h-4 w-4" />
+                Add subgroup
+              </DropdownMenuItem>
+            ) : null}
+            {onEdit ? (
+              <DropdownMenuItem className="rounded-lg px-2 py-2 text-[13px]" onClick={() => onEdit(account)}>
+                <PencilLine className="h-4 w-4" />
+                Edit wallet
+              </DropdownMenuItem>
+            ) : null}
+            {onDelete ? (
+              <DropdownMenuItem
+                className="rounded-lg px-2 py-2 text-[13px]"
+                variant="destructive"
+                onClick={() => onDelete(account)}
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete wallet
+              </DropdownMenuItem>
+            ) : null}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : null}
+    </div>
   );
 }

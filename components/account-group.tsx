@@ -1,4 +1,4 @@
-import { Ellipsis, PencilLine, Trash2 } from "lucide-react";
+import { Ellipsis, PencilLine, Plus, Trash2 } from "lucide-react";
 
 import { AccountCard } from "@/components/account-card";
 import { EmptyState } from "@/components/empty-state";
@@ -18,7 +18,12 @@ export function AccountGroup({
   accounts,
   allocations,
   selectedAccountId,
+  editing = false,
   onSelect,
+  onAddAccount,
+  onEditAccount,
+  onDeleteAccount,
+  onAddSubgroup,
   onEditAllocation,
   onDeleteAllocation,
 }: {
@@ -26,14 +31,31 @@ export function AccountGroup({
   accounts: Account[];
   allocations: Allocation[];
   selectedAccountId: string | null;
+  editing?: boolean;
   onSelect: (accountId: string) => void;
+  onAddAccount?: () => void;
+  onEditAccount?: (account: Account) => void;
+  onDeleteAccount?: (account: Account) => void;
+  onAddSubgroup?: (account: Account) => void;
   onEditAllocation?: (allocation: Allocation) => void;
   onDeleteAllocation?: (allocation: Allocation) => void;
 }) {
   return (
     <section className="space-y-2">
-      <div className="border-b border-black/5 pb-1.5">
+      <div className="flex items-center justify-between gap-3 border-b border-black/5 pb-1.5">
         <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">{title}</h3>
+        {editing && onAddAccount ? (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="rounded-lg text-slate-400 hover:bg-white hover:text-slate-700"
+            aria-label={`Add ${title} wallet`}
+            title={`Add ${title} wallet`}
+            onClick={onAddAccount}
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        ) : null}
       </div>
 
       {accounts.length ? (
@@ -44,7 +66,11 @@ export function AccountGroup({
                 account={account}
                 allocations={allocations}
                 selected={account.id === selectedAccountId}
+                editing={editing}
                 onSelect={() => onSelect(account.id)}
+                onEdit={onEditAccount}
+                onDelete={onDeleteAccount}
+                onAddSubgroup={onAddSubgroup}
               />
               {account.type === "saving" ? (
                 <div className="ml-11 space-y-1 border-l border-black/5 pl-3">
@@ -53,6 +79,7 @@ export function AccountGroup({
                     amount={Math.max(0, getFreeMoney(account.balance, allocations, account.id))}
                     currency={account.currency}
                     tooltip="System remainder for savings without a subgroup."
+                    editing={false}
                   />
                   {allocations
                     .filter((allocation) => allocation.account_id === account.id)
@@ -63,8 +90,9 @@ export function AccountGroup({
                         amount={allocation.amount}
                         currency={account.currency}
                         tooltip={`Saving subgroup inside ${account.name}`}
+                        editing={editing}
                         actions={
-                          onEditAllocation || onDeleteAllocation ? (
+                          editing && (onEditAllocation || onDeleteAllocation) ? (
                             <DropdownMenu>
                               <DropdownMenuTrigger
                                 render={
@@ -118,12 +146,14 @@ function SavingChildRow({
   amount,
   currency,
   tooltip,
+  editing,
   actions,
 }: {
   label: string;
   amount: number;
   currency: string;
   tooltip: string;
+  editing?: boolean;
   actions?: React.ReactNode;
 }) {
   return (
@@ -134,7 +164,7 @@ function SavingChildRow({
       <p className="truncate text-[13px] text-slate-600">{label}</p>
       <div className="flex items-center gap-1">
         <MoneyAmount amount={amount} currency={currency} display="absolute" className="text-[12px] font-medium text-slate-700" />
-        {actions ? <div className="opacity-0 transition-opacity group-hover:opacity-100">{actions}</div> : null}
+        {editing && actions ? <div className="opacity-0 transition-opacity group-hover:opacity-100">{actions}</div> : null}
       </div>
     </div>
   );

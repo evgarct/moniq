@@ -39,12 +39,14 @@ export function AccountFormSheet({
   open,
   mode,
   account,
+  initialType,
   onOpenChange,
   onSubmit,
 }: {
   open: boolean;
   mode: "add" | "edit";
   account?: Account | null;
+  initialType?: Account["type"];
   onOpenChange: (open: boolean) => void;
   onSubmit: (values: AccountFormValues) => void;
 }) {
@@ -52,7 +54,7 @@ export function AccountFormSheet({
     resolver: zodResolver(accountFormSchema),
     defaultValues: {
       name: account?.name ?? "",
-      type: account?.type ?? "cash",
+      type: account?.type ?? initialType ?? "cash",
       balance: account?.balance ?? 0,
       currency: account?.currency ?? "USD",
       debt_kind: account?.debt_kind ?? undefined,
@@ -62,12 +64,12 @@ export function AccountFormSheet({
   useEffect(() => {
     form.reset({
       name: account?.name ?? "",
-      type: account?.type ?? "cash",
+      type: account?.type ?? initialType ?? "cash",
       balance: account?.balance ?? 0,
       currency: account?.currency ?? "USD",
       debt_kind: account?.debt_kind ?? undefined,
     });
-  }, [account, form, open]);
+  }, [account, form, initialType, open]);
 
   const type = useWatch({
     control: form.control,

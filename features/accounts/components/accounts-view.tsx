@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarRange, Ellipsis, PencilLine, Plus, Trash2, X } from "lucide-react";
+import { CalendarRange, PencilLine, Plus, X } from "lucide-react";
 
 import { AccountList } from "@/components/account-list";
 import { EmptyState } from "@/components/empty-state";
@@ -9,13 +9,6 @@ import { MoneyAmount } from "@/components/money-amount";
 import { Surface } from "@/components/surface";
 import { TransactionList } from "@/components/transaction-list";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { AccountFormSheet } from "@/features/accounts/components/account-form-sheet";
 import { deleteAccount, saveAccount } from "@/features/accounts/lib/account-state";
 import { getAccountTypeLabel, isDebtAccount, isSavingsAccount } from "@/features/accounts/lib/account-utils";
@@ -46,6 +39,8 @@ export function AccountsView({
   const [walletSheetOpen, setWalletSheetOpen] = useState(false);
   const [walletSheetMode, setWalletSheetMode] = useState<"add" | "edit">("add");
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
+  const [draftWalletType, setDraftWalletType] = useState<Account["type"]>("cash");
+  const [walletsEditMode, setWalletsEditMode] = useState(false);
   const [allocationSheetOpen, setAllocationSheetOpen] = useState(false);
   const [editingAllocation, setEditingAllocation] = useState<Allocation | null>(null);
 
@@ -79,15 +74,17 @@ export function AccountsView({
     );
   }
 
-  function openAddWallet() {
+  function openAddWallet(type: Account["type"] = "cash") {
     setWalletSheetMode("add");
     setEditingAccount(null);
+    setDraftWalletType(type);
     setWalletSheetOpen(true);
   }
 
-  function openEditWallet() {
+  function openEditWallet(account: Account) {
     setWalletSheetMode("edit");
-    setEditingAccount(selectedAccount);
+    setEditingAccount(account);
+    setDraftWalletType(account.type);
     setWalletSheetOpen(true);
   }
 
@@ -116,12 +113,12 @@ export function AccountsView({
     setSelectedAccountId(result.account.id);
   }
 
-  function handleDeleteWallet() {
-    if (!selectedAccount) {
+  function handleDeleteWallet(account: Account) {
+    if (!account) {
       return;
     }
 
-    if (!window.confirm(`Delete wallet "${selectedAccount.name}"?`)) {
+    if (!window.confirm(`Delete wallet "${account.name}"?`)) {
       return;
     }
 
@@ -131,12 +128,12 @@ export function AccountsView({
         allocations: draftAllocations,
         transactions: draftTransactions,
       },
-      selectedAccount.id,
+      account.id,
     );
     setDraftAccounts(nextSnapshot.accounts);
     setDraftAllocations(nextSnapshot.allocations);
     setDraftTransactions(nextSnapshot.transactions);
-    setSelectedAccountId(null);
+    setSelectedAccountId((current) => (current === account.id ? null : current));
   }
 
   function openAddSubgroup() {
@@ -183,70 +180,48 @@ export function AccountsView({
           <Surface tone="canvas" padding="md" className="h-full rounded-[26px]">
             <div className="mb-5 flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-[18px] font-medium text-slate-900">Wallets</h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-[18px] font-medium text-slate-900">Wallets</h2>
+                  <Button
+                    variant={walletsEditMode ? "default" : "ghost"}
+                    size="icon-sm"
+                    className="rounded-lg"
+                    onClick={() => setWalletsEditMode((current) => !current)}
+                    title={walletsEditMode ? "Finish editing wallets" : "Edit wallets"}
+                    aria-label={walletsEditMode ? "Finish editing wallets" : "Edit wallets"}
+                  >
+                    <PencilLine className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
               <div className="flex items-center gap-2">
-                <Button
-                  size="icon-sm"
-                  className="rounded-xl bg-emerald-600 text-white hover:bg-emerald-700"
-                  onClick={openAddWallet}
-                  title="Add wallet"
-                  aria-label="Add wallet"
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger
-                    render={
-                      <Button
-                        variant="outline"
-                        size="icon-sm"
-                        className="rounded-xl bg-white"
-                        aria-label="More account actions"
-                      />
-                    }
+                {selectedAccount ? (
+                  <Button
+                    variant="outline"
+                    size="icon-sm"
+                    className="rounded-xl bg-white"
+                    onClick={() => setSelectedAccountId(null)}
+                    title="Clear wallet filter"
+                    aria-label="Clear wallet filter"
                   >
-                    <Ellipsis className="h-4 w-4" />
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-44 rounded-xl bg-white p-1.5" align="end">
-                    {savingsMode ? (
-                      <DropdownMenuItem className="rounded-lg px-2 py-2 text-[13px]" onClick={openAddSubgroup}>
-                        <Plus className="h-4 w-4" />
-                        Add subgroup
-                      </DropdownMenuItem>
-                    ) : null}
-                    {selectedAccount ? (
-                      <DropdownMenuItem className="rounded-lg px-2 py-2 text-[13px]" onClick={openEditWallet}>
-                        <PencilLine className="h-4 w-4" />
-                        Edit wallet
-                      </DropdownMenuItem>
-                    ) : null}
-                    {selectedAccount ? (
-                      <DropdownMenuItem
-                        className="rounded-lg px-2 py-2 text-[13px]"
-                        variant="destructive"
-                        onClick={handleDeleteWallet}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Delete wallet
-                      </DropdownMenuItem>
-                    ) : null}
-                    {selectedAccount ? <DropdownMenuSeparator /> : null}
-                    {selectedAccount ? (
-                      <DropdownMenuItem className="rounded-lg px-2 py-2 text-[13px]" onClick={() => setSelectedAccountId(null)}>
-                        <X className="h-4 w-4" />
-                        Show all transactions
-                      </DropdownMenuItem>
-                    ) : null}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                    <X className="h-4 w-4" />
+                  </Button>
+                ) : null}
               </div>
             </div>
             <AccountList
               accounts={draftAccounts}
               allocations={draftAllocations}
               selectedAccountId={selectedAccountId}
+              editing={walletsEditMode}
               onSelect={(accountId) => setSelectedAccountId((current) => (current === accountId ? null : accountId))}
+              onAddAccount={openAddWallet}
+              onEditAccount={openEditWallet}
+              onDeleteAccount={handleDeleteWallet}
+              onAddSubgroup={(account) => {
+                setSelectedAccountId(account.id);
+                openAddSubgroup();
+              }}
               onEditAllocation={(allocation) => {
                 setSelectedAccountId(allocation.account_id);
                 setEditingAllocation(allocation);
@@ -273,21 +248,6 @@ export function AccountsView({
                       : "Default register across every wallet in the workspace."}
                   </p>
                 </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                {selectedAccount ? (
-                  <Button
-                    variant="outline"
-                    size="icon-sm"
-                    className="rounded-xl bg-white"
-                    onClick={() => setSelectedAccountId(null)}
-                    title="Clear wallet filter"
-                    aria-label="Clear wallet filter"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                ) : null}
               </div>
             </div>
 
@@ -338,6 +298,7 @@ export function AccountsView({
         open={walletSheetOpen}
         mode={walletSheetMode}
         account={editingAccount}
+        initialType={draftWalletType}
         onOpenChange={setWalletSheetOpen}
         onSubmit={handleSaveWallet}
       />
