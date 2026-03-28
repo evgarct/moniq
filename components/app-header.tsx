@@ -1,19 +1,17 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Plus, Search } from "lucide-react";
+import { Bell, MessageSquare, Search } from "lucide-react";
 
 import type { AuthUser } from "@/types/auth";
-import { LogoutButton } from "@/features/auth/components/logout-button";
 import { PageContainer } from "@/components/page-container";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 const titles: Record<string, string> = {
   "/dashboard": "Dashboard",
   "/calendar": "Calendar",
   "/today": "Today",
-  "/accounts": "Accounts",
+  "/accounts": "Organization Settings",
 };
 
 export function AppHeader({
@@ -23,32 +21,39 @@ export function AppHeader({
   user: AuthUser;
   onSignOut: () => Promise<void>;
 }) {
+  void onSignOut;
   const pathname = usePathname();
   const title = titles[pathname] ?? "Moniq";
 
   return (
-    <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80">
-      <PageContainer className="flex flex-col gap-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="font-heading text-2xl font-semibold tracking-tight">{title}</h1>
-          <p className="text-sm text-muted-foreground">Foundational product surfaces with mock finance data.</p>
+    <header className="border-b border-black/5 bg-white/70">
+      <PageContainer className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="rounded-xl border border-black/5 bg-white px-3 py-1.5 text-[12px] text-slate-500">
+            <Search className="mr-1.5 inline h-3.5 w-3.5" />
+            Search
+          </div>
+          <div className="rounded-xl border border-black/5 bg-white px-3 py-1.5 text-[12px] text-slate-700">
+            Create Job
+          </div>
+          <div className="rounded-xl border border-black/5 bg-white px-3 py-1.5 text-[12px] text-slate-700">
+            {title}
+          </div>
         </div>
 
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <div className="relative min-w-0 sm:w-64">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Search" className="pl-9" />
+        <div className="flex items-center gap-2">
+          <div className="hidden items-center gap-2 rounded-xl border border-black/5 bg-white px-2.5 py-1.5 md:flex">
+            <span className="text-[11px] text-slate-400">Talk to AI...</span>
+            <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
           </div>
-          <Button>
-            <Plus className="h-4 w-4" />
-            Add
+          <Button variant="ghost" size="icon-sm" className="rounded-xl bg-white text-slate-600 hover:bg-slate-100">
+            <MessageSquare className="h-4 w-4" />
           </Button>
-          <div className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2 sm:min-w-52">
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium">{user.email}</p>
-              <p className="text-xs text-muted-foreground">Authenticated session</p>
-            </div>
-            <LogoutButton action={onSignOut} size="sm" label="Logout" />
+          <Button variant="ghost" size="icon-sm" className="rounded-xl bg-white text-slate-600 hover:bg-slate-100">
+            <Bell className="h-4 w-4" />
+          </Button>
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-[11px] font-semibold text-slate-700">
+            {user.email?.slice(0, 1).toUpperCase() ?? "M"}
           </div>
         </div>
       </PageContainer>

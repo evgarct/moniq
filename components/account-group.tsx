@@ -18,14 +18,14 @@ export function AccountGroup({
   onSelect: (accountId: string) => void;
 }) {
   return (
-    <section className="space-y-3">
+    <section className="space-y-2">
       <div>
-        <h3 className="font-heading text-sm font-semibold uppercase tracking-[0.16em] text-muted-foreground">{title}</h3>
-        <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+        <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">{title}</h3>
+        <p className="mt-1 text-[12px] text-slate-400">{description}</p>
       </div>
 
       {accounts.length ? (
-        <div className="space-y-3">
+        <div className="space-y-1.5">
           {accounts.map((account) => (
             <AccountCard
               key={account.id}
