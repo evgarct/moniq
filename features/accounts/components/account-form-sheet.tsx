@@ -58,7 +58,7 @@ export function AccountFormSheet({
   account?: Account | null;
   initialType?: Account["type"];
   onOpenChange: (open: boolean) => void;
-  onSubmit: (values: AccountFormValues) => void;
+  onSubmit: (values: AccountFormValues) => Promise<void> | void;
 }) {
   const form = useForm<AccountFormInputs, undefined, AccountFormValues>({
     resolver: zodResolver(accountFormSchema),
@@ -98,8 +98,8 @@ export function AccountFormSheet({
 
         <form
           className="flex flex-1 flex-col"
-          onSubmit={form.handleSubmit((values) => {
-            onSubmit({
+          onSubmit={form.handleSubmit(async (values) => {
+            await onSubmit({
               ...values,
               currency: values.currency,
               debt_kind: values.type === "debt" ? values.debt_kind ?? "personal" : undefined,

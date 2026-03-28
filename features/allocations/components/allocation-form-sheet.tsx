@@ -42,7 +42,7 @@ export function AllocationFormSheet({
   freeMoney: number;
   allocation?: Allocation | null;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (values: AllocationFormValues) => void;
+  onSubmit: (values: AllocationFormValues) => Promise<void> | void;
 }) {
   const form = useForm<AllocationFormInputs, undefined, AllocationFormValues>({
     resolver: zodResolver(allocationFormSchema),
@@ -78,7 +78,7 @@ export function AllocationFormSheet({
 
         <form
           className="flex flex-1 flex-col"
-          onSubmit={form.handleSubmit((values) => {
+          onSubmit={form.handleSubmit(async (values) => {
             if (projectedFreeMoney < 0) {
               form.setError("amount", {
                 message: "This allocation would exceed the available savings balance.",
@@ -86,7 +86,7 @@ export function AllocationFormSheet({
               return;
             }
 
-            onSubmit(values);
+            await onSubmit(values);
             onOpenChange(false);
           })}
         >

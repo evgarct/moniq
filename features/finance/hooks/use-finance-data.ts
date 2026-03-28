@@ -2,12 +2,11 @@
 
 import { useQuery } from "@tanstack/react-query";
 
-import { mockFinanceSnapshot } from "@/lib/mock-finance";
+import { fetchFinanceSnapshot, financeSnapshotQueryKey } from "@/features/finance/lib/finance-api";
 
 export function useFinanceData() {
   return useQuery({
-    queryKey: ["finance-snapshot"],
-    queryFn: async () => mockFinanceSnapshot,
-    staleTime: Infinity,
+    queryKey: financeSnapshotQueryKey,
+    queryFn: fetchFinanceSnapshot,
   });
 }

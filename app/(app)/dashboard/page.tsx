@@ -1,5 +1,6 @@
 "use client";
 
+import { EmptyState } from "@/components/empty-state";
 import { PageContainer } from "@/components/page-container";
 import { BalanceCard } from "@/features/dashboard/components/balance-card";
 import { RecentTransactions } from "@/features/dashboard/components/recent-transactions";
@@ -10,11 +11,30 @@ import {
   getRecentTransactions,
   getTotalBalanceByCurrency,
 } from "@/lib/finance-selectors";
-import { mockFinanceSnapshot } from "@/lib/mock-finance";
 
 function DashboardContent() {
-  const { data } = useFinanceData();
-  const snapshot = data ?? mockFinanceSnapshot;
+  const { data, error, isLoading } = useFinanceData();
+
+  if (isLoading) {
+    return (
+      <PageContainer>
+        <EmptyState title="Loading dashboard" description="Fetching wallet balances and transaction activity from Supabase." />
+      </PageContainer>
+    );
+  }
+
+  if (error) {
+    return (
+      <PageContainer>
+        <EmptyState
+          title="Unable to load dashboard"
+          description={error instanceof Error ? error.message : "Finance data could not be loaded."}
+        />
+      </PageContainer>
+    );
+  }
+
+  const snapshot = data ?? { accounts: [], allocations: [], categories: [], transactions: [] };
   const summary = getIncomeExpenseSummaryByCurrency(snapshot.transactions);
 
   return (
