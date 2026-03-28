@@ -1,12 +1,14 @@
 <!-- BEGIN:nextjs-agent-rules -->
 # This is NOT the Next.js you know
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+This version has breaking changes ? APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
 
 # Repo Workflow Rules
 
+- When starting a new feature in this repo, first update from the latest remote `main`, then create a fresh feature branch from that current base.
 - After finishing implementation work, always run the relevant local verification for this repo.
+- After completing meaningful work in this repo, invoke the `instruction-retrospective` skill to review execution problems and update durable instructions.
 - In the final response, always include:
   - the PR link, if a PR exists
   - the local app URL, only after verifying it via HTTP
