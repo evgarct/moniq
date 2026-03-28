@@ -120,8 +120,8 @@ export function AccountsView({
 
   return (
     <>
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
-        <SectionCard title="Accounts" description="Separate available cash, debt balances, and savings reserve coverage.">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
+        <SectionCard title="Accounts" description="Available money and liabilities in one ledger view.">
           <AccountList
             accounts={accounts}
             allocations={draftAllocations}
@@ -131,29 +131,29 @@ export function AccountsView({
         </SectionCard>
 
         {savingsDetail ? (
-          <div className="space-y-6">
+          <div className="space-y-4">
             <SectionCard
               title={selectedAccount.name}
-              description="Allocations reserve money inside this savings account. Rebalancing only changes reserved amounts."
+              description="Allocations reserve money inside this savings account. Rebalancing changes reserved amounts only."
               action={
                 <div className="flex gap-2">
-                  <Button type="button" variant="outline" onClick={openAddAllocation}>
-                    <Plus className="h-4 w-4" />
+                  <Button type="button" variant="ghost" size="sm" onClick={openAddAllocation}>
+                    <Plus className="h-3.5 w-3.5" />
                     Add allocation
                   </Button>
-                  <Button type="button" onClick={() => setRebalanceOpen(true)}>
-                    <SlidersHorizontal className="h-4 w-4" />
+                  <Button type="button" size="sm" onClick={() => setRebalanceOpen(true)}>
+                    <SlidersHorizontal className="h-3.5 w-3.5" />
                     Rebalance allocations
                   </Button>
                 </div>
               }
             >
-              <div className="space-y-4">
+              <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <AccountTypeBadge type={selectedAccount.type} />
-                  <p className="text-sm text-muted-foreground">{selectedAccount.currency} savings reserve</p>
+                  <p className="text-[12px] text-muted-foreground">{selectedAccount.currency} savings reserve</p>
                 </div>
-                <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_260px]">
+                <div className="space-y-1">
                   <SavingsSummaryCard
                     balance={selectedAccount.balance}
                     allocated={allocatedTotal}
@@ -165,7 +165,7 @@ export function AccountsView({
               </div>
             </SectionCard>
 
-            <SectionCard title="Allocations" description="Planned use of the money stored inside this savings account.">
+            <SectionCard title="Allocations" description="Reserved money inside this savings account.">
               <AllocationList
                 allocations={sortedAllocations}
                 currency={selectedAccount.currency}
@@ -173,33 +173,33 @@ export function AccountsView({
               />
             </SectionCard>
 
-            <SectionCard title="Account register" description="Transactions still belong to the real savings account, not to the allocations.">
+            <SectionCard title="Account register" description="Transactions belong to the real savings account, not to the allocations.">
               <TransactionList transactions={register} emptyMessage="No transactions for this savings account." />
             </SectionCard>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4">
             <SectionCard
               title={selectedAccount.name}
-              description="Liabilities stay visually distinct from available money accounts."
+              description="Liabilities stay distinct from available money accounts."
             >
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="rounded-xl border border-border bg-card px-4 py-4">
-                  <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Current balance</p>
+              <div className="grid gap-3 border-t border-border/70 py-2.5 md:grid-cols-2">
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Current balance</p>
                   <MoneyAmount
                     amount={selectedAccount.balance}
                     currency={selectedAccount.currency}
                     display="signed"
                     tone={selectedAccount.balance < 0 ? "negative" : "default"}
-                    className="mt-2 text-2xl font-semibold"
+                    className="mt-1 text-[22px] font-semibold"
                   />
                 </div>
-                <div className="rounded-xl border border-border bg-card px-4 py-4">
-                  <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Account type</p>
-                  <div className="mt-2">
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Account type</p>
+                  <div className="mt-1">
                     <AccountTypeBadge type={selectedAccount.type} />
                   </div>
-                  <p className="mt-3 text-sm text-muted-foreground">
+                  <p className="mt-2 text-[12px] text-muted-foreground">
                     This is a real account balance, not a planned allocation bucket.
                   </p>
                 </div>

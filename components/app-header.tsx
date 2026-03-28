@@ -28,27 +28,27 @@ export function AppHeader({
 
   return (
     <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80">
-      <PageContainer className="flex flex-col gap-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <PageContainer className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-heading text-2xl font-semibold tracking-tight">{title}</h1>
-          <p className="text-sm text-muted-foreground">Foundational product surfaces with mock finance data.</p>
+          <h1 className="text-[22px] font-semibold tracking-[-0.03em]">{title}</h1>
+          <p className="text-[12px] text-muted-foreground">Dense finance workspace with mock operational data.</p>
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <div className="relative min-w-0 sm:w-64">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Search" className="pl-9" />
+          <div className="relative min-w-0 sm:w-56">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input placeholder="Search" className="h-8 rounded-sm border-transparent bg-muted/70 pl-8 shadow-none" />
           </div>
-          <Button>
-            <Plus className="h-4 w-4" />
+          <Button size="sm">
+            <Plus className="h-3.5 w-3.5" />
             Add
           </Button>
-          <div className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2 sm:min-w-52">
+          <div className="hidden items-center justify-between gap-3 border-l pl-3 sm:flex sm:min-w-48">
             <div className="min-w-0">
-              <p className="truncate text-sm font-medium">{user.email}</p>
-              <p className="text-xs text-muted-foreground">Authenticated session</p>
+              <p className="truncate text-[12px] font-medium">{user.email}</p>
+              <p className="text-[11px] text-muted-foreground">Authenticated session</p>
             </div>
-            <LogoutButton action={onSignOut} size="sm" label="Logout" />
+            <LogoutButton action={onSignOut} variant="ghost" size="sm" label="Logout" />
           </div>
         </div>
       </PageContainer>

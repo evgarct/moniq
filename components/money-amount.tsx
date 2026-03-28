@@ -28,7 +28,7 @@ export function MoneyAmount({
   const value = display === "absolute" ? Math.abs(amount) : amount;
 
   return (
-    <span className={cn("font-mono tabular-nums", resolvedTone, className)}>
+    <span className={cn("font-mono tabular-nums tracking-[-0.02em]", resolvedTone, className)}>
       {formatMoney(value, currency)}
     </span>
   );

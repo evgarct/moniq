@@ -6,7 +6,7 @@ export function AccountTypeBadge({ type }: { type: AccountType }) {
   const variant = getAccountGroup(type) === "debt" ? "destructive" : "secondary";
 
   return (
-    <Badge variant={variant} className="rounded-full capitalize">
+    <Badge variant={variant} className="rounded-sm px-1.5 py-0 text-[10px] font-medium uppercase tracking-[0.14em]">
       {getAccountTypeLabel(type)}
     </Badge>
   );

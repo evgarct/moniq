@@ -13,11 +13,11 @@ export function TransactionList({
   renderAction?: (transaction: Transaction) => React.ReactNode;
 }) {
   if (!transactions.length) {
-    return <div className="rounded-lg border border-dashed border-border px-4 py-8 text-sm text-muted-foreground">{emptyMessage}</div>;
+    return <div className="py-6 text-[12px] text-muted-foreground">{emptyMessage}</div>;
   }
 
   return (
-    <div className="space-y-3">
+    <div className="border-t border-border/70">
       {transactions.map((transaction) => (
         <TransactionRow
           key={transaction.id}

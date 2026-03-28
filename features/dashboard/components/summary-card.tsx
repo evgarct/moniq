@@ -10,14 +10,14 @@ export function SummaryCard({
 }) {
   return (
     <SectionCard title="Quick summary" description="Income and expenses in the current mock timeline.">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="rounded-lg border border-border bg-background px-4 py-3">
-          <p className="text-sm text-muted-foreground">Income</p>
-          <MoneyAmount amount={income} display="absolute" tone="positive" className="mt-2 text-xl font-semibold" />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="border-b border-border/70 py-2">
+          <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Income</p>
+          <MoneyAmount amount={income} display="absolute" tone="positive" className="mt-1 text-[19px] font-semibold" />
         </div>
-        <div className="rounded-lg border border-border bg-background px-4 py-3">
-          <p className="text-sm text-muted-foreground">Expenses</p>
-          <MoneyAmount amount={expenses} display="absolute" className="mt-2 text-xl font-semibold text-foreground" />
+        <div className="border-b border-border/70 py-2">
+          <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Expenses</p>
+          <MoneyAmount amount={expenses} display="absolute" className="mt-1 text-[19px] font-semibold text-foreground" />
         </div>
       </div>
     </SectionCard>

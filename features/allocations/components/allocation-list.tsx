@@ -21,7 +21,7 @@ export function AllocationList({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="border-t border-border/70">
       {allocations.map((allocation) => (
         <AllocationItem
           key={allocation.id}

@@ -1,5 +1,4 @@
 import { MoneyAmount } from "@/components/money-amount";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function FreeMoneyCard({
   amount,
@@ -9,21 +8,17 @@ export function FreeMoneyCard({
   currency: string;
 }) {
   return (
-    <Card className="border border-border shadow-none">
-      <CardHeader className="border-b">
-        <CardTitle>Free money</CardTitle>
-      </CardHeader>
-      <CardContent className="pt-4">
-        <MoneyAmount
-          amount={amount}
-          currency={currency}
-          tone={amount <= 0 ? "negative" : "positive"}
-          className="text-2xl font-semibold"
-        />
-        <p className="mt-2 text-sm text-muted-foreground">
-          Unallocated savings available for new goals.
-        </p>
-      </CardContent>
-    </Card>
+    <div className="flex items-baseline justify-between gap-3 border-b border-border/70 py-2.5">
+      <div>
+        <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Free money</p>
+        <p className="mt-0.5 text-[12px] text-muted-foreground">Unallocated savings available for new goals.</p>
+      </div>
+      <MoneyAmount
+        amount={amount}
+        currency={currency}
+        tone={amount <= 0 ? "negative" : "positive"}
+        className="text-[22px] font-semibold"
+      />
+    </div>
   );
 }
