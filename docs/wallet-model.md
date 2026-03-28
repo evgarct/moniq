@@ -14,6 +14,8 @@ Moniq now models wallets around four user-facing types.
 - A `saving` wallet can contain user-created subgroups.
 - Subgroups are logical reservations inside one physical savings balance.
 - Creating, editing, or deleting a subgroup never changes the wallet balance itself.
+- Subgroup creation and edits must pass one invariant:
+  - total subgroup amount for one savings wallet must never exceed the wallet balance
 
 ## Uncategorized Savings
 
@@ -27,3 +29,10 @@ Moniq now models wallets around four user-facing types.
 
 - `cash` and `saving` balances are stored as positive values.
 - `credit_card` and `debt` balances are stored as negative values because they are liabilities.
+
+## CRUD Invariants
+
+- Wallet create and edit operations normalize balances by wallet type before state is saved.
+- Changing a wallet from `saving` to a non-saving type removes its subgroups because that structure is no longer valid.
+- Wallet edits also update embedded account snapshots inside transactions so the register stays consistent.
+- Wallet delete removes the wallet together with its linked subgroups and transactions in the mock state layer.

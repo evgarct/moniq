@@ -17,14 +17,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { AccountFormSheet } from "@/features/accounts/components/account-form-sheet";
+import { deleteAccount, saveAccount } from "@/features/accounts/lib/account-state";
 import { getAccountTypeLabel, isDebtAccount, isSavingsAccount } from "@/features/accounts/lib/account-utils";
 import { AllocationFormSheet } from "@/features/allocations/components/allocation-form-sheet";
 import {
+  deleteAllocation,
   getAllocationsForAccount,
   getFreeMoney,
+  saveAllocation,
 } from "@/features/allocations/lib/allocation-utils";
 import { getTransactionsForAccount } from "@/lib/finance-selectors";
-import { createClientId } from "@/lib/utils";
 import type { Account, Allocation, Transaction } from "@/types/finance";
 
 export function AccountsView({
@@ -96,48 +98,22 @@ export function AccountsView({
     currency: string;
     debt_kind?: Account["debt_kind"];
   }) {
-    const normalizedBalance =
-      values.type === "credit_card" || values.type === "debt"
-        ? -Math.abs(values.balance)
-        : Math.abs(values.balance);
+    const result = saveAccount({
+      snapshot: {
+        accounts: draftAccounts,
+        allocations: draftAllocations,
+        transactions: draftTransactions,
+      },
+      values,
+      userId: baseUserId,
+      mode: walletSheetMode,
+      editingAccount,
+    });
 
-    if (walletSheetMode === "edit" && editingAccount) {
-      const nextAccount: Account = {
-        ...editingAccount,
-        name: values.name,
-        type: values.type,
-        balance: normalizedBalance,
-        currency: values.currency,
-        debt_kind: values.type === "debt" ? values.debt_kind ?? "personal" : null,
-        cash_kind: values.type === "cash" ? editingAccount.cash_kind ?? "debit_card" : null,
-      };
-
-      setDraftAccounts((current) => current.map((account) => (account.id === nextAccount.id ? nextAccount : account)));
-      if (editingAccount.type === "saving" && values.type !== "saving") {
-        setDraftAllocations((current) => current.filter((allocation) => allocation.account_id !== nextAccount.id));
-      }
-      setDraftTransactions((current) =>
-        current.map((transaction) =>
-          transaction.account.id === nextAccount.id ? { ...transaction, account: nextAccount } : transaction,
-        ),
-      );
-      return;
-    }
-
-    const createdAccount: Account = {
-      id: createClientId("wallet"),
-      user_id: baseUserId,
-      name: values.name,
-      type: values.type,
-      balance: normalizedBalance,
-      currency: values.currency,
-      created_at: new Date().toISOString(),
-      cash_kind: values.type === "cash" ? "debit_card" : null,
-      debt_kind: values.type === "debt" ? values.debt_kind ?? "personal" : null,
-    };
-
-    setDraftAccounts((current) => [createdAccount, ...current]);
-    setSelectedAccountId(createdAccount.id);
+    setDraftAccounts(result.snapshot.accounts);
+    setDraftAllocations(result.snapshot.allocations);
+    setDraftTransactions(result.snapshot.transactions);
+    setSelectedAccountId(result.account.id);
   }
 
   function handleDeleteWallet() {
@@ -149,10 +125,17 @@ export function AccountsView({
       return;
     }
 
-    const remainingAccounts = draftAccounts.filter((account) => account.id !== selectedAccount.id);
-    setDraftAccounts(remainingAccounts);
-    setDraftAllocations((current) => current.filter((allocation) => allocation.account_id !== selectedAccount.id));
-    setDraftTransactions((current) => current.filter((transaction) => transaction.account.id !== selectedAccount.id));
+    const nextSnapshot = deleteAccount(
+      {
+        accounts: draftAccounts,
+        allocations: draftAllocations,
+        transactions: draftTransactions,
+      },
+      selectedAccount.id,
+    );
+    setDraftAccounts(nextSnapshot.accounts);
+    setDraftAllocations(nextSnapshot.allocations);
+    setDraftTransactions(nextSnapshot.transactions);
     setSelectedAccountId(null);
   }
 
@@ -166,32 +149,23 @@ export function AccountsView({
       return;
     }
 
-    if (editingAllocation) {
+    try {
       setDraftAllocations((current) =>
-        current.map((allocation) =>
-          allocation.id === editingAllocation.id
-            ? {
-                ...allocation,
-                name: values.name,
-                amount: values.amount,
-              }
-            : allocation,
-        ),
+        saveAllocation({
+          allocations: current,
+          account: selectedAccount,
+          values,
+          editingAllocation,
+        }),
       );
-      return;
-    }
+    } catch (error) {
+      if (error instanceof Error) {
+        window.alert(error.message);
+        return;
+      }
 
-    setDraftAllocations((current) => [
-      ...current,
-      {
-        id: createClientId("allocation"),
-        user_id: selectedAccount.user_id,
-        account_id: selectedAccount.id,
-        name: values.name,
-        amount: values.amount,
-        created_at: new Date().toISOString(),
-      },
-    ]);
+      throw error;
+    }
   }
 
   function handleDeleteAllocation(allocation: Allocation) {
@@ -199,7 +173,7 @@ export function AccountsView({
       return;
     }
 
-    setDraftAllocations((current) => current.filter((candidate) => candidate.id !== allocation.id));
+    setDraftAllocations((current) => deleteAllocation(current, allocation.id));
   }
 
   return (

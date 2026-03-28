@@ -1,4 +1,10 @@
 import type { Allocation } from "@/types/finance";
+export {
+  createAllocation,
+  deleteAllocation,
+  saveAllocation,
+  validateAllocationAmount,
+} from "@/features/allocations/lib/allocation-state";
 
 export function getAllocationsForAccount(allocations: Allocation[], accountId: string) {
   return allocations.filter((allocation) => allocation.account_id === accountId);

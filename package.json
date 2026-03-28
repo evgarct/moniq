@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test:unit": "vitest run --config vitest.unit.config.ts",
     "storybook": "storybook dev -p 6006 --ci",
     "build-storybook": "storybook build",
     "test-storybook": "vitest run --project=storybook"
