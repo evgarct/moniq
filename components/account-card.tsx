@@ -40,7 +40,7 @@ export function AccountCard({
           <p className="truncate text-[14px] font-medium text-slate-900">{account.name}</p>
           <p className="mt-1 text-[11px] text-slate-500">
             {detailLabel}
-            {account.type === "saving" && freeMoney !== null ? ` · Free ${Math.round(freeMoney)} ${account.currency}` : ""}
+            {account.type === "saving" && freeMoney !== null ? ` - Free ${Math.round(freeMoney)} ${account.currency}` : ""}
           </p>
         </div>
 
