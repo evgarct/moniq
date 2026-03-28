@@ -1,12 +1,13 @@
 import { MoneyAmount } from "@/components/money-amount";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { CurrencyCode } from "@/types/currency";
 
 export function FreeMoneyCard({
   amount,
   currency,
 }: {
   amount: number;
-  currency: string;
+  currency: CurrencyCode;
 }) {
   return (
     <Card className="border border-border shadow-none">

@@ -14,6 +14,7 @@ Moniq should feel like a polished product workspace, not a generic admin dashboa
 - Keep labels small and quiet.
 - Make money values clearly larger and more dominant than their supporting metadata.
 - Avoid oversized page titles and stacked bold text.
+- Always render money with the wallet currency and use locale-aware formatting for that currency.
 
 ## Accounts Surface
 
@@ -32,3 +33,4 @@ Moniq should feel like a polished product workspace, not a generic admin dashboa
 - Represent Moniq UI in Storybook using atomic layers: atoms, molecules, organisms, templates, and pages.
 - Keep stories close to real product layouts so design review happens against realistic screens.
 - Treat Storybook as the default place to inspect component states before reviewing the integrated app.
+- For finance primitives and wallet flows, include multicurrency states in stories instead of relying on USD-only fixtures.

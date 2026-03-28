@@ -87,6 +87,39 @@ describe("account-state", () => {
     expect(result.snapshot.accounts[0]?.id).toBe("wallet-fixed");
   });
 
+  it("updates the wallet currency and keeps transactions in sync", () => {
+    const result = saveAccount({
+      snapshot: {
+        accounts: [baseAccount],
+        allocations: [],
+        transactions: [
+          {
+            id: "tx-2",
+            title: "Salary",
+            amount: -1000,
+            date: "2026-03-29",
+            category: { id: "salary", name: "Salary" },
+            account: baseAccount,
+            status: "paid",
+            type: "income",
+          },
+        ],
+      },
+      values: {
+        name: "Main Cash CZK",
+        type: "cash",
+        balance: 3000,
+        currency: "CZK",
+      },
+      userId: "user-1",
+      mode: "edit",
+      editingAccount: baseAccount,
+    });
+
+    expect(result.account.currency).toBe("CZK");
+    expect(result.snapshot.transactions[0]?.account.currency).toBe("CZK");
+  });
+
   it("updates transactions and removes saving allocations when a saving wallet changes type", () => {
     const result = saveAccount({
       snapshot: {

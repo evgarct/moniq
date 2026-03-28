@@ -30,6 +30,17 @@ Moniq now models wallets around four user-facing types.
 - `cash` and `saving` balances are stored as positive values.
 - `credit_card` and `debt` balances are stored as negative values because they are liabilities.
 
+## Currency Rules
+
+- Every wallet has an explicit wallet currency.
+- The first-class currencies in Moniq are:
+  - `EUR`
+  - `CZK`
+  - `RUB`
+- The wallet form also offers a curated set of other major currencies for users who need them.
+- Savings subgroups do not carry their own currency; they always inherit the currency of their parent savings wallet.
+- Until FX support exists, overview totals and cashflow summaries must stay separated by currency instead of combining values into one fake total.
+
 ## CRUD Invariants
 
 - Wallet create and edit operations normalize balances by wallet type before state is saved.

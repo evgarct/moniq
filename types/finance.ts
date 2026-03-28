@@ -1,3 +1,5 @@
+import type { CurrencyCode } from "@/types/currency";
+
 export type Category = {
   id: string;
   name: string;
@@ -16,7 +18,7 @@ export type Account = {
   cash_kind?: CashKind | null;
   debt_kind?: DebtKind | null;
   balance: number;
-  currency: string;
+  currency: CurrencyCode;
   created_at: string;
 };
 

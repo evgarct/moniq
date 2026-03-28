@@ -1,6 +1,6 @@
 # Moniq
 
-Moniq is a personal finance app foundation built with Next.js App Router, TypeScript, Tailwind CSS, shadcn/ui, and TanStack Query with mock data only.
+Moniq is a personal finance app foundation built with Next.js App Router, TypeScript, Tailwind CSS, shadcn/ui, TanStack Query, and Supabase.
 
 ## Included in this iteration
 
@@ -16,17 +16,32 @@ Moniq is a personal finance app foundation built with Next.js App Router, TypeSc
 - Tailwind CSS
 - shadcn/ui
 - TanStack Query
+- Supabase Auth + Postgres
 - date-fns
 
 ## Local setup
 
 ```bash
 npm install
+npx supabase start # optional local Supabase stack
 npm run dev
+```
+
+Create a `.env.local` with:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+```
+
+If you are linked to the hosted project, apply the current finance schema with:
+
+```bash
+npx supabase db push
 ```
 
 ## Notes
 
-- This iteration uses mock finance data only.
-- Navigation, calendar selection, account drill-in, and today-focused transaction sections are wired into the UI.
-- No real backend, budgets, reports, goals, or settings are included yet.
+- Auth is handled by Supabase SSR cookies.
+- Wallets and savings allocations are persisted in Supabase and loaded through API route handlers plus TanStack Query.
+- Transactions and categories are still the next persistence slice, so dashboard/calendar/today can legitimately be empty on a fresh account.

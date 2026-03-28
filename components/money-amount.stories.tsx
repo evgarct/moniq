@@ -7,7 +7,7 @@ const meta = {
   component: MoneyAmount,
   args: {
     amount: 4820.45,
-    currency: "USD",
+    currency: "EUR",
   },
   parameters: {
     layout: "centered",
@@ -33,5 +33,21 @@ export const Absolute: Story = {
     amount: 10000,
     display: "absolute",
     className: "text-xl font-semibold",
+  },
+};
+
+export const CzechKoruna: Story = {
+  args: {
+    amount: 124850.45,
+    currency: "CZK",
+  },
+};
+
+export const RussianRuble: Story = {
+  args: {
+    amount: -184320,
+    currency: "RUB",
+    tone: "negative",
+    display: "signed",
   },
 };
