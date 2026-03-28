@@ -1,4 +1,4 @@
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 
 import { MoneyAmount } from "@/components/money-amount";
 import { Badge } from "@/components/ui/badge";
@@ -32,7 +32,7 @@ export function TransactionRow({
           </Badge>
         </div>
         <p className="text-sm text-muted-foreground">
-          {transaction.category.name} · {transaction.account.name} · {format(new Date(transaction.date), "MMM d")}
+          {transaction.category.name} · {transaction.account.name} · {format(parseISO(transaction.date), "MMM d")}
         </p>
       </div>
 
