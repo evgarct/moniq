@@ -1,25 +1,39 @@
-import { AccountCard } from "@/components/account-card";
-import type { Account } from "@/types/finance";
+import { AccountGroup } from "@/components/account-group";
+import { getAvailableMoneyAccounts, getDebtAccounts } from "@/lib/finance-selectors";
+import type { Account, Allocation } from "@/types/finance";
 
 export function AccountList({
   accounts,
+  allocations,
   selectedAccountId,
   onSelect,
 }: {
   accounts: Account[];
+  allocations: Allocation[];
   selectedAccountId: string;
   onSelect: (accountId: string) => void;
 }) {
+  const availableMoneyAccounts = getAvailableMoneyAccounts(accounts);
+  const debtAccounts = getDebtAccounts(accounts);
+
   return (
-    <div className="space-y-3">
-      {accounts.map((account) => (
-        <AccountCard
-          key={account.id}
-          account={account}
-          selected={account.id === selectedAccountId}
-          onSelect={() => onSelect(account.id)}
-        />
-      ))}
+    <div className="space-y-8">
+      <AccountGroup
+        title="Available Money"
+        description="Real balances you can spend or reserve."
+        accounts={availableMoneyAccounts}
+        allocations={allocations}
+        selectedAccountId={selectedAccountId}
+        onSelect={onSelect}
+      />
+      <AccountGroup
+        title="Debts"
+        description="Liabilities tracked separately from available cash."
+        accounts={debtAccounts}
+        allocations={allocations}
+        selectedAccountId={selectedAccountId}
+        onSelect={onSelect}
+      />
     </div>
   );
 }
