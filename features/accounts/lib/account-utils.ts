@@ -1,11 +1,10 @@
 import type { Account, AccountGroupType, AccountType } from "@/types/finance";
 
 const accountGroupMap: Record<AccountType, AccountGroupType> = {
-  checking: "available_money",
-  savings: "available_money",
-  credit_card: "debt",
-  loan: "debt",
-  mortgage: "debt",
+  cash: "cash",
+  saving: "saving",
+  credit_card: "credit_card",
+  debt: "debt",
 };
 
 export function getAccountGroup(type: AccountType): AccountGroupType {
@@ -13,11 +12,11 @@ export function getAccountGroup(type: AccountType): AccountGroupType {
 }
 
 export function isSavingsAccount(account: Account) {
-  return account.type === "savings";
+  return account.type === "saving";
 }
 
 export function isDebtAccount(account: Account) {
-  return getAccountGroup(account.type) === "debt";
+  return account.type === "debt";
 }
 
 export function getNetWorthTotal(accounts: Account[]) {
@@ -25,5 +24,17 @@ export function getNetWorthTotal(accounts: Account[]) {
 }
 
 export function getAccountTypeLabel(type: AccountType) {
-  return type.replace("_", " ");
+  if (type === "cash") {
+    return "Cash";
+  }
+
+  if (type === "saving") {
+    return "Saving";
+  }
+
+  if (type === "credit_card") {
+    return "Credit Card";
+  }
+
+  return "Debt";
 }

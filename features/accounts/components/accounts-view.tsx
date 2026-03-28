@@ -1,50 +1,26 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { CalendarRange, Ellipsis, Plus } from "lucide-react";
+import { useState } from "react";
+import { CalendarRange, PencilLine, Plus, X } from "lucide-react";
 
 import { AccountList } from "@/components/account-list";
+import { EmptyState } from "@/components/empty-state";
 import { MoneyAmount } from "@/components/money-amount";
+import { Surface } from "@/components/surface";
 import { TransactionList } from "@/components/transaction-list";
 import { Button } from "@/components/ui/button";
-import { isSavingsAccount } from "@/features/accounts/lib/account-utils";
-import { getAllocationsForAccount } from "@/features/allocations/lib/allocation-utils";
+import { AccountFormSheet } from "@/features/accounts/components/account-form-sheet";
+import { deleteAccount, saveAccount } from "@/features/accounts/lib/account-state";
+import { getAccountTypeLabel, isDebtAccount, isSavingsAccount } from "@/features/accounts/lib/account-utils";
+import { AllocationFormSheet } from "@/features/allocations/components/allocation-form-sheet";
+import {
+  deleteAllocation,
+  getAllocationsForAccount,
+  getFreeMoney,
+  saveAllocation,
+} from "@/features/allocations/lib/allocation-utils";
 import { getTransactionsForAccount } from "@/lib/finance-selectors";
-import { cn } from "@/lib/utils";
 import type { Account, Allocation, Transaction } from "@/types/finance";
-
-const allocationMeta: Record<string, { accent: string; track: string; tags: string[] }> = {
-  "Rent buffer": {
-    accent: "bg-emerald-500",
-    track: "bg-emerald-100",
-    tags: ["Housing", "Monthly reserve", "Cash flow"],
-  },
-  Travel: {
-    accent: "bg-amber-400",
-    track: "bg-amber-100",
-    tags: ["Flights", "Hotels", "Leisure"],
-  },
-  "Emergency fund": {
-    accent: "bg-sky-500",
-    track: "bg-sky-100",
-    tags: ["Safety net", "Unexpected costs", "Priority"],
-  },
-  "Summer trip": {
-    accent: "bg-fuchsia-400",
-    track: "bg-fuchsia-100",
-    tags: ["Vacation", "Seasonal", "Family"],
-  },
-  "Pet expenses": {
-    accent: "bg-violet-400",
-    track: "bg-violet-100",
-    tags: ["Pet care", "Medical", "Reserve"],
-  },
-  "Yearly purchases": {
-    accent: "bg-orange-400",
-    track: "bg-orange-100",
-    tags: ["Gear", "Annual", "Planned"],
-  },
-};
 
 export function AccountsView({
   accounts,
@@ -55,167 +31,289 @@ export function AccountsView({
   allocations: Allocation[];
   transactions: Transaction[];
 }) {
-  const initialAccountId = useMemo(
-    () => accounts.find((account) => account.type === "savings")?.id ?? accounts[0]?.id ?? "",
-    [accounts],
-  );
-  const [selectedAccountId, setSelectedAccountId] = useState(initialAccountId);
-  const selectedAccount = accounts.find((account) => account.id === selectedAccountId) ?? accounts.find((account) => account.id === initialAccountId) ?? accounts[0];
-  const register = selectedAccount ? getTransactionsForAccount(transactions, selectedAccount.id).slice(0, 4) : [];
-  const accountAllocations = selectedAccount ? getAllocationsForAccount(allocations, selectedAccount.id) : [];
-  const savingsMode = selectedAccount ? isSavingsAccount(selectedAccount) : false;
+  const [draftAccounts, setDraftAccounts] = useState(accounts);
+  const [draftAllocations, setDraftAllocations] = useState(allocations);
+  const [draftTransactions, setDraftTransactions] = useState(transactions);
+  const baseUserId = draftAccounts[0]?.user_id ?? accounts[0]?.user_id ?? "user-demo";
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
+  const [walletSheetOpen, setWalletSheetOpen] = useState(false);
+  const [walletSheetMode, setWalletSheetMode] = useState<"add" | "edit">("add");
+  const [editingAccount, setEditingAccount] = useState<Account | null>(null);
+  const [draftWalletType, setDraftWalletType] = useState<Account["type"]>("cash");
+  const [walletsEditMode, setWalletsEditMode] = useState(false);
+  const [allocationSheetOpen, setAllocationSheetOpen] = useState(false);
+  const [editingAllocation, setEditingAllocation] = useState<Allocation | null>(null);
 
-  if (!selectedAccount) {
-    return null;
+  const selectedAccount = selectedAccountId ? draftAccounts.find((account) => account.id === selectedAccountId) ?? null : null;
+
+  const register = selectedAccount ? getTransactionsForAccount(draftTransactions, selectedAccount.id) : draftTransactions;
+  const accountAllocations = selectedAccount ? getAllocationsForAccount(draftAllocations, selectedAccount.id) : [];
+  const freeMoney = selectedAccount ? getFreeMoney(selectedAccount.balance, draftAllocations, selectedAccount.id) : 0;
+  const savingsMode = selectedAccount ? isSavingsAccount(selectedAccount) : false;
+  const selectedBalance = selectedAccount?.balance ?? 0;
+  const selectedCreatedAt = selectedAccount?.created_at ?? null;
+
+  if (!draftAccounts.length) {
+    return (
+      <EmptyState
+        title="No wallets yet"
+        description="Create your first wallet to start organizing cash, savings, cards, and debt."
+        action={
+          <Button
+            onClick={() => {
+              setWalletSheetMode("add");
+              setEditingAccount(null);
+              setWalletSheetOpen(true);
+            }}
+          >
+            <Plus className="h-4 w-4" />
+            Add wallet
+          </Button>
+        }
+      />
+    );
+  }
+
+  function openAddWallet(type: Account["type"] = "cash") {
+    setWalletSheetMode("add");
+    setEditingAccount(null);
+    setDraftWalletType(type);
+    setWalletSheetOpen(true);
+  }
+
+  function openEditWallet(account: Account) {
+    setWalletSheetMode("edit");
+    setEditingAccount(account);
+    setDraftWalletType(account.type);
+    setWalletSheetOpen(true);
+  }
+
+  function handleSaveWallet(values: {
+    name: string;
+    type: Account["type"];
+    balance: number;
+    currency: string;
+    debt_kind?: Account["debt_kind"];
+  }) {
+    const result = saveAccount({
+      snapshot: {
+        accounts: draftAccounts,
+        allocations: draftAllocations,
+        transactions: draftTransactions,
+      },
+      values,
+      userId: baseUserId,
+      mode: walletSheetMode,
+      editingAccount,
+    });
+
+    setDraftAccounts(result.snapshot.accounts);
+    setDraftAllocations(result.snapshot.allocations);
+    setDraftTransactions(result.snapshot.transactions);
+    setSelectedAccountId(result.account.id);
+  }
+
+  function handleDeleteWallet(account: Account) {
+    if (!account) {
+      return;
+    }
+
+    if (!window.confirm(`Delete wallet "${account.name}"?`)) {
+      return;
+    }
+
+    const nextSnapshot = deleteAccount(
+      {
+        accounts: draftAccounts,
+        allocations: draftAllocations,
+        transactions: draftTransactions,
+      },
+      account.id,
+    );
+    setDraftAccounts(nextSnapshot.accounts);
+    setDraftAllocations(nextSnapshot.allocations);
+    setDraftTransactions(nextSnapshot.transactions);
+    setSelectedAccountId((current) => (current === account.id ? null : current));
+  }
+
+  function openAddSubgroup() {
+    setEditingAllocation(null);
+    setAllocationSheetOpen(true);
+  }
+
+  function handleSaveAllocation(values: { name: string; amount: number }) {
+    if (!selectedAccount) {
+      return;
+    }
+
+    try {
+      setDraftAllocations((current) =>
+        saveAllocation({
+          allocations: current,
+          account: selectedAccount,
+          values,
+          editingAllocation,
+        }),
+      );
+    } catch (error) {
+      if (error instanceof Error) {
+        window.alert(error.message);
+        return;
+      }
+
+      throw error;
+    }
+  }
+
+  function handleDeleteAllocation(allocation: Allocation) {
+    if (!window.confirm(`Delete subgroup "${allocation.name}"?`)) {
+      return;
+    }
+
+    setDraftAllocations((current) => deleteAllocation(current, allocation.id));
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[240px_minmax(0,1fr)]">
-      <aside className="rounded-[26px] bg-[#f3efeb] p-4">
-        <div className="mb-5">
-          <h2 className="text-[18px] font-medium text-slate-900">Organization Settings</h2>
-        </div>
-        <AccountList
-          accounts={accounts}
-          allocations={allocations}
-          selectedAccountId={selectedAccount.id}
-          onSelect={setSelectedAccountId}
-        />
-      </aside>
-
-      <section className="space-y-4">
-        <div className="flex flex-col gap-3 rounded-[24px] bg-[#f7f3ef] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-center gap-3">
+    <>
+      <div className="grid h-full gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
+        <aside className="h-full overflow-auto">
+          <Surface tone="canvas" padding="md" className="h-full rounded-[26px]">
+            <div className="mb-5 flex items-start justify-between gap-3">
               <div>
-                <h1 className="text-[22px] font-medium text-slate-900">
-                  {savingsMode ? "Budget" : selectedAccount.name}
-                </h1>
-                <p className="mt-1 text-[12px] text-slate-500">
-                  {savingsMode
-                    ? "Planned allocations inside the selected savings account."
-                    : "Account overview and recent register activity."}
-                </p>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-[18px] font-medium text-slate-900">Wallets</h2>
+                  <Button
+                    variant={walletsEditMode ? "default" : "ghost"}
+                    size="icon-sm"
+                    className="rounded-lg"
+                    onClick={() => setWalletsEditMode((current) => !current)}
+                    title={walletsEditMode ? "Finish editing wallets" : "Edit wallets"}
+                    aria-label={walletsEditMode ? "Finish editing wallets" : "Edit wallets"}
+                  >
+                    <PencilLine className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-              <Button variant="outline" size="sm" className="rounded-xl bg-white">
-                + Add Filters
-              </Button>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" className="rounded-xl bg-white">Export</Button>
-              <Button size="sm" className="rounded-xl bg-emerald-600 text-white hover:bg-emerald-700">
-                <Plus className="h-4 w-4" />
-                Add Budget
-              </Button>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 text-[12px] text-slate-500">
-            <CalendarRange className="h-4 w-4" />
-            Oct 1, 2023
-            <span className="text-slate-300">-</span>
-            Dec 31, 2024
-          </div>
-        </div>
-
-        {savingsMode ? (
-          <div className="space-y-4">
-            {accountAllocations.map((allocation) => {
-              const percent = selectedAccount.balance > 0 ? Math.round((allocation.amount / selectedAccount.balance) * 100) : 0;
-              const remaining = Math.max(0, 100 - percent);
-              const meta = allocationMeta[allocation.name] ?? {
-                accent: "bg-emerald-500",
-                track: "bg-emerald-100",
-                tags: [selectedAccount.name, "Savings", "Planned"],
-              };
-
-              return (
-                <article
-                  key={allocation.id}
-                  className="rounded-[24px] border border-white/70 bg-white px-5 py-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)]"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <MoneyAmount
-                        amount={allocation.amount}
-                        currency={selectedAccount.currency}
-                        display="absolute"
-                        className="text-[34px] font-semibold text-slate-900"
-                      />
-                      <p className="mt-1 text-[15px] text-slate-700">{allocation.name}</p>
-                    </div>
-                    <Button variant="ghost" size="icon-sm" className="rounded-xl bg-slate-50 text-slate-500 hover:bg-slate-100">
-                      <Ellipsis className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  <div className="mt-5">
-                    <div className={cn("h-1.5 w-full overflow-hidden rounded-full", meta.track)}>
-                      <div className={cn("h-full rounded-full", meta.accent)} style={{ width: `${Math.min(percent, 100)}%` }} />
-                    </div>
-                    <div className="mt-2 flex items-center justify-between text-[11px] font-medium">
-                      <span className="text-emerald-600">{percent}%</span>
-                      <span className="text-amber-500">{remaining}%</span>
-                    </div>
-                  </div>
-
-                  <div className="mt-5 grid gap-3 text-[12px] text-slate-500 sm:grid-cols-2">
-                    <InfoRow label="Selected account" value={selectedAccount.name} />
-                    <InfoRow label="Free money left" value={`${selectedAccount.currency} ${Math.max(0, selectedAccount.balance - allocation.amount).toLocaleString("en-US")}`} />
-                    <InfoRow label="Created" value={new Date(allocation.created_at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })} />
-                    <InfoRow label="Allocation share" value={`${percent}% of balance`} />
-                  </div>
-
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {meta.tags.map((tag) => (
-                      <span key={`${allocation.id}-${tag}`} className="rounded-full bg-[#f3efeb] px-2.5 py-1 text-[11px] text-slate-600">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        ) : (
-          <article className="rounded-[24px] border border-white/70 bg-white px-5 py-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <MoneyAmount
-                  amount={selectedAccount.balance}
-                  currency={selectedAccount.currency}
-                  display="signed"
-                  className="text-[34px] font-semibold text-slate-900"
-                />
-                <p className="mt-1 text-[15px] text-slate-700">{selectedAccount.name}</p>
+              <div className="flex items-center gap-2">
+                {selectedAccount ? (
+                  <Button
+                    variant="outline"
+                    size="icon-sm"
+                    className="rounded-xl bg-white"
+                    onClick={() => setSelectedAccountId(null)}
+                    title="Clear wallet filter"
+                    aria-label="Clear wallet filter"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                ) : null}
               </div>
-              <Button variant="ghost" size="icon-sm" className="rounded-xl bg-slate-50 text-slate-500 hover:bg-slate-100">
-                <Ellipsis className="h-4 w-4" />
-              </Button>
             </div>
-            <div className="mt-6">
-              <TransactionList transactions={register} emptyMessage="No transactions for this account." compact />
-            </div>
-          </article>
-        )}
+            <AccountList
+              accounts={draftAccounts}
+              allocations={draftAllocations}
+              selectedAccountId={selectedAccountId}
+              editing={walletsEditMode}
+              onSelect={(accountId) => setSelectedAccountId((current) => (current === accountId ? null : accountId))}
+              onAddAccount={openAddWallet}
+              onEditAccount={openEditWallet}
+              onDeleteAccount={handleDeleteWallet}
+              onAddSubgroup={(account) => {
+                setSelectedAccountId(account.id);
+                openAddSubgroup();
+              }}
+              onEditAllocation={(allocation) => {
+                setSelectedAccountId(allocation.account_id);
+                setEditingAllocation(allocation);
+                setAllocationSheetOpen(true);
+              }}
+              onDeleteAllocation={handleDeleteAllocation}
+            />
+          </Surface>
+        </aside>
 
-        {savingsMode && register.length ? (
+        <section className="h-full overflow-auto space-y-4 pr-1">
+          <Surface tone="panel" padding="lg" className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex items-center gap-3">
+                <div>
+                  <h1 className="text-[22px] font-medium text-slate-900">
+                    {selectedAccount ? selectedAccount.name : "All transactions"}
+                  </h1>
+                  <p className="mt-1 text-[12px] text-slate-500">
+                    {selectedAccount
+                      ? savingsMode
+                        ? "Filtered to one savings wallet. Subgroups stay in the left list."
+                        : `${getAccountTypeLabel(selectedAccount.type)} wallet activity.`
+                      : "Default register across every wallet in the workspace."}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-4 text-[12px] text-slate-500">
+              {selectedCreatedAt ? (
+                <div className="flex items-center gap-2">
+                  <CalendarRange className="h-4 w-4" />
+                  {new Date(selectedCreatedAt).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </div>
+              ) : null}
+              {selectedAccount ? (
+                <div className="flex items-center gap-2">
+                  <span>{getAccountTypeLabel(selectedAccount.type)}</span>
+                  <MoneyAmount
+                    amount={selectedBalance}
+                    currency={selectedAccount.currency}
+                    display={isDebtAccount(selectedAccount) ? "signed" : "absolute"}
+                    className="text-[13px] font-semibold text-slate-700"
+                  />
+                </div>
+              ) : (
+                <span>{draftTransactions.length} transactions across all wallets</span>
+              )}
+              {selectedAccount && savingsMode ? (
+                <span>{accountAllocations.length} subgroups in left rail</span>
+              ) : null}
+            </div>
+          </Surface>
+
           <div className="space-y-3">
-            <p className="text-[13px] font-medium text-slate-700">Recent register activity</p>
-            <TransactionList transactions={register} emptyMessage="No transactions for this account." compact />
+            <p className="text-[13px] font-medium text-slate-700">
+              {selectedAccount ? "Filtered transaction register" : "Full transaction register"}
+            </p>
+            <TransactionList
+              transactions={register}
+              emptyMessage={selectedAccount ? "No transactions for this wallet." : "No transactions yet."}
+              compact
+            />
           </div>
-        ) : null}
-      </section>
-    </div>
-  );
-}
+        </section>
+      </div>
 
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <span>{label}</span>
-      <span className="text-right text-slate-700">{value}</span>
-    </div>
+      <AccountFormSheet
+        open={walletSheetOpen}
+        mode={walletSheetMode}
+        account={editingAccount}
+        initialType={draftWalletType}
+        onOpenChange={setWalletSheetOpen}
+        onSubmit={handleSaveWallet}
+      />
+
+      {selectedAccount?.type === "saving" ? (
+        <AllocationFormSheet
+          open={allocationSheetOpen}
+          mode={editingAllocation ? "edit" : "add"}
+          allocation={editingAllocation}
+          currency={selectedAccount.currency}
+          freeMoney={freeMoney}
+          onOpenChange={setAllocationSheetOpen}
+          onSubmit={handleSaveAllocation}
+        />
+      ) : null}
+    </>
   );
 }

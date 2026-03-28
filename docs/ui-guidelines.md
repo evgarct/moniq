@@ -26,3 +26,9 @@ Moniq should feel like a polished product workspace, not a generic admin dashboa
 - Use soft shadows, soft fills, and thin outlines.
 - Prefer rounded outer shells and flatter inner sections.
 - Use color intentionally for progress and key actions, not as wallpaper.
+
+## Storybook Review Surface
+
+- Represent Moniq UI in Storybook using atomic layers: atoms, molecules, organisms, templates, and pages.
+- Keep stories close to real product layouts so design review happens against realistic screens.
+- Treat Storybook as the default place to inspect component states before reviewing the integrated app.
