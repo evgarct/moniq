@@ -125,7 +125,7 @@ export function RebalancePanel({
               </div>
               <div>
                 <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Allocated total</p>
-                <MoneyAmount amount={allocatedTotal} currency={currency} className="mt-2 text-lg font-semibold" />
+                <MoneyAmount amount={allocatedTotal} currency={currency} display="absolute" className="mt-2 text-lg font-semibold" />
               </div>
             </div>
 

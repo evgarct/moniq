@@ -20,7 +20,7 @@ export function AllocationItem({
         <p className="text-sm text-muted-foreground">Reserved inside this savings account.</p>
       </div>
       <div className="flex items-center gap-3">
-        <MoneyAmount amount={allocation.amount} currency={currency} className="text-sm" />
+        <MoneyAmount amount={allocation.amount} currency={currency} display="absolute" className="text-sm" />
         <Button type="button" variant="ghost" size="icon-sm" onClick={() => onEdit(allocation)}>
           <PencilLine className="h-4 w-4" />
           <span className="sr-only">Edit allocation</span>

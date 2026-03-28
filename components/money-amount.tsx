@@ -5,7 +5,7 @@ export function MoneyAmount({
   amount,
   currency = "USD",
   tone = "default",
-  display = "absolute",
+  display = "signed",
   className,
 }: {
   amount: number;
@@ -17,7 +17,7 @@ export function MoneyAmount({
   const resolvedTone =
     tone === "default"
       ? amount < 0
-        ? "text-emerald-600"
+        ? "text-destructive"
         : "text-foreground"
       : tone === "muted"
         ? "text-muted-foreground"
