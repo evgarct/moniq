@@ -33,15 +33,22 @@ Rules:
 - `user_id uuid not null references auth.users(id)`
 - `wallet_id uuid not null references wallets(id)`
 - `name text not null`
+- `kind allocation_kind not null`
+  - `goal_open`
+  - `goal_targeted`
 - `amount numeric(14,2) not null`
+- `target_amount numeric(14,2) null`
 - `created_at timestamptz not null`
 - `updated_at timestamptz not null`
 
 Rules:
 - allocations can only belong to `saving` wallets.
 - allocation amount cannot go below zero.
+- `goal_open` must keep `target_amount = null`.
+- `goal_targeted` must keep `target_amount > 0`.
 - total allocations for a wallet cannot exceed the wallet balance.
 - deleting a wallet cascades to its allocations.
+- the product-level `Free` bucket is computed from wallet balance minus user-managed allocations and is not persisted as a row.
 
 ## RLS and RPC
 

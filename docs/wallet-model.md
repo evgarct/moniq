@@ -9,21 +9,27 @@ Moniq now models wallets around four user-facing types.
 - `credit_card`: direct-spend card wallet. Advanced payoff flows are intentionally out of scope for now.
 - `debt`: non-card liabilities such as loans and mortgages. The current app only keeps them in the model and CRUD flow.
 
-## Saving Subgroups
+## Savings Goals
 
-- A `saving` wallet can contain user-created subgroups.
-- Subgroups are logical reservations inside one physical savings balance.
-- Creating, editing, or deleting a subgroup never changes the wallet balance itself.
-- Subgroup creation and edits must pass one invariant:
-  - total subgroup amount for one savings wallet must never exceed the wallet balance
+- A `saving` wallet can contain user-created goals.
+- Goals are logical reservations inside one physical savings balance.
+- Creating, editing, or deleting a goal never changes the wallet balance itself.
+- Goal creation and edits must pass one invariant:
+  - total user-managed goal amount for one savings wallet must never exceed the wallet balance
 
-## Uncategorized Savings
+## Free Savings Bucket
 
-- Every `saving` wallet has a system remainder bucket called `Uncategorized`.
+- Every `saving` wallet has a system remainder bucket called `Free`.
 - It is computed as:
-  - `uncategorized = saving.balance - sum(all user-created subgroups)`
+  - `free = saving.balance - sum(all user-created goals)`
 - It cannot be renamed or deleted.
-- If money is taken from savings without choosing a subgroup, it should come from `Uncategorized`.
+- If money is taken from savings without choosing a goal, it should come from `Free`.
+
+## Goal Types
+
+- `goal_open`: a user-created flexible goal with a name and current amount only.
+- `goal_targeted`: a user-created goal with a current amount and a positive `target_amount`.
+- `Free` is a computed product-level bucket, not a user-managed goal row.
 
 ## Balance Rules
 
@@ -38,12 +44,12 @@ Moniq now models wallets around four user-facing types.
   - `CZK`
   - `RUB`
 - The wallet form also offers a curated set of other major currencies for users who need them.
-- Savings subgroups do not carry their own currency; they always inherit the currency of their parent savings wallet.
+- Savings goals do not carry their own currency; they always inherit the currency of their parent savings wallet.
 - Until FX support exists, overview totals and cashflow summaries must stay separated by currency instead of combining values into one fake total.
 
 ## CRUD Invariants
 
 - Wallet create and edit operations normalize balances by wallet type before state is saved.
-- Changing a wallet from `saving` to a non-saving type removes its subgroups because that structure is no longer valid.
+- Changing a wallet from `saving` to a non-saving type removes its goals because that structure is no longer valid.
 - Wallet edits also update embedded account snapshots inside transactions so the register stays consistent.
-- Wallet delete removes the wallet together with its linked subgroups and transactions in the mock state layer.
+- Wallet delete removes the wallet together with its linked goals and transactions in the mock state layer.

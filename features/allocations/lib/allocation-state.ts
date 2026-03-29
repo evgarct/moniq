@@ -1,9 +1,11 @@
 import { createClientId } from "@/lib/utils";
-import type { Account, Allocation } from "@/types/finance";
+import type { Account, Allocation, AllocationKind } from "@/types/finance";
 
 export type AllocationDraftValues = {
   name: string;
   amount: number;
+  kind: AllocationKind;
+  target_amount?: number | null;
 };
 
 type IdFactory = (prefix: string) => string;
@@ -15,15 +17,28 @@ type CreateAllocationOptions = {
   idFactory?: IdFactory;
 };
 
+function normalizeAllocationValues(values: AllocationDraftValues) {
+  return {
+    ...values,
+    target_amount: values.kind === "goal_targeted" ? values.target_amount ?? null : null,
+  };
+}
+
 export function validateAllocationAmount(values: {
   balance: number;
   allocations: Allocation[];
   accountId: string;
   nextAmount: number;
+  nextKind: AllocationKind;
+  nextTargetAmount?: number | null;
   editingAllocationId?: string;
 }) {
   if (values.nextAmount < 0) {
     throw new Error("Allocation amount cannot go below 0.");
+  }
+
+  if (values.nextKind === "goal_targeted" && (values.nextTargetAmount == null || values.nextTargetAmount <= 0)) {
+    throw new Error("Target amount is required for a targeted goal.");
   }
 
   const reservedWithoutCurrent = values.allocations
@@ -42,12 +57,16 @@ export function createAllocation({
   now = new Date().toISOString(),
   idFactory = createClientId,
 }: CreateAllocationOptions): Allocation {
+  const normalizedValues = normalizeAllocationValues(values);
+
   return {
     id: idFactory("allocation"),
     user_id: account.user_id,
     account_id: account.id,
-    name: values.name,
-    amount: values.amount,
+    name: normalizedValues.name,
+    kind: normalizedValues.kind,
+    amount: normalizedValues.amount,
+    target_amount: normalizedValues.target_amount,
     created_at: now,
   };
 }
@@ -60,11 +79,15 @@ export function saveAllocation(options: {
   now?: string;
   idFactory?: IdFactory;
 }) {
+  const normalizedValues = normalizeAllocationValues(options.values);
+
   validateAllocationAmount({
     balance: options.account.balance,
     allocations: options.allocations,
     accountId: options.account.id,
-    nextAmount: options.values.amount,
+    nextAmount: normalizedValues.amount,
+    nextKind: normalizedValues.kind,
+    nextTargetAmount: normalizedValues.target_amount,
     editingAllocationId: options.editingAllocation?.id,
   });
 
@@ -73,8 +96,10 @@ export function saveAllocation(options: {
       allocation.id === options.editingAllocation?.id
         ? {
             ...allocation,
-            name: options.values.name,
-            amount: options.values.amount,
+            name: normalizedValues.name,
+            kind: normalizedValues.kind,
+            amount: normalizedValues.amount,
+            target_amount: normalizedValues.target_amount,
           }
         : allocation,
     );
@@ -84,7 +109,7 @@ export function saveAllocation(options: {
     ...options.allocations,
     createAllocation({
       account: options.account,
-      values: options.values,
+      values: normalizedValues,
       now: options.now,
       idFactory: options.idFactory,
     }),

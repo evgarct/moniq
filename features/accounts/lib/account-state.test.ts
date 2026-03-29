@@ -33,7 +33,9 @@ const allocations: Allocation[] = [
     user_id: "user-1",
     account_id: "wallet-2",
     name: "Vet",
+    kind: "goal_open",
     amount: 600,
+    target_amount: null,
     created_at: "2026-03-28T10:00:00.000Z",
   },
 ];

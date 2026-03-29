@@ -2,11 +2,17 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
-import { useForm, useWatch } from "react-hook-form";
-import { z } from "zod";
+import { Controller, useForm, useWatch } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Sheet,
   SheetContent,
@@ -15,17 +21,13 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { allocationInputSchema } from "@/types/finance-schemas";
 import { formatMoney } from "@/lib/formatters";
 import type { CurrencyCode } from "@/types/currency";
 import type { Allocation } from "@/types/finance";
 
-const allocationFormSchema = z.object({
-  name: z.string().trim().min(1, "Name is required."),
-  amount: z.number().min(0, "Amount cannot go below 0."),
-});
-
-type AllocationFormValues = z.output<typeof allocationFormSchema>;
-type AllocationFormInputs = z.input<typeof allocationFormSchema>;
+type AllocationFormValues = import("@/types/finance-schemas").AllocationInput;
+type AllocationFormInputs = import("@/types/finance-schemas").AllocationInputValues;
 
 export function AllocationFormSheet({
   open,
@@ -45,10 +47,12 @@ export function AllocationFormSheet({
   onSubmit: (values: AllocationFormValues) => Promise<void> | void;
 }) {
   const form = useForm<AllocationFormInputs, undefined, AllocationFormValues>({
-    resolver: zodResolver(allocationFormSchema),
+    resolver: zodResolver(allocationInputSchema),
     defaultValues: {
       name: allocation?.name ?? "",
       amount: allocation?.amount ?? 0,
+      kind: allocation?.kind ?? "goal_open",
+      target_amount: allocation?.target_amount ?? null,
     },
   });
 
@@ -56,12 +60,18 @@ export function AllocationFormSheet({
     form.reset({
       name: allocation?.name ?? "",
       amount: allocation?.amount ?? 0,
+      kind: allocation?.kind ?? "goal_open",
+      target_amount: allocation?.target_amount ?? null,
     });
   }, [allocation, form, open]);
 
   const amount = useWatch({
     control: form.control,
     name: "amount",
+  });
+  const kind = useWatch({
+    control: form.control,
+    name: "kind",
   });
   const releaseBaseline = allocation?.amount ?? 0;
   const projectedFreeMoney = freeMoney + releaseBaseline - (Number.isFinite(amount) ? amount : 0);
@@ -70,9 +80,9 @@ export function AllocationFormSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-md">
         <SheetHeader className="border-b">
-          <SheetTitle>{mode === "add" ? "Add allocation" : "Edit allocation"}</SheetTitle>
+          <SheetTitle>{mode === "add" ? "Add goal" : "Edit goal"}</SheetTitle>
           <SheetDescription>
-            Allocate savings without changing the account balance.
+            Reserve savings for a flexible goal or a goal with a target amount.
           </SheetDescription>
         </SheetHeader>
 
@@ -100,7 +110,7 @@ export function AllocationFormSheet({
 
             <div className="space-y-2">
               <label className="text-sm font-medium" htmlFor="allocation-name">
-                Allocation name
+                Goal name
               </label>
               <Input id="allocation-name" {...form.register("name")} />
               {form.formState.errors.name ? (
@@ -109,8 +119,38 @@ export function AllocationFormSheet({
             </div>
 
             <div className="space-y-2">
+              <label className="text-sm font-medium">Goal type</label>
+              <Controller
+                control={form.control}
+                name="kind"
+                render={({ field }) => (
+                  <Select
+                    value={field.value}
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      if (value === "goal_open") {
+                        form.setValue("target_amount", null, {
+                          shouldDirty: true,
+                          shouldValidate: true,
+                        });
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="w-full bg-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="goal_open">Flexible goal</SelectItem>
+                      <SelectItem value="goal_targeted">Targeted goal</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
+
+            <div className="space-y-2">
               <label className="text-sm font-medium" htmlFor="allocation-amount">
-                Amount
+                Current amount
               </label>
               <Input
                 id="allocation-amount"
@@ -125,11 +165,31 @@ export function AllocationFormSheet({
                 <p className="text-sm text-destructive">{form.formState.errors.amount.message}</p>
               ) : null}
             </div>
+
+            {kind === "goal_targeted" ? (
+              <div className="space-y-2">
+                <label className="text-sm font-medium" htmlFor="allocation-target-amount">
+                  Target amount
+                </label>
+                <Input
+                  id="allocation-target-amount"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  {...form.register("target_amount", {
+                    setValueAs: (value) => (value === "" ? null : Number(value)),
+                  })}
+                />
+                {form.formState.errors.target_amount ? (
+                  <p className="text-sm text-destructive">{form.formState.errors.target_amount.message}</p>
+                ) : null}
+              </div>
+            ) : null}
           </div>
 
           <SheetFooter className="border-t">
             <Button type="submit" className="w-full">
-              {mode === "add" ? "Save allocation" : "Update allocation"}
+              {mode === "add" ? "Save goal" : "Update goal"}
             </Button>
           </SheetFooter>
         </form>

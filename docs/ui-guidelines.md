@@ -18,9 +18,10 @@ Moniq should feel like a polished product workspace, not a generic admin dashboa
 
 ## Accounts Surface
 
-- Treat the left rail as a navigation list of money containers, not as a card gallery.
-- Treat the right panel as a sequence of large operational budget panels with clear progress, dates, and supporting tags.
-- Keep progress, totals, and time ranges easy to compare at a glance.
+- Treat the left rail as a compact wallet register: grouped account rows, fast selection, and inline goal visibility for savings wallets.
+- Keep the selected wallet context on the right inside one primary overview card instead of splitting the surface into many competing panels.
+- Use the overview card for the dominant balance, lightweight actions, a simple insight placeholder, and recent activity.
+- Keep wallet totals, goal amounts, and recent activity easy to scan before adding heavier analytics.
 
 ## Visual Rules
 

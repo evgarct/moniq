@@ -9,6 +9,7 @@ export type AccountType = "cash" | "saving" | "credit_card" | "debt";
 export type DebtKind = "loan" | "mortgage" | "personal";
 export type CashKind = "debit_card" | "cash_wallet";
 export type AccountGroupType = "cash" | "saving" | "credit_card" | "debt";
+export type AllocationKind = "goal_open" | "goal_targeted";
 
 export type Account = {
   id: string;
@@ -27,7 +28,9 @@ export type Allocation = {
   user_id: string;
   account_id: string;
   name: string;
+  kind: AllocationKind;
   amount: number;
+  target_amount: number | null;
   created_at: string;
 };
 

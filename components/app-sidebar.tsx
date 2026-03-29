@@ -19,7 +19,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -68,12 +67,12 @@ export function AppSidebar({
             </Avatar>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56 rounded-2xl bg-white p-2">
-            <DropdownMenuLabel className="px-2 py-2">
+            <div className="px-2 py-2">
               <div className="min-w-0">
                 <p className="truncate text-[12px] font-medium text-slate-900">{user.email}</p>
                 <p className="mt-0.5 text-[11px] text-slate-500">Signed in</p>
               </div>
-            </DropdownMenuLabel>
+            </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="rounded-xl px-2 py-2 text-[13px] text-slate-700">
               <Settings2 className="h-4 w-4" />
@@ -135,9 +134,9 @@ export function AppSidebar({
               </Avatar>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56 rounded-2xl bg-white p-2">
-              <DropdownMenuLabel className="px-2 py-2">
+              <div className="px-2 py-2">
                 <p className="truncate text-[12px] font-medium text-slate-900">{user.email}</p>
-              </DropdownMenuLabel>
+              </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem className="rounded-xl px-2 py-2 text-[13px] text-slate-700">
                 <Settings2 className="h-4 w-4" />
