@@ -22,9 +22,9 @@ type WalletAllocationRow = {
   user_id: string;
   wallet_id: string;
   name: string;
-  kind: Allocation["kind"];
+  kind?: Allocation["kind"];
   amount: number | string;
-  target_amount: number | string | null;
+  target_amount?: number | string | null;
   created_at: string;
 };
 
@@ -48,11 +48,22 @@ function mapAllocation(row: WalletAllocationRow): Allocation {
     user_id: row.user_id,
     account_id: row.wallet_id,
     name: row.name,
-    kind: row.kind,
+    kind: row.kind ?? "goal_open",
     amount: Number(row.amount),
-    target_amount: row.target_amount === null ? null : Number(row.target_amount),
+    target_amount: row.target_amount == null ? null : Number(row.target_amount),
     created_at: row.created_at,
   };
+}
+
+function isMissingSavingsGoalsSchemaError(error: { message?: string } | null | undefined) {
+  const message = error?.message?.toLowerCase() ?? "";
+
+  return (
+    message.includes("kind") ||
+    message.includes("target_amount") ||
+    message.includes("create_wallet_allocation") ||
+    message.includes("update_wallet_allocation")
+  );
 }
 
 async function getAuthenticatedSupabase() {
@@ -71,8 +82,7 @@ async function getAuthenticatedSupabase() {
 
 export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
   const { supabase, user } = await getAuthenticatedSupabase();
-
-  const [{ data: wallets, error: walletError }, { data: allocations, error: allocationError }] = await Promise.all([
+  const [{ data: wallets, error: walletError }, allocationResult] = await Promise.all([
     supabase
       .from("wallets")
       .select("id, user_id, name, type, cash_kind, debt_kind, balance, currency, created_at")
@@ -87,6 +97,20 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
 
   if (walletError) {
     throw new Error(walletError.message);
+  }
+
+  let allocations = allocationResult.data as WalletAllocationRow[] | null;
+  let allocationError = allocationResult.error;
+
+  if (allocationError && isMissingSavingsGoalsSchemaError(allocationError)) {
+    const fallbackResult = await supabase
+      .from("wallet_allocations")
+      .select("id, user_id, wallet_id, name, amount, created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: true });
+
+    allocations = (fallbackResult.data ?? null) as unknown as WalletAllocationRow[] | null;
+    allocationError = fallbackResult.error;
   }
 
   if (allocationError) {
@@ -145,13 +169,27 @@ export async function deleteWallet(walletId: string) {
 
 export async function createWalletAllocation(walletId: string, values: AllocationInput) {
   const { supabase } = await getAuthenticatedSupabase();
-  const { error } = await supabase.rpc("create_wallet_allocation", {
+  let { error } = await supabase.rpc("create_wallet_allocation", {
     _wallet_id: walletId,
     _name: values.name,
     _kind: values.kind,
     _amount: values.amount,
     _target_amount: values.target_amount,
   });
+
+  if (error && isMissingSavingsGoalsSchemaError(error)) {
+    if (values.kind === "goal_targeted") {
+      throw new Error("Savings goals with targets require the latest Supabase migration. Run `npx supabase db push`.");
+    }
+
+    const fallback = await supabase.rpc("create_wallet_allocation", {
+      _wallet_id: walletId,
+      _name: values.name,
+      _amount: values.amount,
+    });
+
+    error = fallback.error;
+  }
 
   if (error) {
     throw new Error(error.message);
@@ -160,13 +198,27 @@ export async function createWalletAllocation(walletId: string, values: Allocatio
 
 export async function updateWalletAllocation(allocationId: string, values: AllocationInput) {
   const { supabase } = await getAuthenticatedSupabase();
-  const { error } = await supabase.rpc("update_wallet_allocation", {
+  let { error } = await supabase.rpc("update_wallet_allocation", {
     _allocation_id: allocationId,
     _name: values.name,
     _kind: values.kind,
     _amount: values.amount,
     _target_amount: values.target_amount,
   });
+
+  if (error && isMissingSavingsGoalsSchemaError(error)) {
+    if (values.kind === "goal_targeted") {
+      throw new Error("Savings goals with targets require the latest Supabase migration. Run `npx supabase db push`.");
+    }
+
+    const fallback = await supabase.rpc("update_wallet_allocation", {
+      _allocation_id: allocationId,
+      _name: values.name,
+      _amount: values.amount,
+    });
+
+    error = fallback.error;
+  }
 
   if (error) {
     throw new Error(error.message);
