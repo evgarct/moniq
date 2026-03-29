@@ -8,5 +8,6 @@ export function useFinanceData() {
   return useQuery({
     queryKey: financeSnapshotQueryKey,
     queryFn: fetchFinanceSnapshot,
+    retry: false,
   });
 }
