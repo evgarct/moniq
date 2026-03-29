@@ -22,7 +22,9 @@ type WalletAllocationRow = {
   user_id: string;
   wallet_id: string;
   name: string;
+  kind: Allocation["kind"];
   amount: number | string;
+  target_amount: number | string | null;
   created_at: string;
 };
 
@@ -46,7 +48,9 @@ function mapAllocation(row: WalletAllocationRow): Allocation {
     user_id: row.user_id,
     account_id: row.wallet_id,
     name: row.name,
+    kind: row.kind,
     amount: Number(row.amount),
+    target_amount: row.target_amount === null ? null : Number(row.target_amount),
     created_at: row.created_at,
   };
 }
@@ -76,7 +80,7 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
       .order("created_at", { ascending: false }),
     supabase
       .from("wallet_allocations")
-      .select("id, user_id, wallet_id, name, amount, created_at")
+      .select("id, user_id, wallet_id, name, kind, amount, target_amount, created_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: true }),
   ]);
@@ -144,7 +148,9 @@ export async function createWalletAllocation(walletId: string, values: Allocatio
   const { error } = await supabase.rpc("create_wallet_allocation", {
     _wallet_id: walletId,
     _name: values.name,
+    _kind: values.kind,
     _amount: values.amount,
+    _target_amount: values.target_amount,
   });
 
   if (error) {
@@ -157,7 +163,9 @@ export async function updateWalletAllocation(allocationId: string, values: Alloc
   const { error } = await supabase.rpc("update_wallet_allocation", {
     _allocation_id: allocationId,
     _name: values.name,
+    _kind: values.kind,
     _amount: values.amount,
+    _target_amount: values.target_amount,
   });
 
   if (error) {
@@ -175,4 +183,3 @@ export async function deleteWalletAllocation(allocationId: string) {
     throw new Error(error.message);
   }
 }
-

@@ -92,7 +92,7 @@ export function AccountFormSheet({
         <SheetHeader className="border-b">
           <SheetTitle>{mode === "add" ? "Add wallet" : "Edit wallet"}</SheetTitle>
           <SheetDescription>
-            Cash wallets spend directly. Saving wallets hold money with optional subgroups.
+            Cash wallets spend directly. Saving wallets hold money with optional goals.
           </SheetDescription>
         </SheetHeader>
 

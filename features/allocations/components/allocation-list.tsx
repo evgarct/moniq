@@ -17,8 +17,8 @@ export function AllocationList({
   if (!allocations.length) {
     return (
       <EmptyState
-        title="No allocations yet"
-        description="Create your first allocation to reserve money inside this savings account."
+        title="No goals yet"
+        description="Create your first goal to reserve money inside this savings account."
       />
     );
   }

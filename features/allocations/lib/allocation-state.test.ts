@@ -26,7 +26,9 @@ const allocations: Allocation[] = [
     user_id: "user-1",
     account_id: "wallet-2",
     name: "Vet",
+    kind: "goal_open",
     amount: 600,
+    target_amount: null,
     created_at: "2026-03-28T10:00:00.000Z",
   },
 ];
@@ -35,7 +37,7 @@ describe("allocation-state", () => {
   it("creates a subgroup with stable shape", () => {
     const allocation = createAllocation({
       account: savingAccount,
-      values: { name: "Travel", amount: 300 },
+      values: { name: "Travel", amount: 300, kind: "goal_open" },
       now: "2026-03-28T12:00:00.000Z",
       idFactory: (prefix) => `${prefix}-fixed`,
     });
@@ -45,7 +47,9 @@ describe("allocation-state", () => {
       user_id: "user-1",
       account_id: "wallet-2",
       name: "Travel",
+      kind: "goal_open",
       amount: 300,
+      target_amount: null,
       created_at: "2026-03-28T12:00:00.000Z",
     });
   });
@@ -57,19 +61,34 @@ describe("allocation-state", () => {
         allocations,
         accountId: "wallet-2",
         nextAmount: 1800,
+        nextKind: "goal_open",
       }),
     ).toThrow("This allocation would exceed the available savings balance.");
+  });
+
+  it("requires a target amount for targeted goals", () => {
+    expect(() =>
+      validateAllocationAmount({
+        balance: 2000,
+        allocations,
+        accountId: "wallet-2",
+        nextAmount: 300,
+        nextKind: "goal_targeted",
+      }),
+    ).toThrow("Target amount is required for a targeted goal.");
   });
 
   it("allows editing an existing subgroup within its own released amount", () => {
     const result = saveAllocation({
       allocations,
       account: savingAccount,
-      values: { name: "Vet", amount: 1500 },
+      values: { name: "Vet", amount: 1500, kind: "goal_targeted", target_amount: 2000 },
       editingAllocation: allocations[0],
     });
 
     expect(result[0]?.amount).toBe(1500);
+    expect(result[0]?.kind).toBe("goal_targeted");
+    expect(result[0]?.target_amount).toBe(2000);
   });
 
   it("deletes a subgroup by id", () => {

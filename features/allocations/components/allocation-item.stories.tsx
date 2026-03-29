@@ -31,7 +31,7 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
-    await userEvent.click(canvas.getByRole("button", { name: /edit allocation/i }));
+    await userEvent.click(canvas.getByRole("button", { name: /edit goal/i }));
     await expect(args.onEdit).toHaveBeenCalled();
   },
 };

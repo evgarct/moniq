@@ -76,12 +76,12 @@ export const mockAccounts: Account[] = [
 ];
 
 export const mockAllocations: Allocation[] = [
-  makeAllocation("rent-buffer", "reserve", "Rent buffer", 4000),
-  makeAllocation("travel-goal", "reserve", "Travel", 3000),
-  makeAllocation("emergency-fund", "reserve", "Emergency fund", 3000),
-  makeAllocation("summer-trip", "travel", "Summer trip", 2500),
-  makeAllocation("pet-travel", "travel", "Pet expenses", 600),
-  makeAllocation("gear-upgrade", "travel", "Yearly purchases", 900),
+  makeAllocation("rent-buffer", "reserve", "Rent buffer", 4000, "goal_open"),
+  makeAllocation("travel-goal", "reserve", "Travel", 3000, "goal_targeted", 5000),
+  makeAllocation("emergency-fund", "reserve", "Emergency fund", 3000, "goal_targeted", 10000),
+  makeAllocation("summer-trip", "travel", "Summer trip", 2500, "goal_targeted", 4000),
+  makeAllocation("pet-travel", "travel", "Pet expenses", 600, "goal_open"),
+  makeAllocation("gear-upgrade", "travel", "Yearly purchases", 900, "goal_targeted", 1200),
 ];
 
 export const mockTransactions: Transaction[] = [
@@ -103,13 +103,22 @@ export const mockFinanceSnapshot: FinanceSnapshot = {
   transactions: mockTransactions.sort((a, b) => a.date.localeCompare(b.date)).reverse(),
 };
 
-function makeAllocation(id: string, accountId: string, name: string, amount: number): Allocation {
+function makeAllocation(
+  id: string,
+  accountId: string,
+  name: string,
+  amount: number,
+  kind: Allocation["kind"],
+  targetAmount: number | null = null,
+): Allocation {
   return {
     id,
     user_id: userId,
     account_id: accountId,
     name,
+    kind,
     amount,
+    target_amount: kind === "goal_targeted" ? targetAmount : null,
     created_at: formatISO(subMonths(today, 3)),
   };
 }

@@ -106,7 +106,7 @@ export function AccountCard({
             {account.type === "saving" && onAddSubgroup ? (
               <DropdownMenuItem className="rounded-lg px-2 py-2 text-[13px]" onClick={() => onAddSubgroup(account)}>
                 <Plus className="h-4 w-4" />
-                Add subgroup
+                Add goal
               </DropdownMenuItem>
             ) : null}
             {onEdit ? (

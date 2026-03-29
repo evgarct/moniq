@@ -88,9 +88,9 @@ export function RebalancePanel({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-lg">
         <SheetHeader className="border-b">
-          <SheetTitle>Rebalance allocations</SheetTitle>
+          <SheetTitle>Rebalance goals</SheetTitle>
           <SheetDescription>
-            Reduce or adjust reserved amounts inside {accountName} without moving cash between accounts.
+            Reduce or adjust reserved goal amounts inside {accountName} without moving cash between accounts.
           </SheetDescription>
         </SheetHeader>
 

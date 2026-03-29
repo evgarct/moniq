@@ -13,7 +13,6 @@ import { AccountFormSheet } from "@/features/accounts/components/account-form-sh
 import { isDebtAccount, isSavingsAccount } from "@/features/accounts/lib/account-utils";
 import { AllocationFormSheet } from "@/features/allocations/components/allocation-form-sheet";
 import {
-  getAllocationsForAccount,
   getFreeMoney,
   validateAllocationAmount,
 } from "@/features/allocations/lib/allocation-utils";
@@ -194,7 +193,7 @@ export function AccountsView({
     setAllocationSheetOpen(true);
   }
 
-  async function handleSaveAllocation(values: { name: string; amount: number }) {
+  async function handleSaveAllocation(values: { name: string; amount: number; kind: Allocation["kind"]; target_amount: number | null }) {
     if (!selectedAccount) {
       return;
     }
@@ -205,6 +204,8 @@ export function AccountsView({
         allocations,
         accountId: selectedAccount.id,
         nextAmount: values.amount,
+        nextKind: values.kind,
+        nextTargetAmount: values.target_amount,
         editingAllocationId: editingAllocation?.id,
       });
 
@@ -215,7 +216,7 @@ export function AccountsView({
         values,
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unable to save subgroup.";
+      const message = error instanceof Error ? error.message : "Unable to save goal.";
       setActionError(message);
       window.alert(message);
       throw error;
@@ -223,14 +224,14 @@ export function AccountsView({
   }
 
   async function handleDeleteAllocation(allocation: Allocation) {
-    if (!window.confirm(`Delete subgroup "${allocation.name}"?`)) {
+    if (!window.confirm(`Delete goal "${allocation.name}"?`)) {
       return;
     }
 
     try {
       await deleteAllocationMutation.mutateAsync(allocation.id);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unable to delete subgroup.";
+      const message = error instanceof Error ? error.message : "Unable to delete goal.";
       setActionError(message);
       window.alert(message);
     }

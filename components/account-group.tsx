@@ -10,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { getFreeMoney } from "@/features/allocations/lib/allocation-utils";
+import { getAllocationProgress, getFreeMoney, isTargetedAllocation } from "@/features/allocations/lib/allocation-utils";
 import type { CurrencyCode } from "@/types/currency";
 import type { Account, Allocation } from "@/types/finance";
 
@@ -76,11 +76,12 @@ export function AccountGroup({
               {account.type === "saving" ? (
                 <div className="ml-7 space-y-1 border-l border-border/80 pl-4 py-1">
                   <SavingChildRow
-                    label="Uncategorized"
+                    label="Free"
                     amount={Math.max(0, getFreeMoney(account.balance, allocations, account.id))}
                     currency={account.currency}
-                    tooltip="System remainder for savings without a subgroup."
-                    editing={false}
+                    tooltip="Money still available to withdraw or reassign."
+                    detail="Available to withdraw"
+                    variant="free"
                   />
                   {allocations
                     .filter((allocation) => allocation.account_id === account.id)
@@ -90,7 +91,11 @@ export function AccountGroup({
                         label={allocation.name}
                         amount={allocation.amount}
                         currency={account.currency}
-                        tooltip={`Saving subgroup inside ${account.name}`}
+                        targetAmount={allocation.target_amount}
+                        progress={getAllocationProgress(allocation)}
+                        tooltip={`Savings goal inside ${account.name}`}
+                        detail={isTargetedAllocation(allocation) ? "Targeted goal" : "Flexible goal"}
+                        variant={isTargetedAllocation(allocation) ? "targeted" : "open"}
                         editing={editing}
                         actions={
                           editing && (onEditAllocation || onDeleteAllocation) ? (
@@ -111,7 +116,7 @@ export function AccountGroup({
                                 {onEditAllocation ? (
                                   <DropdownMenuItem className="rounded-lg px-2 py-2 text-[13px]" onClick={() => onEditAllocation(allocation)}>
                                     <PencilLine className="h-4 w-4" />
-                                    Edit subgroup
+                                    Edit goal
                                   </DropdownMenuItem>
                                 ) : null}
                                 {onDeleteAllocation ? (
@@ -121,7 +126,7 @@ export function AccountGroup({
                                     onClick={() => onDeleteAllocation(allocation)}
                                   >
                                     <Trash2 className="h-4 w-4" />
-                                    Delete subgroup
+                                    Delete goal
                                   </DropdownMenuItem>
                                 ) : null}
                               </DropdownMenuContent>
@@ -146,14 +151,22 @@ function SavingChildRow({
   label,
   amount,
   currency,
+  targetAmount,
+  progress,
   tooltip,
+  detail,
+  variant,
   editing,
   actions,
 }: {
   label: string;
   amount: number;
   currency: CurrencyCode;
+  targetAmount?: number | null;
+  progress?: number | null;
   tooltip: string;
+  detail?: string;
+  variant?: "free" | "open" | "targeted";
   editing?: boolean;
   actions?: React.ReactNode;
 }) {
@@ -163,10 +176,35 @@ function SavingChildRow({
       title={tooltip}
     >
       <div className="absolute left-[-16px] top-1/2 h-[1px] w-4 bg-border/80 -translate-y-1/2" />
-      <p className="truncate text-[14px] font-medium text-slate-600">{label}</p>
-      <div className="flex items-center gap-1">
-        <MoneyAmount amount={amount} currency={currency} display="absolute" className="text-[13px] font-semibold text-slate-900" />
-        {editing && actions ? <div className="opacity-0 transition-opacity group-hover:opacity-100">{actions}</div> : null}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="truncate text-[14px] font-medium text-slate-600">{label}</p>
+            {detail ? <p className="text-[11px] text-slate-400">{detail}</p> : null}
+          </div>
+          <div className="flex items-center gap-1">
+            {variant === "targeted" && targetAmount !== null && targetAmount !== undefined ? (
+              <div className="text-right">
+                <div className="flex flex-wrap items-center justify-end gap-1 text-[13px] font-semibold text-slate-900">
+                  <MoneyAmount amount={amount} currency={currency} display="absolute" className="text-[13px] font-semibold text-slate-900" />
+                  <span className="text-slate-400">/</span>
+                  <MoneyAmount amount={targetAmount} currency={currency} display="absolute" className="text-[13px] font-semibold text-slate-500" />
+                </div>
+              </div>
+            ) : (
+              <MoneyAmount amount={amount} currency={currency} display="absolute" className="text-[13px] font-semibold text-slate-900" />
+            )}
+            {editing && actions ? <div className="opacity-0 transition-opacity group-hover:opacity-100">{actions}</div> : null}
+          </div>
+        </div>
+        {variant === "targeted" && progress !== null && progress !== undefined ? (
+          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-200/70">
+            <div
+              className="h-full rounded-full bg-slate-700 transition-[width]"
+              style={{ width: `${progress <= 0 ? 0 : Math.max(progress * 100, 6)}%` }}
+            />
+          </div>
+        ) : null}
       </div>
     </div>
   );
