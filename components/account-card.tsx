@@ -59,13 +59,13 @@ export function AccountCard({
       title={tooltip}
       className={cn(
         "relative flex items-center gap-2 rounded-2xl px-3 py-3 transition-colors",
-        selected ? "bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05)]" : "hover:bg-white/70",
+        selected ? "bg-surface shadow-[0_2px_8px_rgba(0,0,0,0.04)]" : "hover:bg-surface/60",
       )}
     >
       <span
         className={cn(
           "absolute inset-y-2 left-0 w-1 rounded-full transition-colors",
-          selected ? "bg-slate-700/70" : "bg-transparent",
+          selected ? "bg-slate-800" : "bg-transparent",
         )}
       />
       <button
@@ -74,7 +74,7 @@ export function AccountCard({
         className="flex min-w-0 flex-1 items-center justify-between gap-4 text-left"
       >
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-white/80 text-slate-500">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-white text-slate-500 shadow-sm border border-black/5">
             <AccountIcon className="h-4 w-4" />
           </div>
           <p className="truncate pr-2 text-[14px] font-medium text-slate-900">{account.name}</p>

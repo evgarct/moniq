@@ -7,7 +7,7 @@ Moniq is a personal finance app foundation built with Next.js App Router, TypeSc
 - `/dashboard`
 - `/calendar`
 - `/today`
-- `/accounts`
+- `/accounts` (New card-based UI)
 
 ## Stack
 

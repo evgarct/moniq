@@ -43,8 +43,8 @@ export function AccountGroup({
 }) {
   return (
     <section className="space-y-2">
-      <div className="flex items-center justify-between gap-3 border-b border-black/5 pb-1.5">
-        <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">{title}</h3>
+      <div className="flex items-center justify-between gap-3 pb-2">
+        <h3 className="text-[22px] font-heading font-normal text-slate-900">{title}</h3>
         {editing && onAddAccount ? (
           <Button
             variant="ghost"
@@ -74,7 +74,7 @@ export function AccountGroup({
                 onAddSubgroup={onAddSubgroup}
               />
               {account.type === "saving" ? (
-                <div className="ml-11 space-y-1 border-l border-black/5 pl-3">
+                <div className="ml-7 space-y-1 border-l border-border/80 pl-4 py-1">
                   <SavingChildRow
                     label="Uncategorized"
                     amount={Math.max(0, getFreeMoney(account.balance, allocations, account.id))}
@@ -159,12 +159,13 @@ function SavingChildRow({
 }) {
   return (
     <div
-      className="group flex items-center justify-between gap-3 rounded-xl px-2 py-2 hover:bg-white/60"
+      className="group relative flex items-center justify-between gap-3 rounded-xl px-2 py-2 hover:bg-surface/60 transition-colors"
       title={tooltip}
     >
-      <p className="truncate text-[13px] text-slate-600">{label}</p>
+      <div className="absolute left-[-16px] top-1/2 h-[1px] w-4 bg-border/80 -translate-y-1/2" />
+      <p className="truncate text-[14px] font-medium text-slate-600">{label}</p>
       <div className="flex items-center gap-1">
-        <MoneyAmount amount={amount} currency={currency} display="absolute" className="text-[12px] font-medium text-slate-700" />
+        <MoneyAmount amount={amount} currency={currency} display="absolute" className="text-[13px] font-semibold text-slate-900" />
         {editing && actions ? <div className="opacity-0 transition-opacity group-hover:opacity-100">{actions}</div> : null}
       </div>
     </div>
