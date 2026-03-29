@@ -2,17 +2,22 @@
 
 import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { PencilLine, Plus, X } from "lucide-react";
+import { PencilLine, Plus, Scale, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { AccountList } from "@/components/account-list";
 import { EmptyState } from "@/components/empty-state";
 import { MoneyAmount } from "@/components/money-amount";
 import { TransactionList } from "@/components/transaction-list";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { AccountFormSheet } from "@/features/accounts/components/account-form-sheet";
 import { isDebtAccount, isSavingsAccount } from "@/features/accounts/lib/account-utils";
 import { AllocationFormSheet } from "@/features/allocations/components/allocation-form-sheet";
 import {
+  getAllocatedTotalForAccount,
   getFreeMoney,
   validateAllocationAmount,
 } from "@/features/allocations/lib/allocation-utils";
@@ -39,6 +44,8 @@ export function AccountsView({
   allocations: Allocation[];
   transactions: Transaction[];
 }) {
+  const tr = useTranslations();
+  const t = useTranslations("accounts");
   const queryClient = useQueryClient();
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [walletSheetOpen, setWalletSheetOpen] = useState(false);
@@ -98,15 +105,16 @@ export function AccountsView({
   });
 
   const selectedAccount = selectedAccountId ? accounts.find((account) => account.id === selectedAccountId) ?? null : null;
-
   const register = selectedAccount ? getTransactionsForAccount(transactions, selectedAccount.id) : transactions;
   const freeMoney = selectedAccount ? getFreeMoney(selectedAccount.balance, allocations, selectedAccount.id) : 0;
-  const selectedBalance = selectedAccount?.balance ?? 0;
+  const selectedAllocatedTotal = selectedAccount ? getAllocatedTotalForAccount(allocations, selectedAccount.id) : 0;
   const pending =
     walletMutation.isPending ||
     deleteWalletMutation.isPending ||
     allocationMutation.isPending ||
     deleteAllocationMutation.isPending;
+  const hasAccounts = accounts.length > 0;
+
   const emptyAction = useMemo(
     () => (
       <Button
@@ -118,11 +126,11 @@ export function AccountsView({
         }}
         disabled={pending}
       >
-        <Plus className="h-4 w-4" />
-        Add wallet
+        <Plus data-icon="inline-start" />
+        {t("view.addWallet")}
       </Button>
     ),
-    [pending],
+    [pending, t],
   );
 
   function openAddWallet(type: Account["type"] = "cash") {
@@ -162,18 +170,14 @@ export function AccountsView({
 
       setSelectedAccountId(selectedId);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unable to save wallet.";
+      const message = error instanceof Error ? error.message : t("messages.saveWalletError");
       setActionError(message);
       throw error;
     }
   }
 
   async function handleDeleteWallet(account: Account) {
-    if (!account) {
-      return;
-    }
-
-    if (!window.confirm(`Delete wallet "${account.name}"?`)) {
+    if (!window.confirm(t("messages.deleteWalletConfirm", { name: account.name }))) {
       return;
     }
 
@@ -181,7 +185,7 @@ export function AccountsView({
       await deleteWalletMutation.mutateAsync(account.id);
       setSelectedAccountId((current) => (current === account.id ? null : current));
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unable to delete wallet.";
+      const message = error instanceof Error ? error.message : t("messages.deleteWalletError");
       setActionError(message);
       window.alert(message);
     }
@@ -216,7 +220,7 @@ export function AccountsView({
         values,
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unable to save goal.";
+      const message = error instanceof Error ? error.message : t("messages.saveGoalError");
       setActionError(message);
       window.alert(message);
       throw error;
@@ -224,14 +228,14 @@ export function AccountsView({
   }
 
   async function handleDeleteAllocation(allocation: Allocation) {
-    if (!window.confirm(`Delete goal "${allocation.name}"?`)) {
+    if (!window.confirm(t("messages.deleteGoalConfirm", { name: allocation.name }))) {
       return;
     }
 
     try {
       await deleteAllocationMutation.mutateAsync(allocation.id);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unable to delete goal.";
+      const message = error instanceof Error ? error.message : t("messages.deleteGoalError");
       setActionError(message);
       window.alert(message);
     }
@@ -240,153 +244,184 @@ export function AccountsView({
   return (
     <>
       {accounts.length ? (
-        <div className="mx-auto max-w-7xl grid h-full gap-12 lg:grid-cols-[400px_minmax(0,1fr)] px-4 lg:px-8 py-8 lg:py-12">
-          <aside className="h-full overflow-auto pr-4 lg:pr-8 lg:border-r border-border/60">
-            <div className="mb-8 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <h1 className="text-[28px] text-slate-900 font-heading font-normal">Accounts & Wallets</h1>
-                <Button
-                  variant={walletsEditMode ? "default" : "ghost"}
-                  size="icon-sm"
-                  className="rounded-lg ml-2"
-                  onClick={() => setWalletsEditMode((current) => !current)}
-                  title={walletsEditMode ? "Finish editing wallets" : "Edit wallets"}
-                  aria-label={walletsEditMode ? "Finish editing wallets" : "Edit wallets"}
-                >
-                  <PencilLine className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="flex items-center gap-2">
-                {selectedAccount ? (
-                  <Button
-                    variant="outline"
-                    size="icon-sm"
-                    className="rounded-xl bg-white shadow-sm"
-                    onClick={() => setSelectedAccountId(null)}
-                    title="Clear wallet filter"
-                    aria-label="Clear wallet filter"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                ) : null}
-              </div>
-            </div>
-            {actionError ? (
-              <div className="mb-6 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] text-rose-700">
-                {actionError}
-              </div>
-            ) : null}
-            <AccountList
-              accounts={accounts}
-              allocations={allocations}
-              selectedAccountId={selectedAccountId}
-              editing={walletsEditMode}
-              onSelect={(accountId) => setSelectedAccountId((current) => (current === accountId ? null : accountId))}
-              onAddAccount={openAddWallet}
-              onEditAccount={openEditWallet}
-              onDeleteAccount={handleDeleteWallet}
-              onAddSubgroup={(account) => {
-                setSelectedAccountId(account.id);
-                openAddSubgroup();
-              }}
-              onEditAllocation={(allocation) => {
-                setSelectedAccountId(allocation.account_id);
-                setEditingAllocation(allocation);
-                setAllocationSheetOpen(true);
-              }}
-              onDeleteAllocation={handleDeleteAllocation}
-            />
-          </aside>
-
-          <section className="h-full overflow-auto space-y-6 lg:pl-8">
-            <div className="rounded-[40px] bg-white shadow-sm ring-1 ring-black/5 p-6 lg:p-10 min-h-full flex flex-col">
-              <div className="mb-12 flex items-start justify-between gap-6">
-                <div>
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-surface/80 text-2xl shadow-sm border border-black/5">
-                      {selectedAccount ? (
-                         isSavingsAccount(selectedAccount) ? "💰" : isDebtAccount(selectedAccount) ? "🏦" : "💳"
-                      ) : "📊"}
-                    </div>
-                    <h1 className="text-[28px] font-heading font-normal text-slate-900 leading-tight">
-                      {selectedAccount ? selectedAccount.name : "Overview"}
-                    </h1>
+        <div className="grid h-full w-full grid-cols-1 lg:grid-cols-[minmax(320px,36vw)_minmax(0,1fr)]">
+          <section className="flex min-h-0 flex-col border-b border-border bg-card lg:border-r lg:border-b-0">
+            <div className="flex flex-col gap-5 px-8 py-8">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-4">
+                  <div className="flex size-11 shrink-0 items-center justify-center rounded-full border border-border/80 bg-background text-foreground">
+                    <Scale className="size-[18px]" strokeWidth={1.7} />
                   </div>
-                  <div>
-                    <p className="text-[13px] font-medium uppercase tracking-[0.1em] text-slate-400 mb-1">
-                      {selectedAccount ? "Total Balance" : "Activity summary"}
+                  <div className="flex flex-col gap-1">
+                    <h1 className="type-h3">{t("view.title")}</h1>
+                    <p className="type-body-14 max-w-[34rem] text-muted-foreground">
+                      {t("view.description")}
                     </p>
-                    {selectedAccount ? (
-                      <MoneyAmount
-                        amount={selectedBalance}
-                        currency={selectedAccount.currency}
-                        display={isDebtAccount(selectedAccount) ? "signed" : "absolute"}
-                        className="text-[48px] font-heading font-normal tracking-tight text-slate-900"
-                      />
-                    ) : (
-                      <span className="text-[32px] font-heading font-normal tracking-tight text-slate-900">
-                        {transactions.length} transactions
-                      </span>
-                    )}
                   </div>
                 </div>
 
-                <div className="hidden sm:flex items-center gap-3">
-                  <Button variant="outline" className="rounded-xl bg-white shadow-sm h-11 px-6 font-medium text-slate-700">
-                    Send
-                  </Button>
-                  <Button className="rounded-xl bg-slate-900 text-white shadow-md h-11 px-6 font-medium hover:bg-slate-800">
-                    Add Money
-                  </Button>
+                <div className="flex items-center gap-1">
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          className="rounded-full border border-border/70 bg-background"
+                          aria-label={walletsEditMode ? t("view.finishWalletEditing") : t("view.manageWallets")}
+                        />
+                      }
+                      onClick={() => setWalletsEditMode((current) => !current)}
+                      disabled={pending}
+                    >
+                      <PencilLine />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {walletsEditMode ? t("view.finishWalletEditing") : t("view.manageWallets")}
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={<Button variant="ghost" size="icon-sm" className="rounded-full border border-border/70 bg-background" aria-label={t("view.addWallet")} />}
+                      onClick={() => openAddWallet()}
+                    >
+                      <Plus />
+                    </TooltipTrigger>
+                    <TooltipContent>{t("view.addWallet")}</TooltipContent>
+                  </Tooltip>
                 </div>
               </div>
 
-              {selectedAccount && !isDebtAccount(selectedAccount) ? (
-                <div className="mb-12">
-                  <div className="h-[180px] w-full rounded-2xl bg-surface/50 border border-black/5 flex items-end px-6 pb-6 pt-12 relative overflow-hidden">
-                    <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-surface/80 to-transparent flex items-end justify-around pb-4">
-                      {/* Decorative bar chart placeholder */}
-                      <div className="w-12 h-[40%] rounded-t-lg bg-slate-200/50" />
-                      <div className="w-12 h-[60%] rounded-t-lg bg-slate-200/50" />
-                      <div className="w-12 h-[30%] rounded-t-lg bg-slate-200/50" />
-                      <div className="w-12 h-[80%] rounded-t-lg bg-slate-800/80 shadow-md" />
-                      <div className="w-12 h-[50%] rounded-t-lg bg-slate-200/50" />
-                      <div className="w-12 h-[70%] rounded-t-lg bg-slate-200/50" />
-                    </div>
-                    <span className="text-slate-400 text-sm italic relative z-10 w-full text-center mt-auto pb-2">
-                       Insight Chart
-                    </span>
-                  </div>
+              {actionError ? (
+                <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  {actionError}
                 </div>
               ) : null}
+            </div>
 
-              <div className="flex-1">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-[20px] font-heading font-normal text-slate-800">
-                    Activity
-                  </h3>
-                  <Button variant="ghost" className="text-sm font-medium text-slate-500 hover:text-slate-900">
-                    View All
-                  </Button>
+            <Separator />
+
+            <div className="min-h-0 flex-1 overflow-auto px-8 py-5">
+              <AccountList
+                accounts={accounts}
+                allocations={allocations}
+                selectedAccountId={selectedAccountId}
+                editing={walletsEditMode}
+                onSelect={(accountId) => setSelectedAccountId((current) => (current === accountId ? null : accountId))}
+                onAddAccount={openAddWallet}
+                onEditAccount={openEditWallet}
+                onDeleteAccount={handleDeleteWallet}
+                onAddSubgroup={(account) => {
+                  setSelectedAccountId(account.id);
+                  openAddSubgroup();
+                }}
+                onEditAllocation={(allocation) => {
+                  setSelectedAccountId(allocation.account_id);
+                  setEditingAllocation(allocation);
+                  setAllocationSheetOpen(true);
+                }}
+                onDeleteAllocation={handleDeleteAllocation}
+              />
+            </div>
+          </section>
+
+          <section className="flex min-h-0 flex-col bg-background">
+            <div className="flex flex-col gap-4 px-6 py-6">
+              <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                <div className="flex flex-col gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="type-h3">
+                      {selectedAccount ? selectedAccount.name : t("view.activity")}
+                    </h2>
+                    {selectedAccount ? (
+                      <>
+                        <Badge variant="secondary">{t(`walletTypes.${selectedAccount.type}` as const)}</Badge>
+                        <Badge variant="outline">{selectedAccount.currency}</Badge>
+                      </>
+                    ) : null}
+                  </div>
+                  <p className="type-body-14 text-muted-foreground">
+                    {selectedAccount
+                      ? t("view.selectedActivityDescription")
+                      : t("view.allActivityDescription")}
+                  </p>
                 </div>
-                
-                <div className="-mx-2">
-                  <TransactionList
-                    transactions={register}
-                    emptyMessage={selectedAccount ? "No transactions for this wallet yet.\nTransactions will appear here once they occur." : "No transactions yet."}
-                    compact
-                  />
+
+                <div className="flex flex-wrap gap-2">
+                  {selectedAccount ? (
+                    <>
+                      <MetricPill
+                        label={t("metrics.balance")}
+                        valueNode={
+                          <MoneyAmount
+                            amount={selectedAccount.balance}
+                            currency={selectedAccount.currency}
+                            display={isDebtAccount(selectedAccount) ? "signed" : "absolute"}
+                            tone="default"
+                          />
+                        }
+                      />
+                      {isSavingsAccount(selectedAccount) ? (
+                        <>
+                          <MetricPill
+                            label={t("metrics.allocated")}
+                            valueNode={
+                              <MoneyAmount
+                                amount={selectedAllocatedTotal}
+                                currency={selectedAccount.currency}
+                                display="absolute"
+                              />
+                            }
+                          />
+                          <MetricPill
+                            label={t("metrics.free")}
+                            valueNode={
+                              <MoneyAmount amount={freeMoney} currency={selectedAccount.currency} display="absolute" />
+                            }
+                          />
+                        </>
+                      ) : null}
+                      <Tooltip>
+                        <TooltipTrigger
+                          render={<Button variant="outline" size="icon-sm" className="rounded-full bg-background" aria-label={t("view.showAllWallets")} />}
+                          onClick={() => setSelectedAccountId(null)}
+                        >
+                          <X />
+                        </TooltipTrigger>
+                        <TooltipContent>{t("view.showAllWallets")}</TooltipContent>
+                      </Tooltip>
+                    </>
+                  ) : hasAccounts ? (
+                    <MetricPill label={t("metrics.transactions")} value={`${register.length}`} />
+                  ) : null}
                 </div>
               </div>
+            </div>
+
+            <Separator />
+
+            <div className="min-h-0 flex-1 overflow-auto px-6 py-3">
+              <TransactionList
+                transactions={register}
+                emptyMessage={
+                  selectedAccount
+                    ? t("messages.noTransactionsForWallet")
+                    : tr("common.empty.noTransactionsYet")
+                }
+                compact
+              />
             </div>
           </section>
         </div>
       ) : (
-        <EmptyState
-          title="No wallets yet"
-          description="Create your first wallet to start organizing real balances in Supabase."
-          action={emptyAction}
-        />
+        <div className="flex h-full items-center justify-center px-4">
+          <EmptyState
+            title={t("view.noBalanceSpacesTitle")}
+            description={t("view.noBalanceSpacesDescription")}
+            action={emptyAction}
+            className="w-full max-w-md"
+          />
+        </div>
       )}
 
       <AccountFormSheet
@@ -410,5 +445,22 @@ export function AccountsView({
         />
       ) : null}
     </>
+  );
+}
+
+function MetricPill({
+  label,
+  value,
+  valueNode,
+}: {
+  label: string;
+  value?: string;
+  valueNode?: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl border border-border/80 bg-card px-3.5 py-2.5">
+      <p className="type-body-12 tracking-[0.02em]">{label}</p>
+      <div className="mt-1 type-h6">{valueNode ?? value}</div>
+    </div>
   );
 }

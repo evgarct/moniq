@@ -1,3 +1,5 @@
+import { useTranslations } from "next-intl";
+
 import { MoneyAmount } from "@/components/money-amount";
 import { SectionCard } from "@/components/section-card";
 import type { CurrencyCashflowSummary } from "@/lib/finance-selectors";
@@ -7,15 +9,17 @@ export function SummaryCard({
 }: {
   summary: CurrencyCashflowSummary[];
 }) {
+  const t = useTranslations("dashboard.summaryCard");
+
   return (
-    <SectionCard title="Cashflow by currency" description="Income and expenses stay separated until FX support is added.">
+    <SectionCard title={t("title")} description={t("description")}>
       <div className="space-y-4">
         {summary.map((currencySummary) => (
           <div key={currencySummary.currency} className="space-y-3 border-b border-border/70 pb-4 last:border-b-0 last:pb-0">
             <p className="text-sm text-muted-foreground">{currencySummary.currency}</p>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="rounded-lg border border-border bg-background px-4 py-3">
-                <p className="text-sm text-muted-foreground">Income</p>
+                <p className="text-sm text-muted-foreground">{t("income")}</p>
                 <MoneyAmount
                   amount={currencySummary.income}
                   currency={currencySummary.currency}
@@ -25,7 +29,7 @@ export function SummaryCard({
                 />
               </div>
               <div className="rounded-lg border border-border bg-background px-4 py-3">
-                <p className="text-sm text-muted-foreground">Expenses</p>
+                <p className="text-sm text-muted-foreground">{t("expenses")}</p>
                 <MoneyAmount
                   amount={currencySummary.expenses}
                   currency={currencySummary.currency}

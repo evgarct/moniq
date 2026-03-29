@@ -2,6 +2,7 @@
 
 import { LogOut } from "lucide-react";
 import { useFormStatus } from "react-dom";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 
@@ -17,14 +18,16 @@ function LogoutButtonInner({
   className,
   variant = "ghost",
   size = "default",
-  label = "Log out",
+  label,
 }: Omit<LogoutButtonProps, "action">) {
+  const t = useTranslations("auth.actions");
   const { pending } = useFormStatus();
+  const resolvedLabel = label ?? t("logout");
 
   return (
     <Button type="submit" variant={variant} size={size} className={className} disabled={pending}>
       <LogOut className="h-4 w-4" />
-      {pending ? "Signing out..." : label}
+      {pending ? t("logoutPending") : resolvedLabel}
     </Button>
   );
 }

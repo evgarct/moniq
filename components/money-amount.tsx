@@ -29,7 +29,7 @@ export function MoneyAmount({
   const value = display === "absolute" ? Math.abs(amount) : amount;
 
   return (
-    <span className={cn("font-mono tabular-nums", resolvedTone, className)}>
+    <span className={cn("tabular-nums", resolvedTone, className)}>
       {formatMoney(value, currency)}
     </span>
   );

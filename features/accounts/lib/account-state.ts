@@ -107,9 +107,12 @@ export function saveAccount({
       editingAccount.type === "saving" && values.type !== "saving"
         ? snapshot.allocations.filter((allocation) => allocation.account_id !== nextAccount.id)
         : snapshot.allocations;
-    const nextTransactions = snapshot.transactions.map((transaction) =>
-      transaction.account.id === nextAccount.id ? { ...transaction, account: nextAccount } : transaction,
-    );
+    const nextTransactions = snapshot.transactions.map((transaction) => ({
+        ...transaction,
+        source_account: transaction.source_account_id === nextAccount.id ? nextAccount : transaction.source_account,
+        destination_account:
+          transaction.destination_account_id === nextAccount.id ? nextAccount : transaction.destination_account,
+      }));
 
     return {
       snapshot: {
@@ -142,6 +145,8 @@ export function deleteAccount(snapshot: AccountStateSnapshot, accountId: string)
   return {
     accounts: snapshot.accounts.filter((account) => account.id !== accountId),
     allocations: snapshot.allocations.filter((allocation) => allocation.account_id !== accountId),
-    transactions: snapshot.transactions.filter((transaction) => transaction.account.id !== accountId),
+    transactions: snapshot.transactions.filter(
+      (transaction) => transaction.source_account_id !== accountId && transaction.destination_account_id !== accountId,
+    ),
   };
 }

@@ -2,9 +2,11 @@ import { isSameDay, parseISO } from "date-fns";
 
 import { getAccountGroup, getNetWorthTotal } from "@/features/accounts/lib/account-utils";
 import { getAllocatedTotalForAccount } from "@/features/allocations/lib/allocation-utils";
+import { buildCategoryTree } from "@/features/categories/lib/category-tree";
+import { getTransactionAnalyticsAmount, getTransactionPrimaryAccount, getTransactionSignedAmount } from "@/features/transactions/lib/transaction-utils";
 import { SUPPORTED_CURRENCY_CODES } from "@/lib/currencies";
 import type { CurrencyCode } from "@/types/currency";
-import type { Account, Allocation, FinanceSnapshot, Transaction } from "@/types/finance";
+import type { Account, Allocation, CategoryTreeNode, FinanceSnapshot, Transaction } from "@/types/finance";
 
 export type CurrencyTotal = {
   currency: CurrencyCode;
@@ -30,10 +32,12 @@ export function getTotalBalance(accounts: Account[]) {
 export function getIncomeExpenseSummary(transactions: Transaction[]) {
   return transactions.reduce(
     (summary, transaction) => {
-      if (transaction.type === "income") {
-        summary.income += Math.abs(transaction.amount);
+      const amount = getTransactionAnalyticsAmount(transaction);
+
+      if (transaction.kind === "income") {
+        summary.income += amount;
       } else {
-        summary.expenses += Math.abs(transaction.amount);
+        summary.expenses += amount;
       }
 
       return summary;
@@ -53,13 +57,20 @@ export function getTotalBalanceByCurrency(accounts: Account[]): CurrencyTotal[] 
 
 export function getIncomeExpenseSummaryByCurrency(transactions: Transaction[]): CurrencyCashflowSummary[] {
   const grouped = transactions.reduce<Map<CurrencyCode, CurrencyCashflowSummary>>((accumulator, transaction) => {
-    const currency = transaction.account.currency;
-    const current = accumulator.get(currency) ?? { currency, income: 0, expenses: 0 };
+    const account = getTransactionPrimaryAccount(transaction);
 
-    if (transaction.type === "income") {
-      current.income += Math.abs(transaction.amount);
+    if (!account) {
+      return accumulator;
+    }
+
+    const currency = account.currency;
+    const current = accumulator.get(currency) ?? { currency, income: 0, expenses: 0 };
+    const amount = getTransactionAnalyticsAmount(transaction);
+
+    if (transaction.kind === "income") {
+      current.income += amount;
     } else {
-      current.expenses += Math.abs(transaction.amount);
+      current.expenses += amount;
     }
 
     accumulator.set(currency, current);
@@ -74,11 +85,13 @@ export function getRecentTransactions(snapshot: FinanceSnapshot, limit = 5) {
 }
 
 export function getTransactionsForDate(transactions: Transaction[], date: Date) {
-  return transactions.filter((transaction) => isSameDay(parseISO(transaction.date), date));
+  return transactions.filter((transaction) => isSameDay(parseISO(transaction.occurred_at), date));
 }
 
 export function getTransactionsForAccount(transactions: Transaction[], accountId: string) {
-  return transactions.filter((transaction) => transaction.account.id === accountId);
+  return transactions.filter(
+    (transaction) => transaction.source_account_id === accountId || transaction.destination_account_id === accountId,
+  );
 }
 
 export function getCashAccounts(accounts: Account[]) {
@@ -104,4 +117,12 @@ export function getAllocationCoverage(accounts: Account[], allocations: Allocati
       accountId: account.id,
       allocated: getAllocatedTotalForAccount(allocations, account.id),
     }));
+}
+
+export function getCategoryTree(snapshot: FinanceSnapshot): CategoryTreeNode[] {
+  return buildCategoryTree(snapshot.categories, snapshot.transactions);
+}
+
+export function getNetTransactionEffect(transactions: Transaction[]) {
+  return transactions.reduce((sum, transaction) => sum + getTransactionSignedAmount(transaction), 0);
 }

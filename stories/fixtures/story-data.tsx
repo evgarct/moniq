@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, within } from "storybook/test";
 
-import { AppHeader } from "@/components/app-header";
 import { AppSidebar } from "@/components/app-sidebar";
 import { PageContainer } from "@/components/page-container";
 import { BalanceCard } from "@/features/dashboard/components/balance-card";
@@ -43,8 +42,7 @@ export function StoryWorkspace({
       <div className="grid h-full w-full lg:grid-cols-[76px_minmax(0,1fr)]">
         <AppSidebar user={storyUser} onSignOut={noopAsyncAction} />
         <div className="min-w-0 overflow-hidden bg-[#fbf8f4]">
-          <AppHeader user={storyUser} onSignOut={noopAsyncAction} />
-          <main className="h-[calc(100vh-57px)] overflow-hidden">
+          <main className="h-full overflow-hidden">
             <div data-pathname={pathname} className="h-full">
               {children}
             </div>

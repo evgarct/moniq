@@ -1,0 +1,46 @@
+const FINANCE_ERROR_KEYS = {
+  Unauthorized: "common.errors.unauthorized",
+  "Unable to load finance data.": "common.errors.finance.load",
+  "Unable to create wallet.": "common.errors.wallet.create",
+  "Unable to update wallet.": "common.errors.wallet.update",
+  "Unable to delete wallet.": "common.errors.wallet.delete",
+  "Unable to create allocation.": "common.errors.allocation.create",
+  "Unable to update allocation.": "common.errors.allocation.update",
+  "Unable to delete allocation.": "common.errors.allocation.delete",
+  "Unable to create category.": "common.errors.category.create",
+  "Unable to update category.": "common.errors.category.update",
+  "Unable to delete category.": "common.errors.category.delete",
+  "Unable to create transaction.": "common.errors.transaction.create",
+  "Unable to update transaction.": "common.errors.transaction.update",
+  "Unable to delete transaction.": "common.errors.transaction.delete",
+  "walletId is required.": "common.errors.allocation.walletRequired",
+  "Category not found.": "common.errors.category.notFound",
+  "Choose a replacement category before deleting this category.": "common.errors.category.replacementRequired",
+  "Replacement category not found.": "common.errors.category.replacementNotFound",
+  "Replacement category must be different.": "common.errors.category.replacementDifferent",
+  "Replacement category must have the same type.": "common.errors.category.replacementSameType",
+  "Transaction not found.": "common.errors.transaction.notFound",
+  "Parent category not found.": "common.errors.category.parentNotFound",
+  "Parent category must have the same type.": "common.errors.category.parentSameType",
+  "A category cannot be its own parent.": "common.errors.category.cannotBeOwnParent",
+  "A category cannot be moved under its own descendant.": "common.errors.category.cannotMoveUnderDescendant",
+  "Source account not found.": "common.errors.transaction.sourceNotFound",
+  "Destination account not found.": "common.errors.transaction.destinationNotFound",
+  "Savings goal not found.": "common.errors.transaction.goalNotFound",
+  "Choose a category with the matching type.": "common.errors.transaction.categoryTypeMismatch",
+  "Debt payment interest can only use an expense category.": "common.errors.transaction.debtCategoryExpenseOnly",
+  "Selected savings goal must belong to the savings wallet used in the transaction.": "common.errors.transaction.goalWalletMismatch",
+  "Save to goal must land in a savings wallet.": "common.errors.transaction.saveToGoalNeedsSavings",
+  "Spend from goal must start from a savings wallet.": "common.errors.transaction.spendFromGoalNeedsSavings",
+  "Debt payment must target a debt account.": "common.errors.transaction.debtNeedsDebtAccount",
+  "Transfers do not use categories.": "common.errors.transaction.transferNoCategory",
+  "Supabase schema is out of date. Run `npx supabase db push` and reload the app.":
+    "common.errors.finance.schemaOutOfDate",
+} as const;
+
+type FinanceErrorMessage = keyof typeof FINANCE_ERROR_KEYS;
+
+export function translateFinanceErrorMessage(t: (key: string) => string, message: string) {
+  const key = FINANCE_ERROR_KEYS[message as FinanceErrorMessage];
+  return key ? t(key) : message;
+}

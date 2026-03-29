@@ -1,9 +1,10 @@
 "use server";
 
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getPathname, redirect } from "@/i18n/navigation";
 
 export type AuthActionState = {
   error?: string;
@@ -27,19 +28,26 @@ function validateCredentials(
   email: string,
   password: string,
   mode: "login" | "signup",
+  t: (
+    key:
+      | "errors.emailRequired"
+      | "errors.emailInvalid"
+      | "errors.passwordRequired"
+      | "errors.passwordMin",
+  ) => string,
 ) {
   const fieldErrors: AuthActionState["fieldErrors"] = {};
 
   if (!email) {
-    fieldErrors.email = "Email is required.";
+    fieldErrors.email = t("errors.emailRequired");
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    fieldErrors.email = "Enter a valid email address.";
+    fieldErrors.email = t("errors.emailInvalid");
   }
 
   if (!password) {
-    fieldErrors.password = "Password is required.";
+    fieldErrors.password = t("errors.passwordRequired");
   } else if (mode === "signup" && password.length < 8) {
-    fieldErrors.password = "Password must be at least 8 characters.";
+    fieldErrors.password = t("errors.passwordMin");
   }
 
   return fieldErrors;
@@ -73,8 +81,10 @@ export async function signInWithPassword(
   _previousState: AuthActionState,
   formData: FormData,
 ): Promise<AuthActionState> {
+  const locale = await getLocale();
+  const t = await getTranslations({ locale, namespace: "auth" });
   const { email, password } = normalizeCredentials(formData);
-  const fieldErrors = validateCredentials(email, password, "login");
+  const fieldErrors = validateCredentials(email, password, "login", t);
 
   if (fieldErrors.email || fieldErrors.password) {
     return {
@@ -93,15 +103,17 @@ export async function signInWithPassword(
     };
   }
 
-  redirect(getRedirectPath(formData));
+  return redirect({ href: getRedirectPath(formData), locale });
 }
 
 export async function signUp(
   _previousState: AuthActionState,
   formData: FormData,
 ): Promise<AuthActionState> {
+  const locale = await getLocale();
+  const t = await getTranslations({ locale, namespace: "auth" });
   const { email, password } = normalizeCredentials(formData);
-  const fieldErrors = validateCredentials(email, password, "signup");
+  const fieldErrors = validateCredentials(email, password, "signup", t);
 
   if (fieldErrors.email || fieldErrors.password) {
     return {
@@ -116,7 +128,7 @@ export async function signUp(
     email,
     password,
     options: {
-      emailRedirectTo: `${origin}/login`,
+      emailRedirectTo: `${origin}${getPathname({ locale, href: "/login" })}`,
     },
   });
 
@@ -128,15 +140,24 @@ export async function signUp(
   }
 
   if (data.session) {
-    redirect(getRedirectPath(formData));
+    return redirect({ href: getRedirectPath(formData), locale });
   }
 
-  redirect("/login?message=Check%20your%20email%20to%20confirm%20your%20account.");
+  return redirect({
+    href: {
+      pathname: "/login",
+      query: {
+        message: t("messages.confirmEmail"),
+      },
+    },
+    locale,
+  });
 }
 
 export async function signOut() {
+  const locale = await getLocale();
   const supabase = await createClient();
 
   await supabase.auth.signOut();
-  redirect("/login");
+  return redirect({ href: "/login", locale });
 }

@@ -13,7 +13,7 @@ export function TransactionList({
   renderAction?: (transaction: Transaction) => React.ReactNode;
 }) {
   if (!transactions.length) {
-    return <div className="rounded-lg border border-dashed border-border px-4 py-8 text-sm text-muted-foreground">{emptyMessage}</div>;
+    return <div className="type-body-14 rounded-lg border border-dashed border-border px-4 py-8 text-muted-foreground">{emptyMessage}</div>;
   }
 
   return (

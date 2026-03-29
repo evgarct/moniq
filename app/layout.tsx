@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono, PT_Serif } from "next/font/google";
+import { getLocale } from "next-intl/server";
 
 import { AppProviders } from "@/components/providers/app-providers";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 import "./globals.css";
 
@@ -26,19 +28,23 @@ export const metadata: Metadata = {
   description: "Personal finance management app built with Next.js and Supabase.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
+
   return (
     <html
-      lang="en"
+      lang={locale}
       data-scroll-behavior="smooth"
       className={`${inter.variable} ${jetBrainsMono.variable} ${ptSerif.variable} h-full antialiased`}
     >
       <body className="min-h-full bg-background font-sans text-foreground">
-        <AppProviders>{children}</AppProviders>
+        <TooltipProvider>
+          <AppProviders>{children}</AppProviders>
+        </TooltipProvider>
       </body>
     </html>
   );
