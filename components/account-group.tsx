@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { getAllocationProgress, getFreeMoney, isTargetedAllocation } from "@/features/allocations/lib/allocation-utils";
+import { formatMoney } from "@/lib/formatters";
 import type { CurrencyCode } from "@/types/currency";
 import type { Account, Allocation } from "@/types/finance";
 
@@ -94,7 +95,6 @@ export function AccountGroup({
                         targetAmount={allocation.target_amount}
                         progress={getAllocationProgress(allocation)}
                         tooltip={`Savings goal inside ${account.name}`}
-                        detail={isTargetedAllocation(allocation) ? "Targeted goal" : "Flexible goal"}
                         variant={isTargetedAllocation(allocation) ? "targeted" : "open"}
                         editing={editing}
                         actions={
@@ -172,37 +172,72 @@ function SavingChildRow({
 }) {
   return (
     <div
-      className="group relative flex items-center justify-between gap-3 rounded-xl px-2 py-2 hover:bg-surface/60 transition-colors"
+      className="group relative rounded-2xl px-3 py-3 transition-colors hover:bg-white/65"
       title={tooltip}
     >
-      <div className="absolute left-[-16px] top-1/2 h-[1px] w-4 bg-border/80 -translate-y-1/2" />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="truncate text-[14px] font-medium text-slate-600">{label}</p>
-            {detail ? <p className="text-[11px] text-slate-400">{detail}</p> : null}
-          </div>
-          <div className="flex items-center gap-1">
+      <div className="absolute left-[-16px] top-1/2 h-px w-4 bg-[#e4dbc9] -translate-y-1/2" />
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-2">
+        <div className="min-w-0">
+          <p className="pr-2 text-[14px] leading-5 font-medium text-slate-800 break-words">
+            {label}
+          </p>
+          {detail ? (
+            <p className="mt-0.5 text-[11px] font-medium tracking-[0.01em] text-slate-500">{detail}</p>
+          ) : null}
+        </div>
+
+        <div className="flex items-start gap-1 justify-self-end">
+          <div className="min-w-[136px] text-right">
             {variant === "targeted" && targetAmount !== null && targetAmount !== undefined ? (
-              <div className="text-right">
-                <div className="flex flex-wrap items-center justify-end gap-1 text-[13px] font-semibold text-slate-900">
-                  <MoneyAmount amount={amount} currency={currency} display="absolute" className="text-[13px] font-semibold text-slate-900" />
+              <div className="space-y-0.5">
+                <div className="flex flex-wrap items-center justify-end gap-1 text-[13px] font-semibold">
+                  <MoneyAmount
+                    amount={amount}
+                    currency={currency}
+                    display="absolute"
+                    className="text-[14px] font-semibold text-slate-900"
+                  />
                   <span className="text-slate-400">/</span>
-                  <MoneyAmount amount={targetAmount} currency={currency} display="absolute" className="text-[13px] font-semibold text-slate-500" />
+                  <MoneyAmount
+                    amount={targetAmount}
+                    currency={currency}
+                    display="absolute"
+                    tone="muted"
+                    className="text-[13px] font-medium text-slate-500"
+                  />
                 </div>
+                <p className="text-[11px] font-medium text-slate-400">
+                  {Math.round((progress ?? 0) * 100)}% saved
+                </p>
               </div>
             ) : (
-              <MoneyAmount amount={amount} currency={currency} display="absolute" className="text-[13px] font-semibold text-slate-900" />
+              <MoneyAmount
+                amount={amount}
+                currency={currency}
+                display="absolute"
+                className="text-[14px] font-semibold text-slate-900"
+              />
             )}
-            {editing && actions ? <div className="opacity-0 transition-opacity group-hover:opacity-100">{actions}</div> : null}
           </div>
+          {editing && actions ? (
+            <div className="mt-[-2px] opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+              {actions}
+            </div>
+          ) : null}
         </div>
+
         {variant === "targeted" && progress !== null && progress !== undefined ? (
-          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-200/70">
-            <div
-              className="h-full rounded-full bg-slate-700 transition-[width]"
-              style={{ width: `${progress <= 0 ? 0 : Math.max(progress * 100, 6)}%` }}
-            />
+          <div className="col-span-2 pl-px">
+            <div className="h-2 w-full overflow-hidden rounded-full bg-[#ece4d6] ring-1 ring-[#e6dccb]/80">
+              <div
+                className="h-full rounded-full bg-slate-700 transition-[width]"
+                style={{ width: `${progress <= 0 ? 0 : Math.max(progress * 100, 6)}%` }}
+              />
+            </div>
+            <div className="mt-1.5 flex items-center justify-between gap-3 text-[11px] font-medium text-slate-400">
+              <span>{formatMoney(amount, currency)}</span>
+              <span>{formatMoney(targetAmount ?? 0, currency)}</span>
+            </div>
           </div>
         ) : null}
       </div>
