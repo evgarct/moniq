@@ -1,3 +1,5 @@
+import { useTranslations } from "next-intl";
+
 import { AccountGroup } from "@/components/account-group";
 import {
   getCashAccounts,
@@ -32,15 +34,16 @@ export function AccountList({
   onEditAllocation?: (allocation: Allocation) => void;
   onDeleteAllocation?: (allocation: Allocation) => void;
 }) {
+  const t = useTranslations("accounts.groups");
   const cashAccounts = getCashAccounts(accounts);
   const savingAccounts = getSavingAccounts(accounts);
   const creditCardAccounts = getCreditCardAccounts(accounts);
   const debtAccounts = getDebtAccounts(accounts);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       <AccountGroup
-        title="Cash"
+        title={t("cash")}
         accounts={cashAccounts}
         allocations={allocations}
         selectedAccountId={selectedAccountId}
@@ -51,7 +54,7 @@ export function AccountList({
         onDeleteAccount={onDeleteAccount}
       />
       <AccountGroup
-        title="Savings"
+        title={t("savings")}
         accounts={savingAccounts}
         allocations={allocations}
         selectedAccountId={selectedAccountId}
@@ -65,7 +68,7 @@ export function AccountList({
         onDeleteAllocation={onDeleteAllocation}
       />
       <AccountGroup
-        title="Credit Cards"
+        title={t("creditCards")}
         accounts={creditCardAccounts}
         allocations={allocations}
         selectedAccountId={selectedAccountId}
@@ -76,7 +79,7 @@ export function AccountList({
         onDeleteAccount={onDeleteAccount}
       />
       <AccountGroup
-        title="Debt"
+        title={t("debt")}
         accounts={debtAccounts}
         allocations={allocations}
         selectedAccountId={selectedAccountId}

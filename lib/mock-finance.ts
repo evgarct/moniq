@@ -6,13 +6,14 @@ const userId = "user-demo";
 const today = new Date();
 
 export const mockCategories: Category[] = [
-  { id: "housing", name: "Housing" },
-  { id: "salary", name: "Salary" },
-  { id: "groceries", name: "Groceries" },
-  { id: "transport", name: "Transport" },
-  { id: "health", name: "Health" },
-  { id: "coffee", name: "Coffee" },
-  { id: "debt", name: "Debt service" },
+  { id: "salary", user_id: userId, name: "Salary", icon: "💼", type: "income", parent_id: null, created_at: formatISO(subMonths(today, 12)) },
+  { id: "freelance", user_id: userId, name: "Freelance", icon: "🧾", type: "income", parent_id: null, created_at: formatISO(subMonths(today, 10)) },
+  { id: "housing", user_id: userId, name: "Housing", icon: "🏠", type: "expense", parent_id: null, created_at: formatISO(subMonths(today, 12)) },
+  { id: "rent", user_id: userId, name: "Rent", icon: "🛋️", type: "expense", parent_id: "housing", created_at: formatISO(subMonths(today, 11)) },
+  { id: "groceries", user_id: userId, name: "Groceries", icon: "🥬", type: "expense", parent_id: null, created_at: formatISO(subMonths(today, 9)) },
+  { id: "transport", user_id: userId, name: "Transport", icon: "🚇", type: "expense", parent_id: null, created_at: formatISO(subMonths(today, 9)) },
+  { id: "coffee", user_id: userId, name: "Coffee", icon: "☕", type: "expense", parent_id: "groceries", created_at: formatISO(subMonths(today, 8)) },
+  { id: "debt-service", user_id: userId, name: "Debt service", icon: "📉", type: "expense", parent_id: null, created_at: formatISO(subMonths(today, 7)) },
 ];
 
 export const mockAccounts: Account[] = [
@@ -45,13 +46,14 @@ export const mockAccounts: Account[] = [
     created_at: formatISO(subMonths(today, 10)),
   },
   {
-    id: "amex",
+    id: "ruble-card",
     user_id: userId,
-    name: "Ruble Credit Card",
-    type: "credit_card",
-    balance: -184320,
+    name: "Ruble Debit Card",
+    type: "cash",
+    cash_kind: "debit_card",
+    balance: 64800,
     currency: "RUB",
-    created_at: formatISO(subMonths(today, 30)),
+    created_at: formatISO(subMonths(today, 12)),
   },
   {
     id: "auto-loan",
@@ -63,16 +65,6 @@ export const mockAccounts: Account[] = [
     currency: "CZK",
     created_at: formatISO(subMonths(today, 42)),
   },
-  {
-    id: "mortgage",
-    user_id: userId,
-    name: "Mortgage",
-    type: "debt",
-    debt_kind: "mortgage",
-    balance: -5214500,
-    currency: "CZK",
-    created_at: formatISO(subMonths(today, 60)),
-  },
 ];
 
 export const mockAllocations: Allocation[] = [
@@ -80,27 +72,94 @@ export const mockAllocations: Allocation[] = [
   makeAllocation("travel-goal", "reserve", "Travel", 3000, "goal_targeted", 5000),
   makeAllocation("emergency-fund", "reserve", "Emergency fund", 3000, "goal_targeted", 10000),
   makeAllocation("summer-trip", "travel", "Summer trip", 2500, "goal_targeted", 4000),
-  makeAllocation("pet-travel", "travel", "Pet expenses", 600, "goal_open"),
-  makeAllocation("gear-upgrade", "travel", "Yearly purchases", 900, "goal_targeted", 1200),
 ];
 
 export const mockTransactions: Transaction[] = [
-  makeTransaction("salary-1", "Monthly salary", -96500, 0, "salary", "everyday", "paid", "income"),
-  makeTransaction("rent-1", "Apartment rent", 28500, -2, "housing", "everyday", "paid", "expense"),
-  makeTransaction("grocery-1", "Groceries refill", 2160.4, -1, "groceries", "everyday", "paid", "expense"),
-  makeTransaction("coffee-1", "Coffee with Alex", 125, 0, "coffee", "everyday", "paid", "expense"),
-  makeTransaction("transport-1", "Train pass", 550, 0, "transport", "everyday", "planned", "expense"),
-  makeTransaction("health-1", "Dentist follow-up", 2400, 1, "health", "everyday", "planned", "expense"),
-  makeTransaction("savings-topup", "Move to rainy day savings", 900, -4, "housing", "reserve", "paid", "expense"),
-  makeTransaction("credit-card-payment", "Credit card payment", 12000, -5, "debt", "amex", "paid", "expense"),
-  makeTransaction("mortgage-payment", "Mortgage autopay", 32100, -8, "debt", "mortgage", "paid", "expense"),
+  makeTransaction({
+    id: "salary-1",
+    title: "Monthly salary",
+    kind: "income",
+    amount: 96500,
+    dayOffset: 0,
+    categoryId: "salary",
+    destinationAccountId: "everyday",
+    status: "paid",
+  }),
+  makeTransaction({
+    id: "rent-1",
+    title: "Apartment rent",
+    kind: "expense",
+    amount: 28500,
+    dayOffset: -2,
+    categoryId: "rent",
+    sourceAccountId: "everyday",
+    status: "paid",
+  }),
+  makeTransaction({
+    id: "grocery-1",
+    title: "Groceries refill",
+    kind: "expense",
+    amount: 2160.4,
+    dayOffset: -1,
+    categoryId: "groceries",
+    sourceAccountId: "everyday",
+    status: "paid",
+  }),
+  makeTransaction({
+    id: "coffee-1",
+    title: "Coffee with Alex",
+    kind: "expense",
+    amount: 125,
+    dayOffset: 0,
+    categoryId: "coffee",
+    sourceAccountId: "everyday",
+    status: "paid",
+  }),
+  makeTransaction({
+    id: "transfer-czk-rub",
+    title: "Move cash for Moscow trip",
+    kind: "transfer",
+    amount: 5200,
+    destinationAmount: 19100,
+    fxRate: 3.6731,
+    dayOffset: -3,
+    sourceAccountId: "everyday",
+    destinationAccountId: "ruble-card",
+    status: "planned",
+  }),
+  makeTransaction({
+    id: "save-goal",
+    title: "Top up summer trip",
+    kind: "save_to_goal",
+    amount: 180,
+    destinationAmount: 180,
+    dayOffset: -4,
+    sourceAccountId: "everyday",
+    destinationAccountId: "travel",
+    allocationId: "summer-trip",
+    status: "paid",
+  }),
+  makeTransaction({
+    id: "debt-payment",
+    title: "Car loan payment",
+    kind: "debt_payment",
+    amount: 8200,
+    principalAmount: 5000,
+    interestAmount: 1700,
+    extraPrincipalAmount: 1500,
+    dayOffset: -5,
+    categoryId: "debt-service",
+    sourceAccountId: "everyday",
+    destinationAccountId: "auto-loan",
+    status: "paid",
+  }),
 ];
 
 export const mockFinanceSnapshot: FinanceSnapshot = {
   accounts: mockAccounts,
   allocations: mockAllocations,
   categories: mockCategories,
-  transactions: mockTransactions.sort((a, b) => a.date.localeCompare(b.date)).reverse(),
+  transactions: mockTransactions.sort((a, b) => a.occurred_at.localeCompare(b.occurred_at)).reverse(),
 };
 
 function makeAllocation(
@@ -123,27 +182,50 @@ function makeAllocation(
   };
 }
 
-function makeTransaction(
-  id: string,
-  title: string,
-  amount: number,
-  dayOffset: number,
-  categoryId: string,
-  accountId: string,
-  status: Transaction["status"],
-  type: Transaction["type"],
-): Transaction {
-  const account = mockAccounts.find((item) => item.id === accountId) ?? mockAccounts[0];
-  const category = mockCategories.find((item) => item.id === categoryId) ?? mockCategories[0];
+function makeTransaction(values: {
+  id: string;
+  title: string;
+  kind: Transaction["kind"];
+  amount: number;
+  dayOffset: number;
+  categoryId?: string;
+  sourceAccountId?: string;
+  destinationAccountId?: string;
+  allocationId?: string;
+  destinationAmount?: number;
+  fxRate?: number;
+  principalAmount?: number;
+  interestAmount?: number;
+  extraPrincipalAmount?: number;
+  status: Transaction["status"];
+}): Transaction {
+  const category = values.categoryId ? mockCategories.find((item) => item.id === values.categoryId) ?? null : null;
+  const sourceAccount = values.sourceAccountId ? mockAccounts.find((item) => item.id === values.sourceAccountId) ?? null : null;
+  const destinationAccount = values.destinationAccountId ? mockAccounts.find((item) => item.id === values.destinationAccountId) ?? null : null;
+  const allocation = values.allocationId ? mockAllocations.find((item) => item.id === values.allocationId) ?? null : null;
 
   return {
-    id,
-    title,
-    amount,
-    date: formatISO(addDays(today, dayOffset), { representation: "date" }),
+    id: values.id,
+    user_id: userId,
+    title: values.title,
+    note: null,
+    occurred_at: formatISO(addDays(today, values.dayOffset), { representation: "date" }),
+    created_at: formatISO(addDays(today, values.dayOffset)),
+    status: values.status,
+    kind: values.kind,
+    amount: values.amount,
+    destination_amount: values.destinationAmount ?? null,
+    fx_rate: values.fxRate ?? null,
+    principal_amount: values.principalAmount ?? null,
+    interest_amount: values.interestAmount ?? null,
+    extra_principal_amount: values.extraPrincipalAmount ?? null,
+    category_id: category?.id ?? null,
+    source_account_id: sourceAccount?.id ?? null,
+    destination_account_id: destinationAccount?.id ?? null,
+    allocation_id: allocation?.id ?? null,
     category,
-    account,
-    status,
-    type,
+    source_account: sourceAccount,
+    destination_account: destinationAccount,
+    allocation,
   };
 }

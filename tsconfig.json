@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "baseUrl": ".",
     "target": "ES2017",
     "lib": [
       "dom",
@@ -7,6 +8,7 @@
       "esnext"
     ],
     "allowJs": false,
+    "allowArbitraryExtensions": true,
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,
@@ -23,6 +25,9 @@
       }
     ],
     "paths": {
+      "@/i18n/*": [
+        "src/i18n/*"
+      ],
       "@/*": [
         "./*"
       ]

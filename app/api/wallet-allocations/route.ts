@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { financeErrorResponse } from "@/app/api/_lib/error-response";
 import { createWalletAllocation, getFinanceSnapshot } from "@/features/finance/server/repository";
 import { allocationInputSchema } from "@/types/finance-schemas";
 
@@ -10,15 +11,12 @@ export async function POST(request: Request) {
     const walletId = String(payload.walletId ?? "").trim();
 
     if (!walletId) {
-      return NextResponse.json({ error: "walletId is required." }, { status: 400 });
+      return financeErrorResponse(request, new Error("walletId is required."), "common.errors.allocation.walletRequired");
     }
 
     await createWalletAllocation(walletId, values);
     return NextResponse.json(await getFinanceSnapshot());
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unable to create allocation.";
-    const status = message === "Unauthorized" ? 401 : 400;
-    return NextResponse.json({ error: message }, { status });
+    return financeErrorResponse(request, error, "common.errors.allocation.create");
   }
 }
-

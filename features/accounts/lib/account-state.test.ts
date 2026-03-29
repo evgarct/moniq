@@ -1,7 +1,27 @@
 import { describe, expect, it } from "vitest";
 
 import { deleteAccount, normalizeAccountBalance, saveAccount } from "@/features/accounts/lib/account-state";
-import type { Account, Allocation, Transaction } from "@/types/finance";
+import type { Account, Allocation, Category, Transaction } from "@/types/finance";
+
+const baseCategory: Category = {
+  id: "cafe",
+  user_id: "user-1",
+  name: "Cafe",
+  icon: "☕",
+  type: "expense",
+  parent_id: null,
+  created_at: "2026-03-28T10:00:00.000Z",
+};
+
+const incomeCategory: Category = {
+  id: "salary",
+  user_id: "user-1",
+  name: "Salary",
+  icon: "💼",
+  type: "income",
+  parent_id: null,
+  created_at: "2026-03-28T10:00:00.000Z",
+};
 
 const baseAccount: Account = {
   id: "wallet-1",
@@ -43,13 +63,27 @@ const allocations: Allocation[] = [
 const transactions: Transaction[] = [
   {
     id: "tx-1",
+    user_id: "user-1",
     title: "Coffee",
-    amount: -6,
-    date: "2026-03-28",
-    category: { id: "cafe", name: "Cafe" },
-    account: savingAccount,
+    note: null,
+    occurred_at: "2026-03-28",
+    created_at: "2026-03-28T10:00:00.000Z",
     status: "paid",
-    type: "expense",
+    kind: "expense",
+    amount: 6,
+    destination_amount: null,
+    fx_rate: null,
+    principal_amount: null,
+    interest_amount: null,
+    extra_principal_amount: null,
+    category_id: "cafe",
+    source_account_id: "wallet-2",
+    destination_account_id: null,
+    allocation_id: null,
+    category: baseCategory,
+    source_account: savingAccount,
+    destination_account: null,
+    allocation: null,
   },
 ];
 
@@ -89,7 +123,7 @@ describe("account-state", () => {
     expect(result.snapshot.accounts[0]?.id).toBe("wallet-fixed");
   });
 
-  it("updates the wallet currency and keeps transactions in sync", () => {
+  it("updates the wallet currency and keeps linked transactions in sync", () => {
     const result = saveAccount({
       snapshot: {
         accounts: [baseAccount],
@@ -97,13 +131,27 @@ describe("account-state", () => {
         transactions: [
           {
             id: "tx-2",
+            user_id: "user-1",
             title: "Salary",
-            amount: -1000,
-            date: "2026-03-29",
-            category: { id: "salary", name: "Salary" },
-            account: baseAccount,
+            note: null,
+            occurred_at: "2026-03-29",
+            created_at: "2026-03-29T10:00:00.000Z",
             status: "paid",
-            type: "income",
+            kind: "income",
+            amount: 1000,
+            destination_amount: null,
+            fx_rate: null,
+            principal_amount: null,
+            interest_amount: null,
+            extra_principal_amount: null,
+            category_id: "salary",
+            source_account_id: null,
+            destination_account_id: "wallet-1",
+            allocation_id: null,
+            category: incomeCategory,
+            source_account: null,
+            destination_account: baseAccount,
+            allocation: null,
           },
         ],
       },
@@ -119,10 +167,10 @@ describe("account-state", () => {
     });
 
     expect(result.account.currency).toBe("CZK");
-    expect(result.snapshot.transactions[0]?.account.currency).toBe("CZK");
+    expect(result.snapshot.transactions[0]?.destination_account?.currency).toBe("CZK");
   });
 
-  it("updates transactions and removes saving allocations when a saving wallet changes type", () => {
+  it("updates linked transactions and removes saving allocations when a saving wallet changes type", () => {
     const result = saveAccount({
       snapshot: {
         accounts: [baseAccount, savingAccount],
@@ -143,8 +191,8 @@ describe("account-state", () => {
     expect(result.account.type).toBe("credit_card");
     expect(result.account.balance).toBe(-700);
     expect(result.snapshot.allocations).toHaveLength(0);
-    expect(result.snapshot.transactions[0]?.account.type).toBe("credit_card");
-    expect(result.snapshot.transactions[0]?.account.name).toBe("Emergency Card");
+    expect(result.snapshot.transactions[0]?.source_account?.type).toBe("credit_card");
+    expect(result.snapshot.transactions[0]?.source_account?.name).toBe("Emergency Card");
   });
 
   it("deletes a wallet together with related transactions and allocations", () => {

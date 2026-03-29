@@ -1,0 +1,120 @@
+import type { TransactionInput } from "@/types/finance-schemas";
+import type { Account, Allocation, Category, Transaction } from "@/types/finance";
+
+export function getTransactionAnalyticsAmount(transaction: Transaction) {
+  if (transaction.kind === "income" || transaction.kind === "expense") {
+    return Math.abs(transaction.amount);
+  }
+
+  if (transaction.kind === "debt_payment") {
+    return Math.abs(transaction.interest_amount ?? 0);
+  }
+
+  return 0;
+}
+
+export function getTransactionPrimaryAccount(transaction: Transaction) {
+  return transaction.source_account ?? transaction.destination_account;
+}
+
+export function getTransactionDisplayCategory(transaction: Transaction) {
+  if (transaction.category) {
+    return transaction.category.name;
+  }
+
+  if (transaction.kind === "save_to_goal" || transaction.kind === "spend_from_goal") {
+    return transaction.allocation?.name ?? "Savings goal";
+  }
+
+  if (transaction.kind === "transfer") {
+    return "Transfer";
+  }
+
+  if (transaction.kind === "debt_payment") {
+    return "Debt payment";
+  }
+
+  return "Uncategorized";
+}
+
+export function validateTransactionRelationships(
+  values: TransactionInput,
+  options: {
+    accounts: Account[];
+    allocations: Allocation[];
+    categories: Category[];
+  },
+) {
+  const sourceAccount = values.source_account_id
+    ? options.accounts.find((account) => account.id === values.source_account_id) ?? null
+    : null;
+  const destinationAccount = values.destination_account_id
+    ? options.accounts.find((account) => account.id === values.destination_account_id) ?? null
+    : null;
+  const category = values.category_id
+    ? options.categories.find((item) => item.id === values.category_id) ?? null
+    : null;
+  const allocation = values.allocation_id
+    ? options.allocations.find((item) => item.id === values.allocation_id) ?? null
+    : null;
+
+  if (values.source_account_id && !sourceAccount) {
+    throw new Error("Source account not found.");
+  }
+
+  if (values.destination_account_id && !destinationAccount) {
+    throw new Error("Destination account not found.");
+  }
+
+  if (values.category_id && !category) {
+    throw new Error("Category not found.");
+  }
+
+  if (values.allocation_id && !allocation) {
+    throw new Error("Savings goal not found.");
+  }
+
+  if ((values.kind === "income" || values.kind === "expense") && category?.type !== values.kind) {
+    throw new Error("Choose a category with the matching type.");
+  }
+
+  if (values.kind === "debt_payment" && category && category.type !== "expense") {
+    throw new Error("Debt payment interest can only use an expense category.");
+  }
+
+  if ((values.kind === "save_to_goal" || values.kind === "spend_from_goal") && allocation) {
+    const savingAccountId = values.kind === "save_to_goal" ? values.destination_account_id : values.source_account_id;
+
+    if (allocation.account_id !== savingAccountId) {
+      throw new Error("Selected savings goal must belong to the savings wallet used in the transaction.");
+    }
+  }
+
+  if (values.kind === "save_to_goal" && destinationAccount?.type !== "saving") {
+    throw new Error("Save to goal must land in a savings wallet.");
+  }
+
+  if (values.kind === "spend_from_goal" && sourceAccount?.type !== "saving") {
+    throw new Error("Spend from goal must start from a savings wallet.");
+  }
+
+  if (values.kind === "debt_payment" && destinationAccount?.type !== "debt") {
+    throw new Error("Debt payment must target a debt account.");
+  }
+
+  if (values.kind === "transfer" && values.category_id) {
+    throw new Error("Transfers do not use categories.");
+  }
+}
+
+export function getTransactionSignedAmount(transaction: Transaction) {
+  if (transaction.kind === "income") {
+    return Math.abs(transaction.amount);
+  }
+
+  if (transaction.kind === "transfer" || transaction.kind === "save_to_goal" || transaction.kind === "spend_from_goal") {
+    return 0;
+  }
+
+  return -Math.abs(transaction.amount);
+}

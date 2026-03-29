@@ -1,7 +1,8 @@
 "use client";
 
-import { addMonths, format, startOfToday } from "date-fns";
+import { addMonths, startOfToday } from "date-fns";
 import { useState } from "react";
+import { useFormatter, useTranslations } from "next-intl";
 
 import { CalendarGrid } from "@/components/calendar-grid";
 import { MonthNavigator } from "@/components/month-navigator";
@@ -11,6 +12,8 @@ import { getTransactionsForDate } from "@/lib/finance-selectors";
 import type { Transaction } from "@/types/finance";
 
 export function CalendarView({ transactions }: { transactions: Transaction[] }) {
+  const t = useTranslations("calendar");
+  const formatDate = useFormatter();
   const [month, setMonth] = useState(startOfToday());
   const [selectedDate, setSelectedDate] = useState(startOfToday());
   const selectedTransactions = getTransactionsForDate(transactions, selectedDate);
@@ -18,8 +21,8 @@ export function CalendarView({ transactions }: { transactions: Transaction[] }) 
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_360px]">
       <SectionCard
-        title="Monthly view"
-        description="Scan your month and jump into a specific day."
+        title={t("view.title")}
+        description={t("view.description")}
         action={
           <MonthNavigator
             month={month}
@@ -43,12 +46,12 @@ export function CalendarView({ transactions }: { transactions: Transaction[] }) 
       </SectionCard>
 
       <SectionCard
-        title={format(selectedDate, "MMMM d")}
-        description="Transactions mapped to the selected date."
+        title={formatDate.dateTime(selectedDate, { month: "long", day: "numeric" })}
+        description={t("view.selectedDescription")}
       >
         <TransactionList
           transactions={selectedTransactions}
-          emptyMessage="No transactions for this date."
+          emptyMessage={t("view.empty")}
         />
       </SectionCard>
     </div>

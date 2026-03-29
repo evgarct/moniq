@@ -11,7 +11,6 @@ const meta = {
   component: AccountCard,
   args: {
     account: snapshot.accounts[1],
-    allocations: snapshot.allocations,
     onSelect: fn(),
   },
   parameters: {
@@ -41,6 +40,5 @@ export const Saving: Story = {
 export const Debt: Story = {
   args: {
     account: snapshot.accounts[4],
-    allocations: [],
   },
 };

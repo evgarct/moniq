@@ -1,11 +1,15 @@
+import { useTranslations } from "next-intl";
+
 import { SectionCard } from "@/components/section-card";
 import { TransactionList } from "@/components/transaction-list";
 import type { Transaction } from "@/types/finance";
 
 export function RecentTransactions({ transactions }: { transactions: Transaction[] }) {
+  const t = useTranslations("dashboard.recent");
+
   return (
-    <SectionCard title="Recent transactions" description="A simple rolling list for quick review.">
-      <TransactionList transactions={transactions} emptyMessage="No recent transactions yet." />
+    <SectionCard title={t("title")} description={t("description")}>
+      <TransactionList transactions={transactions} emptyMessage={t("empty")} />
     </SectionCard>
   );
 }
