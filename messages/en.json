@@ -226,6 +226,7 @@
       "addWallet": "Add wallet",
       "activity": "Activity",
       "selectedActivityDescription": "Activity and balance details for the selected wallet.",
+      "selectedGoalActivityDescription": "Activity and balance details for the selected savings goal.",
       "allActivityDescription": "All recent transactions across your balance spaces.",
       "showAllWallets": "Show all wallets",
       "noBalanceSpacesTitle": "No balance spaces yet",
@@ -241,6 +242,8 @@
       "balance": "Balance",
       "allocated": "Allocated",
       "free": "Free",
+      "target": "Target",
+      "progress": "Progress",
       "transactions": "Transactions"
     },
     "walletTypes": {
@@ -261,6 +264,7 @@
     },
     "messages": {
       "noTransactionsForWallet": "No transactions for this wallet yet. Transactions will appear here once they occur.",
+      "noTransactionsForGoal": "No transactions for this savings goal yet. Goal activity will appear here once it occurs.",
       "deleteWalletConfirm": "Delete wallet \"{name}\"?",
       "deleteGoalConfirm": "Delete goal \"{name}\"?",
       "saveWalletError": "Unable to save wallet.",

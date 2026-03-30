@@ -1,7 +1,7 @@
 import { BanknoteArrowDown, CreditCard, Ellipsis, Landmark, PencilLine, PiggyBank, Plus, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
-import { MoneyAmount } from "@/components/money-amount";
+import { AccountAmount } from "@/components/account-amount";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -53,43 +53,42 @@ export function AccountCard({
     <div
       title={tooltip}
       className={cn(
-        "relative rounded-2xl border border-transparent transition-[background-color,border-color,box-shadow]",
+        "relative rounded-xl border transition-[background-color,border-color,box-shadow]",
         selected
-          ? "border-border bg-background shadow-[0_0_0_1px_color-mix(in_oklab,var(--color-border)_60%,transparent)]"
-          : "hover:border-border/75 hover:bg-muted/16 active:bg-muted/28",
-        onSelect ? "focus-within:border-ring/70 focus-within:ring-3 focus-within:ring-ring/15" : "",
+          ? "border-border bg-accent/55 shadow-sm"
+          : "border-transparent hover:border-border/60 hover:bg-card/70 active:border-border/70 active:bg-accent/35",
       )}
     >
       <button
         type="button"
         onClick={onSelect}
         className={cn(
-          "grid min-w-0 w-full grid-cols-[minmax(0,1fr)_180px] items-center gap-4 rounded-2xl px-4 py-3.5 text-left outline-none",
-          editing && (onEdit || onDelete || (account.type === "saving" && onAddSubgroup)) ? "pr-14" : "",
+          "grid min-w-0 w-full grid-cols-[minmax(0,1fr)_168px] items-center gap-3 rounded-xl px-2.5 py-2.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/25",
+          editing && (onEdit || onDelete || (account.type === "saving" && onAddSubgroup)) ? "pr-12" : "",
         )}
       >
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="flex size-11 shrink-0 items-center justify-center rounded-full border border-border/80 bg-background text-muted-foreground">
-            <AccountIcon className="size-[18px]" strokeWidth={1.75} />
-          </div>
+        <div className="flex min-w-0 items-center gap-2.5">
+          <AccountIcon
+            className={cn("size-[18px] shrink-0", selected ? "text-foreground" : "text-muted-foreground")}
+            strokeWidth={1.75}
+          />
           <div className="min-w-0">
-            <p className="type-h6 truncate pr-2">{account.name}</p>
+            <p className="type-h6 truncate">{account.name}</p>
             {detailLabel ? <p className="type-body-12 truncate">{detailLabel}</p> : null}
           </div>
         </div>
 
-        <div className="w-[180px] text-right">
-          <MoneyAmount
-            amount={account.balance}
-            currency={account.currency}
-            display={debt ? "signed" : "absolute"}
-            tone={debt ? "negative" : "default"}
-            className="shrink-0 text-[14px] leading-6 font-normal text-foreground"
-          />
-        </div>
+        <AccountAmount
+          amount={account.balance}
+          currency={account.currency}
+          display={debt ? "signed" : "absolute"}
+          tone={debt ? "negative" : "default"}
+          className="w-[168px]"
+          numberClassName="text-[14px] leading-5 font-medium"
+        />
       </button>
       {editing && (onEdit || onDelete || (account.type === "saving" && onAddSubgroup)) ? (
-        <div className="absolute top-1/2 right-2 -translate-y-1/2">
+        <div className="absolute top-1/2 right-1.5 -translate-y-1/2">
           <DropdownMenu>
             <DropdownMenuTrigger
               render={

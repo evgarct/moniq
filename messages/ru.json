@@ -226,6 +226,7 @@
       "addWallet": "Добавить кошелёк",
       "activity": "Активность",
       "selectedActivityDescription": "Активность и детали баланса для выбранного кошелька.",
+      "selectedGoalActivityDescription": "Активность и детали баланса для выбранной цели сбережений.",
       "allActivityDescription": "Все последние транзакции во всех ваших балансах.",
       "showAllWallets": "Показать все кошельки",
       "noBalanceSpacesTitle": "Пока нет балансов",
@@ -241,6 +242,8 @@
       "balance": "Баланс",
       "allocated": "Распределено",
       "free": "Свободно",
+      "target": "Цель",
+      "progress": "Прогресс",
       "transactions": "Транзакции"
     },
     "walletTypes": {
@@ -261,6 +264,7 @@
     },
     "messages": {
       "noTransactionsForWallet": "Для этого кошелька пока нет транзакций. Они появятся здесь после проведения.",
+      "noTransactionsForGoal": "Для этой цели сбережений пока нет транзакций. Активность цели появится здесь после проведения.",
       "deleteWalletConfirm": "Удалить кошелёк \"{name}\"?",
       "deleteGoalConfirm": "Удалить цель \"{name}\"?",
       "saveWalletError": "Не удалось сохранить кошелёк.",
