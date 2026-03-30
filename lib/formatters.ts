@@ -1,8 +1,12 @@
 import { getCurrencyMeta } from "@/lib/currencies";
 import type { CurrencyCode } from "@/types/currency";
 
+function getCurrencyLocale(currency: CurrencyCode) {
+  return getCurrencyMeta(currency).locale;
+}
+
 export function formatMoney(amount: number, currency: CurrencyCode = "EUR") {
-  const { locale } = getCurrencyMeta(currency);
+  const locale = getCurrencyLocale(currency);
 
   try {
     return new Intl.NumberFormat(locale, {
@@ -20,6 +24,15 @@ export function formatMoney(amount: number, currency: CurrencyCode = "EUR") {
       maximumFractionDigits: 2,
     }).format(amount);
   }
+}
+
+export function formatMoneyNumber(amount: number, currency: CurrencyCode = "EUR") {
+  const locale = getCurrencyLocale(currency);
+
+  return new Intl.NumberFormat(locale, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
 }
 
 export function formatLongDate(value: string) {

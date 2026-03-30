@@ -13,8 +13,10 @@ export function AccountList({
   accounts,
   allocations,
   selectedAccountId,
+  selectedAllocationId,
   editing = false,
   onSelect,
+  onSelectAllocation,
   onAddAccount,
   onEditAccount,
   onDeleteAccount,
@@ -25,8 +27,10 @@ export function AccountList({
   accounts: Account[];
   allocations: Allocation[];
   selectedAccountId: string | null;
+  selectedAllocationId?: string | null;
   editing?: boolean;
   onSelect: (accountId: string) => void;
+  onSelectAllocation?: (allocation: Allocation) => void;
   onAddAccount?: (type: Account["type"]) => void;
   onEditAccount?: (account: Account) => void;
   onDeleteAccount?: (account: Account) => void;
@@ -41,14 +45,16 @@ export function AccountList({
   const debtAccounts = getDebtAccounts(accounts);
 
   return (
-    <div className="space-y-7">
+    <div className="flex flex-col gap-5">
       <AccountGroup
         title={t("cash")}
         accounts={cashAccounts}
         allocations={allocations}
         selectedAccountId={selectedAccountId}
+        selectedAllocationId={selectedAllocationId}
         editing={editing}
         onSelect={onSelect}
+        onSelectAllocation={onSelectAllocation}
         onAddAccount={onAddAccount ? () => onAddAccount("cash") : undefined}
         onEditAccount={onEditAccount}
         onDeleteAccount={onDeleteAccount}
@@ -58,8 +64,10 @@ export function AccountList({
         accounts={savingAccounts}
         allocations={allocations}
         selectedAccountId={selectedAccountId}
+        selectedAllocationId={selectedAllocationId}
         editing={editing}
         onSelect={onSelect}
+        onSelectAllocation={onSelectAllocation}
         onAddAccount={onAddAccount ? () => onAddAccount("saving") : undefined}
         onEditAccount={onEditAccount}
         onDeleteAccount={onDeleteAccount}
@@ -72,8 +80,10 @@ export function AccountList({
         accounts={creditCardAccounts}
         allocations={allocations}
         selectedAccountId={selectedAccountId}
+        selectedAllocationId={selectedAllocationId}
         editing={editing}
         onSelect={onSelect}
+        onSelectAllocation={onSelectAllocation}
         onAddAccount={onAddAccount ? () => onAddAccount("credit_card") : undefined}
         onEditAccount={onEditAccount}
         onDeleteAccount={onDeleteAccount}
@@ -83,8 +93,10 @@ export function AccountList({
         accounts={debtAccounts}
         allocations={allocations}
         selectedAccountId={selectedAccountId}
+        selectedAllocationId={selectedAllocationId}
         editing={editing}
         onSelect={onSelect}
+        onSelectAllocation={onSelectAllocation}
         onAddAccount={onAddAccount ? () => onAddAccount("debt") : undefined}
         onEditAccount={onEditAccount}
         onDeleteAccount={onDeleteAccount}

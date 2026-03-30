@@ -94,6 +94,10 @@ export function getTransactionsForAccount(transactions: Transaction[], accountId
   );
 }
 
+export function getTransactionsForAllocation(transactions: Transaction[], allocationId: string) {
+  return transactions.filter((transaction) => transaction.allocation_id === allocationId);
+}
+
 export function getCashAccounts(accounts: Account[]) {
   return accounts.filter((account) => getAccountGroup(account.type) === "cash");
 }

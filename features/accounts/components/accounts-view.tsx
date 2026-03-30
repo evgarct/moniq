@@ -19,6 +19,8 @@ import { AllocationFormSheet } from "@/features/allocations/components/allocatio
 import {
   getAllocatedTotalForAccount,
   getFreeMoney,
+  getAllocationProgress,
+  isTargetedAllocation,
   validateAllocationAmount,
 } from "@/features/allocations/lib/allocation-utils";
 import {
@@ -30,7 +32,7 @@ import {
   updateAllocationRequest,
   updateWalletRequest,
 } from "@/features/finance/lib/finance-api";
-import { getTransactionsForAccount } from "@/lib/finance-selectors";
+import { getTransactionsForAccount, getTransactionsForAllocation } from "@/lib/finance-selectors";
 import type { CurrencyCode } from "@/types/currency";
 import type { AllocationInput, WalletInput } from "@/types/finance-schemas";
 import type { Account, Allocation, FinanceSnapshot, Transaction } from "@/types/finance";
@@ -48,6 +50,7 @@ export function AccountsView({
   const t = useTranslations("accounts");
   const queryClient = useQueryClient();
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
+  const [selectedAllocationId, setSelectedAllocationId] = useState<string | null>(null);
   const [walletSheetOpen, setWalletSheetOpen] = useState(false);
   const [walletSheetMode, setWalletSheetMode] = useState<"add" | "edit">("add");
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
@@ -105,7 +108,18 @@ export function AccountsView({
   });
 
   const selectedAccount = selectedAccountId ? accounts.find((account) => account.id === selectedAccountId) ?? null : null;
-  const register = selectedAccount ? getTransactionsForAccount(transactions, selectedAccount.id) : transactions;
+  const selectedAllocation =
+    selectedAllocationId ? allocations.find((allocation) => allocation.id === selectedAllocationId) ?? null : null;
+  const selectedTargetedAllocation =
+    selectedAllocation && isTargetedAllocation(selectedAllocation) ? selectedAllocation : null;
+  const selectedTargetedAllocationProgress = selectedTargetedAllocation
+    ? Math.round((getAllocationProgress(selectedTargetedAllocation) ?? 0) * 100)
+    : null;
+  const register = selectedAllocation
+    ? getTransactionsForAllocation(transactions, selectedAllocation.id)
+    : selectedAccount
+      ? getTransactionsForAccount(transactions, selectedAccount.id)
+      : transactions;
   const freeMoney = selectedAccount ? getFreeMoney(selectedAccount.balance, allocations, selectedAccount.id) : 0;
   const selectedAllocatedTotal = selectedAccount ? getAllocatedTotalForAccount(allocations, selectedAccount.id) : 0;
   const pending =
@@ -169,6 +183,7 @@ export function AccountsView({
           : snapshot.accounts[0]?.id ?? null;
 
       setSelectedAccountId(selectedId);
+      setSelectedAllocationId(null);
     } catch (error) {
       const message = error instanceof Error ? error.message : t("messages.saveWalletError");
       setActionError(message);
@@ -184,6 +199,9 @@ export function AccountsView({
     try {
       await deleteWalletMutation.mutateAsync(account.id);
       setSelectedAccountId((current) => (current === account.id ? null : current));
+      setSelectedAllocationId((current) =>
+        current && allocations.some((allocation) => allocation.id === current && allocation.account_id === account.id) ? null : current,
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : t("messages.deleteWalletError");
       setActionError(message);
@@ -234,6 +252,7 @@ export function AccountsView({
 
     try {
       await deleteAllocationMutation.mutateAsync(allocation.id);
+      setSelectedAllocationId((current) => (current === allocation.id ? null : current));
     } catch (error) {
       const message = error instanceof Error ? error.message : t("messages.deleteGoalError");
       setActionError(message);
@@ -306,8 +325,16 @@ export function AccountsView({
                 accounts={accounts}
                 allocations={allocations}
                 selectedAccountId={selectedAccountId}
+                selectedAllocationId={selectedAllocationId}
                 editing={walletsEditMode}
-                onSelect={(accountId) => setSelectedAccountId((current) => (current === accountId ? null : accountId))}
+                onSelect={(accountId) => {
+                  setSelectedAllocationId(null);
+                  setSelectedAccountId((current) => (current === accountId ? null : accountId));
+                }}
+                onSelectAllocation={(allocation) => {
+                  setSelectedAccountId(allocation.account_id);
+                  setSelectedAllocationId((current) => (current === allocation.id ? null : allocation.id));
+                }}
                 onAddAccount={openAddWallet}
                 onEditAccount={openEditWallet}
                 onDeleteAccount={handleDeleteWallet}
@@ -331,9 +358,15 @@ export function AccountsView({
                 <div className="flex flex-col gap-2">
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="type-h3">
-                      {selectedAccount ? selectedAccount.name : t("view.activity")}
+                      {selectedAllocation ? selectedAllocation.name : selectedAccount ? selectedAccount.name : t("view.activity")}
                     </h2>
-                    {selectedAccount ? (
+                    {selectedAllocation && selectedAccount ? (
+                      <>
+                        <Badge variant="secondary">{t("walletTypes.saving")}</Badge>
+                        <Badge variant="outline">{selectedAccount.name}</Badge>
+                        <Badge variant="outline">{selectedAccount.currency}</Badge>
+                      </>
+                    ) : selectedAccount ? (
                       <>
                         <Badge variant="secondary">{t(`walletTypes.${selectedAccount.type}` as const)}</Badge>
                         <Badge variant="outline">{selectedAccount.currency}</Badge>
@@ -341,7 +374,9 @@ export function AccountsView({
                     ) : null}
                   </div>
                   <p className="type-body-14 text-muted-foreground">
-                    {selectedAccount
+                    {selectedAllocation
+                      ? t("view.selectedGoalActivityDescription")
+                      : selectedAccount
                       ? t("view.selectedActivityDescription")
                       : t("view.allActivityDescription")}
                   </p>
@@ -354,14 +389,32 @@ export function AccountsView({
                         label={t("metrics.balance")}
                         valueNode={
                           <MoneyAmount
-                            amount={selectedAccount.balance}
+                            amount={selectedAllocation ? selectedAllocation.amount : selectedAccount.balance}
                             currency={selectedAccount.currency}
-                            display={isDebtAccount(selectedAccount) ? "signed" : "absolute"}
+                            display={selectedAllocation ? "absolute" : isDebtAccount(selectedAccount) ? "signed" : "absolute"}
                             tone="default"
                           />
                         }
                       />
-                      {isSavingsAccount(selectedAccount) ? (
+                      {selectedTargetedAllocation ? (
+                        <MetricPill
+                          label={t("metrics.target")}
+                          valueNode={
+                            <MoneyAmount
+                              amount={selectedTargetedAllocation.target_amount ?? 0}
+                              currency={selectedAccount.currency}
+                              display="absolute"
+                            />
+                          }
+                        />
+                      ) : null}
+                      {selectedTargetedAllocation && selectedTargetedAllocationProgress !== null ? (
+                        <MetricPill
+                          label={t("metrics.progress")}
+                          value={`${selectedTargetedAllocationProgress}%`}
+                        />
+                      ) : null}
+                      {isSavingsAccount(selectedAccount) && !selectedAllocation ? (
                         <>
                           <MetricPill
                             label={t("metrics.allocated")}
@@ -404,7 +457,9 @@ export function AccountsView({
               <TransactionList
                 transactions={register}
                 emptyMessage={
-                  selectedAccount
+                  selectedAllocation
+                    ? t("messages.noTransactionsForGoal")
+                    : selectedAccount
                     ? t("messages.noTransactionsForWallet")
                     : tr("common.empty.noTransactionsYet")
                 }
