@@ -159,6 +159,7 @@ export const mockFinanceSnapshot: FinanceSnapshot = {
   accounts: mockAccounts,
   allocations: mockAllocations,
   categories: mockCategories,
+  schedules: [],
   transactions: mockTransactions.sort((a, b) => a.occurred_at.localeCompare(b.occurred_at)).reverse(),
 };
 
@@ -223,9 +224,13 @@ function makeTransaction(values: {
     source_account_id: sourceAccount?.id ?? null,
     destination_account_id: destinationAccount?.id ?? null,
     allocation_id: allocation?.id ?? null,
+    schedule_id: null,
+    schedule_occurrence_date: null,
+    is_schedule_override: false,
     category,
     source_account: sourceAccount,
     destination_account: destinationAccount,
     allocation,
+    schedule: null,
   };
 }

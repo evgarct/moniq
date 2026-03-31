@@ -81,6 +81,7 @@ Rules:
 - `status finance_transaction_status not null`
   - `planned`
   - `paid`
+  - `skipped`
 - `kind finance_transaction_kind not null`
   - `income`
   - `expense`
@@ -98,23 +99,64 @@ Rules:
 - `source_account_id uuid null references wallets(id)`
 - `destination_account_id uuid null references wallets(id)`
 - `allocation_id uuid null references wallet_allocations(id)`
+- `schedule_id uuid null references finance_transaction_schedules(id)`
+- `schedule_occurrence_date date null`
+- `is_schedule_override boolean not null default false`
 - `created_at timestamptz not null`
 - `updated_at timestamptz not null`
 
 Rules:
+- one-off entries live directly in `finance_transactions`; recurring series expand into generated transaction occurrences.
 - `income` and `expense` require a category and the category type must match the transaction kind.
 - `transfer` never uses a category.
 - `save_to_goal` and `spend_from_goal` require a savings goal allocation linked to the savings wallet used by the transaction.
 - transfers and savings moves may be multi-currency, so `destination_amount` can differ from `amount`.
 - `debt_payment.amount` must equal `principal_amount + interest_amount + extra_principal_amount`.
 - only `interest_amount` contributes to category analytics for `debt_payment`; principal reduction stays out of expense reporting.
+- analytics and recent activity treat `paid` as settled cashflow; `planned` remains visible in agenda/calendar flows and `skipped` is hidden from normal feeds.
+- a recurring occurrence is unique per `(user_id, schedule_id, schedule_occurrence_date)`.
 - direct table access is protected by owner-only RLS policies.
+
+## `finance_transaction_schedules`
+
+- `id uuid primary key`
+- `user_id uuid not null references auth.users(id)`
+- `title text not null`
+- `note text null`
+- `start_date date not null`
+- `frequency finance_transaction_schedule_frequency not null`
+  - `daily`
+  - `weekly`
+  - `monthly`
+- `until_date date null`
+- `state finance_transaction_schedule_state not null`
+  - `active`
+  - `paused`
+- `kind finance_transaction_kind not null`
+- `amount numeric(14,2) not null`
+- `destination_amount numeric(14,2) null`
+- `fx_rate numeric(14,6) null`
+- `principal_amount numeric(14,2) null`
+- `interest_amount numeric(14,2) null`
+- `extra_principal_amount numeric(14,2) null`
+- `category_id uuid null references finance_categories(id)`
+- `source_account_id uuid null references wallets(id)`
+- `destination_account_id uuid null references wallets(id)`
+- `allocation_id uuid null references wallet_allocations(id)`
+- `created_at timestamptz not null`
+- `updated_at timestamptz not null`
+
+Rules:
+- schedules are the source of truth for recurring transactions; generated occurrences inherit the schedule payload unless a specific occurrence is overridden.
+- schedules always start as `planned`; settling cashflow happens on occurrences through `mark paid`.
+- `until_date`, when present, must be on or after `start_date`.
+- `paused` schedules preserve already generated history but stop future occurrence generation until resumed.
 
 ## RLS and RPC
 
 - direct table access is protected by owner-only RLS policies.
 - wallet and allocation writes go through RPC functions so invariants are enforced server-side as well as in the UI.
-- category and transaction writes currently go through the Next.js repository layer, which validates hierarchy and relationship invariants before writing through RLS.
+- category, transaction, and schedule writes currently go through the Next.js repository layer, which validates hierarchy and relationship invariants before writing through RLS.
 - current RPC surface:
   - `create_wallet`
   - `update_wallet`

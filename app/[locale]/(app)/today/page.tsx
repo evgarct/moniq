@@ -32,7 +32,7 @@ export default function TodayPage() {
 
   return (
     <PageContainer>
-      <TodayView transactions={data?.transactions ?? []} />
+      <TodayView snapshot={data ?? { accounts: [], allocations: [], categories: [], schedules: [], transactions: [] }} />
     </PageContainer>
   );
 }

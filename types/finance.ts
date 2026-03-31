@@ -53,8 +53,39 @@ export type Allocation = {
   created_at: string;
 };
 
-export type TransactionStatus = "planned" | "paid";
+export type TransactionStatus = "planned" | "paid" | "skipped";
 export type TransactionKind = "income" | "expense" | "transfer" | "save_to_goal" | "spend_from_goal" | "debt_payment";
+export type TransactionScheduleFrequency = "daily" | "weekly" | "monthly";
+export type TransactionScheduleState = "active" | "paused";
+
+export type TransactionSchedule = {
+  id: string;
+  user_id: string;
+  title: string;
+  note: string | null;
+  start_date: string;
+  frequency: TransactionScheduleFrequency;
+  until_date: string | null;
+  state: TransactionScheduleState;
+  kind: TransactionKind;
+  amount: number;
+  destination_amount: number | null;
+  fx_rate: number | null;
+  principal_amount: number | null;
+  interest_amount: number | null;
+  extra_principal_amount: number | null;
+  category_id: string | null;
+  source_account_id: string | null;
+  destination_account_id: string | null;
+  allocation_id: string | null;
+  category: Category | null;
+  source_account: Account | null;
+  destination_account: Account | null;
+  allocation: Allocation | null;
+  validation_error: string | null;
+  created_at: string;
+  updated_at: string;
+};
 
 export type Transaction = {
   id: string;
@@ -75,15 +106,20 @@ export type Transaction = {
   source_account_id: string | null;
   destination_account_id: string | null;
   allocation_id: string | null;
+  schedule_id: string | null;
+  schedule_occurrence_date: string | null;
+  is_schedule_override: boolean;
   category: Category | null;
   source_account: Account | null;
   destination_account: Account | null;
   allocation: Allocation | null;
+  schedule: TransactionSchedule | null;
 };
 
 export type FinanceSnapshot = {
   accounts: Account[];
   allocations: Allocation[];
   categories: Category[];
+  schedules: TransactionSchedule[];
   transactions: Transaction[];
 };

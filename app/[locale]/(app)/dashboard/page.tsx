@@ -37,7 +37,7 @@ function DashboardContent() {
     );
   }
 
-  const snapshot = data ?? { accounts: [], allocations: [], categories: [], transactions: [] };
+  const snapshot = data ?? { accounts: [], allocations: [], categories: [], schedules: [], transactions: [] };
   const summary = getIncomeExpenseSummaryByCurrency(snapshot.transactions);
 
   return (

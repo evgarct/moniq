@@ -4,6 +4,7 @@ import { eachDayOfInterval, endOfMonth, endOfWeek, format, startOfMonth, startOf
 import { useTranslations } from "next-intl";
 
 import { CalendarCell } from "@/components/calendar-cell";
+import { isVisibleTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
 import type { Transaction } from "@/types/finance";
 
 export function CalendarGrid({
@@ -28,7 +29,7 @@ export function CalendarGrid({
     <div className="space-y-3">
       <div className="grid grid-cols-7 gap-2">
         {weekdayLabels.map((day) => (
-          <div key={day} className="px-2 py-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          <div key={day} className="px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-[#85a5a8]">
             {day}
           </div>
         ))}
@@ -36,7 +37,12 @@ export function CalendarGrid({
 
       <div className="grid grid-cols-7 gap-2">
         {days.map((day) => {
-          const count = transactions.filter((transaction) => transaction.occurred_at === format(day, "yyyy-MM-dd")).length;
+          const dayTransactions = transactions.filter(
+            (transaction) =>
+              isVisibleTransactionStatus(transaction.status) && transaction.occurred_at === format(day, "yyyy-MM-dd"),
+          );
+          const paidCount = dayTransactions.filter((transaction) => transaction.status === "paid").length;
+          const plannedCount = dayTransactions.filter((transaction) => transaction.status === "planned").length;
           return (
             <CalendarCell
               key={day.toISOString()}
@@ -44,7 +50,9 @@ export function CalendarGrid({
               currentMonth={month}
               selectedDate={selectedDate}
               onSelect={onSelectDate}
-              indicatorCount={count}
+              indicatorCount={dayTransactions.length}
+              paidCount={paidCount}
+              plannedCount={plannedCount}
             />
           );
         })}

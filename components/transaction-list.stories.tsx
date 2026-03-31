@@ -1,28 +1,30 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, within } from "storybook/test";
 
-import { TransactionRow } from "@/components/transaction-row";
+import { TransactionList } from "@/components/transaction-list";
+import { Button } from "@/components/ui/button";
 import { makeFinanceSnapshot } from "@/stories/fixtures/story-data";
 
 const snapshot = makeFinanceSnapshot();
 
 const meta = {
-  title: "Molecules/TransactionRow",
-  component: TransactionRow,
+  title: "Molecules/TransactionList",
+  component: TransactionList,
   args: {
-    transaction: snapshot.transactions[0],
+    transactions: snapshot.transactions,
+    emptyMessage: "No transactions yet.",
   },
   parameters: {
     layout: "padded",
   },
   decorators: [
     (Story) => (
-      <div className="max-w-3xl">
+      <div className="max-w-4xl">
         <Story />
       </div>
     ),
   ],
-} satisfies Meta<typeof TransactionRow>;
+} satisfies Meta<typeof TransactionList>;
 
 export default meta;
 
@@ -37,14 +39,22 @@ export const Default: Story = {
 
 export const Compact: Story = {
   args: {
-    transaction: snapshot.transactions[4],
     compact: true,
+  },
+};
+
+export const WithActions: Story = {
+  args: {
+    renderAction: () => (
+      <Button variant="ghost" size="sm">
+        Action
+      </Button>
+    ),
   },
 };
 
 export const Board: Story = {
   args: {
-    transaction: snapshot.transactions[4],
     variant: "board",
   },
   decorators: [
@@ -54,4 +64,10 @@ export const Board: Story = {
       </div>
     ),
   ],
+};
+
+export const Empty: Story = {
+  args: {
+    transactions: [],
+  },
 };
