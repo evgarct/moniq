@@ -62,6 +62,7 @@
       "update": "Unable to update transaction.",
       "delete": "Unable to delete transaction.",
       "notFound": "Transaction not found.",
+      "scheduleNotFound": "Recurring transaction series not found.",
       "sourceNotFound": "Source account not found.",
       "destinationNotFound": "Destination account not found.",
       "categoryNotFound": "Category not found.",
@@ -168,9 +169,15 @@
     },
     "view": {
       "title": "Monthly view",
-      "description": "Scan your month and jump into a specific day.",
-      "selectedDescription": "Transactions mapped to the selected date.",
+      "description": "Scan the month and review the selected day as an agenda.",
+      "selectedDescription": "Planned and paid transactions for the selected day.",
       "empty": "No transactions for this date."
+    },
+    "board": {
+      "dayAgenda": "Agenda",
+      "dayDescription": "Selected day with planned and paid transactions.",
+      "jumpToday": "Today",
+      "empty": "No transactions for the selected day."
     },
     "navigator": {
       "description": "Select a day to inspect related transactions."
@@ -196,8 +203,8 @@
     },
     "planned": {
       "title": "Planned transactions",
-      "description": "Items expected today.",
-      "empty": "Nothing planned for today."
+      "description": "Due today and overdue items that still need action.",
+      "empty": "Nothing planned or overdue right now."
     },
     "paid": {
       "title": "Paid transactions",
@@ -206,7 +213,19 @@
     },
     "actions": {
       "markPaid": "Mark paid",
-      "edit": "Edit"
+      "edit": "Edit",
+      "skip": "Skip",
+      "deleteSeries": "Delete series"
+    },
+    "board": {
+      "agendaTitle": "Planned",
+      "dayDescription": "Overdue and due items for the selected day.",
+      "monthDescription": "All planned transactions visible in the current month.",
+      "visibleMonth": "Visible month",
+      "scopeDay": "Day",
+      "scopeMonth": "Month",
+      "jumpToday": "Today",
+      "empty": "No planned items for this range."
     }
   },
   "accounts": {
@@ -413,15 +432,21 @@
     "form": {
       "addTitle": "Add transaction",
       "editTitle": "Edit transaction",
+      "editSeriesTitle": "Edit recurring series",
       "description": "Use one form for income, expenses, transfers, savings moves, and debt payments.",
       "fields": {
         "title": "Title",
+        "entryType": "Entry type",
         "kind": "Kind",
         "status": "Status",
+        "statusSummary": "Current state",
+        "automatic": "Automatic",
         "date": "Date",
+        "startDate": "Start date",
         "sourceAccount": "Source account",
         "destinationAccount": "Destination account",
         "amount": "Amount",
+        "total": "Total",
         "destinationAmount": "Destination amount",
         "fxRate": "FX rate",
         "category": "Category",
@@ -429,11 +454,32 @@
         "principal": "Principal",
         "interest": "Interest",
         "extraPrincipal": "Extra principal",
-        "note": "Note"
+        "note": "Note",
+        "recurrenceFrequency": "Repeat",
+        "recurrenceUntil": "End repeat"
+      },
+      "entryTypes": {
+        "oneOff": "One-time",
+        "recurring": "Recurring"
+      },
+      "recurrence": {
+        "never": "Never",
+        "daily": "Daily",
+        "weekly": "Weekly",
+        "monthly": "Monthly"
       },
       "status": {
         "paid": "Paid",
         "planned": "Planned"
+      },
+      "statusBadge": {
+        "paid": "Paid",
+        "planned": "Planned",
+        "overdue": "Overdue"
+      },
+      "automatic": {
+        "on": "Recurring series is enabled.",
+        "off": "One-time entry."
       },
       "placeholders": {
         "sourceAccount": "Choose source account",
@@ -443,7 +489,9 @@
       },
       "submit": {
         "add": "Save transaction",
-        "edit": "Update transaction"
+        "edit": "Update transaction",
+        "editSeries": "Update series",
+        "cancel": "Cancel"
       },
       "validation": {
         "titleRequired": "Title is required.",
@@ -463,13 +511,29 @@
         "differentDestination": "Choose a different destination account.",
         "debtBreakdownRequired": "Provide at least one debt payment amount.",
         "debtBreakdownMismatch": "Amount must equal principal + interest + extra principal.",
-        "destinationAmountRequired": "Destination amount is required for account-to-account moves."
+        "destinationAmountRequired": "Destination amount is required for account-to-account moves.",
+        "lineItemsRequired": "Add at least one transaction row.",
+        "recurringMustBePlanned": "Recurring transactions must start as planned.",
+        "recurrenceUntilBeforeStart": "End repeat must be on or after the start date."
       }
+    },
+    "actions": {
+      "menu": "Transaction actions",
+      "markPaid": "Mark paid",
+      "edit": "Edit transaction",
+      "editOccurrence": "Edit occurrence",
+      "editSeries": "Edit series",
+      "skipOccurrence": "Skip occurrence",
+      "pauseSeries": "Pause series",
+      "resumeSeries": "Resume series",
+      "deleteSeries": "Delete series",
+      "delete": "Delete transaction"
     },
     "row": {
       "unlinkedAccount": "Unlinked account",
       "savingsGoal": "Savings goal",
-      "uncategorized": "Uncategorized"
+      "uncategorized": "Uncategorized",
+      "recurring": "Recurring"
     }
   }
 }

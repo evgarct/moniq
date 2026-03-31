@@ -3,7 +3,15 @@
 import { createTranslator } from "next-intl";
 import { hasLocale } from "next-intl";
 
-import type { AllocationInput, CategoryInput, TransactionInput, WalletInput } from "@/types/finance-schemas";
+import type {
+  AllocationInput,
+  CategoryInput,
+  TransactionEntryBatchInput,
+  TransactionEntryInput,
+  TransactionInput,
+  TransactionScheduleInput,
+  WalletInput,
+} from "@/types/finance-schemas";
 import type { FinanceSnapshot } from "@/types/finance";
 import { loadMessages } from "@/i18n/messages";
 import { routing, type AppLocale } from "@/i18n/routing";
@@ -210,7 +218,7 @@ export async function deleteCategoryRequest(categoryId: string, replacementCateg
   return parseJsonResponse<FinanceSnapshot>(response);
 }
 
-export async function createTransactionRequest(values: TransactionInput): Promise<FinanceSnapshot> {
+export async function createTransactionRequest(values: TransactionEntryInput | TransactionEntryBatchInput): Promise<FinanceSnapshot> {
   const response = await fetchWithTimeout("/api/transactions", {
     method: "POST",
     credentials: "include",
@@ -238,6 +246,68 @@ export async function updateTransactionRequest(transactionId: string, values: Tr
 
 export async function deleteTransactionRequest(transactionId: string): Promise<FinanceSnapshot> {
   const response = await fetchWithTimeout(`/api/transactions/${transactionId}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+
+  return parseJsonResponse<FinanceSnapshot>(response);
+}
+
+export async function markTransactionPaidRequest(transactionId: string): Promise<FinanceSnapshot> {
+  const response = await fetchWithTimeout(`/api/transactions/${transactionId}/mark-paid`, {
+    method: "POST",
+    credentials: "include",
+  });
+
+  return parseJsonResponse<FinanceSnapshot>(response);
+}
+
+export async function skipTransactionOccurrenceRequest(transactionId: string): Promise<FinanceSnapshot> {
+  const response = await fetchWithTimeout(`/api/transactions/${transactionId}/skip`, {
+    method: "POST",
+    credentials: "include",
+  });
+
+  return parseJsonResponse<FinanceSnapshot>(response);
+}
+
+export async function updateTransactionScheduleRequest(scheduleId: string, values: TransactionScheduleInput): Promise<FinanceSnapshot> {
+  const response = await fetchWithTimeout(`/api/transaction-schedules/${scheduleId}`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      mode: "update",
+      values,
+    }),
+  });
+
+  return parseJsonResponse<FinanceSnapshot>(response);
+}
+
+export async function setTransactionScheduleStateRequest(
+  scheduleId: string,
+  state: "active" | "paused",
+): Promise<FinanceSnapshot> {
+  const response = await fetchWithTimeout(`/api/transaction-schedules/${scheduleId}`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      mode: "state",
+      state,
+    }),
+  });
+
+  return parseJsonResponse<FinanceSnapshot>(response);
+}
+
+export async function deleteTransactionScheduleRequest(scheduleId: string): Promise<FinanceSnapshot> {
+  const response = await fetchWithTimeout(`/api/transaction-schedules/${scheduleId}`, {
     method: "DELETE",
     credentials: "include",
   });

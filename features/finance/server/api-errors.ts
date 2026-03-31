@@ -20,6 +20,7 @@ const FINANCE_ERROR_KEYS = {
   "Replacement category must be different.": "common.errors.category.replacementDifferent",
   "Replacement category must have the same type.": "common.errors.category.replacementSameType",
   "Transaction not found.": "common.errors.transaction.notFound",
+  "Transaction schedule not found.": "common.errors.transaction.scheduleNotFound",
   "Parent category not found.": "common.errors.category.parentNotFound",
   "Parent category must have the same type.": "common.errors.category.parentSameType",
   "A category cannot be its own parent.": "common.errors.category.cannotBeOwnParent",

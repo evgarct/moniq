@@ -1,7 +1,12 @@
 import type { TransactionInput } from "@/types/finance-schemas";
 import type { Account, Allocation, Category, Transaction } from "@/types/finance";
+import { isSettledTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
 
 export function getTransactionAnalyticsAmount(transaction: Transaction) {
+  if (!isSettledTransactionStatus(transaction.status)) {
+    return 0;
+  }
+
   if (transaction.kind === "income" || transaction.kind === "expense") {
     return Math.abs(transaction.amount);
   }
@@ -108,6 +113,10 @@ export function validateTransactionRelationships(
 }
 
 export function getTransactionSignedAmount(transaction: Transaction) {
+  if (!isSettledTransactionStatus(transaction.status)) {
+    return 0;
+  }
+
   if (transaction.kind === "income") {
     return Math.abs(transaction.amount);
   }

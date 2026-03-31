@@ -3,6 +3,7 @@ import { isSameDay, parseISO } from "date-fns";
 import { getAccountGroup, getNetWorthTotal } from "@/features/accounts/lib/account-utils";
 import { getAllocatedTotalForAccount } from "@/features/allocations/lib/allocation-utils";
 import { buildCategoryTree } from "@/features/categories/lib/category-tree";
+import { isVisibleTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
 import { getTransactionAnalyticsAmount, getTransactionPrimaryAccount, getTransactionSignedAmount } from "@/features/transactions/lib/transaction-utils";
 import { SUPPORTED_CURRENCY_CODES } from "@/lib/currencies";
 import type { CurrencyCode } from "@/types/currency";
@@ -81,21 +82,27 @@ export function getIncomeExpenseSummaryByCurrency(transactions: Transaction[]): 
 }
 
 export function getRecentTransactions(snapshot: FinanceSnapshot, limit = 5) {
-  return snapshot.transactions.slice(0, limit);
+  return snapshot.transactions.filter((transaction) => transaction.status === "paid").slice(0, limit);
 }
 
 export function getTransactionsForDate(transactions: Transaction[], date: Date) {
-  return transactions.filter((transaction) => isSameDay(parseISO(transaction.occurred_at), date));
+  return transactions.filter(
+    (transaction) => isVisibleTransactionStatus(transaction.status) && isSameDay(parseISO(transaction.occurred_at), date),
+  );
 }
 
 export function getTransactionsForAccount(transactions: Transaction[], accountId: string) {
   return transactions.filter(
-    (transaction) => transaction.source_account_id === accountId || transaction.destination_account_id === accountId,
+    (transaction) =>
+      isVisibleTransactionStatus(transaction.status) &&
+      (transaction.source_account_id === accountId || transaction.destination_account_id === accountId),
   );
 }
 
 export function getTransactionsForAllocation(transactions: Transaction[], allocationId: string) {
-  return transactions.filter((transaction) => transaction.allocation_id === allocationId);
+  return transactions.filter(
+    (transaction) => isVisibleTransactionStatus(transaction.status) && transaction.allocation_id === allocationId,
+  );
 }
 
 export function getCashAccounts(accounts: Account[]) {

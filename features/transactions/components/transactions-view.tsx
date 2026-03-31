@@ -16,16 +16,15 @@ import { CategoryTree } from "@/features/categories/components/category-tree";
 import { buildCategoryTree, flattenCategoryTree } from "@/features/categories/lib/category-tree";
 import {
   createCategoryRequest,
-  createTransactionRequest,
   deleteCategoryRequest,
-  deleteTransactionRequest,
   financeSnapshotQueryKey,
   updateCategoryRequest,
-  updateTransactionRequest,
 } from "@/features/finance/lib/finance-api";
-import { TransactionFormSheet } from "@/features/transactions/components/transaction-form-sheet";
-import type { Category, FinanceSnapshot, Transaction } from "@/types/finance";
-import type { CategoryInput, TransactionInput } from "@/types/finance-schemas";
+import { TransactionFormSheet, type TransactionFormSubmitPayload } from "@/features/transactions/components/transaction-form-sheet";
+import { TransactionRowActions } from "@/features/transactions/components/transaction-row-actions";
+import { useTransactionActions } from "@/features/transactions/hooks/use-transaction-actions";
+import type { Category, FinanceSnapshot, Transaction, TransactionSchedule } from "@/types/finance";
+import type { CategoryInput } from "@/types/finance-schemas";
 import { useFinanceData } from "@/features/finance/hooks/use-finance-data";
 import { useRouter } from "@/i18n/navigation";
 
@@ -37,14 +36,16 @@ export function TransactionsView() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const { data } = useFinanceData();
-  const snapshot = data ?? { accounts: [], allocations: [], categories: [], transactions: [] };
+  const snapshot = data ?? { accounts: [], allocations: [], categories: [], schedules: [], transactions: [] };
+  const transactionActions = useTransactionActions();
   const [actionError, setActionError] = useState<string | null>(null);
   const [categorySheetOpen, setCategorySheetOpen] = useState(false);
   const [categorySheetMode, setCategorySheetMode] = useState<"add" | "edit">("add");
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [transactionSheetOpen, setTransactionSheetOpen] = useState(false);
-  const [transactionSheetMode, setTransactionSheetMode] = useState<"add" | "edit">("add");
+  const [transactionSheetMode, setTransactionSheetMode] = useState<"add" | "edit-transaction" | "edit-schedule">("add");
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [editingSchedule, setEditingSchedule] = useState<TransactionSchedule | null>(null);
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
 
   const setSnapshot = (nextSnapshot: FinanceSnapshot) => {
@@ -63,23 +64,6 @@ export function TransactionsView() {
   const deleteCategoryMutation = useMutation({
     mutationFn: async ({ categoryId, replacementCategoryId }: { categoryId: string; replacementCategoryId: string | null }) =>
       deleteCategoryRequest(categoryId, replacementCategoryId),
-    onSuccess: (nextSnapshot) => {
-      setSnapshot(nextSnapshot);
-      setActionError(null);
-    },
-  });
-
-  const transactionMutation = useMutation({
-    mutationFn: async ({ mode, transactionId, values }: { mode: "add" | "edit"; transactionId?: string; values: TransactionInput }) =>
-      mode === "add" ? createTransactionRequest(values) : updateTransactionRequest(transactionId!, values),
-    onSuccess: (nextSnapshot) => {
-      setSnapshot(nextSnapshot);
-      setActionError(null);
-    },
-  });
-
-  const deleteTransactionMutation = useMutation({
-    mutationFn: deleteTransactionRequest,
     onSuccess: (nextSnapshot) => {
       setSnapshot(nextSnapshot);
       setActionError(null);
@@ -171,6 +155,7 @@ export function TransactionsView() {
               onClick={() => {
                 setTransactionSheetMode("add");
                 setEditingTransaction(null);
+                setEditingSchedule(null);
                 setTransactionSheetOpen(true);
               }}
             >
@@ -183,32 +168,76 @@ export function TransactionsView() {
             transactions={snapshot.transactions}
             emptyMessage={tr("common.empty.noTransactionsYet")}
             renderAction={(transaction) => (
-              <div className="flex gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setTransactionSheetMode("edit");
-                    setEditingTransaction(transaction);
-                    setTransactionSheetOpen(true);
-                  }}
-                >
-                  {t("view.edit")}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={async () => {
-                    try {
-                      await deleteTransactionMutation.mutateAsync(transaction.id);
-                    } catch (error) {
-                      setActionError(error instanceof Error ? error.message : t("view.deleteError"));
-                    }
-                  }}
-                >
-                  {t("view.delete")}
-                </Button>
-              </div>
+              <TransactionRowActions
+                transaction={transaction}
+                onEditOccurrence={(selectedTransaction) => {
+                  setTransactionSheetMode("edit-transaction");
+                  setEditingTransaction(selectedTransaction);
+                  setEditingSchedule(null);
+                  setTransactionSheetOpen(true);
+                }}
+                onEditSeries={(selectedTransaction) => {
+                  if (!selectedTransaction.schedule) {
+                    return;
+                  }
+
+                  setTransactionSheetMode("edit-schedule");
+                  setEditingTransaction(selectedTransaction);
+                  setEditingSchedule(selectedTransaction.schedule);
+                  setTransactionSheetOpen(true);
+                }}
+                onDeleteTransaction={async (selectedTransaction) => {
+                  try {
+                    await transactionActions.deleteTransaction(selectedTransaction.id);
+                    setActionError(null);
+                  } catch (error) {
+                    setActionError(error instanceof Error ? error.message : t("view.deleteError"));
+                  }
+                }}
+                onDeleteSeries={async (selectedTransaction) => {
+                  if (!selectedTransaction.schedule_id) {
+                    return;
+                  }
+
+                  try {
+                    await transactionActions.deleteSchedule(selectedTransaction.schedule_id);
+                    setActionError(null);
+                  } catch (error) {
+                    setActionError(error instanceof Error ? error.message : t("view.deleteError"));
+                  }
+                }}
+                onMarkPaid={async (selectedTransaction) => {
+                  try {
+                    await transactionActions.markPaid(selectedTransaction.id);
+                    setActionError(null);
+                  } catch (error) {
+                    setActionError(error instanceof Error ? error.message : t("view.saveError"));
+                  }
+                }}
+                onSkipOccurrence={async (selectedTransaction) => {
+                  try {
+                    await transactionActions.skipOccurrence(selectedTransaction.id);
+                    setActionError(null);
+                  } catch (error) {
+                    setActionError(error instanceof Error ? error.message : t("view.saveError"));
+                  }
+                }}
+                onToggleScheduleState={async (selectedTransaction) => {
+                  if (!selectedTransaction.schedule_id || !selectedTransaction.schedule) {
+                    return;
+                  }
+
+                  try {
+                    await transactionActions.setScheduleState(
+                      selectedTransaction.schedule_id,
+                      selectedTransaction.schedule.state === "paused" ? "active" : "paused",
+                    );
+                    setActionError(null);
+                  } catch (error) {
+                    setActionError(error instanceof Error ? error.message : t("view.saveError"));
+                  }
+                }}
+              />
             )}
           />
         </SectionCard>
@@ -267,6 +296,7 @@ export function TransactionsView() {
         open={transactionSheetOpen || shouldOpenNewTransaction}
         mode={transactionSheetMode}
         transaction={editingTransaction}
+        schedule={editingSchedule}
         initialKind={draftTransactionKind}
         accounts={snapshot.accounts}
         allocations={snapshot.allocations}
@@ -278,13 +308,26 @@ export function TransactionsView() {
             router.replace("/transactions");
           }
         }}
-        onSubmit={async (values) => {
+        onSubmit={async (payload: TransactionFormSubmitPayload) => {
           try {
-            await transactionMutation.mutateAsync({
-              mode: transactionSheetMode,
-              transactionId: editingTransaction?.id || undefined,
-              values,
-            });
+            if (payload.kind === "entry") {
+              await transactionActions.createEntry(payload.values);
+            } else if (payload.kind === "entry-batch") {
+              await transactionActions.createEntry(payload.values);
+            } else if (payload.kind === "transaction") {
+              if (!editingTransaction) {
+                throw new Error(t("view.saveError"));
+              }
+
+              await transactionActions.updateTransaction(editingTransaction.id, payload.values);
+            } else {
+              if (!editingSchedule) {
+                throw new Error(t("view.saveError"));
+              }
+
+              await transactionActions.updateSchedule(editingSchedule.id, payload.values);
+            }
+            setActionError(null);
           } catch (error) {
             setActionError(error instanceof Error ? error.message : t("view.saveError"));
             throw error;

@@ -14,9 +14,13 @@ const kindConfig: Record<Transaction["kind"], { labelKey: Transaction["kind"]; i
   debt_payment: { labelKey: "debt_payment", icon: Landmark, className: "bg-muted text-muted-foreground" },
 };
 
+export function getTransactionKindMeta(kind: Transaction["kind"]) {
+  return kindConfig[kind];
+}
+
 export function TransactionKindBadge({ kind, className }: { kind: Transaction["kind"]; className?: string }) {
   const t = useTranslations("transactions.kinds");
-  const config = kindConfig[kind];
+  const config = getTransactionKindMeta(kind);
   const Icon = config.icon;
 
   return (
