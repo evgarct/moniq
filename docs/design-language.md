@@ -1,5 +1,10 @@
 # Moniq Design Language
 
+Related documents:
+
+- `docs/design-principles.md` for product-level principles and screen expectations
+- `docs/design-system-spec.md` for tokens, components, Storybook coverage, and implementation rules
+
 ## Intent
 
 Moniq should feel like a calm desktop finance workspace, not a generic SaaS dashboard. The closest external reference for the visual language is Claude:
