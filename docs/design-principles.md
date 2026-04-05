@@ -84,6 +84,16 @@ Balance is the anchor workspace.
 - transaction activity remains secondary to balance structure
 - the page should feel calm and deliberate, not busy
 
+Balance is also the canonical reference for list density, account grouping, and account-state behavior across the app.
+
+- The left panel is an inventory surface, not a dashboard card stack.
+- Header controls stay compact, icon-led, and typographically aligned with the page title.
+- Group spacing must be larger than item spacing so sections read before rows.
+- Account rows stay quiet: no heavy borders, no decorative chips, and no duplicated metadata.
+- Savings subgroups behave like lightweight ledger children, not like nested cards.
+- Credit cards may extend the base row with one thin utilization track, but the base account-row pattern still wins.
+- On mobile, the account panel remains the primary screen and transaction activity opens as a full-screen follow-up surface.
+
 ### Today
 
 Today should operate as a planning and execution surface.
@@ -121,3 +131,4 @@ Before closing a UI task, answer yes to all of these:
 3. Are actions, state, and hierarchy expressed mostly through type, spacing, and surfaces?
 4. Is the pattern represented in Storybook at the right level?
 5. Did we reuse a product pattern where one already existed?
+6. If the change touched Balance, does it still match the canonical Balance panel contract in Storybook and the design-system spec?

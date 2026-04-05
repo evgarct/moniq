@@ -74,16 +74,16 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
 
   return (
     <>
-      <div className="flex h-full flex-col gap-6">
+      <div className="flex h-full flex-col gap-4">
         <Surface tone="panel" padding="lg" className="border border-black/5">
-          <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
             <div className="flex items-start gap-4">
               <div className="flex size-11 shrink-0 items-center justify-center rounded-full border border-border/80 bg-background text-foreground">
                 <ListChecks className="size-[18px]" strokeWidth={1.8} />
               </div>
               <div className="flex flex-col gap-1">
                 <h1 className="type-h3">{t("view.title")}</h1>
-                <p className="type-body-14 max-w-[44rem] text-muted-foreground">{t("view.description")}</p>
+                <p className="type-body-14 max-w-[38rem] text-muted-foreground">{t("view.description")}</p>
               </div>
             </div>
 
@@ -125,7 +125,7 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
           </div>
         </Surface>
 
-        <div className="grid min-h-0 flex-1 gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(340px,0.9fr)]">
+        <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(380px,0.88fr)]">
           <Surface tone="panel" padding="lg" className="min-h-0 border border-black/5">
             <CalendarGrid
               month={month}
@@ -150,11 +150,11 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{t("board.agendaTitle")}</p>
-                  <h2 className="mt-2 text-xl font-medium tracking-[-0.03em] text-foreground">{agendaLabel}</h2>
-                  <p className="mt-1 text-sm leading-6 text-muted-foreground">{agendaSubtitle}</p>
+                  <h2 className="mt-1 text-lg font-medium tracking-[-0.03em] text-foreground">{agendaLabel}</h2>
+                  <p className="mt-1 text-sm leading-5 text-muted-foreground">{agendaSubtitle}</p>
                 </div>
                 {selectedDate ? (
-                  <Button variant="outline" size="sm" className="rounded-full bg-background" onClick={() => setSelectedDate(null)}>
+                  <Button variant="ghost" size="sm" className="rounded-full px-3 text-muted-foreground hover:text-foreground" onClick={() => setSelectedDate(null)}>
                     <X data-icon="inline-start" />
                     {t("board.clearDay")}
                   </Button>
@@ -167,7 +167,7 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
                 </div>
               ) : null}
 
-              <div className="mt-5 min-h-0 flex-1 overflow-auto">
+              <div className="mt-4 min-h-0 flex-1 overflow-auto">
                 <TransactionList
                   transactions={agendaTransactions}
                   emptyMessage={selectedDate ? t("board.selectedEmpty") : t("board.empty")}

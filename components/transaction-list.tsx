@@ -7,12 +7,14 @@ export function TransactionList({
   emptyMessage,
   compact = false,
   variant = "default",
+  showMinorUnits = true,
   renderAction,
 }: {
   transactions: Transaction[];
   emptyMessage: string;
   compact?: boolean;
   variant?: "default" | "board";
+  showMinorUnits?: boolean;
   renderAction?: (transaction: Transaction) => React.ReactNode;
 }) {
   const visibleTransactions = transactions.filter((transaction) => isVisibleTransactionStatus(transaction.status));
@@ -33,6 +35,7 @@ export function TransactionList({
           transaction={transaction}
           compact={compact}
           variant={variant}
+          showMinorUnits={showMinorUnits}
           action={renderAction?.(transaction)}
         />
       ))}

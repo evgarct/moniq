@@ -15,6 +15,7 @@ export function AccountList({
   selectedAccountId,
   selectedAllocationId,
   editing = false,
+  showMinorUnits = true,
   onSelect,
   onSelectAllocation,
   onAddAccount,
@@ -29,6 +30,7 @@ export function AccountList({
   selectedAccountId: string | null;
   selectedAllocationId?: string | null;
   editing?: boolean;
+  showMinorUnits?: boolean;
   onSelect: (accountId: string) => void;
   onSelectAllocation?: (allocation: Allocation) => void;
   onAddAccount?: (type: Account["type"]) => void;
@@ -45,7 +47,7 @@ export function AccountList({
   const debtAccounts = getDebtAccounts(accounts);
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-8 lg:gap-10">
       <AccountGroup
         title={t("cash")}
         accounts={cashAccounts}
@@ -53,6 +55,7 @@ export function AccountList({
         selectedAccountId={selectedAccountId}
         selectedAllocationId={selectedAllocationId}
         editing={editing}
+        showMinorUnits={showMinorUnits}
         onSelect={onSelect}
         onSelectAllocation={onSelectAllocation}
         onAddAccount={onAddAccount ? () => onAddAccount("cash") : undefined}
@@ -66,6 +69,7 @@ export function AccountList({
         selectedAccountId={selectedAccountId}
         selectedAllocationId={selectedAllocationId}
         editing={editing}
+        showMinorUnits={showMinorUnits}
         onSelect={onSelect}
         onSelectAllocation={onSelectAllocation}
         onAddAccount={onAddAccount ? () => onAddAccount("saving") : undefined}
@@ -82,6 +86,7 @@ export function AccountList({
         selectedAccountId={selectedAccountId}
         selectedAllocationId={selectedAllocationId}
         editing={editing}
+        showMinorUnits={showMinorUnits}
         onSelect={onSelect}
         onSelectAllocation={onSelectAllocation}
         onAddAccount={onAddAccount ? () => onAddAccount("credit_card") : undefined}
@@ -95,6 +100,7 @@ export function AccountList({
         selectedAccountId={selectedAccountId}
         selectedAllocationId={selectedAllocationId}
         editing={editing}
+        showMinorUnits={showMinorUnits}
         onSelect={onSelect}
         onSelectAllocation={onSelectAllocation}
         onAddAccount={onAddAccount ? () => onAddAccount("debt") : undefined}

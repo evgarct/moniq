@@ -29,12 +29,12 @@ export function StoryWorkspace({
   children: React.ReactNode;
 }) {
   return (
-    <div className="h-screen w-screen overflow-hidden bg-[#ece8e4]">
-      <div className="grid h-full w-full lg:grid-cols-[76px_minmax(0,1fr)]">
+    <div className="min-h-screen w-screen bg-[#ece8e4]">
+      <div className="min-h-screen w-full lg:grid lg:grid-cols-[76px_minmax(0,1fr)]">
         <AppSidebar user={storyUser} onSignOut={noopAsyncAction} />
-        <div className="min-w-0 overflow-hidden bg-[#fbf8f4]">
-          <main className="h-full overflow-hidden">
-            <div data-pathname={pathname} className="h-full">
+        <div className="min-w-0 bg-[#fbf8f4]">
+          <main className="min-h-screen overflow-y-scroll overflow-x-hidden pb-[64px] lg:pb-0">
+            <div data-pathname={pathname} className="min-h-screen">
               {children}
             </div>
           </main>

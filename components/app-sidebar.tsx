@@ -1,19 +1,18 @@
 "use client";
 
+import type { ComponentType } from "react";
 import { useTranslations } from "next-intl";
 import {
   ListChecks,
-  Menu,
   Scale,
   Settings2,
+  UserRound,
   WalletCards,
 } from "lucide-react";
 
 import type { AuthUser } from "@/types/auth";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { LogoutButton } from "@/features/auth/components/logout-button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,14 +20,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 
@@ -45,167 +36,42 @@ export function AppSidebar({
   user: AuthUser;
   onSignOut: () => Promise<void>;
 }) {
-  const t = useTranslations();
   const navT = useTranslations("navigation");
   const pathname = usePathname();
-  const initial = user.email?.slice(0, 1).toUpperCase() ?? "M";
 
   return (
-    <>
-      <aside className="hidden h-full border-r border-sidebar-border bg-sidebar px-3 py-4 text-sidebar-foreground lg:flex lg:flex-col lg:items-center">
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-                <button
-                  type="button"
-                  className="rounded-full outline-none ring-0 transition-transform hover:scale-[1.03]"
-                  aria-label={t("navigation.openProfileMenu")}
-                />
-              }
-            >
-            <Avatar size="default" className="size-10 border border-sidebar-border bg-sidebar-accent">
-              <AvatarFallback className="bg-sidebar-accent text-[12px] font-semibold text-sidebar-foreground">{initial}</AvatarFallback>
-            </Avatar>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56 rounded-2xl p-2">
-            <div className="px-2 py-2">
-              <div className="min-w-0">
-                <p className="truncate text-[12px] font-medium text-foreground">{user.email}</p>
-                <p className="mt-0.5 text-[11px] text-muted-foreground">{t("common.states.signedIn")}</p>
-              </div>
-            </div>
-            <div className="px-2 py-2">
-              <LocaleSwitcher />
-            </div>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="rounded-xl px-2 py-2 text-[13px]">
-              <Settings2 />
-              {t("common.actions.settings")}
-            </DropdownMenuItem>
-            <div className="px-1 py-1">
-              <LogoutButton
-                action={onSignOut}
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start rounded-xl"
-              />
-            </div>
-          </DropdownMenuContent>
-        </DropdownMenu>
+    <aside className="hidden h-full border-r border-sidebar-border bg-sidebar px-3 py-4 text-sidebar-foreground lg:flex lg:flex-col lg:items-center">
+      <nav className="mt-2 flex flex-1 flex-col items-center gap-3">
+        {navigation.map((item) => {
+          const Icon = item.icon;
+          const active = pathname === item.href;
+          const label = navT(item.labelKey);
 
-        <nav className="mt-8 flex flex-1 flex-col items-center gap-3">
-          {navigation.map((item) => {
-            const Icon = item.icon;
-            const active = pathname === item.href;
-            const label = navT(item.labelKey);
-
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                title={label}
-                className={cn(
-                  "group relative flex h-11 w-11 items-center justify-center rounded-2xl text-sidebar-foreground/55 transition-colors",
-                  active
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                    : "hover:bg-sidebar-accent hover:text-sidebar-foreground",
-                )}
-              >
-                <Icon className="h-5 w-5" />
-                <span className="pointer-events-none absolute left-full top-1/2 ml-3 -translate-y-1/2 rounded-lg bg-card px-2 py-1 text-[11px] text-card-foreground opacity-0 shadow-sm transition-opacity group-hover:opacity-100">
-                  {label}
-                </span>
-                <span className="sr-only">{label}</span>
-              </Link>
-            );
-          })}
-        </nav>
-      </aside>
-
-      <div className="border-b border-border bg-background lg:hidden">
-        <div className="flex items-center justify-between px-4 py-3">
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <button
-                  type="button"
-                  className="rounded-full outline-none ring-0"
-                  aria-label={t("navigation.openProfileMenu")}
-                />
-              }
-            >
-              <Avatar size="default" className="size-9 border border-border bg-card">
-                <AvatarFallback className="bg-card text-[12px] font-semibold text-foreground">{initial}</AvatarFallback>
-              </Avatar>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56 rounded-2xl p-2">
-              <div className="px-2 py-2">
-                <p className="truncate text-[12px] font-medium text-foreground">{user.email}</p>
-              </div>
-              <div className="px-2 py-2">
-                <LocaleSwitcher />
-              </div>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="rounded-xl px-2 py-2 text-[13px]">
-                <Settings2 />
-                {t("common.actions.settings")}
-              </DropdownMenuItem>
-              <div className="px-1 py-1">
-                <LogoutButton action={onSignOut} variant="ghost" size="sm" className="w-full justify-start rounded-xl" />
-              </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <Sheet>
-            <SheetTrigger
-              render={
-                <Button
-                  variant="outline"
-                  size="icon-sm"
-                  className="rounded-xl"
-                  aria-label={t("navigation.openNavigation")}
-                />
-              }
-            >
-              <Menu />
-            </SheetTrigger>
-            <SheetContent side="left" className="w-72 bg-background">
-              <SheetHeader>
-                <SheetTitle>{t("navigation.workspace")}</SheetTitle>
-                <SheetDescription>{t("navigation.workspaceDescription")}</SheetDescription>
-              </SheetHeader>
-              <nav className="space-y-1 px-4 pb-4">
-                {navigation.map((item) => {
-                  const Icon = item.icon;
-                  const active = pathname === item.href;
-                  const label = navT(item.labelKey);
-
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={cn(
-                        "flex items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] text-muted-foreground transition-colors",
-                        active
-                          ? "bg-card text-foreground"
-                          : "hover:bg-muted hover:text-foreground",
-                      )}
-                    >
-                      <Icon className="h-4 w-4" />
-                      {label}
-                    </Link>
-                  );
-                })}
-              </nav>
-            </SheetContent>
-          </Sheet>
-        </div>
+          return (
+            <SidebarNavLink
+              key={item.href}
+              href={item.href}
+              label={label}
+              icon={Icon}
+              active={active}
+            />
+          );
+        })}
+      </nav>
+      <div className="mb-2">
+        <UserNavMenu user={user} onSignOut={onSignOut} mobile={false} />
       </div>
-    </>
+    </aside>
   );
 }
 
-export function MobileBottomNav() {
+export function MobileBottomNav({
+  user,
+  onSignOut,
+}: {
+  user: AuthUser;
+  onSignOut: () => Promise<void>;
+}) {
   const navT = useTranslations("navigation");
   const pathname = usePathname();
 
@@ -230,6 +96,114 @@ export function MobileBottomNav() {
           </Link>
         );
       })}
+
+      <UserNavMenu user={user} onSignOut={onSignOut} mobile />
     </nav>
+  );
+}
+
+function UserNavMenu({
+  user,
+  onSignOut,
+  mobile,
+}: {
+  user: AuthUser;
+  onSignOut: () => Promise<void>;
+  mobile: boolean;
+}) {
+  const t = useTranslations();
+  const navT = useTranslations("navigation");
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
+          mobile ? (
+            <button
+              type="button"
+              className="flex w-16 flex-col items-center justify-center gap-1 text-muted-foreground transition-colors hover:text-foreground"
+              aria-label={t("navigation.openProfileMenu")}
+            />
+          ) : (
+            <button
+              type="button"
+              className="group relative flex h-11 w-11 items-center justify-center rounded-2xl text-sidebar-foreground/55 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+              aria-label={t("navigation.openProfileMenu")}
+            />
+          )
+        }
+      >
+        {mobile ? (
+          <>
+            <UserRound className="h-[22px] w-[22px]" />
+            <span>{navT("profile")}</span>
+          </>
+        ) : (
+          <>
+            <UserRound className="h-5 w-5" />
+            <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 -translate-y-1/2 rounded-2xl border border-border/70 bg-[#ece8e1] px-4 py-2 text-[13px] font-medium text-foreground opacity-0 shadow-md transition-opacity group-hover:opacity-100">
+              {navT("profile")}
+            </span>
+          </>
+        )}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        className="w-56 rounded-2xl p-2"
+        side={mobile ? "top" : "right"}
+        align={mobile ? "end" : "start"}
+        sideOffset={mobile ? 10 : 12}
+      >
+        <div className="px-2 py-2">
+          <div className="min-w-0">
+            <p className="truncate text-[12px] font-medium text-foreground">{user.email}</p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">{t("common.states.signedIn")}</p>
+          </div>
+        </div>
+        <div className="px-2 py-2">
+          <LocaleSwitcher />
+        </div>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem className="rounded-xl px-2 py-2 text-[13px]">
+          <Settings2 />
+          {t("common.actions.settings")}
+        </DropdownMenuItem>
+        <div className="px-1 py-1">
+          <LogoutButton
+            action={onSignOut}
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start rounded-xl"
+          />
+        </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function SidebarNavLink({
+  href,
+  label,
+  icon: Icon,
+  active,
+}: {
+  href: string;
+  label: string;
+  icon: ComponentType<{ className?: string }>;
+  active: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "group relative flex h-11 w-11 items-center justify-center rounded-2xl text-sidebar-foreground/55 transition-colors",
+        active ? "bg-sidebar-primary text-sidebar-primary-foreground" : "hover:bg-sidebar-accent hover:text-sidebar-foreground",
+      )}
+    >
+      <Icon className="h-5 w-5" />
+      <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 -translate-y-1/2 rounded-2xl border border-border/70 bg-[#ece8e1] px-4 py-2 text-[13px] font-medium text-foreground opacity-0 shadow-md transition-opacity group-hover:opacity-100">
+        {label}
+      </span>
+      <span className="sr-only">{label}</span>
+    </Link>
   );
 }

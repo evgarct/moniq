@@ -39,6 +39,12 @@ export const Saving: Story = {
 
 export const Debt: Story = {
   args: {
+    account: snapshot.accounts[5],
+  },
+};
+
+export const CreditCard: Story = {
+  args: {
     account: snapshot.accounts[4],
   },
 };

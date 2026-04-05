@@ -38,8 +38,9 @@ function BudgetSection({
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{title}</p>
           <p className="mt-1 max-w-xl text-sm leading-6 text-muted-foreground">{description}</p>
         </div>
-        <div className="rounded-full border border-border/70 bg-background px-3 py-1 text-xs text-muted-foreground">
-          {nodes.length}
+        <div className="border-l border-border/70 pl-3 text-right">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Count</p>
+          <p className="mt-1 text-sm font-medium text-foreground">{nodes.length}</p>
         </div>
       </div>
 
@@ -88,13 +89,10 @@ function BudgetCategoryRow({ node }: { node: CategoryTreeNode }) {
           </div>
         </div>
 
-        <div className="flex flex-wrap justify-end gap-2">
+        <div className="flex min-w-[140px] flex-col items-end justify-center gap-1">
           {node.totals_by_currency.length ? (
             node.totals_by_currency.map((total) => (
-              <div
-                key={`${node.id}-${total.currency}`}
-                className="rounded-full border border-border/70 bg-background px-3 py-1.5"
-              >
+              <div key={`${node.id}-${total.currency}`} className="text-right">
                 <MoneyAmount
                   amount={total.amount}
                   currency={total.currency}
@@ -168,9 +166,9 @@ export function BudgetView({ snapshot }: { snapshot: FinanceSnapshot }) {
   );
 
   return (
-    <div className="flex h-full flex-col gap-6">
+      <div className="flex h-full flex-col gap-4">
       <Surface tone="panel" padding="lg" className="border border-black/5">
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div className="flex items-start gap-4">
             <div className="flex size-11 shrink-0 items-center justify-center rounded-full border border-border/80 bg-background text-foreground">
               <WalletCards className="size-[18px]" strokeWidth={1.8} />
@@ -197,7 +195,7 @@ export function BudgetView({ snapshot }: { snapshot: FinanceSnapshot }) {
           </div>
         </div>
 
-        <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <BudgetMetric label={t("metrics.trackedCategories")} value={String(totalTrackedCategories)} />
           <BudgetMetric label={t("metrics.transactions")} value={String(totalTransactions)} />
           <BudgetMetricGroup label={t("metrics.income")} values={summary.map((item) => ({ currency: item.currency, amount: item.income }))} />
@@ -205,7 +203,7 @@ export function BudgetView({ snapshot }: { snapshot: FinanceSnapshot }) {
         </div>
       </Surface>
 
-      <div className="grid min-h-0 flex-1 gap-6 xl:grid-cols-2">
+      <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-2">
         <BudgetSection
           title={t("sections.expensesTitle")}
           description={t("sections.expensesDescription")}
@@ -231,7 +229,7 @@ function BudgetMetric({
   value: string;
 }) {
   return (
-    <div className="rounded-2xl border border-border/70 bg-background px-4 py-3">
+    <div className="border-l border-border/70 pl-4">
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
       <p className="mt-2 text-lg font-medium tracking-[-0.03em] text-foreground">{value}</p>
     </div>
@@ -246,12 +244,12 @@ function BudgetMetricGroup({
   values: Array<{ currency: CurrencyCode; amount: number }>;
 }) {
   return (
-    <div className="rounded-2xl border border-border/70 bg-background px-4 py-3">
+    <div className="border-l border-border/70 pl-4">
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
-      <div className="mt-2 flex flex-wrap gap-2">
+      <div className="mt-2 space-y-1">
         {values.length ? (
           values.map((value) => (
-            <div key={`${label}-${value.currency}`} className="rounded-full border border-border/70 bg-card px-3 py-1.5">
+            <div key={`${label}-${value.currency}`}>
               <MoneyAmount
                 amount={value.amount}
                 currency={value.currency}

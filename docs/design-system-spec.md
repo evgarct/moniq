@@ -76,13 +76,20 @@ Rules:
 Current radius scale:
 
 - base `--radius: 0.95rem`
+- semantic `--radius-tight: 0.25rem`
+- semantic `--radius-control: 0.375rem`
+- semantic `--radius-surface: 0.5rem`
+- semantic `--radius-floating: 0.75rem`
 - derived: `sm`, `md`, `lg`, `xl`, `2xl`, `3xl`, `4xl`
 
 Rules:
 
-- large product surfaces should feel rounded and soft
-- floating tools need slightly stronger edge definition than panels
-- avoid tiny radii on primary workspace surfaces
+- use semantic radius tokens before picking ad-hoc Tailwind radii
+- `tight` is for tiny internal elements, never for primary cards
+- `control` is the default for buttons and interactive controls inside content
+- `surface` is the default for cards, rows, and primary workspace blocks
+- `floating` is reserved for popovers, sheets, and floating overlays
+- avoid round or pill-shaped controls unless the component meaning explicitly requires it
 
 ### Surface Model
 
@@ -206,6 +213,54 @@ Rules:
 - active state should be obvious but restrained
 - icons support recognition and should not become visual noise
 
+## Balance Panel Contract
+
+The left panel of Balance is a canonical product pattern. Future finance inventory screens should start from this contract instead of inventing new row and grouping logic.
+
+### Header
+
+- page title is `h1`
+- adjacent info control is icon-only and vertically aligned to the title line
+- header actions are compact icon controls with the same visual language as account selection states
+- the profile trigger in the desktop sidebar uses the same size, icon weight, radius, and tooltip language as the primary nav items
+
+### Group Rhythm
+
+- section spacing is intentionally larger than item spacing
+- account groups use heading-first hierarchy; rows should never compete with the group heading
+- empty groups still exist in edit/add mode so insertion points remain predictable
+
+### Account Rows
+
+- account rows are the default inventory primitive
+- rows do not use borders as their main state language
+- hover and selected states are neutral background shifts, not accent-colored fills
+- amount and currency stay tightly aligned as one value unit
+- duplicate account-type subtitles should be removed when the group context already explains the type
+
+### Savings Subgroups
+
+- savings subgroups are not nested cards
+- subgroup rows do not receive a filled hover or selected background
+- the progress track must start on the same vertical axis as the subgroup label
+- the savings track is the canonical thin-track reference for other inventory extensions
+
+### Credit Card Rows
+
+- credit cards inherit the base account-row layout first
+- one thin track may be added below the main row
+- full track represents the credit limit
+- filled portion represents available spending room
+- debt is shown once in the top row; do not duplicate it below the track
+- supporting metric copy under the track should stay minimal
+
+### Mobile Behavior
+
+- the Balance page defaults to the account inventory view
+- transaction activity is hidden by default on mobile
+- tapping an account or savings subgroup opens a full-screen follow-up surface with a back action
+- do not render the desktop split-view register permanently on mobile
+
 ## Implementation Rules
 
 - reuse `components/ui` primitives first
@@ -230,3 +285,4 @@ A UI task is not done until:
 2. the reusable component layer reflects the change
 3. Storybook includes the changed state at the correct level
 4. local verification passes for the affected build surface
+5. if Balance inventory patterns changed, the canonical Balance panel Storybook reference and this contract were updated in the same task

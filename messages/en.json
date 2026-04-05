@@ -8,6 +8,7 @@
       "add": "Add",
       "edit": "Edit",
       "delete": "Delete",
+      "back": "Back",
       "save": "Save",
       "update": "Update",
       "cancel": "Cancel",
@@ -19,11 +20,11 @@
     "states": {
       "signedIn": "Signed in"
     },
-  "empty": {
+    "empty": {
     "noAccountsYet": "No accounts yet.",
     "noTransactionsYet": "No transactions yet."
-  },
-  "errors": {
+    },
+    "errors": {
     "unauthorized": "Session expired. Reload the page and sign in again.",
     "unexpectedResponse": "Finance API returned an unexpected response.",
     "requestFailed": "Request failed.",
@@ -89,6 +90,7 @@
     "today": "Today",
     "transactions": "Transactions",
     "savings": "Savings",
+    "profile": "Profile",
     "workspace": "Workspace",
     "workspaceDescription": "Navigate Moniq product surfaces.",
     "openProfileMenu": "Open profile menu",
@@ -242,12 +244,21 @@
       "description": "Finance data could not be loaded."
     },
     "view": {
+      "eyebrow": "Balance workspace",
       "title": "Balance",
-      "description": "Review wallet balances on the left and recent activity on the right. Select a wallet to narrow the feed and inspect its savings or debt context.",
+      "description": "Track settled money across wallets and savings spaces. Pick a wallet when you want a narrower register.",
+      "editModeDescription": "Add, rename, and remove wallets in place. Every group stays visible so new accounts can be created exactly where they belong.",
       "manageWallets": "Manage wallets",
-      "finishWalletEditing": "Finish wallet editing",
+      "finishWalletEditing": "Done",
+      "showMinorUnits": "Show cents",
+      "hideMinorUnits": "Hide cents",
+      "minorUnitsOn": "Cents visible",
+      "minorUnitsOff": "Rounded",
       "addWallet": "Add wallet",
+      "emptyHint": "No wallets yet. Turn on wallet management to start building your balance spaces.",
+      "emptyEditHint": "Choose a group and use the plus control there to create the first wallet.",
       "activity": "Activity",
+      "registerEyebrow": "Settled register",
       "selectedActivityDescription": "Completed transactions for the selected wallet.",
       "selectedGoalActivityDescription": "Completed transactions for the selected savings goal.",
       "allActivityDescription": "All completed transactions across your balance spaces.",
@@ -257,12 +268,15 @@
     },
     "groups": {
       "cash": "Cash",
-      "savings": "Savings",
+      "savings": "Goals",
       "creditCards": "Credit Cards",
       "debt": "Debt"
     },
     "metrics": {
       "balance": "Balance",
+      "limit": "Limit",
+      "available": "Available",
+      "debt": "Debt",
       "allocated": "Allocated",
       "free": "Free",
       "target": "Target",
@@ -298,11 +312,13 @@
     "form": {
       "addTitle": "Add wallet",
       "editTitle": "Edit wallet",
-      "description": "Cash wallets spend directly. Saving wallets hold money with optional goals.",
+      "description": "Cash wallets spend directly. Savings hold reserved money. Credit cards track debt against a spending limit.",
       "fields": {
         "name": "Wallet name",
         "type": "Type",
         "debtKind": "Debt kind",
+        "currentBalance": "Current balance",
+        "creditLimit": "Credit limit",
         "balance": "Balance",
         "currency": "Currency"
       },
@@ -311,7 +327,10 @@
         "edit": "Update wallet"
       },
       "validation": {
-        "nameRequired": "Wallet name is required."
+        "nameRequired": "Wallet name is required.",
+        "creditLimitRequired": "Credit limit is required for a credit card.",
+        "creditLimitPositive": "Credit limit must be greater than 0.",
+        "creditLimitExceeded": "Current balance cannot exceed the credit limit."
       }
     },
     "allocationForm": {

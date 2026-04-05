@@ -45,3 +45,10 @@ export const EditWallet: Story = {
     await expect(canvas.getByText("Other major currencies")).toBeInTheDocument();
   },
 };
+
+export const CreditCardWallet: Story = {
+  args: {
+    mode: "edit",
+    account: snapshot.accounts[4],
+  },
+};

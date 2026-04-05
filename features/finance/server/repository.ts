@@ -2,6 +2,7 @@ import "server-only";
 
 import { addDays, format, startOfToday } from "date-fns";
 
+import { validateAccountValues } from "@/features/accounts/lib/account-state";
 import { validateCategoryHierarchy } from "@/features/categories/lib/category-tree";
 import { generateScheduleOccurrences } from "@/features/transactions/lib/transaction-schedules";
 import { validateTransactionRelationships } from "@/features/transactions/lib/transaction-utils";
@@ -25,6 +26,7 @@ type WalletRow = {
   cash_kind: Account["cash_kind"];
   debt_kind: Account["debt_kind"];
   balance: number | string;
+  credit_limit: number | string | null;
   currency: CurrencyCode;
   created_at: string;
 };
@@ -107,6 +109,7 @@ function mapWallet(row: WalletRow): Account {
     cash_kind: row.cash_kind,
     debt_kind: row.debt_kind,
     balance: Number(row.balance),
+    credit_limit: row.credit_limit === null ? null : Number(row.credit_limit),
     currency: row.currency,
     created_at: row.created_at,
   };
@@ -389,7 +392,7 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
   ] = await Promise.all([
     supabase
       .from("wallets")
-      .select("id, user_id, name, type, cash_kind, debt_kind, balance, currency, created_at")
+      .select("id, user_id, name, type, cash_kind, debt_kind, balance, credit_limit, currency, created_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false }),
     supabase
@@ -554,10 +557,12 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
 
 export async function createWallet(values: WalletInput) {
   const { supabase } = await getAuthenticatedSupabase();
+  validateAccountValues(values);
   const { error } = await supabase.rpc("create_wallet", {
     _name: values.name,
     _type: values.type,
     _balance: values.balance,
+    _credit_limit: values.type === "credit_card" ? values.credit_limit ?? null : null,
     _currency: values.currency,
     _debt_kind: values.type === "debt" ? values.debt_kind ?? "personal" : null,
   });
@@ -569,11 +574,13 @@ export async function createWallet(values: WalletInput) {
 
 export async function updateWallet(walletId: string, values: WalletInput) {
   const { supabase } = await getAuthenticatedSupabase();
+  validateAccountValues(values);
   const { error } = await supabase.rpc("update_wallet", {
     _wallet_id: walletId,
     _name: values.name,
     _type: values.type,
     _balance: values.balance,
+    _credit_limit: values.type === "credit_card" ? values.credit_limit ?? null : null,
     _currency: values.currency,
     _debt_kind: values.type === "debt" ? values.debt_kind ?? "personal" : null,
   });

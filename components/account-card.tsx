@@ -1,7 +1,9 @@
-import { BanknoteArrowDown, CreditCard, Ellipsis, Landmark, PencilLine, PiggyBank, Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { BanknoteArrowDown, CreditCard, Landmark, PencilLine, PiggyBank, Plus, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { AccountAmount } from "@/components/account-amount";
+import { ProgressTrack } from "@/components/progress-track";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -9,7 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { isDebtAccount } from "@/features/accounts/lib/account-utils";
+import { getCreditCardMetrics, isCreditCardAccount, isDebtAccount } from "@/features/accounts/lib/account-utils";
 import { cn } from "@/lib/utils";
 import type { Account } from "@/types/finance";
 
@@ -17,7 +19,7 @@ export function AccountCard({
   account,
   selected = false,
   onSelect,
-  editing = false,
+  showMinorUnits = true,
   onEdit,
   onDelete,
   onAddSubgroup,
@@ -25,7 +27,7 @@ export function AccountCard({
   account: Account;
   selected?: boolean;
   onSelect?: () => void;
-  editing?: boolean;
+  showMinorUnits?: boolean;
   onEdit?: (account: Account) => void;
   onDelete?: (account: Account) => void;
   onAddSubgroup?: (account: Account) => void;
@@ -33,12 +35,12 @@ export function AccountCard({
   const tr = useTranslations();
   const t = useTranslations("accounts");
   const debt = isDebtAccount(account);
+  const creditCard = isCreditCardAccount(account);
+  const creditCardMetrics = creditCard ? getCreditCardMetrics(account) : null;
   const detailLabel =
     account.type === "debt"
       ? t(`walletTypes.${account.debt_kind ?? "debt"}` as const)
-      : account.type === "credit_card"
-        ? t("walletTypes.credit_card")
-        : null;
+      : null;
   const AccountIcon =
     account.type === "saving"
       ? PiggyBank
@@ -47,88 +49,177 @@ export function AccountCard({
         : account.type === "debt"
           ? Landmark
           : BanknoteArrowDown;
-  const tooltip = detailLabel ?? account.name;
+  const hasActions = Boolean(onEdit || onDelete || (account.type === "saving" && onAddSubgroup));
+  const [contextAnchor, setContextAnchor] = useState<{ x: number; y: number } | null>(null);
+
+  function handleContextMenu(event: React.MouseEvent<HTMLDivElement>) {
+    if (!hasActions) {
+      return;
+    }
+
+    event.preventDefault();
+    setContextAnchor({ x: event.clientX, y: Math.max(event.clientY - 6, 0) });
+  }
 
   return (
     <div
-      title={tooltip}
+      onContextMenu={handleContextMenu}
       className={cn(
-        "relative rounded-xl border transition-[background-color,border-color,box-shadow]",
+        "relative rounded-sm transition-[background-color,color]",
         selected
-          ? "border-border bg-accent/55 shadow-sm"
-          : "border-transparent hover:border-border/60 hover:bg-card/70 active:border-border/70 active:bg-accent/35",
+          ? "bg-[#e6e1d9] text-foreground"
+          : "bg-transparent hover:bg-[#ece8e1] active:bg-[#e6e1d9]",
       )}
     >
-      <button
-        type="button"
-        onClick={onSelect}
-        className={cn(
-          "grid min-w-0 w-full grid-cols-[minmax(0,1fr)_168px] items-center gap-3 rounded-xl px-2.5 py-2.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/25",
-          editing && (onEdit || onDelete || (account.type === "saving" && onAddSubgroup)) ? "pr-12" : "",
-        )}
-      >
-        <div className="flex min-w-0 items-center gap-2.5">
-          <AccountIcon
-            className={cn("size-[18px] shrink-0", selected ? "text-foreground" : "text-muted-foreground")}
-            strokeWidth={1.75}
-          />
-          <div className="min-w-0">
-            <p className="type-h6 truncate">{account.name}</p>
-            {detailLabel ? <p className="type-body-12 truncate">{detailLabel}</p> : null}
-          </div>
-        </div>
-
-        <AccountAmount
-          amount={account.balance}
-          currency={account.currency}
-          display={debt ? "signed" : "absolute"}
-          tone={debt ? "negative" : "default"}
-          className="w-[168px]"
-          numberClassName="text-[14px] leading-5 font-medium"
-        />
-      </button>
-      {editing && (onEdit || onDelete || (account.type === "saving" && onAddSubgroup)) ? (
-        <div className="absolute top-1/2 right-1.5 -translate-y-1/2">
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    className="shrink-0 rounded-full"
-                    aria-label={`${tr("common.actions.edit")} ${account.name}`}
+      <div className="px-1.5 py-1.5 sm:px-2.5 sm:py-2.5">
+        <button
+          type="button"
+          onClick={onSelect}
+          className={cn(
+            "min-w-0 w-full rounded-sm text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/25",
+            creditCard
+              ? "grid grid-cols-1 gap-1.5 sm:gap-3"
+              : "grid grid-cols-[minmax(0,1fr)_minmax(96px,auto)] items-center gap-2 sm:gap-3",
+          )}
+        >
+          {creditCard ? (
+            <>
+              <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(120px,auto)] items-start gap-1.5 sm:gap-2">
+                <div className="flex min-w-0 items-center gap-2 sm:gap-2.5">
+                  <AccountIcon
+                    className={cn("size-4 shrink-0 sm:size-[18px]", selected ? "text-foreground" : "text-muted-foreground")}
+                    strokeWidth={1.75}
                   />
-              }
-            >
-              <Ellipsis className="h-4 w-4" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-40 rounded-xl p-1.5">
-              {account.type === "saving" && onAddSubgroup ? (
-                <DropdownMenuItem className="rounded-lg px-2 py-2 text-[13px]" onClick={() => onAddSubgroup(account)}>
-                  <Plus className="h-4 w-4" />
-                  {t("actions.addGoal")}
-                </DropdownMenuItem>
+                  <div className="min-w-0">
+                    <p className="truncate text-[13px] leading-[18px] font-medium tracking-[0.01em] text-foreground sm:type-h6">{account.name}</p>
+                  </div>
+                </div>
+
+                <AccountAmount
+                  amount={account.balance}
+                  currency={account.currency}
+                  display="signed"
+                  tone="negative"
+                  showMinorUnits={showMinorUnits}
+                  className="w-full justify-self-end"
+                  numberClassName="text-[13px] leading-[18px] font-medium sm:text-[14px] sm:leading-5"
+                />
+              </div>
+
+              {creditCardMetrics ? (
+                <div className="pl-6 sm:pl-[28px]">
+                  <ProgressTrack
+                    value={creditCardMetrics.limit > 0 ? creditCardMetrics.available / creditCardMetrics.limit : 0}
+                    className="-mt-0.5 h-0.5 sm:-mt-1"
+                    trackClassName={selected ? "bg-foreground/14" : "bg-border/55"}
+                    fillClassName={selected ? "bg-foreground/78" : "bg-foreground/62"}
+                  />
+                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 sm:mt-1.5 sm:gap-x-4">
+                    <CreditCardMetric
+                      label={t("metrics.available")}
+                      amount={creditCardMetrics.available}
+                      currency={account.currency}
+                      showMinorUnits={showMinorUnits}
+                    />
+                  </div>
+                </div>
               ) : null}
-              {onEdit ? (
-                <DropdownMenuItem className="rounded-lg px-2 py-2 text-[13px]" onClick={() => onEdit(account)}>
-                  <PencilLine className="h-4 w-4" />
-                  {t("actions.editWallet")}
-                </DropdownMenuItem>
-              ) : null}
-              {onDelete ? (
-                <DropdownMenuItem
-                  className="rounded-lg px-2 py-2 text-[13px]"
-                  variant="destructive"
-                  onClick={() => onDelete(account)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                  {t("actions.deleteWallet")}
-                </DropdownMenuItem>
-              ) : null}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+            </>
+          ) : (
+            <>
+              <div className="flex min-w-0 items-center gap-2 sm:gap-2.5">
+                <AccountIcon
+                  className={cn("size-4 shrink-0 sm:size-[18px]", selected ? "text-foreground" : "text-muted-foreground")}
+                  strokeWidth={1.75}
+                />
+                <div className="min-w-0">
+                  <p className="truncate text-[13px] leading-[18px] font-medium tracking-[0.01em] text-foreground sm:type-h6">{account.name}</p>
+                  {detailLabel ? <p className="type-body-12 truncate">{detailLabel}</p> : null}
+                </div>
+              </div>
+
+              <AccountAmount
+                amount={account.balance}
+                currency={account.currency}
+                display={debt ? "signed" : "absolute"}
+                tone={debt ? "negative" : "default"}
+                showMinorUnits={showMinorUnits}
+                className="w-full justify-self-end"
+                numberClassName="text-[13px] leading-[18px] font-medium sm:text-[14px] sm:leading-5"
+              />
+            </>
+          )}
+        </button>
+      </div>
+      {hasActions && contextAnchor ? (
+        <DropdownMenu open onOpenChange={(open) => (!open ? setContextAnchor(null) : null)}>
+          <DropdownMenuTrigger
+            render={
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="pointer-events-none fixed h-px w-px min-h-0 min-w-0 p-0 opacity-0"
+                style={{ left: contextAnchor.x, top: contextAnchor.y }}
+                aria-label={`${tr("common.actions.edit")} ${account.name}`}
+              />
+            }
+          />
+          <DropdownMenuContent className="w-40 rounded-xl p-1.5" side="right" align="start" sideOffset={6} alignOffset={-6}>
+            {account.type === "saving" && onAddSubgroup ? (
+              <DropdownMenuItem className="rounded-lg px-2 py-2 text-[13px]" onClick={() => onAddSubgroup(account)}>
+                <Plus className="h-4 w-4" />
+                {t("actions.addGoal")}
+              </DropdownMenuItem>
+            ) : null}
+            {onEdit ? (
+              <DropdownMenuItem className="rounded-lg px-2 py-2 text-[13px]" onClick={() => onEdit(account)}>
+                <PencilLine className="h-4 w-4" />
+                {t("actions.editWallet")}
+              </DropdownMenuItem>
+            ) : null}
+            {onDelete ? (
+              <DropdownMenuItem
+                className="rounded-lg px-2 py-2 text-[13px]"
+                variant="destructive"
+                onClick={() => onDelete(account)}
+              >
+                <Trash2 className="h-4 w-4" />
+                {t("actions.deleteWallet")}
+              </DropdownMenuItem>
+            ) : null}
+          </DropdownMenuContent>
+        </DropdownMenu>
       ) : null}
+    </div>
+  );
+}
+
+function CreditCardMetric({
+  label,
+  amount,
+  currency,
+  showMinorUnits,
+  tone = "muted",
+}: {
+  label: string;
+  amount: number;
+  currency: Account["currency"];
+  showMinorUnits: boolean;
+  tone?: "default" | "muted" | "negative";
+}) {
+  return (
+    <div className="inline-flex min-w-0 items-baseline gap-1.5">
+      <p className="shrink-0 text-[10px] leading-3.5 text-muted-foreground sm:text-[11px] sm:leading-4">{label}</p>
+      <AccountAmount
+        amount={amount}
+        currency={currency}
+        display="absolute"
+        tone={tone}
+        showMinorUnits={showMinorUnits}
+        className="w-auto"
+        numberClassName="text-[10px] leading-3.5 font-medium sm:text-[11px] sm:leading-4"
+        currencyClassName="text-[10px] leading-3.5 sm:text-[11px] sm:leading-4"
+      />
     </div>
   );
 }
