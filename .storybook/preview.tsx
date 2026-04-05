@@ -27,7 +27,7 @@ const preview: Preview = {
     },
     options: {
       storySort: {
-        order: ["Atoms", "Molecules", "Organisms", "Templates", "Pages"],
+        order: ["Foundations", "Atoms", "Molecules", "Organisms", "Templates", "Pages"],
       },
     },
     backgrounds: {

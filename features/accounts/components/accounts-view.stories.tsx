@@ -7,7 +7,7 @@ import { makeFinanceSnapshot } from "@/stories/fixtures/story-data";
 const snapshot = makeFinanceSnapshot();
 
 const meta = {
-  title: "Templates/AccountsView",
+  title: "Templates/BalanceView",
   component: AccountsView,
   args: {
     accounts: snapshot.accounts,

@@ -7,7 +7,7 @@ import { makeFinanceSnapshot, StoryWorkspace, withPathname } from "@/stories/fix
 const snapshot = makeFinanceSnapshot();
 
 const meta = {
-  title: "Pages/Accounts",
+  title: "Pages/Balance",
   render: () => (
     <StoryWorkspace pathname="/accounts">
       <div className="h-full p-6">
@@ -30,7 +30,7 @@ export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("Euro Reserve")).toBeInTheDocument();
-    await expect(canvas.getByText("All transactions")).toBeInTheDocument();
+    await expect(canvas.getByText("Accounts & Wallets")).toBeInTheDocument();
   },
 };
 
