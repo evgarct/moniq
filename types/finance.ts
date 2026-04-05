@@ -38,6 +38,7 @@ export type Account = {
   cash_kind?: CashKind | null;
   debt_kind?: DebtKind | null;
   balance: number;
+  credit_limit?: number | null;
   currency: CurrencyCode;
   created_at: string;
 };

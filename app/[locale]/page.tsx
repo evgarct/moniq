@@ -10,5 +10,5 @@ export default async function LocalizedHomePage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  return redirect({ href: user ? "/dashboard" : "/login", locale });
+  return redirect({ href: user ? "/today" : "/login", locale });
 }

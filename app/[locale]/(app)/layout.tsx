@@ -35,7 +35,7 @@ export default async function AuthenticatedLayout({
       </div>
 
       <GlobalTransactionFab />
-      <MobileBottomNav />
+      <MobileBottomNav user={user} onSignOut={signOut} />
     </div>
   );
 }

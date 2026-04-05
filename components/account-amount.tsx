@@ -1,4 +1,4 @@
-import { formatMoneyNumber } from "@/lib/formatters";
+import { formatMoneyNumber, getCurrencySymbol } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import type { CurrencyCode } from "@/types/currency";
 
@@ -7,6 +7,7 @@ export function AccountAmount({
   currency,
   tone = "default",
   display = "signed",
+  showMinorUnits = true,
   className,
   numberClassName,
   currencyClassName,
@@ -15,6 +16,7 @@ export function AccountAmount({
   currency: CurrencyCode;
   tone?: "default" | "muted" | "positive" | "negative";
   display?: "absolute" | "signed";
+  showMinorUnits?: boolean;
   className?: string;
   numberClassName?: string;
   currencyClassName?: string;
@@ -31,19 +33,20 @@ export function AccountAmount({
           : "text-destructive";
 
   const value = display === "absolute" ? Math.abs(amount) : amount;
+  const currencySymbol = getCurrencySymbol(currency);
 
   return (
-    <span className={cn("inline-grid grid-cols-[minmax(0,max-content)_3.5ch] items-baseline justify-end gap-2", className)}>
+    <span className={cn("inline-grid grid-cols-[minmax(0,max-content)_2.25ch] items-baseline justify-end gap-1", className)}>
       <span className={cn("justify-self-end tabular-nums whitespace-nowrap", resolvedTone, numberClassName)}>
-        {formatMoneyNumber(value, currency)}
+        {formatMoneyNumber(value, currency, { showMinorUnits })}
       </span>
       <span
         className={cn(
-          "justify-self-end text-[11px] leading-4 font-medium tracking-[0.08em] text-muted-foreground uppercase",
+          "justify-self-center text-[12px] leading-4 font-medium text-muted-foreground",
           currencyClassName,
         )}
       >
-        {currency}
+        {currencySymbol}
       </span>
     </span>
   );

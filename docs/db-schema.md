@@ -18,6 +18,7 @@
   - `mortgage`
   - `personal`
 - `balance numeric(14,2) not null`
+- `credit_limit numeric(14,2) null`
 - `currency currency_code not null`
 - `created_at timestamptz not null`
 - `updated_at timestamptz not null`
@@ -25,6 +26,7 @@
 Rules:
 - `cash` and `saving` balances are normalized positive.
 - `credit_card` and `debt` balances are normalized negative.
+- `credit_limit` is used only for `credit_card` wallets and stays null for all other wallet types.
 - only the owner can read or mutate rows through RLS.
 
 ## `wallet_allocations`

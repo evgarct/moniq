@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { deleteAccount, normalizeAccountBalance, saveAccount } from "@/features/accounts/lib/account-state";
+import { deleteAccount, normalizeAccountBalance, normalizeCreditLimit, saveAccount, validateAccountValues } from "@/features/accounts/lib/account-state";
 import type { Account, Allocation, Category, Transaction } from "@/types/finance";
 
 const baseCategory: Category = {
@@ -31,6 +31,7 @@ const baseAccount: Account = {
   cash_kind: "debit_card",
   debt_kind: null,
   balance: 2400,
+  credit_limit: null,
   currency: "USD",
   created_at: "2026-03-28T10:00:00.000Z",
 };
@@ -43,6 +44,7 @@ const savingAccount: Account = {
   cash_kind: null,
   debt_kind: null,
   balance: 5000,
+  credit_limit: null,
   currency: "USD",
   created_at: "2026-03-28T10:00:00.000Z",
 };
@@ -97,6 +99,30 @@ describe("account-state", () => {
     expect(normalizeAccountBalance("saving", -120)).toBe(120);
     expect(normalizeAccountBalance("credit_card", 120)).toBe(-120);
     expect(normalizeAccountBalance("debt", 120)).toBe(-120);
+    expect(normalizeCreditLimit("cash", 5000)).toBeNull();
+    expect(normalizeCreditLimit("credit_card", 5000)).toBe(5000);
+  });
+
+  it("requires a credit limit and prevents overspending the limit", () => {
+    expect(() =>
+      validateAccountValues({
+        name: "Main card",
+        type: "credit_card",
+        balance: 1500,
+        credit_limit: null,
+        currency: "USD",
+      }),
+    ).toThrow("Credit limit is required for a credit card.");
+
+    expect(() =>
+      validateAccountValues({
+        name: "Main card",
+        type: "credit_card",
+        balance: 5500,
+        credit_limit: 5000,
+        currency: "USD",
+      }),
+    ).toThrow("Current balance cannot exceed the credit limit.");
   });
 
   it("creates a new wallet with normalized shape", () => {
@@ -106,6 +132,7 @@ describe("account-state", () => {
         name: "Travel",
         type: "debt",
         balance: 1500,
+        credit_limit: null,
         currency: "EUR",
         debt_kind: "loan",
       },
@@ -123,6 +150,7 @@ describe("account-state", () => {
       currency: "EUR",
       debt_kind: "loan",
       cash_kind: null,
+      credit_limit: null,
     });
     expect(result.snapshot.accounts[0]?.id).toBe("wallet-fixed");
   });
@@ -167,6 +195,7 @@ describe("account-state", () => {
         name: "Main Cash CZK",
         type: "cash",
         balance: 3000,
+        credit_limit: null,
         currency: "CZK",
       },
       userId: "user-1",
@@ -189,6 +218,7 @@ describe("account-state", () => {
         name: "Emergency Card",
         type: "credit_card",
         balance: 700,
+        credit_limit: 5000,
         currency: "USD",
       },
       userId: "user-1",
@@ -198,6 +228,7 @@ describe("account-state", () => {
 
     expect(result.account.type).toBe("credit_card");
     expect(result.account.balance).toBe(-700);
+    expect(result.account.credit_limit).toBe(5000);
     expect(result.snapshot.allocations).toHaveLength(0);
     expect(result.snapshot.transactions[0]?.source_account?.type).toBe("credit_card");
     expect(result.snapshot.transactions[0]?.source_account?.name).toBe("Emergency Card");

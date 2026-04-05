@@ -7,14 +7,14 @@ describe("finance-selectors", () => {
   it("groups wallet balances by currency instead of mixing them", () => {
     expect(getTotalBalanceByCurrency(mockAccounts)).toEqual([
       { currency: "EUR", amount: 16400 },
-      { currency: "CZK", amount: -161149.55 },
+      { currency: "CZK", amount: -174402.88 },
       { currency: "RUB", amount: 64800 },
     ]);
   });
 
   it("groups income and expenses by transaction currency", () => {
     expect(getIncomeExpenseSummaryByCurrency(mockTransactions)).toEqual([
-      { currency: "CZK", income: 96500, expenses: 32485.4 },
+      { currency: "CZK", income: 96500, expenses: 45738.73 },
     ]);
   });
 });

@@ -8,6 +8,7 @@
       "add": "Add",
       "edit": "Edit",
       "delete": "Delete",
+      "back": "Back",
       "save": "Save",
       "update": "Update",
       "cancel": "Cancel",
@@ -19,11 +20,11 @@
     "states": {
       "signedIn": "Signed in"
     },
-  "empty": {
+    "empty": {
     "noAccountsYet": "No accounts yet.",
     "noTransactionsYet": "No transactions yet."
-  },
-  "errors": {
+    },
+    "errors": {
     "unauthorized": "Session expired. Reload the page and sign in again.",
     "unexpectedResponse": "Finance API returned an unexpected response.",
     "requestFailed": "Request failed.",
@@ -84,10 +85,12 @@
   "navigation": {
     "overview": "Overview",
     "balance": "Balance",
+    "budget": "Budget",
     "calendar": "Calendar",
     "today": "Today",
     "transactions": "Transactions",
     "savings": "Savings",
+    "profile": "Profile",
     "workspace": "Workspace",
     "workspaceDescription": "Navigate Moniq product surfaces.",
     "openProfileMenu": "Open profile menu",
@@ -201,6 +204,10 @@
       "title": "Unable to load today",
       "description": "Finance data could not be loaded."
     },
+    "view": {
+      "title": "Today",
+      "description": "Use the month as the default planning surface. Select a date to inspect only that day's planned transactions."
+    },
     "planned": {
       "title": "Planned transactions",
       "description": "Due today and overdue items that still need action.",
@@ -219,13 +226,12 @@
     },
     "board": {
       "agendaTitle": "Planned",
-      "dayDescription": "Overdue and due items for the selected day.",
-      "monthDescription": "All planned transactions visible in the current month.",
-      "visibleMonth": "Visible month",
-      "scopeDay": "Day",
-      "scopeMonth": "Month",
+      "selectedDescription": "Planned transactions scheduled exactly for the selected day.",
+      "monthDescription": "Active planned transactions visible in the current month.",
       "jumpToday": "Today",
-      "empty": "No planned items for this range."
+      "clearDay": "Show month",
+      "empty": "No active planned items in this month.",
+      "selectedEmpty": "No planned items for this day."
     }
   },
   "accounts": {
@@ -238,27 +244,39 @@
       "description": "Finance data could not be loaded."
     },
     "view": {
+      "eyebrow": "Balance workspace",
       "title": "Balance",
-      "description": "Review wallet balances on the left and recent activity on the right. Select a wallet to narrow the feed and inspect its savings or debt context.",
+      "description": "Track settled money across wallets and savings spaces. Pick a wallet when you want a narrower register.",
+      "editModeDescription": "Add, rename, and remove wallets in place. Every group stays visible so new accounts can be created exactly where they belong.",
       "manageWallets": "Manage wallets",
-      "finishWalletEditing": "Finish wallet editing",
+      "finishWalletEditing": "Done",
+      "showMinorUnits": "Show cents",
+      "hideMinorUnits": "Hide cents",
+      "minorUnitsOn": "Cents visible",
+      "minorUnitsOff": "Rounded",
       "addWallet": "Add wallet",
+      "emptyHint": "No wallets yet. Turn on wallet management to start building your balance spaces.",
+      "emptyEditHint": "Choose a group and use the plus control there to create the first wallet.",
       "activity": "Activity",
-      "selectedActivityDescription": "Activity and balance details for the selected wallet.",
-      "selectedGoalActivityDescription": "Activity and balance details for the selected savings goal.",
-      "allActivityDescription": "All recent transactions across your balance spaces.",
+      "registerEyebrow": "Settled register",
+      "selectedActivityDescription": "Completed transactions for the selected wallet.",
+      "selectedGoalActivityDescription": "Completed transactions for the selected savings goal.",
+      "allActivityDescription": "All completed transactions across your balance spaces.",
       "showAllWallets": "Show all wallets",
       "noBalanceSpacesTitle": "No balance spaces yet",
       "noBalanceSpacesDescription": "Create your first wallet to start organizing real balances in Supabase."
     },
     "groups": {
       "cash": "Cash",
-      "savings": "Savings",
+      "savings": "Goals",
       "creditCards": "Credit Cards",
       "debt": "Debt"
     },
     "metrics": {
       "balance": "Balance",
+      "limit": "Limit",
+      "available": "Available",
+      "debt": "Debt",
       "allocated": "Allocated",
       "free": "Free",
       "target": "Target",
@@ -294,11 +312,13 @@
     "form": {
       "addTitle": "Add wallet",
       "editTitle": "Edit wallet",
-      "description": "Cash wallets spend directly. Saving wallets hold money with optional goals.",
+      "description": "Cash wallets spend directly. Savings hold reserved money. Credit cards track debt against a spending limit.",
       "fields": {
         "name": "Wallet name",
         "type": "Type",
         "debtKind": "Debt kind",
+        "currentBalance": "Current balance",
+        "creditLimit": "Credit limit",
         "balance": "Balance",
         "currency": "Currency"
       },
@@ -307,7 +327,10 @@
         "edit": "Update wallet"
       },
       "validation": {
-        "nameRequired": "Wallet name is required."
+        "nameRequired": "Wallet name is required.",
+        "creditLimitRequired": "Credit limit is required for a credit card.",
+        "creditLimitPositive": "Credit limit must be greater than 0.",
+        "creditLimitExceeded": "Current balance cannot exceed the credit limit."
       }
     },
     "allocationForm": {
@@ -336,6 +359,38 @@
         "targetRequired": "Target amount is required for a targeted goal.",
         "exceedsSavings": "This allocation would exceed the available savings balance."
       }
+    }
+  },
+  "budget": {
+    "loading": {
+      "title": "Loading budget",
+      "description": "Fetching categories and completed transactions from Supabase."
+    },
+    "error": {
+      "title": "Unable to load budget",
+      "description": "Finance data could not be loaded."
+    },
+    "view": {
+      "title": "Budget",
+      "description": "Review this month's category structure with expenses and income separated into their own working columns."
+    },
+    "metrics": {
+      "trackedCategories": "Tracked categories",
+      "transactions": "Transactions",
+      "income": "Income",
+      "net": "Net"
+    },
+    "sections": {
+      "expensesTitle": "Expenses",
+      "expensesDescription": "Expense categories with this month's completed activity.",
+      "expensesEmpty": "No expense activity recorded in this month.",
+      "incomeTitle": "Income",
+      "incomeDescription": "Income categories with this month's completed activity.",
+      "incomeEmpty": "No income activity recorded in this month."
+    },
+    "rows": {
+      "childCount": "{count, plural, one {# subcategory} other {# subcategories}}",
+      "leaf": "Leaf category"
     }
   },
   "categories": {

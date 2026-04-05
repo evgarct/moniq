@@ -15,44 +15,45 @@ export function CalendarCell({
 }: {
   date: Date;
   currentMonth: Date;
-  selectedDate: Date;
+  selectedDate: Date | null;
   onSelect: (date: Date) => void;
   indicatorCount: number;
   paidCount: number;
   plannedCount: number;
 }) {
   const outsideMonth = !isSameMonth(date, currentMonth);
-  const selected = isSameDay(date, selectedDate);
+  const selected = selectedDate ? isSameDay(date, selectedDate) : false;
 
   return (
     <button
       type="button"
       onClick={() => onSelect(date)}
       className={cn(
-        "flex min-h-22 flex-col rounded-xl border border-transparent px-3 py-2 text-left transition-colors",
+        "flex min-h-24 flex-col rounded-xl border border-transparent px-4 py-3 text-left transition-colors",
         selected
-          ? "border-white/45 bg-white/14 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
-          : "bg-transparent hover:border-white/16 hover:bg-white/5",
-        outsideMonth && "text-[#58767c]",
+          ? "border-border bg-card shadow-[inset_0_0_0_1px_rgba(17,24,39,0.04)]"
+          : "bg-transparent hover:border-border/70 hover:bg-card/40",
+        outsideMonth && "opacity-55",
       )}
     >
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between">
         <span
           className={cn(
-            "flex size-8 items-center justify-center rounded-md text-[24px] font-light leading-none tracking-[-0.05em]",
-            isToday(date) && "text-[#ffb13d]",
-            selected && !isToday(date) && "text-[#f4f8f7]",
-            !selected && !isToday(date) && "text-[#dceeed]",
+            "flex size-9 items-center justify-center rounded-md text-[21px] font-light leading-none tracking-[-0.05em]",
+            isToday(date) && "text-[#f29a28]",
+            selected && !isToday(date) && "text-foreground",
+            !selected && !isToday(date) && "text-foreground/82",
+            outsideMonth && !selected && !isToday(date) && "text-muted-foreground",
           )}
         >
           {format(date, "d")}
         </span>
-        {indicatorCount > 0 ? <span className="text-[10px] text-[#6c8a8f]">{indicatorCount}</span> : null}
       </div>
       {indicatorCount > 0 ? (
         <div className="mt-auto flex items-center gap-1.5">
-          {plannedCount > 0 ? <span className="size-1.5 rounded-full bg-[#8af1dc]" /> : null}
-          {paidCount > 0 ? <span className="size-1.5 rounded-full bg-[#ffb13d]" /> : null}
+          {plannedCount > 0 ? <span className="size-2 rounded-full bg-[#79dcc8]" /> : null}
+          {paidCount > 0 ? <span className="size-2 rounded-full bg-[#f2a53d]" /> : null}
+          {indicatorCount > plannedCount + paidCount ? <span className="size-2 rounded-full bg-border" /> : null}
         </div>
       ) : null}
     </button>

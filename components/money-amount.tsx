@@ -7,12 +7,14 @@ export function MoneyAmount({
   currency = "EUR",
   tone = "default",
   display = "signed",
+  showMinorUnits = true,
   className,
 }: {
   amount: number;
   currency?: CurrencyCode;
   tone?: "default" | "muted" | "positive" | "negative";
   display?: "absolute" | "signed";
+  showMinorUnits?: boolean;
   className?: string;
 }) {
   const resolvedTone =
@@ -30,7 +32,7 @@ export function MoneyAmount({
 
   return (
     <span className={cn("tabular-nums", resolvedTone, className)}>
-      {formatMoney(value, currency)}
+      {formatMoney(value, currency, { showMinorUnits })}
     </span>
   );
 }

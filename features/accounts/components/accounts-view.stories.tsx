@@ -7,7 +7,7 @@ import { makeFinanceSnapshot } from "@/stories/fixtures/story-data";
 const snapshot = makeFinanceSnapshot();
 
 const meta = {
-  title: "Templates/AccountsView",
+  title: "Templates/BalanceView",
   component: AccountsView,
   args: {
     accounts: snapshot.accounts,
@@ -30,7 +30,7 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText("Accounts & Wallets")).toBeInTheDocument();
-    await expect(canvas.getByText("Free")).toBeInTheDocument();
+    await expect(canvas.getByText("Balance")).toBeInTheDocument();
+    await expect(canvas.getByText("Activity")).toBeInTheDocument();
   },
 };

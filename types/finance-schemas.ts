@@ -15,9 +15,33 @@ export const walletInputSchema = z.object({
   name: z.string().trim().min(1, "Wallet name is required."),
   type: z.enum(["cash", "saving", "credit_card", "debt"] satisfies [AccountType, ...AccountType[]]),
   balance: z.number(),
+  credit_limit: z.number().positive("Credit limit must be greater than 0.").nullable().optional(),
   currency: z.enum(SUPPORTED_CURRENCY_CODES),
   debt_kind: z.enum(["loan", "mortgage", "personal"] satisfies [DebtKind, ...DebtKind[]]).optional().nullable(),
-});
+}).superRefine((values, ctx) => {
+  if (values.type === "credit_card" && (values.credit_limit == null || values.credit_limit <= 0)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["credit_limit"],
+      message: "Credit limit is required for a credit card.",
+    });
+  }
+
+  if (
+    values.type === "credit_card" &&
+    values.credit_limit != null &&
+    Math.abs(values.balance) - values.credit_limit > 0.01
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["balance"],
+      message: "Current balance cannot exceed the credit limit.",
+    });
+  }
+}).transform((values) => ({
+  ...values,
+  credit_limit: values.type === "credit_card" ? values.credit_limit ?? null : null,
+}));
 
 export const allocationInputSchema = z
   .object({

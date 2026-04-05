@@ -13,7 +13,7 @@ export default async function LoginPage() {
   } = await supabase.auth.getUser();
 
   if (user) {
-    return redirect({ href: "/dashboard", locale });
+    return redirect({ href: "/today", locale });
   }
 
   return <AuthForm mode="login" action={signInWithPassword} />;

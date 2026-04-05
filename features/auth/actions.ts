@@ -74,7 +74,7 @@ function getRedirectPath(formData: FormData) {
     return next;
   }
 
-  return "/dashboard";
+  return "/today";
 }
 
 export async function signInWithPassword(

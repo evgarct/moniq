@@ -8,9 +8,9 @@ type SurfaceProps = {
 };
 
 const toneClasses: Record<NonNullable<SurfaceProps["tone"]>, string> = {
-  canvas: "bg-[#f3efeb]",
-  panel: "bg-[#f7f3ef] shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]",
-  floating: "border border-white/70 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.06)]",
+  canvas: "bg-background",
+  panel: "bg-card shadow-[inset_0_1px_0_rgba(255,255,255,0.65)]",
+  floating: "border border-border/70 bg-popover shadow-[0_10px_30px_rgba(15,23,42,0.06)]",
 };
 
 const paddingClasses: Record<NonNullable<SurfaceProps["padding"]>, string> = {

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { expect, within } from "storybook/test";
+import { expect, userEvent, within } from "storybook/test";
 
 import { AccountsView } from "@/features/accounts/components/accounts-view";
 import { makeFinanceSnapshot, StoryWorkspace, withPathname } from "@/stories/fixtures/story-data";
@@ -7,7 +7,7 @@ import { makeFinanceSnapshot, StoryWorkspace, withPathname } from "@/stories/fix
 const snapshot = makeFinanceSnapshot();
 
 const meta = {
-  title: "Pages/Accounts",
+  title: "Pages/Balance",
   render: () => (
     <StoryWorkspace pathname="/accounts">
       <div className="h-full p-6">
@@ -30,7 +30,8 @@ export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("Euro Reserve")).toBeInTheDocument();
-    await expect(canvas.getByText("All transactions")).toBeInTheDocument();
+    await expect(canvas.getByRole("heading", { name: "Balance", level: 1 })).toBeInTheDocument();
+    await expect(canvas.getByText("Activity")).toBeInTheDocument();
   },
 };
 
@@ -38,6 +39,24 @@ export const MulticurrencyWallets: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("Prague Everyday Card")).toBeInTheDocument();
-    await expect(canvas.getByText("Ruble Credit Card")).toBeInTheDocument();
+    await expect(canvas.getByText("Ruble Debit Card")).toBeInTheDocument();
+  },
+};
+
+export const Editing: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: "Add wallet" }));
+    await expect(canvas.getAllByLabelText(/Add .* wallet/)[0]).toBeInTheDocument();
+  },
+};
+
+export const CreditCardFocused: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: /Travel Credit Card/i }));
+    await expect(canvas.getAllByText("Limit")[0]).toBeInTheDocument();
+    await expect(canvas.getAllByText("Available")[0]).toBeInTheDocument();
+    await expect(canvas.getAllByText("Debt")[0]).toBeInTheDocument();
   },
 };

@@ -31,7 +31,7 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText("Savings")).toBeInTheDocument();
+    await expect(canvas.getByText("Goals")).toBeInTheDocument();
     await expect(canvas.getByText("Euro Reserve")).toBeInTheDocument();
   },
 };
@@ -43,6 +43,6 @@ export const Multicurrency: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("Prague Everyday Card")).toBeInTheDocument();
-    await expect(canvas.getByText("Ruble Credit Card")).toBeInTheDocument();
+    await expect(canvas.getByText("Travel Credit Card")).toBeInTheDocument();
   },
 };

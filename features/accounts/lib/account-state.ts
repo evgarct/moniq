@@ -7,6 +7,7 @@ export type AccountDraftValues = {
   name: string;
   type: Account["type"];
   balance: number;
+  credit_limit?: number | null;
   currency: CurrencyCode;
   debt_kind?: DebtKind | null;
 };
@@ -40,6 +41,14 @@ export function normalizeAccountBalance(type: Account["type"], balance: number) 
   return type === "credit_card" || type === "debt" ? -Math.abs(balance) : Math.abs(balance);
 }
 
+export function normalizeCreditLimit(type: Account["type"], creditLimit?: number | null) {
+  if (type !== "credit_card") {
+    return null;
+  }
+
+  return creditLimit == null ? null : Math.abs(creditLimit);
+}
+
 export function getDefaultCashKind(type: Account["type"], current?: CashKind | null) {
   if (type !== "cash") {
     return null;
@@ -56,18 +65,33 @@ export function getDefaultDebtKind(type: Account["type"], current?: DebtKind | n
   return next ?? current ?? "personal";
 }
 
+export function validateAccountValues(values: AccountDraftValues) {
+  if (values.type === "credit_card") {
+    if (values.credit_limit == null || values.credit_limit <= 0) {
+      throw new Error("Credit limit is required for a credit card.");
+    }
+
+    if (Math.abs(values.balance) - values.credit_limit > 0.01) {
+      throw new Error("Current balance cannot exceed the credit limit.");
+    }
+  }
+}
+
 export function createAccount({
   values,
   userId,
   now = new Date().toISOString(),
   idFactory = createClientId,
 }: CreateAccountOptions): Account {
+  validateAccountValues(values);
+
   return {
     id: idFactory("wallet"),
     user_id: userId,
     name: values.name,
     type: values.type,
     balance: normalizeAccountBalance(values.type, values.balance),
+    credit_limit: normalizeCreditLimit(values.type, values.credit_limit),
     currency: normalizeCurrencyCode(values.currency),
     created_at: now,
     cash_kind: getDefaultCashKind(values.type),
@@ -76,11 +100,14 @@ export function createAccount({
 }
 
 export function updateAccount(account: Account, values: AccountDraftValues): Account {
+  validateAccountValues(values);
+
   return {
     ...account,
     name: values.name,
     type: values.type,
     balance: normalizeAccountBalance(values.type, values.balance),
+    credit_limit: normalizeCreditLimit(values.type, values.credit_limit),
     currency: normalizeCurrencyCode(values.currency),
     cash_kind: getDefaultCashKind(values.type, account.cash_kind ?? null),
     debt_kind: getDefaultDebtKind(values.type, account.debt_kind ?? null, values.debt_kind),

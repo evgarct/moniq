@@ -2,16 +2,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, within } from "storybook/test";
 
 import { AppSidebar } from "@/components/app-sidebar";
-import { PageContainer } from "@/components/page-container";
-import { BalanceCard } from "@/features/dashboard/components/balance-card";
-import { RecentTransactions } from "@/features/dashboard/components/recent-transactions";
-import { SummaryCard } from "@/features/dashboard/components/summary-card";
 import { mockFinanceSnapshot } from "@/lib/mock-finance";
-import {
-  getIncomeExpenseSummaryByCurrency,
-  getRecentTransactions,
-  getTotalBalanceByCurrency,
-} from "@/lib/finance-selectors";
 import type { AuthUser } from "@/types/auth";
 import type { FinanceSnapshot } from "@/types/finance";
 
@@ -38,33 +29,18 @@ export function StoryWorkspace({
   children: React.ReactNode;
 }) {
   return (
-    <div className="h-screen w-screen overflow-hidden bg-[#ece8e4]">
-      <div className="grid h-full w-full lg:grid-cols-[76px_minmax(0,1fr)]">
+    <div className="min-h-screen w-screen bg-[#ece8e4]">
+      <div className="min-h-screen w-full lg:grid lg:grid-cols-[76px_minmax(0,1fr)]">
         <AppSidebar user={storyUser} onSignOut={noopAsyncAction} />
-        <div className="min-w-0 overflow-hidden bg-[#fbf8f4]">
-          <main className="h-full overflow-hidden">
-            <div data-pathname={pathname} className="h-full">
+        <div className="min-w-0 bg-[#fbf8f4]">
+          <main className="min-h-screen overflow-y-scroll overflow-x-hidden pb-[64px] lg:pb-0">
+            <div data-pathname={pathname} className="min-h-screen">
               {children}
             </div>
           </main>
         </div>
       </div>
     </div>
-  );
-}
-
-export function DashboardStoryPage() {
-  const snapshot = makeFinanceSnapshot();
-  const summary = getIncomeExpenseSummaryByCurrency(snapshot.transactions);
-
-  return (
-    <PageContainer className="space-y-6">
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <BalanceCard totals={getTotalBalanceByCurrency(snapshot.accounts)} />
-        <SummaryCard summary={summary} />
-      </div>
-      <RecentTransactions transactions={getRecentTransactions(snapshot)} />
-    </PageContainer>
   );
 }
 
