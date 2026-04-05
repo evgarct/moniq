@@ -39,7 +39,7 @@ export function AuthForm({ mode, action }: AuthFormProps) {
   const t = useTranslations();
   const searchParams = useSearchParams();
   const [state, formAction] = useActionState(action, initialState);
-  const next = searchParams.get("next") ?? "/dashboard";
+  const next = searchParams.get("next") ?? "/today";
   const message = searchParams.get("message");
 
   const alternateHref = mode === "login" ? "/signup" : "/login";

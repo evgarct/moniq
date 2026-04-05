@@ -14,7 +14,7 @@ export function CalendarGrid({
   onSelectDate,
 }: {
   month: Date;
-  selectedDate: Date;
+  selectedDate: Date | null;
   transactions: Transaction[];
   onSelectDate: (date: Date) => void;
 }) {

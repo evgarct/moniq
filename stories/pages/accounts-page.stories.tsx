@@ -30,7 +30,8 @@ export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("Euro Reserve")).toBeInTheDocument();
-    await expect(canvas.getByText("Accounts & Wallets")).toBeInTheDocument();
+    await expect(canvas.getByText("Balance")).toBeInTheDocument();
+    await expect(canvas.getByText("Activity")).toBeInTheDocument();
   },
 };
 
@@ -38,6 +39,6 @@ export const MulticurrencyWallets: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("Prague Everyday Card")).toBeInTheDocument();
-    await expect(canvas.getByText("Ruble Credit Card")).toBeInTheDocument();
+    await expect(canvas.getByText("Ruble Debit Card")).toBeInTheDocument();
   },
 };

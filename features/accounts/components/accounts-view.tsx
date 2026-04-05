@@ -32,6 +32,7 @@ import {
   updateAllocationRequest,
   updateWalletRequest,
 } from "@/features/finance/lib/finance-api";
+import { isSettledTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
 import { getTransactionsForAccount, getTransactionsForAllocation } from "@/lib/finance-selectors";
 import type { CurrencyCode } from "@/types/currency";
 import type { AllocationInput, WalletInput } from "@/types/finance-schemas";
@@ -115,11 +116,18 @@ export function AccountsView({
   const selectedTargetedAllocationProgress = selectedTargetedAllocation
     ? Math.round((getAllocationProgress(selectedTargetedAllocation) ?? 0) * 100)
     : null;
+  const settledTransactions = useMemo(
+    () =>
+      [...transactions]
+        .filter((transaction) => isSettledTransactionStatus(transaction.status))
+        .sort((left, right) => right.occurred_at.localeCompare(left.occurred_at)),
+    [transactions],
+  );
   const register = selectedAllocation
-    ? getTransactionsForAllocation(transactions, selectedAllocation.id)
+    ? getTransactionsForAllocation(settledTransactions, selectedAllocation.id)
     : selectedAccount
-      ? getTransactionsForAccount(transactions, selectedAccount.id)
-      : transactions;
+      ? getTransactionsForAccount(settledTransactions, selectedAccount.id)
+      : settledTransactions;
   const freeMoney = selectedAccount ? getFreeMoney(selectedAccount.balance, allocations, selectedAccount.id) : 0;
   const selectedAllocatedTotal = selectedAccount ? getAllocatedTotalForAccount(allocations, selectedAccount.id) : 0;
   const pending =

@@ -15,14 +15,14 @@ export function CalendarCell({
 }: {
   date: Date;
   currentMonth: Date;
-  selectedDate: Date;
+  selectedDate: Date | null;
   onSelect: (date: Date) => void;
   indicatorCount: number;
   paidCount: number;
   plannedCount: number;
 }) {
   const outsideMonth = !isSameMonth(date, currentMonth);
-  const selected = isSameDay(date, selectedDate);
+  const selected = selectedDate ? isSameDay(date, selectedDate) : false;
 
   return (
     <button

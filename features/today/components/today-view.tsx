@@ -1,19 +1,18 @@
 "use client";
 
-import { addMonths, isBefore, isSameDay, isSameMonth, parseISO, startOfToday } from "date-fns";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { addMonths, isSameDay, isSameMonth, parseISO, startOfToday } from "date-fns";
+import { ChevronLeft, ChevronRight, ListChecks, Plus, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
 
 import { CalendarGrid } from "@/components/calendar-grid";
-import { FinanceBoardHeader, FinanceBoardPanel, FinanceBoardShell } from "@/components/finance-board-shell";
+import { Surface } from "@/components/surface";
 import { TransactionList } from "@/components/transaction-list";
 import { Button } from "@/components/ui/button";
 import { TransactionFormSheet, type TransactionFormSubmitPayload } from "@/features/transactions/components/transaction-form-sheet";
 import { TransactionRowActions } from "@/features/transactions/components/transaction-row-actions";
 import { useTransactionActions } from "@/features/transactions/hooks/use-transaction-actions";
 import { isVisibleTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
-import { cn } from "@/lib/utils";
 import type { FinanceSnapshot, Transaction } from "@/types/finance";
 
 function sortTransactionsAscending(transactions: Transaction[]) {
@@ -27,8 +26,7 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
   const today = startOfToday();
   const transactionActions = useTransactionActions();
   const [month, setMonth] = useState(today);
-  const [selectedDate, setSelectedDate] = useState(today);
-  const [scope, setScope] = useState<"day" | "month">("day");
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [editingSeries, setEditingSeries] = useState<Transaction["schedule"] | null>(null);
@@ -46,29 +44,17 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
   );
 
   const agendaTransactions = useMemo(() => {
-    if (scope === "month") {
-      return plannedTransactions.filter((transaction) => isSameMonth(parseISO(transaction.occurred_at), month));
+    if (selectedDate) {
+      return plannedTransactions.filter((transaction) => isSameDay(parseISO(transaction.occurred_at), selectedDate));
     }
 
-    const overdue = plannedTransactions.filter((transaction) => isBefore(parseISO(transaction.occurred_at), selectedDate));
-    const dueToday = plannedTransactions.filter((transaction) => isSameDay(parseISO(transaction.occurred_at), selectedDate));
+    return plannedTransactions.filter((transaction) => isSameMonth(parseISO(transaction.occurred_at), month));
+  }, [month, plannedTransactions, selectedDate]);
 
-    if (dueToday.length > 0) {
-      return [...overdue, ...dueToday];
-    }
-
-    const nextUpcoming = plannedTransactions
-      .filter((transaction) => parseISO(transaction.occurred_at) > selectedDate)
-      .slice(0, 3);
-
-    return [...overdue, ...nextUpcoming];
-  }, [month, plannedTransactions, scope, selectedDate]);
-
-  const agendaTitle =
-    scope === "month"
-      ? t("board.visibleMonth")
-      : formatDate.dateTime(selectedDate, { month: "long", day: "numeric" });
-  const agendaSubtitle = scope === "month" ? t("board.monthDescription") : t("board.dayDescription");
+  const agendaLabel = selectedDate
+    ? formatDate.dateTime(selectedDate, { month: "long", day: "numeric" })
+    : formatDate.dateTime(month, { month: "long", year: "numeric" });
+  const agendaSubtitle = selectedDate ? t("board.selectedDescription") : t("board.monthDescription");
 
   async function handleSubmit(payload: TransactionFormSubmitPayload) {
     try {
@@ -88,66 +74,44 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
 
   return (
     <>
-      <FinanceBoardShell className="h-full min-h-[720px]">
-        <FinanceBoardHeader
-          title={formatDate.dateTime(month, { month: "long", year: "numeric" })}
-          actions={
-            <div className="flex items-center gap-2">
-              <div className="hidden items-center rounded-md border border-white/10 bg-white/4 p-1 sm:flex">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    "rounded-sm px-3 text-[#8fb0b1] hover:bg-transparent hover:text-white",
-                    scope === "day" && "bg-white/12 text-white hover:bg-white/12",
-                  )}
-                  onClick={() => setScope("day")}
-                >
-                  {t("board.scopeDay")}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    "rounded-sm px-3 text-[#8fb0b1] hover:bg-transparent hover:text-white",
-                    scope === "month" && "bg-white/12 text-white hover:bg-white/12",
-                  )}
-                  onClick={() => setScope("month")}
-                >
-                  {t("board.scopeMonth")}
-                </Button>
+      <div className="flex h-full flex-col gap-6">
+        <Surface tone="panel" padding="lg" className="border border-black/5">
+          <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+            <div className="flex items-start gap-4">
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-full border border-border/80 bg-background text-foreground">
+                <ListChecks className="size-[18px]" strokeWidth={1.8} />
               </div>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="rounded-md border border-white/10 bg-white/4 text-[#dceeed] hover:bg-white/10 hover:text-white"
-                onClick={() => setMonth((value) => addMonths(value, -1))}
-              >
+              <div className="flex flex-col gap-1">
+                <h1 className="type-h3">{t("view.title")}</h1>
+                <p className="type-body-14 max-w-[44rem] text-muted-foreground">{t("view.description")}</p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="outline" size="icon-sm" className="rounded-full bg-background" onClick={() => setMonth((value) => addMonths(value, -1))}>
                 <ChevronLeft />
               </Button>
+              <div className="rounded-full border border-border/80 bg-background px-4 py-2 text-sm font-medium text-foreground">
+                {formatDate.dateTime(month, { month: "long", year: "numeric" })}
+              </div>
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
-                className="rounded-md border border-white/10 bg-white/4 px-3 text-[#dceeed] hover:bg-white/10 hover:text-white"
+                className="rounded-full bg-background px-4"
                 onClick={() => {
                   setMonth(today);
-                  setSelectedDate(today);
+                  setSelectedDate(null);
                 }}
               >
                 {t("board.jumpToday")}
               </Button>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="rounded-md border border-white/10 bg-white/4 text-[#dceeed] hover:bg-white/10 hover:text-white"
-                onClick={() => setMonth((value) => addMonths(value, 1))}
-              >
+              <Button variant="outline" size="icon-sm" className="rounded-full bg-background" onClick={() => setMonth((value) => addMonths(value, 1))}>
                 <ChevronRight />
               </Button>
               <Button
-                variant="ghost"
+                variant="default"
                 size="icon-sm"
-                className="rounded-md border border-white/10 bg-white/4 text-[#dceeed] hover:bg-white/10 hover:text-white"
+                className="rounded-full"
                 onClick={() => {
                   setSheetMode("add");
                   setEditingTransaction(null);
@@ -158,122 +122,134 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
                 <Plus />
               </Button>
             </div>
-          }
-        />
+          </div>
+        </Surface>
 
-        <div className="grid h-[calc(100%-73px)] min-h-0 lg:grid-cols-[minmax(0,1.35fr)_360px]">
-          <div className="min-h-0 border-b border-white/10 px-5 py-4 lg:border-b-0 lg:border-r">
+        <div className="grid min-h-0 flex-1 gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(340px,0.9fr)]">
+          <Surface tone="panel" padding="lg" className="min-h-0 border border-black/5">
             <CalendarGrid
               month={month}
               selectedDate={selectedDate}
               transactions={snapshot.transactions}
               onSelectDate={(date) => {
+                if (selectedDate && isSameDay(date, selectedDate)) {
+                  setSelectedDate(null);
+                  return;
+                }
+
                 setSelectedDate(date);
                 if (!isSameMonth(date, month)) {
                   setMonth(date);
                 }
-                setScope("day");
               }}
             />
-          </div>
+          </Surface>
 
-          <FinanceBoardPanel
-            title={t("board.agendaTitle")}
-            subtitle={agendaSubtitle}
-            actions={
-              <div className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-[#dceeed]">
-                {agendaTitle}
+          <Surface tone="panel" padding="lg" className="min-h-0 border border-black/5">
+            <div className="flex h-full min-h-0 flex-col">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{t("board.agendaTitle")}</p>
+                  <h2 className="mt-2 text-xl font-medium tracking-[-0.03em] text-foreground">{agendaLabel}</h2>
+                  <p className="mt-1 text-sm leading-6 text-muted-foreground">{agendaSubtitle}</p>
+                </div>
+                {selectedDate ? (
+                  <Button variant="outline" size="sm" className="rounded-full bg-background" onClick={() => setSelectedDate(null)}>
+                    <X data-icon="inline-start" />
+                    {t("board.clearDay")}
+                  </Button>
+                ) : null}
               </div>
-            }
-            className="min-h-0"
-          >
-            {actionError ? (
-              <div className="mb-3 rounded-lg border border-[#b85b44]/60 bg-[#5c3328]/40 px-3 py-2 text-sm text-[#ffd2c7]">
-                {actionError}
-              </div>
-            ) : null}
-            <TransactionList
-              transactions={agendaTransactions}
-              emptyMessage={t("board.empty")}
-              variant="board"
-              renderAction={(transaction) => (
-                <TransactionRowActions
-                  compact
-                  variant="board"
-                  transaction={transaction}
-                  onEditOccurrence={(selectedTransaction) => {
-                    setSheetMode("edit-transaction");
-                    setEditingTransaction(selectedTransaction);
-                    setEditingSeries(null);
-                    setSheetOpen(true);
-                  }}
-                  onEditSeries={(selectedTransaction) => {
-                    if (!selectedTransaction.schedule) {
-                      return;
-                    }
 
-                    setSheetMode("edit-schedule");
-                    setEditingTransaction(selectedTransaction);
-                    setEditingSeries(selectedTransaction.schedule);
-                    setSheetOpen(true);
-                  }}
-                  onDeleteTransaction={async (selectedTransaction) => {
-                    try {
-                      await transactionActions.deleteTransaction(selectedTransaction.id);
-                      setActionError(null);
-                    } catch (error) {
-                      setActionError(error instanceof Error ? error.message : transactionViewT("deleteError"));
-                    }
-                  }}
-                  onDeleteSeries={async (selectedTransaction) => {
-                    if (!selectedTransaction.schedule_id) {
-                      return;
-                    }
+              {actionError ? (
+                <div className="mt-4 rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  {actionError}
+                </div>
+              ) : null}
 
-                    try {
-                      await transactionActions.deleteSchedule(selectedTransaction.schedule_id);
-                      setActionError(null);
-                    } catch (error) {
-                      setActionError(error instanceof Error ? error.message : transactionViewT("deleteError"));
-                    }
-                  }}
-                  onMarkPaid={async (selectedTransaction) => {
-                    try {
-                      await transactionActions.markPaid(selectedTransaction.id);
-                      setActionError(null);
-                    } catch (error) {
-                      setActionError(error instanceof Error ? error.message : transactionViewT("saveError"));
-                    }
-                  }}
-                  onSkipOccurrence={async (selectedTransaction) => {
-                    try {
-                      await transactionActions.skipOccurrence(selectedTransaction.id);
-                      setActionError(null);
-                    } catch (error) {
-                      setActionError(error instanceof Error ? error.message : transactionViewT("saveError"));
-                    }
-                  }}
-                  onToggleScheduleState={async (selectedTransaction) => {
-                    if (!selectedTransaction.schedule_id || !selectedTransaction.schedule) {
-                      return;
-                    }
+              <div className="mt-5 min-h-0 flex-1 overflow-auto">
+                <TransactionList
+                  transactions={agendaTransactions}
+                  emptyMessage={selectedDate ? t("board.selectedEmpty") : t("board.empty")}
+                  renderAction={(transaction) => (
+                    <TransactionRowActions
+                      compact
+                      transaction={transaction}
+                      onEditOccurrence={(selectedTransaction) => {
+                        setSheetMode("edit-transaction");
+                        setEditingTransaction(selectedTransaction);
+                        setEditingSeries(null);
+                        setSheetOpen(true);
+                      }}
+                      onEditSeries={(selectedTransaction) => {
+                        if (!selectedTransaction.schedule) {
+                          return;
+                        }
 
-                    try {
-                      await transactionActions.setScheduleState(
-                        selectedTransaction.schedule_id,
-                        selectedTransaction.schedule.state === "paused" ? "active" : "paused",
-                      );
-                      setActionError(null);
-                    } catch (error) {
-                      setActionError(error instanceof Error ? error.message : transactionViewT("saveError"));
-                    }
-                  }}
+                        setSheetMode("edit-schedule");
+                        setEditingTransaction(selectedTransaction);
+                        setEditingSeries(selectedTransaction.schedule);
+                        setSheetOpen(true);
+                      }}
+                      onDeleteTransaction={async (selectedTransaction) => {
+                        try {
+                          await transactionActions.deleteTransaction(selectedTransaction.id);
+                          setActionError(null);
+                        } catch (error) {
+                          setActionError(error instanceof Error ? error.message : transactionViewT("deleteError"));
+                        }
+                      }}
+                      onDeleteSeries={async (selectedTransaction) => {
+                        if (!selectedTransaction.schedule_id) {
+                          return;
+                        }
+
+                        try {
+                          await transactionActions.deleteSchedule(selectedTransaction.schedule_id);
+                          setActionError(null);
+                        } catch (error) {
+                          setActionError(error instanceof Error ? error.message : transactionViewT("deleteError"));
+                        }
+                      }}
+                      onMarkPaid={async (selectedTransaction) => {
+                        try {
+                          await transactionActions.markPaid(selectedTransaction.id);
+                          setActionError(null);
+                        } catch (error) {
+                          setActionError(error instanceof Error ? error.message : transactionViewT("saveError"));
+                        }
+                      }}
+                      onSkipOccurrence={async (selectedTransaction) => {
+                        try {
+                          await transactionActions.skipOccurrence(selectedTransaction.id);
+                          setActionError(null);
+                        } catch (error) {
+                          setActionError(error instanceof Error ? error.message : transactionViewT("saveError"));
+                        }
+                      }}
+                      onToggleScheduleState={async (selectedTransaction) => {
+                        if (!selectedTransaction.schedule_id || !selectedTransaction.schedule) {
+                          return;
+                        }
+
+                        try {
+                          await transactionActions.setScheduleState(
+                            selectedTransaction.schedule_id,
+                            selectedTransaction.schedule.state === "paused" ? "active" : "paused",
+                          );
+                          setActionError(null);
+                        } catch (error) {
+                          setActionError(error instanceof Error ? error.message : transactionViewT("saveError"));
+                        }
+                      }}
+                    />
+                  )}
                 />
-              )}
-            />
-          </FinanceBoardPanel>
+              </div>
+            </div>
+          </Surface>
         </div>
-      </FinanceBoardShell>
+      </div>
 
       <TransactionFormSheet
         open={sheetOpen}

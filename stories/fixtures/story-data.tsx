@@ -2,16 +2,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, within } from "storybook/test";
 
 import { AppSidebar } from "@/components/app-sidebar";
-import { PageContainer } from "@/components/page-container";
-import { BalanceCard } from "@/features/dashboard/components/balance-card";
-import { RecentTransactions } from "@/features/dashboard/components/recent-transactions";
-import { SummaryCard } from "@/features/dashboard/components/summary-card";
 import { mockFinanceSnapshot } from "@/lib/mock-finance";
-import {
-  getIncomeExpenseSummaryByCurrency,
-  getRecentTransactions,
-  getTotalBalanceByCurrency,
-} from "@/lib/finance-selectors";
 import type { AuthUser } from "@/types/auth";
 import type { FinanceSnapshot } from "@/types/finance";
 
@@ -50,21 +41,6 @@ export function StoryWorkspace({
         </div>
       </div>
     </div>
-  );
-}
-
-export function DashboardStoryPage() {
-  const snapshot = makeFinanceSnapshot();
-  const summary = getIncomeExpenseSummaryByCurrency(snapshot.transactions);
-
-  return (
-    <PageContainer className="space-y-6">
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <BalanceCard totals={getTotalBalanceByCurrency(snapshot.accounts)} />
-        <SummaryCard summary={summary} />
-      </div>
-      <RecentTransactions transactions={getRecentTransactions(snapshot)} />
-    </PageContainer>
   );
 }
 

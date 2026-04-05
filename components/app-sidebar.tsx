@@ -2,13 +2,11 @@
 
 import { useTranslations } from "next-intl";
 import {
-  CalendarDays,
-  LayoutDashboard,
   ListChecks,
   Menu,
   Scale,
   Settings2,
-  Shapes,
+  WalletCards,
 } from "lucide-react";
 
 import type { AuthUser } from "@/types/auth";
@@ -35,11 +33,9 @@ import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 
 const navigation = [
-  { href: "/dashboard", labelKey: "overview", icon: LayoutDashboard },
-  { href: "/accounts", labelKey: "balance", icon: Scale },
-  { href: "/calendar", labelKey: "calendar", icon: CalendarDays },
   { href: "/today", labelKey: "today", icon: ListChecks },
-  { href: "/transactions", labelKey: "transactions", icon: Shapes },
+  { href: "/accounts", labelKey: "balance", icon: Scale },
+  { href: "/budget", labelKey: "budget", icon: WalletCards },
 ] as const;
 
 export function AppSidebar({
