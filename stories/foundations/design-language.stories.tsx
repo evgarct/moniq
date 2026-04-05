@@ -80,6 +80,6 @@ export const CanonicalBalanceWorkspace: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("Design Language")).toBeInTheDocument();
-    await expect(canvas.getByText("Accounts & Wallets")).toBeInTheDocument();
+    await expect(canvas.getByRole("heading", { name: "Balance", level: 1 })).toBeInTheDocument();
   },
 };
