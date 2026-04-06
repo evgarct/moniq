@@ -7,6 +7,7 @@
     "actions": {
       "add": "Add",
       "edit": "Edit",
+      "duplicate": "Duplicate",
       "delete": "Delete",
       "back": "Back",
       "save": "Save",
@@ -571,6 +572,7 @@
         "destinationAccount": "Choose destination account",
         "category": "Choose category",
         "goal": "Choose savings goal",
+        "note": "Add notes",
         "lineNote": "Optional note"
       },
       "actions": {
@@ -580,10 +582,18 @@
         "batchSummary": "{count, plural, one {# row ready to save.} other {# rows ready to save.}}",
         "singleSummary": "Review the details and save when ready."
       },
+      "actions": {
+        "addOperation": "Add transaction",
+        "addRow": "Add row",
+        "addLineItem": "Add row",
+        "duplicateLineItem": "Duplicate row",
+        "removeLineItem": "Remove row"
+      },
       "submit": {
         "add": "Save transaction",
         "edit": "Update transaction",
         "editSeries": "Update series",
+        "saving": "Saving...",
         "cancel": "Cancel"
       },
       "validation": {

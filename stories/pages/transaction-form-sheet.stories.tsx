@@ -7,6 +7,9 @@ import type { TransactionSchedule } from "@/types/finance";
 const snapshot = makeFinanceSnapshot();
 const defaultTransaction = snapshot.transactions.find((transaction) => transaction.kind === "expense") ?? snapshot.transactions[0];
 const savingsTransaction = snapshot.transactions.find((transaction) => transaction.kind === "save_to_goal") ?? snapshot.transactions[0];
+const incomeTransaction = snapshot.transactions.find((transaction) => transaction.kind === "income") ?? snapshot.transactions[0];
+const transferTransaction = snapshot.transactions.find((transaction) => transaction.kind === "transfer") ?? snapshot.transactions[0];
+const debtPaymentTransaction = snapshot.transactions.find((transaction) => transaction.kind === "debt_payment") ?? snapshot.transactions[0];
 
 const recurringSchedule: TransactionSchedule = {
   id: "schedule-story-netflix",
@@ -75,6 +78,7 @@ export const BatchExpense: Story = {
         accounts={snapshot.accounts}
         allocations={snapshot.allocations}
         categories={snapshot.categories}
+        transactions={snapshot.transactions}
         onOpenChange={() => {}}
         onSubmit={async () => {}}
       />
@@ -92,6 +96,7 @@ export const BatchSavings: Story = {
         accounts={snapshot.accounts}
         allocations={snapshot.allocations}
         categories={snapshot.categories}
+        transactions={snapshot.transactions}
         onOpenChange={() => {}}
         onSubmit={async () => {}}
       />
@@ -109,6 +114,7 @@ export const EditOccurrence: Story = {
         accounts={snapshot.accounts}
         allocations={snapshot.allocations}
         categories={snapshot.categories}
+        transactions={snapshot.transactions}
         onOpenChange={() => {}}
         onSubmit={async () => {}}
       />
@@ -126,6 +132,7 @@ export const EditSeries: Story = {
         accounts={snapshot.accounts}
         allocations={snapshot.allocations}
         categories={snapshot.categories}
+        transactions={snapshot.transactions}
         onOpenChange={() => {}}
         onSubmit={async () => {}}
       />
@@ -148,6 +155,7 @@ export const MobileBatchExpense: Story = {
         accounts={snapshot.accounts}
         allocations={snapshot.allocations}
         categories={snapshot.categories}
+        transactions={snapshot.transactions}
         onOpenChange={() => {}}
         onSubmit={async () => {}}
       />
@@ -165,6 +173,61 @@ export const SavingsMove: Story = {
         accounts={snapshot.accounts}
         allocations={snapshot.allocations}
         categories={snapshot.categories}
+        transactions={snapshot.transactions}
+        onOpenChange={() => {}}
+        onSubmit={async () => {}}
+      />
+    </StorySurface>
+  ),
+};
+
+export const IncomeEdit: Story = {
+  render: () => (
+    <StorySurface>
+      <TransactionFormSheet
+        open
+        mode="edit-transaction"
+        transaction={incomeTransaction}
+        accounts={snapshot.accounts}
+        allocations={snapshot.allocations}
+        categories={snapshot.categories}
+        transactions={snapshot.transactions}
+        onOpenChange={() => {}}
+        onSubmit={async () => {}}
+      />
+    </StorySurface>
+  ),
+};
+
+export const TransferEdit: Story = {
+  render: () => (
+    <StorySurface>
+      <TransactionFormSheet
+        open
+        mode="edit-transaction"
+        transaction={transferTransaction}
+        accounts={snapshot.accounts}
+        allocations={snapshot.allocations}
+        categories={snapshot.categories}
+        transactions={snapshot.transactions}
+        onOpenChange={() => {}}
+        onSubmit={async () => {}}
+      />
+    </StorySurface>
+  ),
+};
+
+export const DebtPaymentEdit: Story = {
+  render: () => (
+    <StorySurface>
+      <TransactionFormSheet
+        open
+        mode="edit-transaction"
+        transaction={debtPaymentTransaction}
+        accounts={snapshot.accounts}
+        allocations={snapshot.allocations}
+        categories={snapshot.categories}
+        transactions={snapshot.transactions}
         onOpenChange={() => {}}
         onSubmit={async () => {}}
       />
