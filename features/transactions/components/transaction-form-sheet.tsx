@@ -1,8 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { isBefore, parseISO, startOfDay } from "date-fns";
-import { CheckCircle2, CircleAlert, Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo } from "react";
 import { Controller, type FieldError, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { useTranslations } from "next-intl";
@@ -11,12 +10,15 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
-import { cn } from "@/lib/utils";
 import type { Account, Allocation, Category, Transaction, TransactionSchedule } from "@/types/finance";
-import type { TransactionEntryBatchInput, TransactionEntryInput, TransactionInput, TransactionScheduleInput } from "@/types/finance-schemas";
+import type {
+  TransactionEntryBatchInput,
+  TransactionEntryInput,
+  TransactionInput,
+  TransactionScheduleInput,
+} from "@/types/finance-schemas";
 
 type BatchKind = "income" | "expense" | "save_to_goal" | "spend_from_goal";
 
@@ -24,6 +26,7 @@ type TransactionLineItemInput = {
   category_id: string | null;
   allocation_id: string | null;
   amount: number | null;
+  note: string;
 };
 
 type TransactionFormInputs = {
@@ -54,31 +57,60 @@ export type TransactionFormSubmitPayload =
   | { kind: "transaction"; values: TransactionInput }
   | { kind: "schedule"; values: TransactionScheduleInput };
 
-function isMoveKind(kind: Transaction["kind"]) {
-  return kind === "transfer" || kind === "save_to_goal" || kind === "spend_from_goal";
-}
-
 function supportsBatchItems(kind: Transaction["kind"]): kind is BatchKind {
   return kind === "income" || kind === "expense" || kind === "save_to_goal" || kind === "spend_from_goal";
 }
 
-function createEmptyLineItem(): TransactionLineItemInput {
-  return {
-    category_id: null,
-    allocation_id: null,
-    amount: null,
-  };
+function isMoveKind(kind: Transaction["kind"]) {
+  return kind === "transfer" || kind === "save_to_goal" || kind === "spend_from_goal";
 }
 
-function buildTransactionFormSchema(
+function createEmptyLineItem(): TransactionLineItemInput {
+  return { category_id: null, allocation_id: null, amount: null, note: "" };
+}
+
+function toSelectValue(value: string | null | undefined) {
+  return value ?? "";
+}
+
+function FieldMessage({ error }: { error?: FieldError }) {
+  if (!error?.message) return null;
+  return <p className="text-sm text-destructive">{error.message}</p>;
+}
+
+function FormBlock({ children }: { children: React.ReactNode }) {
+  return <section className="space-y-2 rounded-[24px] bg-muted/15 p-3 sm:p-3.5">{children}</section>;
+}
+
+function RowShell({ label, children }: { label?: string; children: React.ReactNode }) {
+  return (
+    <div
+      className={
+        label
+          ? "grid min-h-10 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl px-2 py-1"
+          : "min-h-10 rounded-xl px-2 py-1"
+      }
+    >
+      {label ? <div className="min-w-0 text-[15px] text-muted-foreground">{label}</div> : null}
+      <div className={label ? "min-w-0 flex items-center justify-end gap-2" : "min-w-0"}>{children}</div>
+    </div>
+  );
+}
+
+function PickerRow({ children }: { children: React.ReactNode }) {
+  return <div className="min-h-11 rounded-2xl bg-background px-3 py-2 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">{children}</div>;
+}
+
+function buildSchema(
   t: ReturnType<typeof useTranslations<"transactions.form">>,
   mode: "add" | "edit-transaction" | "edit-schedule",
 ) {
-  const opaqueIdSchema = z.string().trim().min(1).nullable();
+  const opaqueId = z.string().trim().min(1).nullable();
   const lineItemSchema = z.object({
-    category_id: opaqueIdSchema,
-    allocation_id: opaqueIdSchema,
+    category_id: opaqueId,
+    allocation_id: opaqueId,
     amount: z.number().positive(t("validation.amountPositive")).nullable(),
+    note: z.string().trim().max(500, t("validation.noteMax")),
   });
 
   return z
@@ -94,10 +126,10 @@ function buildTransactionFormSchema(
       principal_amount: z.number().min(0, t("validation.principalMin")).nullable(),
       interest_amount: z.number().min(0, t("validation.interestMin")).nullable(),
       extra_principal_amount: z.number().min(0, t("validation.extraMin")).nullable(),
-      category_id: opaqueIdSchema,
-      source_account_id: opaqueIdSchema,
-      destination_account_id: opaqueIdSchema,
-      allocation_id: opaqueIdSchema,
+      category_id: opaqueId,
+      source_account_id: opaqueId,
+      destination_account_id: opaqueId,
+      allocation_id: opaqueId,
       is_recurring: z.boolean(),
       recurrence_frequency: z.enum(["daily", "weekly", "monthly"]),
       recurrence_until: z.string().trim().nullable(),
@@ -105,128 +137,62 @@ function buildTransactionFormSchema(
     })
     .superRefine((values, ctx) => {
       const batchMode = mode === "add" && supportsBatchItems(values.kind);
-      const requireSource =
-        values.kind === "expense" ||
-        values.kind === "transfer" ||
-        values.kind === "save_to_goal" ||
-        values.kind === "spend_from_goal" ||
-        values.kind === "debt_payment";
-      const requireDestination =
-        values.kind === "income" ||
-        values.kind === "transfer" ||
-        values.kind === "save_to_goal" ||
-        values.kind === "spend_from_goal" ||
-        values.kind === "debt_payment";
+      const requireSource = ["expense", "transfer", "save_to_goal", "spend_from_goal", "debt_payment"].includes(values.kind);
+      const requireDestination = ["income", "transfer", "save_to_goal", "spend_from_goal", "debt_payment"].includes(values.kind);
 
       if (requireSource && !values.source_account_id) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["source_account_id"], message: t("validation.sourceRequired") });
       }
-
       if (requireDestination && !values.destination_account_id) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["destination_account_id"], message: t("validation.destinationRequired") });
       }
-
-      if (values.kind === "transfer" && values.category_id) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["category_id"], message: t("validation.transferNoCategory") });
+      if (values.source_account_id && values.destination_account_id && values.source_account_id === values.destination_account_id) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["destination_account_id"], message: t("validation.differentDestination") });
       }
-
-      if ((values.kind === "save_to_goal" || values.kind === "spend_from_goal") && !values.allocation_id) {
+      if ((values.kind === "save_to_goal" || values.kind === "spend_from_goal") && !values.allocation_id && !batchMode) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["allocation_id"], message: t("validation.goalRequired") });
       }
-
-      if (values.source_account_id && values.destination_account_id && values.source_account_id === values.destination_account_id) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["destination_account_id"],
-          message: t("validation.differentDestination"),
-        });
+      if ((values.kind === "income" || values.kind === "expense") && !values.category_id && !batchMode) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["category_id"], message: t("validation.categoryRequired") });
       }
-
       if (batchMode) {
         if (!values.line_items.length) {
           ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["line_items"], message: t("validation.lineItemsRequired") });
         }
-
         values.line_items.forEach((item, index) => {
           if (!item.amount) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: ["line_items", index, "amount"],
-              message: t("validation.amountPositive"),
-            });
+            ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["line_items", index, "amount"], message: t("validation.amountPositive") });
           }
-
           if ((values.kind === "income" || values.kind === "expense") && !item.category_id) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: ["line_items", index, "category_id"],
-              message: t("validation.categoryRequired"),
-            });
+            ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["line_items", index, "category_id"], message: t("validation.categoryRequired") });
           }
-
           if ((values.kind === "save_to_goal" || values.kind === "spend_from_goal") && !item.allocation_id) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: ["line_items", index, "allocation_id"],
-              message: t("validation.goalRequired"),
-            });
+            ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["line_items", index, "allocation_id"], message: t("validation.goalRequired") });
           }
         });
       }
-
-      const requireCategory = !batchMode && (values.kind === "income" || values.kind === "expense");
-
-      if (requireCategory && !values.category_id) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["category_id"], message: t("validation.categoryRequired") });
-      }
-
       if (values.kind === "debt_payment") {
-        const principal = values.principal_amount ?? 0;
-        const interest = values.interest_amount ?? 0;
-        const extra = values.extra_principal_amount ?? 0;
-        const breakdownTotal = principal + interest + extra;
-
-        if (breakdownTotal <= 0) {
+        const total = (values.principal_amount ?? 0) + (values.interest_amount ?? 0) + (values.extra_principal_amount ?? 0);
+        if (total <= 0) {
           ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["principal_amount"], message: t("validation.debtBreakdownRequired") });
         }
-
-        if (Math.abs(breakdownTotal - values.amount) > 0.01) {
+        if (Math.abs(total - values.amount) > 0.01) {
           ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["amount"], message: t("validation.debtBreakdownMismatch") });
         }
       }
-
-      const requiresDestinationAmount = values.kind === "transfer" || values.kind === "save_to_goal" || values.kind === "spend_from_goal";
-      if (!batchMode && requiresDestinationAmount && !values.destination_amount) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["destination_amount"],
-          message: t("validation.destinationAmountRequired"),
-        });
+      if (isMoveKind(values.kind) && !batchMode && !values.destination_amount) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["destination_amount"], message: t("validation.destinationAmountRequired") });
       }
-
-      if (!batchMode && !values.amount) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["amount"], message: t("validation.amountPositive") });
-      }
-
       if (values.is_recurring && values.status !== "planned") {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["status"],
-          message: t("validation.recurringMustBePlanned"),
-        });
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["status"], message: t("validation.recurringMustBePlanned") });
       }
-
       if (values.is_recurring && values.recurrence_until && values.recurrence_until < values.occurred_at) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["recurrence_until"],
-          message: t("validation.recurrenceUntilBeforeStart"),
-        });
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["recurrence_until"], message: t("validation.recurrenceUntilBeforeStart") });
       }
     });
 }
 
-function normalizeTransactionPayload(values: TransactionFormInputs): TransactionInput {
+function normalizePayload(values: TransactionFormInputs): TransactionInput {
   return {
     title: values.title.trim(),
     note: values.note.trim() ? values.note.trim() : null,
@@ -246,7 +212,7 @@ function normalizeTransactionPayload(values: TransactionFormInputs): Transaction
   };
 }
 
-function buildDefaultValues({
+function defaults({
   transaction,
   schedule,
   initialKind,
@@ -258,7 +224,6 @@ function buildDefaultValues({
   mode: "add" | "edit-transaction" | "edit-schedule";
 }): TransactionFormInputs {
   const currentKind = schedule?.kind ?? transaction?.kind ?? initialKind ?? "expense";
-
   return {
     title: schedule?.title ?? transaction?.title ?? "",
     note: schedule?.note ?? transaction?.note ?? "",
@@ -286,58 +251,14 @@ function buildDefaultValues({
               category_id: schedule?.category_id ?? transaction?.category_id ?? null,
               allocation_id: schedule?.allocation_id ?? transaction?.allocation_id ?? null,
               amount: schedule?.amount ?? transaction?.amount ?? null,
+              note: schedule?.note ?? transaction?.note ?? "",
             },
           ],
   };
 }
 
-function NumericField({
-  id,
-  label,
-  value,
-  onChange,
-  hideLabel = false,
-}: {
-  id: string;
-  label: string;
-  value: number | null;
-  onChange: (value: number | null) => void;
-  hideLabel?: boolean;
-}) {
-  return (
-    <div className="flex flex-col gap-2">
-      <label className={cn("text-sm font-medium", hideLabel && "sr-only")} htmlFor={id}>
-        {label}
-      </label>
-      <Input
-        id={id}
-        type="number"
-        step="0.01"
-        value={value ?? ""}
-        onChange={(event) => onChange(event.target.value ? Number(event.target.value) : null)}
-      />
-    </div>
-  );
-}
-
-function FieldMessage({ error }: { error?: FieldError }) {
-  if (!error?.message) {
-    return null;
-  }
-
-  return <p className="text-sm text-destructive">{error.message}</p>;
-}
-
-function inferBatchItemTitle(
-  item: TransactionLineItemInput,
-  kind: BatchKind,
-  categories: Category[],
-  allocations: Allocation[],
-) {
-  if (kind === "income" || kind === "expense") {
-    return categories.find((category) => category.id === item.category_id)?.name ?? "";
-  }
-
+function inferBatchTitle(item: TransactionLineItemInput, kind: BatchKind, categories: Category[], allocations: Allocation[]) {
+  if (kind === "income" || kind === "expense") return categories.find((category) => category.id === item.category_id)?.name ?? "";
   return allocations.find((allocation) => allocation.id === item.allocation_id)?.name ?? "";
 }
 
@@ -345,30 +266,18 @@ function inferSingleTitle(values: TransactionFormInputs, accounts: Account[], ca
   if (values.kind === "income" || values.kind === "expense") {
     return categories.find((category) => category.id === values.category_id)?.name ?? values.title.trim();
   }
-
   if (values.kind === "save_to_goal" || values.kind === "spend_from_goal") {
     return allocations.find((allocation) => allocation.id === values.allocation_id)?.name ?? values.title.trim();
   }
-
   if (values.kind === "transfer") {
     const source = accounts.find((account) => account.id === values.source_account_id)?.name;
     const destination = accounts.find((account) => account.id === values.destination_account_id)?.name;
     return source && destination ? `${source} → ${destination}` : values.title.trim();
   }
-
   if (values.kind === "debt_payment") {
     return accounts.find((account) => account.id === values.destination_account_id)?.name ?? values.title.trim();
   }
-
   return values.title.trim();
-}
-
-function getStatusTone(status: TransactionFormInputs["status"], occurredAt: string) {
-  if (status === "paid") {
-    return "paid";
-  }
-
-  return isBefore(startOfDay(parseISO(occurredAt)), startOfDay(new Date())) ? "overdue" : "planned";
 }
 
 export function TransactionFormSheet({
@@ -396,46 +305,39 @@ export function TransactionFormSheet({
 }) {
   const t = useTranslations("transactions.form");
   const kindsT = useTranslations("transactions.kinds");
-  const transactionFormSchema = useMemo(() => buildTransactionFormSchema(t, mode), [mode, t]);
-
+  const commonActionsT = useTranslations("common.actions");
+  const schema = useMemo(() => buildSchema(t, mode), [mode, t]);
   const form = useForm<TransactionFormInputs>({
-    resolver: zodResolver(transactionFormSchema),
-    defaultValues: buildDefaultValues({ transaction, schedule, initialKind, mode }),
+    resolver: zodResolver(schema),
+    defaultValues: defaults({ transaction, schedule, initialKind, mode }),
   });
-  const { fields, append, remove, replace } = useFieldArray({
-    control: form.control,
-    name: "line_items",
-  });
+  const { fields, append, remove, replace } = useFieldArray({ control: form.control, name: "line_items" });
 
   useEffect(() => {
-    form.reset(buildDefaultValues({ transaction, schedule, initialKind, mode }));
+    form.reset(defaults({ transaction, schedule, initialKind, mode }));
   }, [form, initialKind, mode, open, schedule, transaction]);
 
   const kind = useWatch({ control: form.control, name: "kind" });
   const amount = useWatch({ control: form.control, name: "amount" });
   const fxRate = useWatch({ control: form.control, name: "fx_rate" });
-  const occurredAt = useWatch({ control: form.control, name: "occurred_at" });
-  const status = useWatch({ control: form.control, name: "status" });
+  const isRecurring = useWatch({ control: form.control, name: "is_recurring" });
   const sourceAccountId = useWatch({ control: form.control, name: "source_account_id" });
   const destinationAccountId = useWatch({ control: form.control, name: "destination_account_id" });
-  const isRecurring = useWatch({ control: form.control, name: "is_recurring" });
   const recurrenceUntil = useWatch({ control: form.control, name: "recurrence_until" });
   const lineItems = useWatch({ control: form.control, name: "line_items" });
   const supportsBatch = mode === "add" && supportsBatchItems(kind);
-
   const selectedType = kind === "income" ? "income" : "expense";
   const categoryOptions = categories.filter((category) => category.type === selectedType);
   const goalOptions = allocations.filter((allocation) => {
-    if (kind === "save_to_goal") {
-      return allocation.account_id === destinationAccountId;
-    }
-
-    if (kind === "spend_from_goal") {
-      return allocation.account_id === sourceAccountId;
-    }
-
+    if (kind === "save_to_goal") return allocation.account_id === destinationAccountId;
+    if (kind === "spend_from_goal") return allocation.account_id === sourceAccountId;
     return true;
   });
+  const totalAmount = (lineItems ?? []).reduce((sum, item) => sum + (item?.amount ?? 0), 0);
+  const formId = "transaction-form-sheet";
+  const accountNameById = new Map(accounts.map((account) => [account.id, account.name]));
+  const categoryNameById = new Map(categories.map((category) => [category.id, category.name]));
+  const goalNameById = new Map(allocations.map((allocation) => [allocation.id, allocation.name]));
 
   useEffect(() => {
     if (supportsBatch && !fields.length) {
@@ -445,47 +347,37 @@ export function TransactionFormSheet({
 
   useEffect(() => {
     if (isMoveKind(kind) && fxRate && amount) {
-      form.setValue("destination_amount", Number((amount * fxRate).toFixed(2)), {
-        shouldValidate: true,
-      });
+      form.setValue("destination_amount", Number((amount * fxRate).toFixed(2)), { shouldValidate: true });
     }
   }, [amount, form, fxRate, kind]);
-
-  const totalAmount = (lineItems ?? []).reduce((sum, item) => sum + (item?.amount ?? 0), 0);
-  const statusTone = getStatusTone(status, occurredAt);
 
   const handleSubmit = form.handleSubmit(async (values) => {
     if (supportsBatchItems(values.kind) && mode === "add") {
       const batchKind = values.kind;
-      const entries: TransactionEntryInput[] = values.line_items.map((item) => ({
-        ...normalizeTransactionPayload({
-          ...values,
-          title: inferBatchItemTitle(item, batchKind, categories, allocations),
-          amount: item.amount ?? 0,
-          category_id: batchKind === "income" || batchKind === "expense" ? item.category_id : null,
-          allocation_id: batchKind === "save_to_goal" || batchKind === "spend_from_goal" ? item.allocation_id : null,
-          status: values.is_recurring ? "planned" : values.status,
-        }),
-        recurrence: values.is_recurring
-          ? {
-              frequency: values.recurrence_frequency,
-              until_date: values.recurrence_until?.trim() ? values.recurrence_until : null,
-            }
-          : null,
-      }));
-
       await onSubmit({
         kind: "entry-batch",
         values: {
-          entries,
+          entries: values.line_items.map((item) => ({
+            ...normalizePayload({
+              ...values,
+              title: inferBatchTitle(item, batchKind, categories, allocations),
+              note: item.note,
+              amount: item.amount ?? 0,
+              category_id: batchKind === "income" || batchKind === "expense" ? item.category_id : null,
+              allocation_id: batchKind === "save_to_goal" || batchKind === "spend_from_goal" ? item.allocation_id : null,
+              status: values.is_recurring ? "planned" : values.status,
+            }),
+            recurrence: values.is_recurring
+              ? { frequency: values.recurrence_frequency, until_date: values.recurrence_until?.trim() ? values.recurrence_until : null }
+              : null,
+          })),
         },
       });
-
       onOpenChange(false);
       return;
     }
 
-    const transactionPayload = normalizeTransactionPayload({
+    const payload = normalizePayload({
       ...values,
       title: inferSingleTitle(values, accounts, categories, allocations),
       status: values.is_recurring ? "planned" : values.status,
@@ -495,7 +387,7 @@ export function TransactionFormSheet({
       await onSubmit({
         kind: "schedule",
         values: {
-          ...transactionPayload,
+          ...payload,
           recurrence: {
             frequency: values.recurrence_frequency,
             until_date: values.recurrence_until?.trim() ? values.recurrence_until : null,
@@ -503,496 +395,432 @@ export function TransactionFormSheet({
         },
       });
     } else if (mode === "edit-transaction") {
-      await onSubmit({
-        kind: "transaction",
-        values: transactionPayload,
-      });
+      await onSubmit({ kind: "transaction", values: payload });
     } else {
       await onSubmit({
         kind: "entry",
         values: {
-          ...transactionPayload,
+          ...payload,
           recurrence: values.is_recurring
-            ? {
-                frequency: values.recurrence_frequency,
-                until_date: values.recurrence_until?.trim() ? values.recurrence_until : null,
-              }
+            ? { frequency: values.recurrence_frequency, until_date: values.recurrence_until?.trim() ? values.recurrence_until : null }
             : null,
         },
       });
     }
-
     onOpenChange(false);
   });
-
-  const titleKey =
-    mode === "edit-schedule" ? "editSeriesTitle" : mode === "edit-transaction" ? "editTitle" : "addTitle";
-  const submitKey =
-    mode === "edit-schedule" ? "editSeries" : mode === "edit-transaction" ? "edit" : "add";
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
         showCloseButton={false}
-        className={cn(
-          "w-full border-l border-white/10 bg-[#234c58]/98 text-[#eef5f3] sm:inset-y-auto sm:right-6 sm:top-18 sm:h-auto sm:max-h-[calc(100vh-6rem)] sm:w-[22rem] sm:max-w-none sm:rounded-xl sm:border sm:shadow-[0_24px_80px_rgba(4,12,16,0.45)]",
-          "[&_input]:border-white/12 [&_input]:bg-transparent [&_input]:text-[#eef5f3] [&_input]:placeholder:text-[#739296]",
-          "[&_button[data-slot='select-trigger']]:border-white/12 [&_button[data-slot='select-trigger']]:bg-transparent [&_button[data-slot='select-trigger']]:text-[#eef5f3]",
-          "[&_button[data-slot='switch']]:data-[checked]:bg-[#7fe8c5] [&_button[data-slot='switch']]:bg-white/10",
-          "[&_label]:text-[#dbecea]",
-        )}
+        className="w-full gap-0 border-l-0 bg-background p-0 sm:top-6 sm:right-6 sm:h-[calc(100vh-3rem)] sm:w-[29rem] sm:max-w-none sm:rounded-[28px] sm:border sm:border-border/30 sm:shadow-[0_24px_72px_rgba(15,23,42,0.14)]"
       >
-        <SheetHeader className="sr-only">
-          <SheetTitle>{t(titleKey)}</SheetTitle>
-          <SheetDescription>{t("description")}</SheetDescription>
-        </SheetHeader>
-
-        <form className="flex h-full flex-col" onSubmit={handleSubmit}>
-          <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-            <Button type="button" variant="ghost" className="px-0 text-[#d8ebe6] hover:bg-transparent hover:text-white" onClick={() => onOpenChange(false)}>
-              {t("submit.cancel")}
-            </Button>
-            <div className="min-w-0 flex-1 px-3">
-              <Controller
-                control={form.control}
-                name="kind"
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger className="h-8 border-0 bg-transparent px-2 text-center text-[14px] font-medium shadow-none">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="expense">{kindsT("expense")}</SelectItem>
-                      <SelectItem value="income">{kindsT("income")}</SelectItem>
-                      <SelectItem value="transfer">{kindsT("transfer")}</SelectItem>
-                      <SelectItem value="save_to_goal">{kindsT("save_to_goal")}</SelectItem>
-                      <SelectItem value="spend_from_goal">{kindsT("spend_from_goal")}</SelectItem>
-                      <SelectItem value="debt_payment">{kindsT("debt_payment")}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-              />
+        <form id={formId} className="flex min-h-0 flex-1 flex-col" onSubmit={handleSubmit}>
+          <SheetHeader className="gap-0 border-0 px-4 pt-4 pb-2 sm:px-5">
+            <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
+              <Button type="button" variant="ghost" size="sm" className="justify-start px-0 text-[15px] font-normal" onClick={() => onOpenChange(false)}>
+                {t("submit.cancel")}
+              </Button>
+              <div className="flex justify-center">
+                <Controller
+                  control={form.control}
+                  name="kind"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange} disabled={mode !== "add"}>
+                      <SelectTrigger className="h-auto w-auto border-0 bg-transparent px-2 py-0 text-center text-[1.1rem] font-medium capitalize shadow-none">
+                        <span className="truncate">{kindsT(field.value)}</span>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="expense">{kindsT("expense")}</SelectItem>
+                        <SelectItem value="income">{kindsT("income")}</SelectItem>
+                        <SelectItem value="transfer">{kindsT("transfer")}</SelectItem>
+                        <SelectItem value="save_to_goal">{kindsT("save_to_goal")}</SelectItem>
+                        <SelectItem value="spend_from_goal">{kindsT("spend_from_goal")}</SelectItem>
+                        <SelectItem value="debt_payment">{kindsT("debt_payment")}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+              <Button type="submit" form={formId} variant="ghost" size="sm" className="justify-end px-0 text-[15px] font-medium">
+                {commonActionsT("save")}
+              </Button>
             </div>
-            <Button type="submit" variant="ghost" className="px-0 text-[#d8ebe6] hover:bg-transparent hover:text-white">
-              {t(`submit.${submitKey}`)}
-            </Button>
-          </div>
+          </SheetHeader>
 
-          <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-4 py-3">
-            {mode === "add" ? (
-              <>
-                {!isRecurring ? (
-                  <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium">{t("fields.status")}</label>
-                    <Controller
-                      control={form.control}
-                      name="status"
-                      render={({ field }) => (
-                        <Select value={field.value} onValueChange={field.onChange}>
-                          <SelectTrigger className="w-full">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="paid">{t("status.paid")}</SelectItem>
-                            <SelectItem value="planned">{t("status.planned")}</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      )}
+          <div className="flex-1 overflow-y-auto px-4 pb-4 sm:px-5">
+            <div className="space-y-3">
+              <FormBlock>
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-1">
+                  <div className="min-w-0 text-[15px]">
+                    <Input
+                      id="transaction-date"
+                      type="date"
+                      className="h-auto w-full border-0 bg-transparent px-0 py-0 text-[15px] shadow-none"
+                      {...form.register("occurred_at")}
                     />
-                    <FieldMessage error={form.formState.errors.status} />
                   </div>
-                ) : null}
-              </>
-            ) : mode === "edit-transaction" ? (
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium">{t("fields.status")}</label>
-                <Controller
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="paid">{t("status.paid")}</SelectItem>
-                        <SelectItem value="planned">{t("status.planned")}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
+                  <Controller
+                    control={form.control}
+                    name="status"
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange} disabled={mode === "edit-schedule" || isRecurring}>
+                        <SelectTrigger className="h-auto w-auto border-0 bg-transparent px-0 py-0 text-right text-[15px] text-muted-foreground shadow-none">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="paid">{t("status.paid")}</SelectItem>
+                          <SelectItem value="planned">{t("status.planned")}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </div>
+                <FieldMessage error={form.formState.errors.occurred_at} />
                 <FieldMessage error={form.formState.errors.status} />
-              </div>
-            ) : null}
 
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium" htmlFor="transaction-date">
-                {isRecurring && mode !== "edit-transaction" ? t("fields.startDate") : t("fields.date")}
-              </label>
-              <Input id="transaction-date" type="date" {...form.register("occurred_at")} />
-              <FieldMessage error={form.formState.errors.occurred_at} />
-            </div>
+                {mode === "add" ? (
+                  <RowShell label={t("fields.automatic")}>
+                    <Controller control={form.control} name="is_recurring" render={({ field }) => <Switch checked={field.value} onCheckedChange={field.onChange} />} />
+                  </RowShell>
+                ) : null}
 
-            {mode === "add" ? (
-              <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/4 px-4 py-3">
-                <div>
-                  <p className="text-sm font-medium text-[#eef5f3]">{t("fields.automatic")}</p>
-                  <p className="text-xs text-[#739296]">{isRecurring ? t("automatic.on") : t("automatic.off")}</p>
-                </div>
-                <Controller
-                  control={form.control}
-                  name="is_recurring"
-                  render={({ field }) => <Switch checked={field.value} onCheckedChange={field.onChange} />}
-                />
-              </div>
-            ) : null}
-
-            <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/4 px-4 py-3">
-              <div className="flex items-center gap-2 text-sm font-medium text-[#eef5f3]">
-                {statusTone === "paid" ? <CheckCircle2 className="size-4 text-[#7fe8c5]" /> : null}
-                {statusTone === "overdue" ? <CircleAlert className="size-4 text-[#ffb13d]" /> : null}
-                <span>{t("fields.statusSummary")}</span>
-              </div>
-              <span
-                className={
-                  statusTone === "paid"
-                    ? "text-sm font-semibold text-[#7fe8c5]"
-                    : statusTone === "overdue"
-                      ? "text-sm font-semibold text-[#ffb13d]"
-                      : "text-sm font-semibold text-[#8cb0b2]"
-                }
-              >
-                {t(`statusBadge.${statusTone}`)}
-              </span>
-            </div>
-
-            <Separator className="bg-white/10" />
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium">{t("fields.recurrenceFrequency")}</label>
-                <Controller
-                  control={form.control}
-                  name="recurrence_frequency"
-                  render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange} disabled={!isRecurring}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder={t("recurrence.never")} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="daily">{t("recurrence.daily")}</SelectItem>
-                        <SelectItem value="weekly">{t("recurrence.weekly")}</SelectItem>
-                        <SelectItem value="monthly">{t("recurrence.monthly")}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-                {!isRecurring ? <p className="text-xs text-muted-foreground">{t("recurrence.never")}</p> : null}
-                <FieldMessage error={form.formState.errors.recurrence_frequency} />
-              </div>
-
-              {isRecurring ? (
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium" htmlFor="transaction-until">
-                    {t("fields.recurrenceUntil")}
-                  </label>
-                  <Input
-                    id="transaction-until"
-                    type="date"
-                    value={recurrenceUntil ?? ""}
-                    onChange={(event) => form.setValue("recurrence_until", event.target.value || null)}
-                  />
-                  <FieldMessage error={form.formState.errors.recurrence_until} />
-                </div>
-              ) : null}
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              {(kind === "expense" || kind === "transfer" || kind === "save_to_goal" || kind === "spend_from_goal" || kind === "debt_payment") ? (
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium">{t("fields.sourceAccount")}</label>
-                  <Controller
-                    control={form.control}
-                    name="source_account_id"
-                    render={({ field }) => (
-                      <Select value={field.value ?? undefined} onValueChange={field.onChange}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder={t("placeholders.sourceAccount")} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {accounts.map((account) => (
-                            <SelectItem key={account.id} value={account.id}>
-                              {account.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
-                  <FieldMessage error={form.formState.errors.source_account_id} />
-                </div>
-              ) : null}
-
-              {(kind === "income" || kind === "transfer" || kind === "save_to_goal" || kind === "spend_from_goal" || kind === "debt_payment") ? (
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium">{t("fields.destinationAccount")}</label>
-                  <Controller
-                    control={form.control}
-                    name="destination_account_id"
-                    render={({ field }) => (
-                      <Select value={field.value ?? undefined} onValueChange={field.onChange}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder={t("placeholders.destinationAccount")} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {accounts.map((account) => (
-                            <SelectItem key={account.id} value={account.id}>
-                              {account.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
-                  <FieldMessage error={form.formState.errors.destination_account_id} />
-                </div>
-              ) : null}
-            </div>
-
-            {supportsBatch ? (
-              <div className="space-y-3 rounded-xl border border-white/10 bg-white/4 p-4">
-                {fields.map((field, index) => (
-                  <div key={field.id} className="space-y-2">
-                    <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_140px_auto]">
-                      {(kind === "income" || kind === "expense") ? (
-                        <Controller
-                          control={form.control}
-                          name={`line_items.${index}.category_id`}
-                          render={({ field: itemField }) => (
-                            <Select value={itemField.value ?? undefined} onValueChange={itemField.onChange}>
-                              <SelectTrigger className="w-full">
-                                <SelectValue placeholder={t("placeholders.category")} />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {categoryOptions.map((category) => (
-                                  <SelectItem key={category.id} value={category.id}>
-                                    {category.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          )}
-                        />
-                      ) : (
-                        <Controller
-                          control={form.control}
-                          name={`line_items.${index}.allocation_id`}
-                          render={({ field: itemField }) => (
-                            <Select value={itemField.value ?? undefined} onValueChange={itemField.onChange}>
-                              <SelectTrigger className="w-full">
-                                <SelectValue placeholder={t("placeholders.goal")} />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {goalOptions.map((allocation) => (
-                                  <SelectItem key={allocation.id} value={allocation.id}>
-                                    {allocation.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          )}
-                        />
-                      )}
-
+                {isRecurring ? (
+                  <RowShell label={t("fields.recurrenceFrequency")}>
+                    <div className="flex items-center gap-3">
                       <Controller
                         control={form.control}
-                        name={`line_items.${index}.amount`}
-                        render={({ field: itemField }) => (
-                          <NumericField
-                            id={`transaction-line-amount-${index}`}
-                            label={t("fields.amount")}
-                            value={itemField.value}
-                            onChange={itemField.onChange}
-                            hideLabel
-                          />
+                        name="recurrence_frequency"
+                        render={({ field }) => (
+                          <Select value={field.value} onValueChange={field.onChange}>
+                            <SelectTrigger className="h-auto w-auto border-0 bg-transparent px-0 py-0 text-right shadow-none">
+                              <SelectValue placeholder={t("recurrence.never")} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="daily">{t("recurrence.daily")}</SelectItem>
+                              <SelectItem value="weekly">{t("recurrence.weekly")}</SelectItem>
+                              <SelectItem value="monthly">{t("recurrence.monthly")}</SelectItem>
+                            </SelectContent>
+                          </Select>
                         )}
                       />
+                      <Input id="transaction-until" type="date" className="h-auto w-[9rem] border-0 bg-transparent px-0 py-0 text-right text-muted-foreground shadow-none" value={recurrenceUntil ?? ""} onChange={(event) => form.setValue("recurrence_until", event.target.value || null)} />
+                    </div>
+                  </RowShell>
+                ) : null}
 
-                      <div className="flex items-end">
+                {["expense", "transfer", "save_to_goal", "spend_from_goal", "debt_payment"].includes(kind) ? (
+                  <PickerRow>
+                    <div className="flex flex-col gap-1">
+                      <Controller
+                        control={form.control}
+                        name="source_account_id"
+                        render={({ field }) => (
+                          <Select value={toSelectValue(field.value)} onValueChange={field.onChange}>
+                            <SelectTrigger className="h-auto w-full justify-start border-0 bg-transparent px-0 py-0 text-[15px] shadow-none">
+                              <span className="truncate text-left">
+                                {field.value ? accountNameById.get(field.value) ?? field.value : t("placeholders.sourceAccount")}
+                              </span>
+                            </SelectTrigger>
+                            <SelectContent>
+                              {accounts.map((account) => <SelectItem key={account.id} value={account.id}>{account.name}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                      <FieldMessage error={form.formState.errors.source_account_id} />
+                    </div>
+                  </PickerRow>
+                ) : null}
+
+                {["income", "transfer", "save_to_goal", "spend_from_goal", "debt_payment"].includes(kind) ? (
+                  <PickerRow>
+                    <div className="flex flex-col gap-1">
+                      <Controller
+                        control={form.control}
+                        name="destination_account_id"
+                        render={({ field }) => (
+                          <Select value={toSelectValue(field.value)} onValueChange={field.onChange}>
+                            <SelectTrigger className="h-auto w-full justify-start border-0 bg-transparent px-0 py-0 text-[15px] shadow-none">
+                              <span className="truncate text-left">
+                                {field.value ? accountNameById.get(field.value) ?? field.value : t("placeholders.destinationAccount")}
+                              </span>
+                            </SelectTrigger>
+                            <SelectContent>
+                              {accounts.map((account) => <SelectItem key={account.id} value={account.id}>{account.name}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                      <FieldMessage error={form.formState.errors.destination_account_id} />
+                    </div>
+                  </PickerRow>
+                ) : null}
+              </FormBlock>
+
+              {supportsBatch ? (
+                <FormBlock>
+                  {fields.map((field, index) => (
+                    <PickerRow key={field.id}>
+                      <div className="grid grid-cols-[minmax(0,1fr)_88px_auto] items-center gap-3">
+                        <div className="min-w-0">
+                          {kind === "income" || kind === "expense" ? (
+                            <Controller
+                              control={form.control}
+                              name={`line_items.${index}.category_id`}
+                              render={({ field: itemField }) => (
+                                <Select value={toSelectValue(itemField.value)} onValueChange={itemField.onChange}>
+                                  <SelectTrigger className="h-auto w-full border-0 bg-transparent px-0 py-0 text-left text-[15px] shadow-none">
+                                    <span className="truncate">
+                                      {itemField.value ? categoryNameById.get(itemField.value) ?? itemField.value : t("placeholders.category")}
+                                    </span>
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {categoryOptions.map((category) => <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>)}
+                                  </SelectContent>
+                                </Select>
+                              )}
+                            />
+                          ) : (
+                            <Controller
+                              control={form.control}
+                              name={`line_items.${index}.allocation_id`}
+                              render={({ field: itemField }) => (
+                                <Select value={toSelectValue(itemField.value)} onValueChange={itemField.onChange}>
+                                  <SelectTrigger className="h-auto w-full border-0 bg-transparent px-0 py-0 text-left text-[15px] shadow-none">
+                                    <span className="truncate">
+                                      {itemField.value ? goalNameById.get(itemField.value) ?? itemField.value : t("placeholders.goal")}
+                                    </span>
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {goalOptions.map((allocation) => <SelectItem key={allocation.id} value={allocation.id}>{allocation.name}</SelectItem>)}
+                                  </SelectContent>
+                                </Select>
+                              )}
+                            />
+                          )}
+                        </div>
+
+                        <Controller
+                          control={form.control}
+                          name={`line_items.${index}.amount`}
+                          render={({ field: itemField }) => (
+                            <Input
+                              id={`transaction-line-amount-${index}`}
+                              type="number"
+                              step="0.01"
+                              className="h-auto border-0 bg-transparent px-0 py-0 text-right text-[15px] font-medium shadow-none"
+                              value={itemField.value ?? ""}
+                              onChange={(event) => itemField.onChange(event.target.value ? Number(event.target.value) : null)}
+                            />
+                          )}
+                        />
+
                         <Button
                           type="button"
                           variant="ghost"
                           size="icon-sm"
-                          className="text-[#dbecea] hover:bg-white/10 hover:text-white"
+                          className="text-muted-foreground hover:bg-muted hover:text-foreground"
                           onClick={() => remove(index)}
                           disabled={fields.length === 1}
                         >
                           <Trash2 className="size-4" />
                         </Button>
                       </div>
-                    </div>
-                    <FieldMessage error={form.formState.errors.line_items?.[index]?.category_id as FieldError | undefined} />
-                    <FieldMessage error={form.formState.errors.line_items?.[index]?.allocation_id as FieldError | undefined} />
-                    <FieldMessage error={form.formState.errors.line_items?.[index]?.amount as FieldError | undefined} />
-                  </div>
-                ))}
 
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#84a6a9]">{t("fields.total")}</p>
-                    <p className="text-lg font-semibold text-[#eef5f3]">{totalAmount.toFixed(2)}</p>
-                  </div>
-                  <Button type="button" variant="ghost" size="icon" className="border border-white/10 bg-white/6 text-[#dbecea] hover:bg-white/10 hover:text-white" onClick={() => append(createEmptyLineItem())}>
-                    <Plus className="size-4" />
-                  </Button>
-                </div>
-                <FieldMessage error={form.formState.errors.line_items as FieldError | undefined} />
-              </div>
-            ) : (
-              <>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Controller
-                    control={form.control}
-                    name="amount"
-                    render={({ field }) => (
-                      <>
-                        <NumericField id="transaction-amount" label={t("fields.amount")} value={field.value} onChange={(value) => field.onChange(value ?? 0)} />
-                        <FieldMessage error={form.formState.errors.amount} />
-                      </>
-                    )}
-                  />
+                      <div className="mt-1 grid grid-cols-[minmax(0,1fr)_88px_auto] gap-3">
+                        <Controller
+                          control={form.control}
+                          name={`line_items.${index}.note`}
+                          render={({ field: itemField }) => (
+                            <Input
+                              id={`transaction-line-note-${index}`}
+                              className="h-auto border-0 bg-transparent px-0 py-0 text-sm text-muted-foreground shadow-none"
+                              placeholder={t("placeholders.lineNote")}
+                              value={itemField.value}
+                              onChange={itemField.onChange}
+                            />
+                          )}
+                        />
+                        <div />
+                        <div />
+                      </div>
+
+                      <div className="mt-1 space-y-1">
+                        <FieldMessage error={form.formState.errors.line_items?.[index]?.category_id as FieldError | undefined} />
+                        <FieldMessage error={form.formState.errors.line_items?.[index]?.allocation_id as FieldError | undefined} />
+                        <FieldMessage error={form.formState.errors.line_items?.[index]?.amount as FieldError | undefined} />
+                        <FieldMessage error={form.formState.errors.line_items?.[index]?.note as FieldError | undefined} />
+                      </div>
+                    </PickerRow>
+                  ))}
+
+                  <RowShell label={t("fields.total")}>
+                    <div className="flex items-center gap-2">
+                      <div className="text-right text-[1.05rem] font-semibold">{totalAmount.toFixed(2)}</div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        className="text-muted-foreground hover:bg-muted hover:text-foreground"
+                        onClick={() => append(createEmptyLineItem())}
+                      >
+                        <Plus className="size-4" />
+                      </Button>
+                    </div>
+                  </RowShell>
+
+                  <FieldMessage error={form.formState.errors.line_items as FieldError | undefined} />
+                </FormBlock>
+              ) : (
+                <FormBlock>
+                  <RowShell label={t("fields.amount")}>
+                    <div className="flex flex-col items-end gap-1">
+                      <Controller
+                        control={form.control}
+                        name="amount"
+                        render={({ field }) => (
+                          <Input
+                            id="transaction-amount"
+                            type="number"
+                            step="0.01"
+                            className="h-auto w-[11rem] border-0 bg-transparent px-0 py-0 text-right text-[1.05rem] font-medium shadow-none"
+                            value={field.value ?? ""}
+                            onChange={(event) => field.onChange(event.target.value ? Number(event.target.value) : 0)}
+                          />
+                        )}
+                      />
+                      <FieldMessage error={form.formState.errors.amount} />
+                    </div>
+                  </RowShell>
 
                   {isMoveKind(kind) ? (
-                    <Controller
-                      control={form.control}
-                      name="destination_amount"
-                      render={({ field }) => (
-                        <>
-                          <NumericField
-                            id="transaction-destination-amount"
-                            label={t("fields.destinationAmount")}
-                            value={field.value}
-                            onChange={field.onChange}
-                          />
-                          <FieldMessage error={form.formState.errors.destination_amount} />
-                        </>
-                      )}
-                    />
+                    <RowShell label={t("fields.destinationAmount")}>
+                      <div className="flex flex-col items-end gap-1">
+                        <Controller
+                          control={form.control}
+                          name="destination_amount"
+                          render={({ field }) => (
+                            <Input
+                              id="transaction-destination-amount"
+                              type="number"
+                              step="0.01"
+                              className="h-auto w-[11rem] border-0 bg-transparent px-0 py-0 text-right text-[1.05rem] font-medium shadow-none"
+                              value={field.value ?? ""}
+                              onChange={(event) => field.onChange(event.target.value ? Number(event.target.value) : null)}
+                            />
+                          )}
+                        />
+                        <FieldMessage error={form.formState.errors.destination_amount} />
+                      </div>
+                    </RowShell>
                   ) : null}
-                </div>
 
-                {isMoveKind(kind) ? (
-                  <Controller
-                    control={form.control}
-                    name="fx_rate"
-                    render={({ field }) => (
-                      <>
-                        <NumericField id="transaction-fx-rate" label={t("fields.fxRate")} value={field.value} onChange={field.onChange} />
+                  {isMoveKind(kind) ? (
+                    <RowShell label={t("fields.fxRate")}>
+                      <div className="flex flex-col items-end gap-1">
+                        <Controller
+                          control={form.control}
+                          name="fx_rate"
+                          render={({ field }) => (
+                            <Input
+                              id="transaction-fx-rate"
+                              type="number"
+                              step="0.01"
+                              className="h-auto w-[8rem] border-0 bg-transparent px-0 py-0 text-right shadow-none"
+                              value={field.value ?? ""}
+                              onChange={(event) => field.onChange(event.target.value ? Number(event.target.value) : null)}
+                            />
+                          )}
+                        />
                         <FieldMessage error={form.formState.errors.fx_rate} />
-                      </>
-                    )}
-                  />
+                      </div>
+                    </RowShell>
+                  ) : null}
+
+                  {kind === "income" || kind === "expense" || kind === "debt_payment" ? (
+                    <PickerRow>
+                      <div className="flex flex-col gap-1">
+                        <Controller
+                          control={form.control}
+                          name="category_id"
+                          render={({ field }) => (
+                            <Select value={toSelectValue(field.value)} onValueChange={field.onChange}>
+                              <SelectTrigger className="h-auto w-full justify-start border-0 bg-transparent px-0 py-0 text-[15px] shadow-none">
+                                <span className="truncate text-left">
+                                  {field.value ? categoryNameById.get(field.value) ?? field.value : t("placeholders.category")}
+                                </span>
+                              </SelectTrigger>
+                              <SelectContent>
+                                {categoryOptions.map((category) => <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          )}
+                      />
+                      <FieldMessage error={form.formState.errors.category_id} />
+                    </div>
+                  </PickerRow>
                 ) : null}
 
-                {(kind === "income" || kind === "expense" || kind === "debt_payment") ? (
-                  <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium">{t("fields.category")}</label>
-                    <Controller
-                      control={form.control}
-                      name="category_id"
-                      render={({ field }) => (
-                        <Select value={field.value ?? undefined} onValueChange={field.onChange}>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder={t("placeholders.category")} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {categoryOptions.map((category) => (
-                              <SelectItem key={category.id} value={category.id}>
-                                {category.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
-                    />
-                    <FieldMessage error={form.formState.errors.category_id} />
-                  </div>
+                {kind === "save_to_goal" || kind === "spend_from_goal" ? (
+                  <PickerRow>
+                    <div className="flex flex-col gap-1">
+                      <Controller
+                        control={form.control}
+                        name="allocation_id"
+                          render={({ field }) => (
+                            <Select value={toSelectValue(field.value)} onValueChange={field.onChange}>
+                              <SelectTrigger className="h-auto w-full justify-start border-0 bg-transparent px-0 py-0 text-[15px] shadow-none">
+                                <span className="truncate text-left">
+                                  {field.value ? goalNameById.get(field.value) ?? field.value : t("placeholders.goal")}
+                                </span>
+                              </SelectTrigger>
+                              <SelectContent>
+                                {goalOptions.map((allocation) => <SelectItem key={allocation.id} value={allocation.id}>{allocation.name}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          )}
+                      />
+                      <FieldMessage error={form.formState.errors.allocation_id} />
+                    </div>
+                  </PickerRow>
                 ) : null}
 
-                {(kind === "save_to_goal" || kind === "spend_from_goal") ? (
-                  <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium">{t("fields.savingsGoal")}</label>
-                    <Controller
-                      control={form.control}
-                      name="allocation_id"
-                      render={({ field }) => (
-                        <Select value={field.value ?? undefined} onValueChange={field.onChange}>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder={t("placeholders.goal")} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {goalOptions.map((allocation) => (
-                              <SelectItem key={allocation.id} value={allocation.id}>
-                                {allocation.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
-                    />
-                    <FieldMessage error={form.formState.errors.allocation_id} />
-                  </div>
-                ) : null}
-              </>
-            )}
+                  {kind === "debt_payment" ? (
+                    <>
+                      <RowShell label={t("fields.principal")}>
+                        <Controller
+                          control={form.control}
+                          name="principal_amount"
+                          render={({ field }) => <Input id="transaction-principal" type="number" step="0.01" className="h-auto w-[8rem] border-0 bg-transparent px-0 py-0 text-right shadow-none" value={field.value ?? ""} onChange={(event) => field.onChange(event.target.value ? Number(event.target.value) : null)} />}
+                        />
+                      </RowShell>
+                      <RowShell label={t("fields.interest")}>
+                        <Controller
+                          control={form.control}
+                          name="interest_amount"
+                          render={({ field }) => <Input id="transaction-interest" type="number" step="0.01" className="h-auto w-[8rem] border-0 bg-transparent px-0 py-0 text-right shadow-none" value={field.value ?? ""} onChange={(event) => field.onChange(event.target.value ? Number(event.target.value) : null)} />}
+                        />
+                      </RowShell>
+                      <RowShell label={t("fields.extraPrincipal")}>
+                        <Controller
+                          control={form.control}
+                          name="extra_principal_amount"
+                          render={({ field }) => <Input id="transaction-extra-principal" type="number" step="0.01" className="h-auto w-[8rem] border-0 bg-transparent px-0 py-0 text-right shadow-none" value={field.value ?? ""} onChange={(event) => field.onChange(event.target.value ? Number(event.target.value) : null)} />}
+                        />
+                      </RowShell>
+                    </>
+                  ) : null}
 
-            {kind === "debt_payment" ? (
-              <div className="grid gap-4 sm:grid-cols-3">
-                <Controller
-                  control={form.control}
-                  name="principal_amount"
-                  render={({ field }) => (
-                    <>
-                      <NumericField id="transaction-principal" label={t("fields.principal")} value={field.value} onChange={field.onChange} />
-                      <FieldMessage error={form.formState.errors.principal_amount} />
-                    </>
-                  )}
-                />
-                <Controller
-                  control={form.control}
-                  name="interest_amount"
-                  render={({ field }) => (
-                    <>
-                      <NumericField id="transaction-interest" label={t("fields.interest")} value={field.value} onChange={field.onChange} />
-                      <FieldMessage error={form.formState.errors.interest_amount} />
-                    </>
-                  )}
-                />
-                <Controller
-                  control={form.control}
-                  name="extra_principal_amount"
-                  render={({ field }) => (
-                    <>
-                      <NumericField id="transaction-extra-principal" label={t("fields.extraPrincipal")} value={field.value} onChange={field.onChange} />
-                      <FieldMessage error={form.formState.errors.extra_principal_amount} />
-                    </>
-                  )}
-                />
-              </div>
-            ) : null}
-
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium" htmlFor="transaction-note">
-                {t("fields.note")}
-              </label>
-              <Input id="transaction-note" {...form.register("note")} />
-              <FieldMessage error={form.formState.errors.note} />
+                  <PickerRow>
+                    <Input id="transaction-note" className="w-full border-0 bg-transparent px-0 py-0 text-[15px] shadow-none" placeholder={t("placeholders.lineNote")} {...form.register("note")} />
+                  </PickerRow>
+                </FormBlock>
+              )}
             </div>
           </div>
-
-          <SheetFooter className="border-t border-white/10 p-3">
-            <p className="text-[11px] leading-4 text-[#739296]">{t("description")}</p>
-          </SheetFooter>
         </form>
       </SheetContent>
     </Sheet>

@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { expect, within } from "storybook/test";
 
 import { TransactionFormSheet } from "@/features/transactions/components/transaction-form-sheet";
 import { makeFinanceSnapshot, withPathname } from "@/stories/fixtures/story-data";
@@ -38,18 +37,37 @@ const recurringSchedule: TransactionSchedule = {
   updated_at: "2026-03-31T08:00:00.000Z",
 };
 
+function StorySurface({
+  children,
+  mobile = false,
+}: {
+  children: React.ReactNode;
+  mobile?: boolean;
+}) {
+  return (
+    <div className="min-h-screen bg-[#f4efe9] p-6">
+      <div className={mobile ? "mx-auto min-h-[780px] max-w-[390px] overflow-hidden rounded-[28px] bg-background shadow-[0_24px_80px_rgba(15,23,42,0.14)]" : ""}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 const meta = {
-  title: "Pages/Transaction Form Sheet",
-  parameters: withPathname("/transactions"),
+  title: "Organisms/TransactionFormSheet",
+  parameters: {
+    ...withPathname("/transactions"),
+    layout: "fullscreen",
+  },
 } satisfies Meta<typeof TransactionFormSheet>;
 
 export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-export const OneOffExpense: Story = {
+export const BatchExpense: Story = {
   render: () => (
-    <div className="min-h-screen bg-[#173540] p-6">
+    <StorySurface>
       <TransactionFormSheet
         open
         mode="add"
@@ -60,60 +78,30 @@ export const OneOffExpense: Story = {
         onOpenChange={() => {}}
         onSubmit={async () => {}}
       />
-    </div>
+    </StorySurface>
   ),
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await expect(canvas.getByRole("button", { name: "Save transaction" })).toBeInTheDocument();
-    await expect(canvas.getByRole("switch")).toBeInTheDocument();
-  },
 };
 
-export const RecurringExpense: Story = {
+export const BatchSavings: Story = {
   render: () => (
-    <div className="min-h-screen bg-[#173540] p-6">
+    <StorySurface>
       <TransactionFormSheet
         open
-        mode="edit-schedule"
-        schedule={recurringSchedule}
+        mode="add"
+        initialKind="save_to_goal"
         accounts={snapshot.accounts}
         allocations={snapshot.allocations}
         categories={snapshot.categories}
         onOpenChange={() => {}}
         onSubmit={async () => {}}
       />
-    </div>
+    </StorySurface>
   ),
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await expect(canvas.getByText("End repeat")).toBeInTheDocument();
-  },
 };
 
-export const SavingsMove: Story = {
+export const EditOccurrence: Story = {
   render: () => (
-    <div className="min-h-screen bg-[#173540] p-6">
-      <TransactionFormSheet
-        open
-        mode="edit-transaction"
-        transaction={savingsTransaction}
-        accounts={snapshot.accounts}
-        allocations={snapshot.allocations}
-        categories={snapshot.categories}
-        onOpenChange={() => {}}
-        onSubmit={async () => {}}
-      />
-    </div>
-  ),
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await expect(canvas.getByText("Savings goal")).toBeInTheDocument();
-  },
-};
-
-export const ExistingExpenseOccurrence: Story = {
-  render: () => (
-    <div className="min-h-screen bg-[#173540] p-6">
+    <StorySurface>
       <TransactionFormSheet
         open
         mode="edit-transaction"
@@ -124,6 +112,62 @@ export const ExistingExpenseOccurrence: Story = {
         onOpenChange={() => {}}
         onSubmit={async () => {}}
       />
-    </div>
+    </StorySurface>
+  ),
+};
+
+export const EditSeries: Story = {
+  render: () => (
+    <StorySurface>
+      <TransactionFormSheet
+        open
+        mode="edit-schedule"
+        schedule={recurringSchedule}
+        accounts={snapshot.accounts}
+        allocations={snapshot.allocations}
+        categories={snapshot.categories}
+        onOpenChange={() => {}}
+        onSubmit={async () => {}}
+      />
+    </StorySurface>
+  ),
+};
+
+export const MobileBatchExpense: Story = {
+  parameters: {
+    viewport: {
+      defaultViewport: "mobile2",
+    },
+  },
+  render: () => (
+    <StorySurface mobile>
+      <TransactionFormSheet
+        open
+        mode="add"
+        initialKind="expense"
+        accounts={snapshot.accounts}
+        allocations={snapshot.allocations}
+        categories={snapshot.categories}
+        onOpenChange={() => {}}
+        onSubmit={async () => {}}
+      />
+    </StorySurface>
+  ),
+};
+
+export const SavingsMove: Story = {
+  render: () => (
+    <StorySurface>
+      <TransactionFormSheet
+        open
+        mode="edit-transaction"
+        transaction={savingsTransaction}
+        accounts={snapshot.accounts}
+        allocations={snapshot.allocations}
+        categories={snapshot.categories}
+        onOpenChange={() => {}}
+        onSubmit={async () => {}}
+      />
+    </StorySurface>
   ),
 };

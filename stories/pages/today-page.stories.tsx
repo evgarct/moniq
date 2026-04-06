@@ -10,12 +10,15 @@ const meta = {
   title: "Pages/Today",
   render: () => (
     <StoryWorkspace pathname="/today">
-      <div className="h-full p-6">
+      <div className="h-full">
         <TodayView snapshot={snapshot} />
       </div>
     </StoryWorkspace>
   ),
-  parameters: withPathname("/today"),
+  parameters: {
+    ...withPathname("/today"),
+    layout: "fullscreen",
+  },
 } satisfies Meta;
 
 export default meta;

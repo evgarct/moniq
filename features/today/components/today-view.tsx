@@ -173,7 +173,6 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
                   emptyMessage={selectedDate ? t("board.selectedEmpty") : t("board.empty")}
                   renderAction={(transaction) => (
                     <TransactionRowActions
-                      compact
                       transaction={transaction}
                       onEditOccurrence={(selectedTransaction) => {
                         setSheetMode("edit-transaction");

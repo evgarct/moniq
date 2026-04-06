@@ -1,11 +1,21 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { endOfMonth, format, startOfMonth } from "date-fns";
 import { expect, within } from "storybook/test";
+import { BanknoteArrowDown, CreditCard, Landmark, PiggyBank } from "lucide-react";
 
 import { AccountList } from "@/components/account-list";
 import { Surface } from "@/components/surface";
+import { BalanceRegisterPanel } from "@/features/accounts/components/balance-register-panel";
 import { makeFinanceSnapshot, StoryWorkspace, withPathname } from "@/stories/fixtures/story-data";
 
 const snapshot = makeFinanceSnapshot();
+const creditCard = snapshot.accounts.find((account) => account.id === "travel-credit") ?? snapshot.accounts[0];
+const travelGoal = snapshot.allocations.find((allocation) => allocation.id === "travel") ?? snapshot.allocations[0];
+const creditRegister = snapshot.transactions.filter(
+  (transaction) => transaction.source_account?.id === creditCard.id || transaction.destination_account?.id === creditCard.id,
+);
+const defaultStartDate = format(startOfMonth(new Date()), "yyyy-MM-dd");
+const defaultEndDate = format(endOfMonth(new Date()), "yyyy-MM-dd");
 
 function PrincipleBlock({
   title,
@@ -18,6 +28,21 @@ function PrincipleBlock({
     <div className="radius-surface bg-background/80 p-4">
       <p className="type-h5">{title}</p>
       <p className="type-body-14 mt-2 text-muted-foreground">{body}</p>
+    </div>
+  );
+}
+
+function IconReference({
+  icon: Icon,
+  label,
+}: {
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  label: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 px-1">
+      <Icon className="h-[18px] w-[18px] text-muted-foreground" strokeWidth={1.75} />
+      <span className="type-body-13 text-foreground">{label}</span>
     </div>
   );
 }
@@ -53,9 +78,28 @@ const meta = {
                 body="Savings subgroups are lightweight children without filled background states. Credit cards may add one thin track, but they still inherit the base row structure."
               />
               <PrincipleBlock
+                title="Icon language"
+                body="Account icons stay as plain inline outline marks. They support recognition, but never turn into bordered chips or filled badges."
+              />
+              <PrincipleBlock
                 title="Mobile follow-up"
                 body="On mobile, Balance shows the inventory panel first. Register activity opens as a full-screen follow-up surface with a back action."
               />
+            </div>
+          </div>
+        </Surface>
+
+        <Surface tone="panel" padding="md" className="border border-black/5">
+          <div className="space-y-4">
+            <div className="px-1.5">
+              <p className="type-body-12 text-muted-foreground">Canonical Icon Set</p>
+              <h2 className="type-h3">Account panel icons</h2>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <IconReference icon={BanknoteArrowDown} label="Cash" />
+              <IconReference icon={PiggyBank} label="Saving" />
+              <IconReference icon={CreditCard} label="Credit card" />
+              <IconReference icon={Landmark} label="Debt" />
             </div>
           </div>
         </Surface>
@@ -78,25 +122,18 @@ const meta = {
             </div>
           </Surface>
 
-          <Surface tone="panel" padding="lg" className="border border-black/5">
-            <div className="grid gap-4 md:grid-cols-2">
-              <PrincipleBlock
-                title="Savings track rule"
-                body="Savings subgroup tracks start on the same vertical axis as the subgroup label. They do not inherit card hover fills."
-              />
-              <PrincipleBlock
-                title="Credit card rule"
-                body="The thin credit-card track equals the full limit; the filled portion equals available money to spend. Debt appears once in the main row."
-              />
-              <PrincipleBlock
-                title="Header controls"
-                body="Title, info trigger, and icon controls are compact and aligned. Header controls follow the same quiet neutral state language as the rows below."
-              />
-              <PrincipleBlock
-                title="Sidebar consistency"
-                body="Primary navigation and profile entry use the same icon size, radius, tooltip scale, and active-state language."
-              />
-            </div>
+          <Surface tone="panel" padding="none" className="overflow-hidden border border-black/5">
+            <BalanceRegisterPanel
+              selectedAccount={creditCard}
+              selectedAllocation={travelGoal}
+              transactions={creditRegister}
+            showMinorUnits={false}
+            startDate={defaultStartDate}
+            endDate={defaultEndDate}
+            defaultStartDate={defaultStartDate}
+            onStartDateChange={() => undefined}
+            onEndDateChange={() => undefined}
+          />
           </Surface>
         </div>
       </div>
@@ -115,5 +152,6 @@ export const Reference: Story = {
     await expect(canvas.getByText("Balance Panel Contract")).toBeInTheDocument();
     await expect(canvas.getByText("Canonical Left Panel")).toBeInTheDocument();
     await expect(canvas.getByText("Travel Credit Card")).toBeInTheDocument();
+    await expect(canvas.getByText("Show all wallets")).toBeInTheDocument();
   },
 };

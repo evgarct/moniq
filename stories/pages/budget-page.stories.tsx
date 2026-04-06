@@ -10,12 +10,15 @@ const meta = {
   title: "Pages/Budget",
   render: () => (
     <StoryWorkspace pathname="/budget">
-      <div className="h-full p-6">
+      <div className="h-full">
         <BudgetView snapshot={snapshot} />
       </div>
     </StoryWorkspace>
   ),
-  parameters: withPathname("/budget"),
+  parameters: {
+    ...withPathname("/budget"),
+    layout: "fullscreen",
+  },
 } satisfies Meta;
 
 export default meta;

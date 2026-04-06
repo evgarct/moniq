@@ -64,7 +64,12 @@ const meta = {
         </div>
 
         <div className="min-h-0 flex-1 overflow-hidden rounded-[28px] border border-black/8 bg-[#f7f3ef] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
-          <AccountsView accounts={snapshot.accounts} allocations={snapshot.allocations} transactions={snapshot.transactions} />
+          <AccountsView
+            accounts={snapshot.accounts}
+            allocations={snapshot.allocations}
+            categories={snapshot.categories}
+            transactions={snapshot.transactions}
+          />
         </div>
       </div>
     </StoryWorkspace>

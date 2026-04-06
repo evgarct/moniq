@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, fn, userEvent, within } from "storybook/test";
 
 import { AccountCard } from "@/components/account-card";
-import { makeFinanceSnapshot } from "@/stories/fixtures/story-data";
+import { StoryDemoFrame, makeFinanceSnapshot } from "@/stories/fixtures/story-data";
 
 const snapshot = makeFinanceSnapshot();
 
@@ -18,9 +18,9 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <div className="w-[320px] rounded-3xl bg-[#f3efeb] p-3">
+      <StoryDemoFrame width="max-w-[320px]">
         <Story />
-      </div>
+      </StoryDemoFrame>
     ),
   ],
 } satisfies Meta<typeof AccountCard>;

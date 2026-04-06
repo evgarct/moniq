@@ -29,11 +29,11 @@ export function StoryWorkspace({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen w-screen bg-[#ece8e4]">
+    <div className="min-h-screen w-full overflow-x-hidden bg-[#ece8e4]">
       <div className="min-h-screen w-full lg:grid lg:grid-cols-[76px_minmax(0,1fr)]">
         <AppSidebar user={storyUser} onSignOut={noopAsyncAction} />
         <div className="min-w-0 bg-[#fbf8f4]">
-          <main className="min-h-screen overflow-y-scroll overflow-x-hidden pb-[64px] lg:pb-0">
+          <main className="min-h-screen overflow-x-hidden pb-[64px] lg:pb-0">
             <div data-pathname={pathname} className="min-h-screen">
               {children}
             </div>
@@ -52,6 +52,16 @@ export function withPathname(pathname: string) {
       },
     },
   };
+}
+
+export function StoryDemoFrame({
+  children,
+  width = "max-w-4xl",
+}: {
+  children: React.ReactNode;
+  width?: string;
+}) {
+  return <div className={`${width} rounded-xl bg-white p-4`}>{children}</div>;
 }
 
 export async function expectHeading(canvasElement: HTMLElement, text: string) {

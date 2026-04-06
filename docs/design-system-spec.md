@@ -91,6 +91,20 @@ Rules:
 - `floating` is reserved for popovers, sheets, and floating overlays
 - avoid round or pill-shaped controls unless the component meaning explicitly requires it
 
+### Spacing Grid
+
+Spacing uses a constrained grid:
+
+- 8px is the default system step for layout, section rhythm, and component padding
+- 4px is the compact step for dense internal spacing inside rows, labels, and tight control groupings
+
+Rules:
+
+- prefer values that resolve to 4px or 8px multiples
+- use 8px steps for page and section composition first
+- use 4px steps only when a surface is intentionally dense
+- do not introduce arbitrary spacing values when a nearby 4px/8px step can solve the same problem
+
 ### Surface Model
 
 Canonical surface levels:
@@ -202,6 +216,7 @@ Rules:
 - align labels and numeric values aggressively
 - avoid decorative container nesting inside rows
 - state indicators should clarify, not compete with the amount
+- row density should use the 8px/4px grid, not one-off vertical nudges
 
 ### Navigation
 
@@ -212,6 +227,10 @@ Rules:
 - sidebar remains visually quieter than main content
 - active state should be obvious but restrained
 - icons support recognition and should not become visual noise
+- account inventory icons must stay as simple inline outline marks, not chip objects
+- do not place account or transaction icons inside bordered or filled containers in content surfaces unless the screen contract explicitly requires it
+- canonical balance-panel account icons are: `cash -> BanknoteArrowDown`, `saving -> PiggyBank`, `credit_card -> CreditCard`, `debt -> Landmark`
+- account icons use one visual treatment only: muted foreground, `18px` on desktop, `16px` on mobile, `strokeWidth={1.75}`
 
 ## Balance Panel Contract
 
@@ -260,6 +279,32 @@ The left panel of Balance is a canonical product pattern. Future finance invento
 - transaction activity is hidden by default on mobile
 - tapping an account or savings subgroup opens a full-screen follow-up surface with a back action
 - do not render the desktop split-view register permanently on mobile
+
+### Mobile Typography and Density
+
+- mobile ledger surfaces use one step smaller typography than desktop by default
+- page titles, section headings, and row paddings should be reduced before introducing vertical scroll
+- date labels inside grouped transaction lists must stay quiet and compact
+- on mobile, transaction rows should prioritize title, kind/context, and amount in that order
+
+## Balance Register Panel Contract
+
+The right panel of Balance is the canonical transaction-ledger pattern for account-scoped activity.
+
+### Register Hierarchy
+
+- the register is a ledger surface, not a mirrored second dashboard
+- the top section is minimal: selected balance-space title first, optional reset action second
+- do not add explanatory eyebrow, meta copy, or summary cards by default
+- a selected state may expose one quiet reset action to return to the full ledger
+
+### Ledger Body
+
+- the header should hand off directly into the transaction list
+- the list below should be denser than the inventory panel and optimized for scan speed
+- transaction rows in the register should inherit the product row language and avoid accent-heavy states
+- empty states should explain the current scope in plain language, not generic placeholders
+- grouped ledger lists should use one date label per day; rows inside a date group rely on spacing rhythm, not divider borders
 
 ## Implementation Rules
 

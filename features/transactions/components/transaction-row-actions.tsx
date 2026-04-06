@@ -16,7 +16,6 @@ import type { Transaction } from "@/types/finance";
 
 export function TransactionRowActions({
   transaction,
-  compact = false,
   variant = "default",
   onEditOccurrence,
   onEditSeries,
@@ -27,7 +26,6 @@ export function TransactionRowActions({
   onToggleScheduleState,
 }: {
   transaction: Transaction;
-  compact?: boolean;
   variant?: "default" | "board";
   onEditOccurrence: (transaction: Transaction) => void;
   onEditSeries: (transaction: Transaction) => void;
@@ -46,18 +44,6 @@ export function TransactionRowActions({
 
   return (
     <div className="flex items-center gap-2">
-      {compact && canMarkPaid ? (
-        <Button
-          variant={variant === "board" ? "ghost" : "outline"}
-          size="sm"
-          className={variant === "board" ? "h-8 rounded-md border border-white/12 bg-white/4 px-2 text-[#d4e9e5] hover:bg-white/10 hover:text-white" : undefined}
-          onClick={() => onMarkPaid(transaction)}
-        >
-          <CheckCircle2 data-icon="inline-start" />
-          {t("markPaid")}
-        </Button>
-      ) : null}
-
       <DropdownMenu>
         <DropdownMenuTrigger
           render={
@@ -73,7 +59,7 @@ export function TransactionRowActions({
         />
         <DropdownMenuContent align="end" className="w-56 rounded-xl">
           <DropdownMenuGroup>
-            {!compact && canMarkPaid ? (
+            {canMarkPaid ? (
               <DropdownMenuItem onClick={() => onMarkPaid(transaction)}>
                 <CheckCircle2 />
                 {t("markPaid")}
