@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { getLocale, getTranslations } from "next-intl/server";
 
+import { stripLocaleFromPathname } from "@/i18n/locale";
 import { createClient } from "@/lib/supabase/server";
 import { getPathname, redirect } from "@/i18n/navigation";
 
@@ -71,7 +72,9 @@ function getRedirectPath(formData: FormData) {
   const next = String(formData.get("next") ?? "").trim();
 
   if (next.startsWith("/") && !next.startsWith("//")) {
-    return next;
+    const url = new URL(next, "http://localhost");
+    const pathname = stripLocaleFromPathname(url.pathname);
+    return `${pathname}${url.search}${url.hash}`;
   }
 
   return "/today";

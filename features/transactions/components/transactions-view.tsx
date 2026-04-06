@@ -28,7 +28,21 @@ import type { CategoryInput } from "@/types/finance-schemas";
 import { useFinanceData } from "@/features/finance/hooks/use-finance-data";
 import { useRouter } from "@/i18n/navigation";
 
-export function TransactionsView() {
+const emptySnapshot: FinanceSnapshot = {
+  accounts: [],
+  allocations: [],
+  categories: [],
+  schedules: [],
+  transactions: [],
+};
+
+export function TransactionsView({
+  snapshot: snapshotProp,
+  basePath = "/transactions",
+}: {
+  snapshot?: FinanceSnapshot;
+  basePath?: "/transactions" | "/budget";
+}) {
   const tr = useTranslations();
   const t = useTranslations("transactions");
   const categoriesT = useTranslations("categories.view");
@@ -36,7 +50,7 @@ export function TransactionsView() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const { data } = useFinanceData();
-  const snapshot = data ?? { accounts: [], allocations: [], categories: [], schedules: [], transactions: [] };
+  const snapshot = snapshotProp ?? data ?? emptySnapshot;
   const transactionActions = useTransactionActions();
   const [actionError, setActionError] = useState<string | null>(null);
   const [categorySheetOpen, setCategorySheetOpen] = useState(false);
@@ -305,7 +319,7 @@ export function TransactionsView() {
           setTransactionSheetOpen(open);
 
           if (!open && shouldOpenNewTransaction) {
-            router.replace("/transactions");
+            router.replace(basePath);
           }
         }}
         onSubmit={async (payload: TransactionFormSubmitPayload) => {
@@ -334,7 +348,7 @@ export function TransactionsView() {
           }
 
           if (shouldOpenNewTransaction) {
-            router.replace("/transactions");
+            router.replace(basePath);
           }
         }}
       />

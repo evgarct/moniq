@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/empty-state";
 import { PageContainer } from "@/components/page-container";
 import { BudgetView } from "@/features/budget/components/budget-view";
 import { useFinanceData } from "@/features/finance/hooks/use-finance-data";
+import { TransactionsView } from "@/features/transactions/components/transactions-view";
 
 export default function BudgetPage() {
   const t = useTranslations("budget");
@@ -31,8 +32,12 @@ export default function BudgetPage() {
   }
 
   return (
-    <PageContainer>
+    <PageContainer className="flex flex-col gap-6">
       <BudgetView snapshot={data ?? { accounts: [], allocations: [], categories: [], schedules: [], transactions: [] }} />
+      <TransactionsView
+        snapshot={data ?? { accounts: [], allocations: [], categories: [], schedules: [], transactions: [] }}
+        basePath="/budget"
+      />
     </PageContainer>
   );
 }
