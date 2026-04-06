@@ -1,38 +1,32 @@
-"use client";
+import { getLocale } from "next-intl/server";
 
-import { useTranslations } from "next-intl";
+import { redirect } from "@/i18n/navigation";
 
-import { EmptyState } from "@/components/empty-state";
-import { PageContainer } from "@/components/page-container";
-import { useFinanceData } from "@/features/finance/hooks/use-finance-data";
-import { TransactionsView } from "@/features/transactions/components/transactions-view";
+type TransactionsPageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
 
-export default function TransactionsPage() {
-  const t = useTranslations("transactions");
-  const { error, isLoading } = useFinanceData();
+export default async function TransactionsPage({ searchParams }: TransactionsPageProps) {
+  const locale = await getLocale();
+  const nextSearchParams = searchParams ? await searchParams : {};
+  const query: Record<string, string | string[]> = {};
 
-  if (isLoading) {
-    return (
-      <PageContainer>
-        <EmptyState title={t("loading.title")} description={t("loading.description")} />
-      </PageContainer>
-    );
+  for (const [key, value] of Object.entries(nextSearchParams)) {
+    if (typeof value === "string" && value.length > 0) {
+      query[key] = value;
+      continue;
+    }
+
+    if (Array.isArray(value) && value.length > 0) {
+      query[key] = value;
+    }
   }
 
-  if (error) {
-    return (
-      <PageContainer>
-        <EmptyState
-          title={t("error.title")}
-          description={error instanceof Error ? error.message : t("error.description")}
-        />
-      </PageContainer>
-    );
-  }
-
-  return (
-    <PageContainer>
-      <TransactionsView />
-    </PageContainer>
-  );
+  return redirect({
+    href: {
+      pathname: "/budget",
+      query,
+    },
+    locale,
+  });
 }
