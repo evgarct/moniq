@@ -315,6 +315,7 @@ export function TransactionsView({
         accounts={snapshot.accounts}
         allocations={snapshot.allocations}
         categories={flatCategoryTree}
+        transactions={snapshot.transactions}
         onOpenChange={(open) => {
           setTransactionSheetOpen(open);
 
