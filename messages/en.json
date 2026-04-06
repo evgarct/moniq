@@ -14,6 +14,8 @@
       "cancel": "Cancel",
       "close": "Close",
       "settings": "Settings",
+      "previous": "Previous",
+      "next": "Next",
       "today": "Today",
       "showAll": "Show all"
     },
@@ -246,7 +248,7 @@
     "view": {
       "eyebrow": "Balance workspace",
       "title": "Balance",
-      "description": "Track settled money across wallets and savings spaces. Pick a wallet when you want a narrower register.",
+      "description": "Track money across wallets and savings spaces. Pick a wallet when you want a narrower transaction list.",
       "editModeDescription": "Add, rename, and remove wallets in place. Every group stays visible so new accounts can be created exactly where they belong.",
       "manageWallets": "Manage wallets",
       "finishWalletEditing": "Done",
@@ -257,12 +259,32 @@
       "addWallet": "Add wallet",
       "emptyHint": "No wallets yet. Turn on wallet management to start building your balance spaces.",
       "emptyEditHint": "Choose a group and use the plus control there to create the first wallet.",
-      "activity": "Activity",
-      "registerEyebrow": "Settled register",
-      "selectedActivityDescription": "Completed transactions for the selected wallet.",
-      "selectedGoalActivityDescription": "Completed transactions for the selected savings goal.",
-      "allActivityDescription": "All completed transactions across your balance spaces.",
+      "activity": "Transactions",
+      "registerEyebrow": "Transactions",
+      "selectedActivityDescription": "Transactions for the selected wallet.",
+      "selectedGoalActivityDescription": "Transactions for the selected savings goal.",
+      "allActivityDescription": "All transactions across your balance spaces.",
       "showAllWallets": "Show all wallets",
+      "backToBalance": "Back to balance",
+      "dateRange": "Date range",
+      "anyDate": "This month",
+      "currentMonth": "Current month",
+      "compare": "Compare",
+      "dateFrom": "From",
+      "dateTo": "To",
+      "presets": {
+        "today": "Today",
+        "yesterday": "Yesterday",
+        "last7Days": "Last 7 days",
+        "last14Days": "Last 14 days",
+        "last30Days": "Last 30 days",
+        "thisWeek": "This week",
+        "lastWeek": "Last week",
+        "thisMonth": "This month",
+        "lastMonth": "Last month"
+      },
+      "clearDateFilter": "Clear date filter",
+      "transactionsSectionTitle": "Transactions",
       "noBalanceSpacesTitle": "No balance spaces yet",
       "noBalanceSpacesDescription": "Create your first wallet to start organizing real balances in Supabase."
     },
@@ -489,6 +511,7 @@
       "editTitle": "Edit transaction",
       "editSeriesTitle": "Edit recurring series",
       "description": "Use one form for income, expenses, transfers, savings moves, and debt payments.",
+      "batchDescription": "Keep the date and account fixed, then enter multiple rows in one pass.",
       "fields": {
         "title": "Title",
         "entryType": "Entry type",
@@ -510,8 +533,15 @@
         "interest": "Interest",
         "extraPrincipal": "Extra principal",
         "note": "Note",
+        "lineNote": "Line note",
         "recurrenceFrequency": "Repeat",
-        "recurrenceUntil": "End repeat"
+        "recurrenceUntil": "End repeat",
+        "shared": "Shared details",
+        "accounts": "Accounts",
+        "entries": "Entries",
+        "row": "Row",
+        "details": "Transaction details",
+        "additional": "Additional details"
       },
       "entryTypes": {
         "oneOff": "One-time",
@@ -540,7 +570,15 @@
         "sourceAccount": "Choose source account",
         "destinationAccount": "Choose destination account",
         "category": "Choose category",
-        "goal": "Choose savings goal"
+        "goal": "Choose savings goal",
+        "lineNote": "Optional note"
+      },
+      "actions": {
+        "addRow": "Add row"
+      },
+      "footer": {
+        "batchSummary": "{count, plural, one {# row ready to save.} other {# rows ready to save.}}",
+        "singleSummary": "Review the details and save when ready."
       },
       "submit": {
         "add": "Save transaction",
@@ -588,7 +626,8 @@
       "unlinkedAccount": "Unlinked account",
       "savingsGoal": "Savings goal",
       "uncategorized": "Uncategorized",
-      "recurring": "Recurring"
+      "recurring": "Recurring",
+      "goodMove": "You earned it"
     }
   }
 }

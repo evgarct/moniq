@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { fn } from "storybook/test";
 
 import { TransactionRowActions } from "@/features/transactions/components/transaction-row-actions";
-import { makeFinanceSnapshot, StoryWorkspace } from "@/stories/fixtures/story-data";
+import { StoryDemoFrame, makeFinanceSnapshot } from "@/stories/fixtures/story-data";
 
 const snapshot = makeFinanceSnapshot();
 const regularTransaction = snapshot.transactions.find((transaction) => !transaction.schedule_id) ?? snapshot.transactions[0];
@@ -41,7 +41,7 @@ const recurringTransaction = {
 };
 
 const meta = {
-  title: "Transactions/TransactionRowActions",
+  title: "Molecules/TransactionRowActions",
   component: TransactionRowActions,
   args: {
     transaction: recurringTransaction,
@@ -55,11 +55,11 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <StoryWorkspace pathname="/transactions">
-        <div className="flex justify-end p-8">
+      <StoryDemoFrame width="max-w-3xl">
+        <div className="flex justify-end">
           <Story />
         </div>
-      </StoryWorkspace>
+      </StoryDemoFrame>
     ),
   ],
 } satisfies Meta<typeof TransactionRowActions>;
@@ -71,16 +71,16 @@ type Story = StoryObj<typeof meta>;
 export const RecurringPlanned: Story = {};
 
 export const OneOffCompact: Story = {
+  name: "One Off",
   args: {
     transaction: regularTransaction,
-    compact: true,
   },
 };
 
 export const BoardCompact: Story = {
+  name: "Board",
   args: {
     transaction: recurringTransaction,
-    compact: true,
     variant: "board",
   },
 };

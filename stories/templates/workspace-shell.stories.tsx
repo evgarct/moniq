@@ -1,34 +1,37 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, within } from "storybook/test";
 
-import { AccountsView } from "@/features/accounts/components/accounts-view";
-import { makeFinanceSnapshot, StoryWorkspace, withPathname } from "@/stories/fixtures/story-data";
-
-const snapshot = makeFinanceSnapshot();
+import { StoryWorkspace, withPathname } from "@/stories/fixtures/story-data";
 
 const meta = {
   title: "Templates/WorkspaceShell",
   render: () => (
-    <StoryWorkspace pathname="/accounts">
-      <div className="h-full p-6">
-        <AccountsView
-          accounts={snapshot.accounts}
-          allocations={snapshot.allocations}
-          transactions={snapshot.transactions}
-        />
+    <StoryWorkspace pathname="/today">
+      <div className="min-h-screen p-6">
+        <div className="rounded-xl bg-[#fbf8f4] p-6">
+          <p className="type-body-12 text-muted-foreground">Workspace shell</p>
+          <h1 className="type-h2 mt-2">Content slot</h1>
+          <p className="type-body-14 mt-2 text-muted-foreground">
+            Use this template for full-page stories that need the real app navigation and page canvas.
+          </p>
+        </div>
       </div>
     </StoryWorkspace>
   ),
-  parameters: withPathname("/accounts"),
+  parameters: {
+    ...withPathname("/today"),
+    layout: "fullscreen",
+  },
 } satisfies Meta;
 
 export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-export const AccountsShell: Story = {
+export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText("Organization Settings")).toBeInTheDocument();
+    await expect(canvas.getByText("Workspace shell")).toBeInTheDocument();
+    await expect(canvas.getByText("Content slot")).toBeInTheDocument();
   },
 };

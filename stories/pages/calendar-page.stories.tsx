@@ -13,7 +13,10 @@ const meta = {
       <CalendarView snapshot={snapshot} />
     </div>
   ),
-  parameters: withPathname("/calendar"),
+  parameters: {
+    ...withPathname("/calendar"),
+    layout: "fullscreen",
+  },
 } satisfies Meta;
 
 export default meta;

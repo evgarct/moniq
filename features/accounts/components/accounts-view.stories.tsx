@@ -7,16 +7,20 @@ import { makeFinanceSnapshot } from "@/stories/fixtures/story-data";
 const snapshot = makeFinanceSnapshot();
 
 const meta = {
-  title: "Templates/BalanceView",
+  title: "Templates/BalanceWorkspace",
   component: AccountsView,
   args: {
     accounts: snapshot.accounts,
     allocations: snapshot.allocations,
+    categories: snapshot.categories,
     transactions: snapshot.transactions,
+  },
+  parameters: {
+    layout: "fullscreen",
   },
   decorators: [
     (Story) => (
-      <div className="h-screen overflow-hidden bg-[#fbf8f4] p-6">
+      <div className="min-h-screen bg-[#fbf8f4]">
         <Story />
       </div>
     ),
@@ -28,9 +32,15 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
+  args: {
+    accounts: snapshot.accounts,
+    allocations: snapshot.allocations,
+    categories: snapshot.categories,
+    transactions: snapshot.transactions,
+  },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("Balance")).toBeInTheDocument();
-    await expect(canvas.getByText("Activity")).toBeInTheDocument();
+    await expect(canvas.getByText("Transactions")).toBeInTheDocument();
   },
 };

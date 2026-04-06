@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { Surface } from "@/components/surface";
+import { StoryDemoFrame } from "@/stories/fixtures/story-data";
 
 const meta = {
   title: "Atoms/Surface",
@@ -17,9 +18,9 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <div className="w-[360px] bg-[#fbf8f4] p-6">
+      <StoryDemoFrame width="max-w-[360px]">
         <Story />
-      </div>
+      </StoryDemoFrame>
     ),
   ],
 } satisfies Meta<typeof Surface>;

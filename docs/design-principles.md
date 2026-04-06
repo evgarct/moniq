@@ -45,6 +45,15 @@ Moniq should feel closer to a native desktop finance tool than a generic respons
 - Dense information is acceptable if alignment and rhythm remain disciplined.
 - Rows and panels should support scanning before embellishment.
 
+### 3a. Spacing Uses A Real Grid
+
+Moniq should not drift into arbitrary spacing.
+
+- Primary layout spacing uses an 8px grid.
+- Compact internal rhythm may use 4px steps.
+- Avoid ad-hoc values like 6px, 10px, 14px, or 1px-driven layout rhythm unless the value is solving a real alignment bug.
+- When tightening a component, reduce spacing by one grid step, not by random nudges.
+
 ### 4. One Canonical Shell
 
 The shell is not negotiable per page.
@@ -87,12 +96,17 @@ Balance is the anchor workspace.
 Balance is also the canonical reference for list density, account grouping, and account-state behavior across the app.
 
 - The left panel is an inventory surface, not a dashboard card stack.
+- The right panel is a ledger surface, not a second dashboard or a loose stack of stat cards.
 - Header controls stay compact, icon-led, and typographically aligned with the page title.
+- Icons inside content surfaces should stay quiet and inline. Do not wrap them in pills, chips, bordered badges, or decorative containers unless the pattern is explicitly canonical for that surface.
 - Group spacing must be larger than item spacing so sections read before rows.
 - Account rows stay quiet: no heavy borders, no decorative chips, and no duplicated metadata.
 - Savings subgroups behave like lightweight ledger children, not like nested cards.
 - Credit cards may extend the base row with one thin utilization track, but the base account-row pattern still wins.
+- The register header stays minimal: just the current scope title and, when needed, one quiet clear-selection action.
+- The transaction ledger itself should feel denser and more operational than the inventory panel beside it.
 - On mobile, the account panel remains the primary screen and transaction activity opens as a full-screen follow-up surface.
+- On mobile, ledger typography and spacing step down one level before scroll is accepted as necessary.
 
 ### Today
 

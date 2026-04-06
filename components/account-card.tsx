@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { AccountAmount } from "@/components/account-amount";
 import { ProgressTrack } from "@/components/progress-track";
 import { Button } from "@/components/ui/button";
+import { InlineIcon } from "@/components/ui/inline-icon";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -86,10 +87,7 @@ export function AccountCard({
             <>
               <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(120px,auto)] items-start gap-1.5 sm:gap-2">
                 <div className="flex min-w-0 items-center gap-2 sm:gap-2.5">
-                  <AccountIcon
-                    className={cn("size-4 shrink-0 sm:size-[18px]", selected ? "text-foreground" : "text-muted-foreground")}
-                    strokeWidth={1.75}
-                  />
+                  <InlineIcon icon={AccountIcon} iconClassName={selected ? "text-foreground" : "text-muted-foreground"} />
                   <div className="min-w-0">
                     <p className="truncate text-[13px] leading-[18px] font-medium tracking-[0.01em] text-foreground sm:type-h6">{account.name}</p>
                   </div>
@@ -128,10 +126,7 @@ export function AccountCard({
           ) : (
             <>
               <div className="flex min-w-0 items-center gap-2 sm:gap-2.5">
-                <AccountIcon
-                  className={cn("size-4 shrink-0 sm:size-[18px]", selected ? "text-foreground" : "text-muted-foreground")}
-                  strokeWidth={1.75}
-                />
+                <InlineIcon icon={AccountIcon} iconClassName={selected ? "text-foreground" : "text-muted-foreground"} />
                 <div className="min-w-0">
                   <p className="truncate text-[13px] leading-[18px] font-medium tracking-[0.01em] text-foreground sm:type-h6">{account.name}</p>
                   {detailLabel ? <p className="type-body-12 truncate">{detailLabel}</p> : null}
