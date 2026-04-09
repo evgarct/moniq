@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, within } from "storybook/test";
 
+import { PageContainer } from "@/components/page-container";
 import { BudgetView } from "@/features/budget/components/budget-view";
 import { TransactionsView } from "@/features/transactions/components/transactions-view";
 import { makeFinanceSnapshot, StoryWorkspace, withPathname } from "@/stories/fixtures/story-data";
@@ -11,12 +12,10 @@ const meta = {
   title: "Pages/Budget",
   render: () => (
     <StoryWorkspace pathname="/budget">
-      <div className="h-full">
-        <div className="flex h-full flex-col gap-6">
+      <PageContainer className="flex h-full flex-col gap-6">
           <BudgetView snapshot={snapshot} />
           <TransactionsView snapshot={snapshot} basePath="/budget" />
-        </div>
-      </div>
+      </PageContainer>
     </StoryWorkspace>
   ),
   parameters: {

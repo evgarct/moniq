@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { addDays, formatISO } from "date-fns";
 import { expect, userEvent, within } from "storybook/test";
 
+import { PageContainer } from "@/components/page-container";
 import { AccountsView } from "@/features/accounts/components/accounts-view";
 import { makeFinanceSnapshot, StoryWorkspace, withPathname } from "@/stories/fixtures/story-data";
 import type { Account, Transaction } from "@/types/finance";
@@ -79,14 +80,14 @@ const meta = {
   title: "Pages/Balance",
   render: ({ data = snapshot }: { data?: typeof snapshot }) => (
     <StoryWorkspace pathname="/accounts">
-      <div className="h-full">
+      <PageContainer className="h-full px-0 py-0 sm:px-0">
         <AccountsView
           accounts={data.accounts}
           allocations={data.allocations}
           categories={data.categories}
           transactions={data.transactions}
         />
-      </div>
+      </PageContainer>
     </StoryWorkspace>
   ),
   parameters: {

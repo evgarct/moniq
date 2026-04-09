@@ -1,11 +1,13 @@
 "use client";
 
 import { addMonths, isSameDay, isSameMonth, parseISO, startOfToday } from "date-fns";
-import { ChevronLeft, ChevronRight, ListChecks, Plus, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
 
 import { CalendarGrid } from "@/components/calendar-grid";
+import { MonthNavigator } from "@/components/month-navigator";
+import { PageHeader, PageToolbarButton } from "@/components/page-header";
 import { Surface } from "@/components/surface";
 import { TransactionList } from "@/components/transaction-list";
 import { Button } from "@/components/ui/button";
@@ -74,59 +76,45 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
 
   return (
     <>
-      <div className="flex h-full flex-col gap-4">
-        <Surface tone="panel" padding="lg" className="border border-black/5">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-            <div className="flex items-start gap-4">
-              <div className="flex size-11 shrink-0 items-center justify-center rounded-full border border-border/80 bg-background text-foreground">
-                <ListChecks className="size-[18px]" strokeWidth={1.8} />
-              </div>
-              <div className="flex flex-col gap-1">
-                <h1 className="type-h3">{t("view.title")}</h1>
-                <p className="type-body-14 max-w-[38rem] text-muted-foreground">{t("view.description")}</p>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <Button variant="outline" size="icon-sm" className="rounded-full bg-background" onClick={() => setMonth((value) => addMonths(value, -1))}>
-                <ChevronLeft />
-              </Button>
-              <div className="rounded-full border border-border/80 bg-background px-4 py-2 text-sm font-medium text-foreground">
-                {formatDate.dateTime(month, { month: "long", year: "numeric" })}
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="rounded-full bg-background px-4"
-                onClick={() => {
-                  setMonth(today);
-                  setSelectedDate(null);
-                }}
-              >
-                {t("board.jumpToday")}
-              </Button>
-              <Button variant="outline" size="icon-sm" className="rounded-full bg-background" onClick={() => setMonth((value) => addMonths(value, 1))}>
-                <ChevronRight />
-              </Button>
-              <Button
-                variant="default"
-                size="icon-sm"
-                className="rounded-full"
-                onClick={() => {
-                  setSheetMode("add");
-                  setEditingTransaction(null);
-                  setEditingSeries(null);
-                  setSheetOpen(true);
-                }}
-              >
-                <Plus />
-              </Button>
-            </div>
-          </div>
-        </Surface>
+      <div className="flex h-full flex-col gap-5">
+        <PageHeader
+          title={t("view.title")}
+          description={t("view.description")}
+          actions={
+            <PageToolbarButton
+              aria-label={transactionViewT("add")}
+              onClick={() => {
+                setSheetMode("add");
+                setEditingTransaction(null);
+                setEditingSeries(null);
+                setSheetOpen(true);
+              }}
+            >
+              <Plus />
+            </PageToolbarButton>
+          }
+        />
 
         <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(380px,0.88fr)]">
           <Surface tone="panel" padding="lg" className="min-h-0 border border-black/5">
+            <MonthNavigator
+              month={month}
+              label={t("view.title")}
+              description={t("board.monthDescription")}
+              className="mb-5"
+              onPrevious={() => {
+                setMonth((value) => addMonths(value, -1));
+                setSelectedDate(null);
+              }}
+              onToday={() => {
+                setMonth(today);
+                setSelectedDate(null);
+              }}
+              onNext={() => {
+                setMonth((value) => addMonths(value, 1));
+                setSelectedDate(null);
+              }}
+            />
             <CalendarGrid
               month={month}
               selectedDate={selectedDate}
