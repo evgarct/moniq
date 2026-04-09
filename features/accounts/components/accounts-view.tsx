@@ -3,14 +3,13 @@
 import { endOfMonth, format, startOfMonth } from "date-fns";
 import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Eye, EyeOff, Info, WalletCards } from "lucide-react";
+import { Eye, EyeOff, WalletCards } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { AccountList } from "@/components/account-list";
+import { PageHeader, PageToolbarButton } from "@/components/page-header";
 import { TransactionList } from "@/components/transaction-list";
-import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { AccountFormSheet } from "@/features/accounts/components/account-form-sheet";
 import { BalanceRegisterHeader, BalanceRegisterPanel } from "@/features/accounts/components/balance-register-panel";
 import { AllocationFormSheet } from "@/features/allocations/components/allocation-form-sheet";
@@ -156,8 +155,6 @@ export function AccountsView({
     deleteAllocationMutation.isPending;
   const hasAccounts = accounts.length > 0;
   const registerTitle = selectedAllocation ? selectedAllocation.name : selectedAccount ? selectedAccount.name : t("view.activity");
-  const toolbarButtonClassName =
-    "rounded-md bg-transparent text-muted-foreground hover:bg-[#ece8e1] hover:text-foreground active:bg-[#e6e1d9]";
 
   const isDesktopViewport = () =>
     typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches;
@@ -299,83 +296,32 @@ export function AccountsView({
             )}
           >
             <div className="flex flex-col gap-3 px-3 pt-4 pb-3 sm:gap-4 sm:px-6 sm:pt-7 sm:pb-5 lg:px-7 lg:pt-8 lg:pb-6">
-              <div className="flex items-start justify-between gap-2 px-1.5 sm:gap-3 sm:px-2.5">
-                <div className="flex min-w-0 items-center gap-2">
-                  <h1 className="font-heading text-[28px] leading-none tracking-[-0.035em] text-foreground sm:type-h1">
-                    {t("view.title")}
-                  </h1>
-                  <Tooltip>
-                    <TooltipTrigger
-                      render={
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          className="shrink-0 rounded-md bg-transparent text-muted-foreground hover:bg-[#ece8e1] hover:text-foreground active:bg-[#e6e1d9]"
-                          aria-label={walletsEditMode ? copy("view.editModeDescription") : t("view.description")}
-                        />
-                      }
-                    >
-                      <Info className="size-4 translate-y-[2px]" />
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-72 text-balance">
-                      {walletsEditMode ? copy("view.editModeDescription") : t("view.description")}
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-
-                <div
-                  className="flex shrink-0 items-center gap-1 sm:gap-2"
-                  role="toolbar"
-                  aria-label={t("view.title")}
-                >
-                  <Tooltip>
-                    <TooltipTrigger
-                      render={
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          className={cn(
-                            toolbarButtonClassName,
-                            showMinorUnits && "bg-[#e6e1d9] text-foreground",
-                          )}
-                          aria-label={showMinorUnits ? copy("view.hideMinorUnits") : copy("view.showMinorUnits")}
-                          aria-pressed={showMinorUnits}
-                        />
-                      }
+              <PageHeader
+                title={t("view.title")}
+                description={walletsEditMode ? copy("view.editModeDescription") : t("view.description")}
+                className="px-1.5 sm:px-2.5"
+                actions={
+                  <>
+                    <PageToolbarButton
+                      className={cn(showMinorUnits && "bg-[#e6e1d9] text-foreground")}
+                      aria-label={showMinorUnits ? copy("view.hideMinorUnits") : copy("view.showMinorUnits")}
+                      aria-pressed={showMinorUnits}
                       onClick={() => setShowMinorUnits((current) => !current)}
                     >
                       {showMinorUnits ? <Eye /> : <EyeOff />}
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      {showMinorUnits ? copy("view.hideMinorUnits") : copy("view.showMinorUnits")}
-                    </TooltipContent>
-                  </Tooltip>
-
-                  <Tooltip>
-                    <TooltipTrigger
-                      render={
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          className={cn(
-                            toolbarButtonClassName,
-                            walletsEditMode && "bg-[#e6e1d9] text-foreground",
-                          )}
-                          aria-label={walletsEditMode ? t("view.finishWalletEditing") : t("view.addWallet")}
-                          aria-pressed={walletsEditMode}
-                        />
-                      }
+                    </PageToolbarButton>
+                    <PageToolbarButton
+                      className={cn(walletsEditMode && "bg-[#e6e1d9] text-foreground")}
+                      aria-label={walletsEditMode ? t("view.finishWalletEditing") : t("view.addWallet")}
+                      aria-pressed={walletsEditMode}
                       onClick={() => setWalletsEditMode((current) => !current)}
                       disabled={pending}
                     >
                       <WalletCards />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      {walletsEditMode ? t("view.finishWalletEditing") : t("view.addWallet")}
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-              </div>
+                    </PageToolbarButton>
+                  </>
+                }
+              />
 
               {!hasAccounts ? (
                 <div className="rounded-2xl border border-dashed border-border/70 bg-background/65 px-4 py-3 type-body-14 text-muted-foreground">

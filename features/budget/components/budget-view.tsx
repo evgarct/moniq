@@ -1,13 +1,13 @@
 "use client";
 
 import { addMonths, isSameMonth, parseISO, startOfToday } from "date-fns";
-import { ChevronLeft, ChevronRight, WalletCards } from "lucide-react";
 import { useMemo, useState } from "react";
-import { useFormatter, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 
+import { MonthNavigator } from "@/components/month-navigator";
 import { MoneyAmount } from "@/components/money-amount";
+import { PageHeader } from "@/components/page-header";
 import { Surface } from "@/components/surface";
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { getIncomeExpenseSummaryByCurrency } from "@/lib/finance-selectors";
 import { getTransactionAnalyticsAmount } from "@/features/transactions/lib/transaction-utils";
@@ -123,8 +123,6 @@ function BudgetCategoryRow({ node }: { node: CategoryTreeNode }) {
 
 export function BudgetView({ snapshot }: { snapshot: FinanceSnapshot }) {
   const t = useTranslations("budget");
-  const commonT = useTranslations("common.actions");
-  const formatDate = useFormatter();
   const today = startOfToday();
   const [month, setMonth] = useState(today);
 
@@ -166,35 +164,19 @@ export function BudgetView({ snapshot }: { snapshot: FinanceSnapshot }) {
   );
 
   return (
-      <div className="flex h-full flex-col gap-4">
+    <div className="flex h-full flex-col gap-5">
+      <PageHeader title={t("view.title")} description={t("view.description")} />
+
       <Surface tone="panel" padding="lg" className="border border-black/5">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-          <div className="flex items-start gap-4">
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-full border border-border/80 bg-background text-foreground">
-              <WalletCards className="size-[18px]" strokeWidth={1.8} />
-            </div>
-            <div className="flex flex-col gap-1">
-              <h1 className="type-h3">{t("view.title")}</h1>
-              <p className="type-body-14 max-w-[44rem] text-muted-foreground">{t("view.description")}</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 self-start">
-            <Button variant="outline" size="icon-sm" className="rounded-full bg-background" onClick={() => setMonth((value) => addMonths(value, -1))}>
-              <ChevronLeft />
-            </Button>
-            <div className="rounded-full border border-border/80 bg-background px-4 py-2 text-sm font-medium text-foreground">
-              {formatDate.dateTime(month, { month: "long", year: "numeric" })}
-            </div>
-            <Button variant="outline" size="sm" className="rounded-full bg-background px-4" onClick={() => setMonth(today)}>
-              {commonT("today")}
-            </Button>
-            <Button variant="outline" size="icon-sm" className="rounded-full bg-background" onClick={() => setMonth((value) => addMonths(value, 1))}>
-              <ChevronRight />
-            </Button>
-          </div>
-        </div>
-
+        <MonthNavigator
+          month={month}
+          label={t("view.title")}
+          description={t("view.description")}
+          className="mb-5"
+          onPrevious={() => setMonth((value) => addMonths(value, -1))}
+          onToday={() => setMonth(today)}
+          onNext={() => setMonth((value) => addMonths(value, 1))}
+        />
         <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <BudgetMetric label={t("metrics.trackedCategories")} value={String(totalTrackedCategories)} />
           <BudgetMetric label={t("metrics.transactions")} value={String(totalTransactions)} />
