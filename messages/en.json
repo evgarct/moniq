@@ -36,6 +36,18 @@
       "load": "Unable to load finance data.",
       "schemaOutOfDate": "Supabase schema is out of date. Run `npx supabase db push` and reload the app."
     },
+    "banking": {
+      "load": "Unable to load banking data.",
+      "connect": "Unable to connect a bank.",
+      "sync": "Unable to sync bank transactions.",
+      "update": "Unable to update imported transaction.",
+      "confirm": "Unable to confirm imported transaction.",
+      "misconfigured": "Enable Banking is not configured yet. Add the application ID and private key path first.",
+      "notConnected": "Bank session is not connected yet.",
+      "invalidState": "Bank callback state is invalid.",
+      "transactionNotFound": "Imported transaction not found.",
+      "accountNotFound": "Imported bank account not found."
+    },
     "wallet": {
       "create": "Unable to create wallet.",
       "update": "Unable to update wallet.",
@@ -88,6 +100,7 @@
   "navigation": {
     "overview": "Overview",
     "balance": "Balance",
+    "banking": "Inbox",
     "budget": "Budget",
     "calendar": "Calendar",
     "today": "Today",
@@ -638,6 +651,84 @@
       "uncategorized": "Uncategorized",
       "recurring": "Recurring",
       "goodMove": "You earned it"
+    }
+  },
+  "banking": {
+    "loading": {
+      "title": "Loading bank inbox",
+      "description": "Fetching connection state, imported drafts, and confirmation queue."
+    },
+    "error": {
+      "title": "Unable to load bank inbox",
+      "description": "Banking data could not be loaded."
+    },
+    "feedback": {
+      "connected": "Bank connected. Run sync to pull the latest transactions.",
+      "connectFailed": "Unable to start bank authorization.",
+      "syncFailed": "Unable to sync transactions from the bank.",
+      "updateFailed": "Unable to save imported transaction edits.",
+      "confirmFailed": "Unable to confirm imported transactions."
+    },
+    "connect": {
+      "title": "Connect bank",
+      "description": "Authorize Enable Banking once, then pull fresh transactions into a review inbox whenever you need.",
+      "action": "Connect bank",
+      "pending": "Redirecting...",
+      "sync": "Sync",
+      "syncPending": "Syncing...",
+      "connectedBadge": "Connected",
+      "connectedDetails": "{bank} connected, {accounts, plural, one {# account} other {# accounts}} ready for sync.",
+      "lastSync": "Last sync {date}",
+      "emptyTitle": "Enable Banking is not connected yet",
+      "emptyDescription": "Use MockBank first, complete OAuth, then come back here to review imported drafts.",
+      "fields": {
+        "bankName": "Bank name",
+        "bankHint": "Default is MockBank for the first end-to-end setup."
+      }
+    },
+    "inbox": {
+      "title": "Inbox",
+      "description": "Every imported transaction lands here as a draft. Clean merchant names, assign categories, then confirm in bulk.",
+      "count": "{count, plural, =0 {0 drafts} one {# draft} other {# drafts}}",
+      "batchCategory": "Batch category",
+      "selectCategory": "Choose category",
+      "applyCategory": "Apply category",
+      "confirmSelected": "Confirm selected",
+      "confirmAll": "Confirm all",
+      "confirmOne": "Confirm",
+      "emptyTitle": "Inbox is clear",
+      "emptyDescription": "Run sync to import another batch from the bank."
+    },
+    "confirmed": {
+      "title": "Confirmed imports",
+      "description": "These imports were already pushed into the main transaction ledger.",
+      "count": "{count, plural, =0 {0 confirmed} one {# confirmed} other {# confirmed}}",
+      "uncategorized": "Uncategorized",
+      "confirmed": "Confirmed",
+      "edited": "Edited",
+      "emptyTitle": "No confirmed imports yet",
+      "emptyDescription": "Confirm a draft from the inbox to store it in the ledger."
+    },
+    "columns": {
+      "merchant": "Merchant",
+      "account": "Account",
+      "amount": "Amount",
+      "category": "Category",
+      "date": "Date",
+      "actions": "Actions",
+      "status": "Status"
+    }
+  },
+  "legal": {
+    "privacy": {
+      "title": "Privacy Policy",
+      "description": "How Moniq handles imported banking data for personal budgeting.",
+      "body": "Moniq is a personal budgeting application used to connect my own bank accounts through Enable Banking and import transaction data for personal finance tracking. The application stores account and transaction information only for budgeting, categorization, and manual review inside the app. Data is not sold, shared with third parties, or used for advertising. Access to banking data is limited to the account owner. If you have any questions about data handling, contact: {email}."
+    },
+    "terms": {
+      "title": "Terms of Use",
+      "description": "Basic terms for using Moniq as a personal budgeting app.",
+      "body": "Moniq is a personal-use budgeting application intended only for connecting and reviewing my own bank account data. The app is provided as-is, without warranties of any kind, and is not a financial advisory service. Users are responsible for verifying imported transaction data before relying on it. The application must not be used to access accounts or data that do not belong to the user. By using Moniq, you agree to use it only for lawful personal finance management purposes."
     }
   }
 }
