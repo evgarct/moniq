@@ -24,66 +24,66 @@
       "signedIn": "Signed in"
     },
     "empty": {
-    "noAccountsYet": "No accounts yet.",
-    "noTransactionsYet": "No transactions yet."
+      "noAccountsYet": "No accounts yet.",
+      "noTransactionsYet": "No transactions yet."
     },
     "errors": {
-    "unauthorized": "Session expired. Reload the page and sign in again.",
-    "unexpectedResponse": "Finance API returned an unexpected response.",
-    "requestFailed": "Request failed.",
-    "requestTimedOut": "Finance request timed out. Check the dev server and Supabase connection.",
-    "finance": {
-      "load": "Unable to load finance data.",
-      "schemaOutOfDate": "Supabase schema is out of date. Run `npx supabase db push` and reload the app."
+      "unauthorized": "Session expired. Reload the page and sign in again.",
+      "unexpectedResponse": "Finance API returned an unexpected response.",
+      "requestFailed": "Request failed.",
+      "requestTimedOut": "Finance request timed out. Check the dev server and Supabase connection.",
+      "finance": {
+        "load": "Unable to load finance data.",
+        "schemaOutOfDate": "Supabase schema is out of date. Run `npx supabase db push` and reload the app."
+      },
+      "wallet": {
+        "create": "Unable to create wallet.",
+        "update": "Unable to update wallet.",
+        "delete": "Unable to delete wallet."
+      },
+      "allocation": {
+        "walletRequired": "Wallet is required.",
+        "create": "Unable to create goal.",
+        "update": "Unable to update goal.",
+        "delete": "Unable to delete goal."
+      },
+      "category": {
+        "create": "Unable to create category.",
+        "update": "Unable to update category.",
+        "delete": "Unable to delete category.",
+        "notFound": "Category not found.",
+        "replacementRequired": "Choose a replacement category before deleting this category.",
+        "replacementNotFound": "Replacement category not found.",
+        "replacementDifferent": "Replacement category must be different.",
+        "replacementSameType": "Replacement category must have the same type.",
+        "parentNotFound": "Parent category not found.",
+        "parentSameType": "Parent category must have the same type.",
+        "cannotBeOwnParent": "A category cannot be its own parent.",
+        "cannotMoveUnderDescendant": "A category cannot be moved under its own descendant."
+      },
+      "transaction": {
+        "create": "Unable to create transaction.",
+        "update": "Unable to update transaction.",
+        "delete": "Unable to delete transaction.",
+        "notFound": "Transaction not found.",
+        "scheduleNotFound": "Recurring transaction series not found.",
+        "sourceNotFound": "Source account not found.",
+        "destinationNotFound": "Destination account not found.",
+        "categoryNotFound": "Category not found.",
+        "goalNotFound": "Savings goal not found.",
+        "categoryTypeMismatch": "Choose a category with the matching type.",
+        "debtCategoryExpenseOnly": "Debt payment interest can only use an expense category.",
+        "goalWalletMismatch": "Selected savings goal must belong to the savings wallet used in the transaction.",
+        "saveToGoalNeedsSavings": "Save to goal must land in a savings wallet.",
+        "spendFromGoalNeedsSavings": "Spend from goal must start from a savings wallet.",
+        "debtNeedsDebtAccount": "Debt payment must target a debt account.",
+        "transferNoCategory": "Transfers do not use categories."
+      }
     },
-    "wallet": {
-      "create": "Unable to create wallet.",
-      "update": "Unable to update wallet.",
-      "delete": "Unable to delete wallet."
-    },
-    "allocation": {
-      "walletRequired": "Wallet is required.",
-      "create": "Unable to create goal.",
-      "update": "Unable to update goal.",
-      "delete": "Unable to delete goal."
-    },
-    "category": {
-      "create": "Unable to create category.",
-      "update": "Unable to update category.",
-      "delete": "Unable to delete category.",
-      "notFound": "Category not found.",
-      "replacementRequired": "Choose a replacement category before deleting this category.",
-      "replacementNotFound": "Replacement category not found.",
-      "replacementDifferent": "Replacement category must be different.",
-      "replacementSameType": "Replacement category must have the same type.",
-      "parentNotFound": "Parent category not found.",
-      "parentSameType": "Parent category must have the same type.",
-      "cannotBeOwnParent": "A category cannot be its own parent.",
-      "cannotMoveUnderDescendant": "A category cannot be moved under its own descendant."
-    },
-    "transaction": {
-      "create": "Unable to create transaction.",
-      "update": "Unable to update transaction.",
-      "delete": "Unable to delete transaction.",
-      "notFound": "Transaction not found.",
-      "scheduleNotFound": "Recurring transaction series not found.",
-      "sourceNotFound": "Source account not found.",
-      "destinationNotFound": "Destination account not found.",
-      "categoryNotFound": "Category not found.",
-      "goalNotFound": "Savings goal not found.",
-      "categoryTypeMismatch": "Choose a category with the matching type.",
-      "debtCategoryExpenseOnly": "Debt payment interest can only use an expense category.",
-      "goalWalletMismatch": "Selected savings goal must belong to the savings wallet used in the transaction.",
-      "saveToGoalNeedsSavings": "Save to goal must land in a savings wallet.",
-      "spendFromGoalNeedsSavings": "Spend from goal must start from a savings wallet.",
-      "debtNeedsDebtAccount": "Debt payment must target a debt account.",
-      "transferNoCategory": "Transfers do not use categories."
+    "currencyGroups": {
+      "primary": "Primary currencies",
+      "secondary": "Other major currencies"
     }
-  },
-  "currencyGroups": {
-    "primary": "Primary currencies",
-    "secondary": "Other major currencies"
-  }
   },
   "navigation": {
     "overview": "Overview",
@@ -97,7 +97,8 @@
     "workspace": "Workspace",
     "workspaceDescription": "Navigate Moniq product surfaces.",
     "openProfileMenu": "Open profile menu",
-    "openNavigation": "Open navigation"
+    "openNavigation": "Open navigation",
+    "banking": "Banking"
   },
   "localeSwitcher": {
     "label": "Language",
@@ -576,18 +577,15 @@
         "lineNote": "Optional note"
       },
       "actions": {
-        "addRow": "Add row"
-      },
-      "footer": {
-        "batchSummary": "{count, plural, one {# row ready to save.} other {# rows ready to save.}}",
-        "singleSummary": "Review the details and save when ready."
-      },
-      "actions": {
         "addOperation": "Add transaction",
         "addRow": "Add row",
         "addLineItem": "Add row",
         "duplicateLineItem": "Duplicate row",
         "removeLineItem": "Remove row"
+      },
+      "footer": {
+        "batchSummary": "{count, plural, one {# row ready to save.} other {# rows ready to save.}}",
+        "singleSummary": "Review the details and save when ready."
       },
       "submit": {
         "add": "Save transaction",
@@ -638,6 +636,29 @@
       "uncategorized": "Uncategorized",
       "recurring": "Recurring",
       "goodMove": "You earned it"
+    }
+  },
+  "banking": {
+    "connect": {
+      "title": "Connect bank",
+      "button": "Connect bank",
+      "requisitionPlaceholder": "Paste requisition id after OAuth redirect",
+      "finalize": "Load accounts"
+    },
+    "inbox": {
+      "title": "Draft transactions inbox",
+      "batchCategory": "Apply category to selected",
+      "confirmAll": "Confirm selected",
+      "confirm": "Confirm",
+      "edit": "Edit",
+      "selectTransaction": "Select transaction",
+      "refresh": "Refresh"
+    },
+    "all": {
+      "title": "All transactions",
+      "filterDate": "Filter by date",
+      "filterCategory": "Filter by category",
+      "uncategorized": "Uncategorized"
     }
   }
 }

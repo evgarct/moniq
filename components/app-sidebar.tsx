@@ -8,6 +8,7 @@ import {
   Settings2,
   UserRound,
   WalletCards,
+  Landmark,
 } from "lucide-react";
 
 import type { AuthUser } from "@/types/auth";
@@ -27,6 +28,7 @@ const navigation = [
   { href: "/today", labelKey: "today", icon: ListChecks },
   { href: "/accounts", labelKey: "balance", icon: Scale },
   { href: "/budget", labelKey: "budget", icon: WalletCards },
+  { href: "/banking/inbox", labelKey: "banking", icon: Landmark },
 ] as const;
 
 export function AppSidebar({
