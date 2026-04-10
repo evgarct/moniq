@@ -30,3 +30,15 @@ export async function financeSnapshotErrorResponse(request: Request, error: unkn
 
   return NextResponse.json({ error: message }, { status });
 }
+
+export async function bankingSnapshotErrorResponse(request: Request, error: unknown) {
+  const t = (await getRequestTranslator(request)) as (key: string) => string;
+  const unauthorized = error instanceof Error && error.message === "Unauthorized";
+  const message =
+    error instanceof Error
+      ? translateFinanceErrorMessage(t, error.message)
+      : t("common.errors.banking.load");
+  const status = unauthorized ? 401 : 500;
+
+  return NextResponse.json({ error: message }, { status });
+}

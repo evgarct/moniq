@@ -4,6 +4,7 @@ import type { ComponentType } from "react";
 import { useTranslations } from "next-intl";
 import {
   ListChecks,
+  Landmark,
   Scale,
   Settings2,
   UserRound,
@@ -25,6 +26,7 @@ import { cn } from "@/lib/utils";
 
 const navigation = [
   { href: "/today", labelKey: "today", icon: ListChecks },
+  { href: "/banking", labelKey: "banking", icon: Landmark },
   { href: "/accounts", labelKey: "balance", icon: Scale },
   { href: "/budget", labelKey: "budget", icon: WalletCards },
 ] as const;
