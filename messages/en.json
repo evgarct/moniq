@@ -17,6 +17,8 @@
       "settings": "Settings",
       "previous": "Previous",
       "next": "Next",
+      "select": "Select",
+      "selectAll": "Select all",
       "today": "Today",
       "showAll": "Show all"
     },
@@ -36,17 +38,17 @@
       "load": "Unable to load finance data.",
       "schemaOutOfDate": "Supabase schema is out of date. Run `npx supabase db push` and reload the app."
     },
-    "banking": {
-      "load": "Unable to load banking data.",
-      "connect": "Unable to connect a bank.",
-      "sync": "Unable to sync bank transactions.",
+    "imports": {
+      "load": "Unable to load imported transactions.",
+      "upload": "Unable to import CSV file.",
       "update": "Unable to update imported transaction.",
       "confirm": "Unable to confirm imported transaction.",
-      "misconfigured": "Enable Banking is not configured yet. Add the application ID and private key path first.",
-      "notConnected": "Bank session is not connected yet.",
-      "invalidState": "Bank callback state is invalid.",
+      "walletNotFound": "Wallet not found.",
       "transactionNotFound": "Imported transaction not found.",
-      "accountNotFound": "Imported bank account not found."
+      "walletRequired": "Choose a wallet before importing.",
+      "fileRequired": "Choose a CSV file to import.",
+      "emptyFile": "CSV file is empty.",
+      "invalidFile": "CSV file did not contain recognizable transaction rows."
     },
     "wallet": {
       "create": "Unable to create wallet.",
@@ -100,7 +102,7 @@
   "navigation": {
     "overview": "Overview",
     "balance": "Balance",
-    "banking": "Inbox",
+    "imports": "Imports",
     "budget": "Budget",
     "calendar": "Calendar",
     "today": "Today",
@@ -653,37 +655,40 @@
       "goodMove": "You earned it"
     }
   },
-  "banking": {
+  "imports": {
     "loading": {
-      "title": "Loading bank inbox",
-      "description": "Fetching connection state, imported drafts, and confirmation queue."
+      "title": "Loading import inbox",
+      "description": "Fetching uploaded batches, draft rows, and confirmation queue."
     },
     "error": {
-      "title": "Unable to load bank inbox",
-      "description": "Banking data could not be loaded."
+      "title": "Unable to load import inbox",
+      "description": "Imported transaction data could not be loaded."
     },
     "feedback": {
-      "connected": "Bank connected. Run sync to pull the latest transactions.",
-      "connectFailed": "Unable to start bank authorization.",
-      "syncFailed": "Unable to sync transactions from the bank.",
+      "uploadFailed": "Unable to import transactions from the CSV file.",
       "updateFailed": "Unable to save imported transaction edits.",
       "confirmFailed": "Unable to confirm imported transactions."
     },
-    "connect": {
-      "title": "Connect bank",
-      "description": "Authorize Enable Banking once, then pull fresh transactions into a review inbox whenever you need.",
-      "action": "Connect bank",
-      "pending": "Redirecting...",
-      "sync": "Sync",
-      "syncPending": "Syncing...",
-      "connectedBadge": "Connected",
-      "connectedDetails": "{bank} connected, {accounts, plural, one {# account} other {# accounts}} ready for sync.",
-      "lastSync": "Last sync {date}",
-      "emptyTitle": "Enable Banking is not connected yet",
-      "emptyDescription": "Use MockBank first, complete OAuth, then come back here to review imported drafts.",
+    "upload": {
+      "title": "Import CSV",
+      "description": "Upload a bank export, land every row as a draft, then clean merchant names and confirm only what looks right.",
+      "action": "Upload CSV",
+      "pending": "Importing...",
+      "walletRequired": "Choose a wallet before importing.",
+      "fileRequired": "Choose a CSV file to import.",
+      "batchCount": "{count, plural, =0 {0 batches} one {# batch} other {# batches}}",
+      "latestBatch": "{file} · {count, plural, =0 {0 new rows} one {# new row} other {# new rows}}",
+      "batchRows": "{count, plural, =0 {0 rows} one {# row} other {# rows}}",
+      "emptyTitle": "No CSV imports yet",
+      "emptyDescription": "Upload your first bank export to populate the review inbox.",
+      "unknownWallet": "Unknown wallet",
       "fields": {
-        "bankName": "Bank name",
-        "bankHint": "Default is MockBank for the first end-to-end setup."
+        "wallet": "Wallet",
+        "walletPlaceholder": "Choose wallet",
+        "walletHint": "Pick the wallet that should receive these imported rows.",
+        "file": "CSV file",
+        "fileHint": "Use a standard bank export with date, merchant, and amount columns.",
+        "fileSelected": "Selected file: {name}"
       }
     },
     "inbox": {
@@ -697,7 +702,7 @@
       "confirmAll": "Confirm all",
       "confirmOne": "Confirm",
       "emptyTitle": "Inbox is clear",
-      "emptyDescription": "Run sync to import another batch from the bank."
+      "emptyDescription": "Upload another CSV file to import the next batch."
     },
     "confirmed": {
       "title": "Confirmed imports",
@@ -711,24 +716,12 @@
     },
     "columns": {
       "merchant": "Merchant",
-      "account": "Account",
+      "wallet": "Wallet",
       "amount": "Amount",
       "category": "Category",
       "date": "Date",
       "actions": "Actions",
       "status": "Status"
-    }
-  },
-  "legal": {
-    "privacy": {
-      "title": "Privacy Policy",
-      "description": "How Moniq handles imported banking data for personal budgeting.",
-      "body": "Moniq is a personal budgeting application used to connect my own bank accounts through Enable Banking and import transaction data for personal finance tracking. The application stores account and transaction information only for budgeting, categorization, and manual review inside the app. Data is not sold, shared with third parties, or used for advertising. Access to banking data is limited to the account owner. If you have any questions about data handling, contact: {email}."
-    },
-    "terms": {
-      "title": "Terms of Use",
-      "description": "Basic terms for using Moniq as a personal budgeting app.",
-      "body": "Moniq is a personal-use budgeting application intended only for connecting and reviewing my own bank account data. The app is provided as-is, without warranties of any kind, and is not a financial advisory service. Users are responsible for verifying imported transaction data before relying on it. The application must not be used to access accounts or data that do not belong to the user. By using Moniq, you agree to use it only for lawful personal finance management purposes."
     }
   }
 }

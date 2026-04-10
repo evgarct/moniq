@@ -9,6 +9,6 @@ export async function POST(request: Request) {
     const snapshot = await batchConfirmBankingTransactions(payload.transactionIds ?? []);
     return NextResponse.json(snapshot);
   } catch (error) {
-    return financeErrorResponse(request, error, "common.errors.banking.confirm");
+    return financeErrorResponse(request, error, "common.errors.imports.confirm");
   }
 }

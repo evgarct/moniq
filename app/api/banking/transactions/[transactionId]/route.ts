@@ -14,6 +14,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ tr
     const snapshot = await getBankingSnapshot();
     return NextResponse.json(snapshot);
   } catch (error) {
-    return financeErrorResponse(request, error, "common.errors.banking.update");
+    return financeErrorResponse(request, error, "common.errors.imports.update");
   }
 }

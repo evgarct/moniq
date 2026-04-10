@@ -10,13 +10,14 @@ describe("import-rules", () => {
   it("builds a stable fallback fingerprint for dedupe", () => {
     expect(
       buildImportFingerprint({
-        accountId: "acc-1",
+        walletId: "wallet-1",
+        rowIndex: 1,
         amount: -42.5,
         currency: "EUR",
         date: "2026-04-10",
         merchant: "TESCO 001 PRAHA",
       }),
-    ).toBe("acc-1:-42.50:2026-04-10:tesco praha");
+    ).toBe("wallet-1:-42.50:2026-04-10:tesco praha");
   });
 
   it("matches a normalized merchant against category rules", () => {

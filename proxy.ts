@@ -5,7 +5,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { stripLocaleFromPathname } from "@/i18n/locale";
 import { routing } from "@/i18n/routing";
 
-const PUBLIC_PATHS = new Set(["/login", "/signup", "/privacy", "/terms"]);
+const PUBLIC_PATHS = new Set(["/login", "/signup"]);
 const handleI18nRouting = createMiddleware(routing);
 
 function isPublicPath(pathname: string) {
