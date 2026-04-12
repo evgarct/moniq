@@ -5,10 +5,17 @@ import {
   matchImportRule,
   normalizeMerchant,
 } from "@/features/banking/lib/import-rules";
-import { parseCsvTransactions } from "@/features/banking/lib/csv-import";
+import {
+  buildImportFilePreview,
+  canImportWithMapping,
+  parseMappedTransactions,
+  suggestColumnMapping,
+} from "@/features/banking/lib/csv-import";
 import { createTransaction, getFinanceSnapshot } from "@/features/finance/server/repository";
 import { createClient } from "@/lib/supabase/server";
 import type {
+  ImportColumnMapping,
+  ImportFilePreview,
   TransactionImport,
   TransactionImportBatch,
   TransactionImportRule,
@@ -24,6 +31,9 @@ type TransactionImportRow = Omit<TransactionImport, "batch" | "wallet" | "catego
 type TransactionImportUpdateInput = {
   merchant_clean?: string;
   category_id?: string | null;
+  kind?: "expense" | "income" | "transfer" | "debt_payment";
+  wallet_id?: string;
+  counterpart_wallet_id?: string | null;
 };
 
 function mapRule(row: TransactionImportRuleRow, categoriesById: Map<string, Category>): TransactionImportRule {
@@ -54,6 +64,7 @@ function mapImportedTransaction(
     amount: Number(row.amount),
     batch: options.batchesById.get(row.batch_id) ?? null,
     wallet: options.walletsById.get(row.wallet_id) ?? null,
+    counterpart_wallet: row.counterpart_wallet_id ? options.walletsById.get(row.counterpart_wallet_id) ?? null : null,
     category: row.category_id ? options.categoriesById.get(row.category_id) ?? null : null,
     finance_transaction: row.finance_transaction_id
       ? options.financeTransactionsById.get(row.finance_transaction_id) ?? null
@@ -116,13 +127,55 @@ function toFinanceTransactionInput(transaction: TransactionImport): TransactionI
     allocation_id: null,
   };
 
-  if (transaction.amount < 0) {
+  if (transaction.kind === "transfer") {
+    if (!transaction.counterpart_wallet_id) {
+      throw new Error("Choose the other wallet for this transfer.");
+    }
+
+    const isOutgoing = transaction.amount < 0;
+
+    return {
+      ...common,
+      kind: "transfer",
+      source_account_id: isOutgoing ? transaction.wallet_id : transaction.counterpart_wallet_id,
+      destination_account_id: isOutgoing ? transaction.counterpart_wallet_id : transaction.wallet_id,
+      destination_amount: Math.abs(transaction.amount),
+      category_id: null,
+    };
+  }
+
+  if (transaction.kind === "debt_payment") {
+    if (!transaction.counterpart_wallet_id) {
+      throw new Error("Choose the debt account for this payment.");
+    }
+
+    return {
+      ...common,
+      kind: "debt_payment",
+      source_account_id: transaction.wallet_id,
+      destination_account_id: transaction.counterpart_wallet_id,
+      principal_amount: Math.abs(transaction.amount),
+      interest_amount: 0,
+      extra_principal_amount: 0,
+      category_id: null,
+    };
+  }
+
+  if (transaction.kind === "expense" || transaction.amount < 0) {
+    if (!transaction.category_id) {
+      throw new Error("Choose an expense category before confirming this import.");
+    }
+
     return {
       ...common,
       kind: "expense",
       source_account_id: transaction.wallet_id,
       destination_account_id: null,
     };
+  }
+
+  if (!transaction.category_id) {
+    throw new Error("Choose an income category before confirming this import.");
   }
 
   return {
@@ -134,7 +187,7 @@ function toFinanceTransactionInput(transaction: TransactionImport): TransactionI
 }
 
 async function createRuleFromConfirmedTransaction(transaction: TransactionImport) {
-  if (!transaction.category_id) {
+  if (transaction.kind === "transfer" || !transaction.category_id) {
     return;
   }
 
@@ -195,7 +248,7 @@ export async function getBankingSnapshot(): Promise<TransactionImportSnapshot> {
     supabase
       .from("transaction_imports")
       .select(
-        "id, user_id, batch_id, wallet_id, finance_transaction_id, external_id, row_index, fingerprint, amount, currency, occurred_at, merchant_raw, merchant_clean, category_id, status, created_at, updated_at",
+        "id, user_id, batch_id, wallet_id, finance_transaction_id, external_id, row_index, fingerprint, amount, currency, occurred_at, kind, counterpart_wallet_id, merchant_raw, merchant_clean, category_id, status, created_at, updated_at",
       )
       .eq("user_id", user.id)
       .order("occurred_at", { ascending: false })
@@ -236,10 +289,60 @@ export async function getBankingSnapshot(): Promise<TransactionImportSnapshot> {
   };
 }
 
+async function getSavedImportMapping(signature: string) {
+  const { supabase, user } = await getAuthenticatedSupabase();
+  const { data, error } = await supabase
+    .from("transaction_import_column_presets")
+    .select("mapping")
+    .eq("user_id", user.id)
+    .eq("signature", signature)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(normalizeImportRepositoryError(error));
+  }
+
+  return (data?.mapping ?? null) as ImportColumnMapping | null;
+}
+
+async function saveImportMapping(signature: string, mapping: ImportColumnMapping) {
+  const { supabase, user } = await getAuthenticatedSupabase();
+  const { error } = await supabase.from("transaction_import_column_presets").upsert(
+    {
+      user_id: user.id,
+      signature,
+      mapping,
+    },
+    {
+      onConflict: "user_id,signature",
+    },
+  );
+
+  if (error) {
+    throw new Error(normalizeImportRepositoryError(error));
+  }
+}
+
+export async function getImportPreview(input: {
+  fileName: string;
+  fileBuffer: Uint8Array;
+}): Promise<ImportFilePreview> {
+  const preview = buildImportFilePreview(input);
+  const savedMapping = await getSavedImportMapping(preview.signature);
+  const suggestedMapping = savedMapping ?? suggestColumnMapping(preview.columns);
+
+  return {
+    ...preview,
+    suggestedMapping,
+    canImport: canImportWithMapping(suggestedMapping),
+  };
+}
+
 export async function uploadCsvImport(input: {
   walletId: string;
   fileName: string;
-  csvText: string;
+  fileBuffer: Uint8Array;
+  mapping: ImportColumnMapping;
 }) {
   const { supabase, user } = await getAuthenticatedSupabase();
   const finance = await getFinanceSnapshot();
@@ -258,15 +361,19 @@ export async function uploadCsvImport(input: {
     throw new Error(normalizeImportRepositoryError(ruleError));
   }
 
-  const parsedRows = parseCsvTransactions({
-    csvText: input.csvText,
+  const parsedRows = parseMappedTransactions({
+    fileName: input.fileName,
+    fileBuffer: input.fileBuffer,
     walletId: wallet.id,
     fallbackCurrency: wallet.currency,
+    mapping: input.mapping,
   });
 
   if (!parsedRows.length) {
     throw new Error("CSV file did not contain recognizable transaction rows.");
   }
+
+  await saveImportMapping(buildImportFilePreview({ fileName: input.fileName, fileBuffer: input.fileBuffer }).signature, input.mapping);
 
   const { data: batchRow, error: batchError } = await supabase
     .from("transaction_import_batches")
@@ -319,6 +426,8 @@ export async function uploadCsvImport(input: {
       amount: row.amount,
       currency: row.currency,
       occurred_at: row.date,
+      kind: row.kind,
+      counterpart_wallet_id: null,
       merchant_raw: row.merchant,
       merchant_clean: merchantClean,
       category_id: matchedCategory?.id ?? null,
@@ -347,10 +456,62 @@ export async function uploadCsvImport(input: {
 
 export async function updateBankingTransaction(transactionId: string, values: TransactionImportUpdateInput) {
   const { supabase, user } = await getAuthenticatedSupabase();
-  const nextValues = {
-    ...(typeof values.merchant_clean === "string" ? { merchant_clean: normalizeMerchant(values.merchant_clean) } : {}),
-    ...(values.category_id !== undefined ? { category_id: values.category_id } : {}),
-  };
+  const { data: currentImport, error: currentImportError } = await supabase
+    .from("transaction_imports")
+    .select("id, wallet_id, counterpart_wallet_id, kind")
+    .eq("id", transactionId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (currentImportError) {
+    throw new Error(normalizeImportRepositoryError(currentImportError));
+  }
+
+  if (!currentImport?.id) {
+    throw new Error("Imported transaction not found.");
+  }
+
+  const nextValues: Record<string, unknown> = {};
+  const nextKind = values.kind ?? currentImport.kind;
+  const nextWalletId = values.wallet_id ?? currentImport.wallet_id;
+  const nextCounterpartWalletId =
+    values.counterpart_wallet_id !== undefined ? values.counterpart_wallet_id : currentImport.counterpart_wallet_id;
+
+  if (typeof values.merchant_clean === "string") {
+    nextValues.merchant_clean = normalizeMerchant(values.merchant_clean);
+  }
+
+  if (values.wallet_id) {
+    nextValues.wallet_id = values.wallet_id;
+  }
+
+  if (values.kind) {
+    nextValues.kind = values.kind;
+    if (values.kind === "transfer" || values.kind === "debt_payment") {
+      nextValues.category_id = null;
+    }
+  }
+
+  if (values.category_id !== undefined && values.kind !== "transfer" && values.kind !== "debt_payment") {
+    nextValues.category_id = values.category_id;
+  }
+
+  if (values.counterpart_wallet_id !== undefined) {
+    nextValues.counterpart_wallet_id = values.counterpart_wallet_id;
+  }
+
+  if (
+    (nextKind === "transfer" || nextKind === "debt_payment") &&
+    nextWalletId &&
+    nextCounterpartWalletId &&
+    nextWalletId === nextCounterpartWalletId
+  ) {
+    throw new Error(
+      nextKind === "debt_payment"
+        ? "Choose a different debt account for this payment."
+        : "Choose a different destination wallet for this transfer.",
+    );
+  }
 
   const { error } = await supabase
     .from("transaction_imports")
@@ -408,6 +569,72 @@ async function confirmSingleBankingTransaction(transactionId: string) {
 export async function batchConfirmBankingTransactions(transactionIds: string[]) {
   for (const transactionId of transactionIds) {
     await confirmSingleBankingTransaction(transactionId);
+  }
+
+  return getBankingSnapshot();
+}
+
+export async function deleteBankingTransaction(transactionId: string) {
+  const { supabase, user } = await getAuthenticatedSupabase();
+
+  const { data: importRow, error: importError } = await supabase
+    .from("transaction_imports")
+    .select("id, status, finance_transaction_id")
+    .eq("id", transactionId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (importError) {
+    throw new Error(normalizeImportRepositoryError(importError));
+  }
+
+  if (!importRow?.id) {
+    throw new Error("Imported transaction not found.");
+  }
+
+  if (importRow.status !== "draft" || importRow.finance_transaction_id) {
+    throw new Error("Only draft imported transactions can be deleted.");
+  }
+
+  const { error: deleteError } = await supabase
+    .from("transaction_imports")
+    .delete()
+    .eq("id", transactionId)
+    .eq("user_id", user.id);
+
+  if (deleteError) {
+    throw new Error(normalizeImportRepositoryError(deleteError));
+  }
+
+  return getBankingSnapshot();
+}
+
+export async function deleteImportBatch(batchId: string) {
+  const { supabase, user } = await getAuthenticatedSupabase();
+
+  const { data: batchRow, error: batchError } = await supabase
+    .from("transaction_import_batches")
+    .select("id")
+    .eq("id", batchId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (batchError) {
+    throw new Error(normalizeImportRepositoryError(batchError));
+  }
+
+  if (!batchRow?.id) {
+    throw new Error("Import batch not found.");
+  }
+
+  const { error: deleteError } = await supabase
+    .from("transaction_import_batches")
+    .delete()
+    .eq("id", batchId)
+    .eq("user_id", user.id);
+
+  if (deleteError) {
+    throw new Error(normalizeImportRepositoryError(deleteError));
   }
 
   return getBankingSnapshot();

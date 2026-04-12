@@ -10,6 +10,19 @@ Moniq is a personal finance app foundation built with Next.js App Router, TypeSc
 - `/accounts` (New card-based UI)
 - `/imports` (CSV import draft inbox + confirm flow)
 
+## Imports
+
+Moniq now supports a CSV-first import workflow instead of direct bank OAuth.
+
+- upload a CSV/TSV/XLS/XLSX bank export into `/imports`
+- preview the detected columns and map the required fields
+- save imported rows as draft transactions
+- review drafts in the inbox
+- classify each row as `expense`, `income`, `transfer`, or `debt payment`
+- confirm rows into the main finance ledger or delete bad drafts
+
+See [docs/imports.md](/home/evgenii/projects/moniq-csv-import/docs/imports.md) for the full flow, data model, and UI rules.
+
 ## Stack
 
 - Next.js App Router
@@ -45,5 +58,5 @@ npx supabase db push
 
 - Auth is handled by Supabase SSR cookies.
 - Wallets and savings allocations are persisted in Supabase and loaded through API route handlers plus TanStack Query.
-- Transactions and categories are still the next persistence slice, so dashboard/calendar/today can legitimately be empty on a fresh account.
+- Transactions, categories, and imports are persisted in Supabase.
 - CSV imports use a separate draft inbox. Imported rows stay as drafts until the user confirms them, then they are written into the main finance ledger and can create merchant-based category rules.

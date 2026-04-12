@@ -8,6 +8,7 @@ export async function POST(request: Request) {
     const formData = await request.formData();
     const file = formData.get("file");
     const walletId = String(formData.get("walletId") ?? "").trim();
+    const mappingValue = String(formData.get("mapping") ?? "").trim();
 
     if (!(file instanceof File)) {
       throw new Error("Choose a CSV file to import.");
@@ -17,11 +18,13 @@ export async function POST(request: Request) {
       throw new Error("Choose a wallet before importing.");
     }
 
-    const csvText = await file.text();
+    const mapping = mappingValue ? JSON.parse(mappingValue) : null;
+    const fileBuffer = new Uint8Array(await file.arrayBuffer());
     const snapshot = await uploadCsvImport({
       walletId,
       fileName: file.name,
-      csvText,
+      fileBuffer,
+      mapping,
     });
 
     return NextResponse.json(snapshot);

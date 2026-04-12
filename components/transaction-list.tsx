@@ -3,7 +3,60 @@ import { useFormatter } from "next-intl";
 
 import { TransactionRow } from "@/components/transaction-row";
 import { isVisibleTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
+import { cn } from "@/lib/utils";
 import type { Transaction } from "@/types/finance";
+
+function renderTransactionListItem({
+  transaction,
+  variant,
+  showMinorUnits,
+  showDate,
+  renderLeadingAction,
+  renderTrailingAccessory,
+  renderAction,
+  renderDetail,
+  getRowClassName,
+  getPrimaryLabel,
+  getPrimaryLabelClassName,
+  getSecondaryLabel,
+  onTransactionClick,
+}: {
+  transaction: Transaction;
+  variant: "default" | "board";
+  showMinorUnits: boolean;
+  showDate: boolean;
+  renderLeadingAction?: (transaction: Transaction) => React.ReactNode;
+  renderTrailingAccessory?: (transaction: Transaction) => React.ReactNode;
+  renderAction?: (transaction: Transaction) => React.ReactNode;
+  renderDetail?: (transaction: Transaction) => React.ReactNode;
+  getRowClassName?: (transaction: Transaction) => string | undefined;
+  getPrimaryLabel?: (transaction: Transaction) => string | undefined;
+  getPrimaryLabelClassName?: (transaction: Transaction) => string | undefined;
+  getSecondaryLabel?: (transaction: Transaction) => string | undefined;
+  onTransactionClick?: (transaction: Transaction) => void;
+}) {
+  const detail = renderDetail?.(transaction);
+
+  return (
+    <div key={transaction.id} className={cn("border-t border-border/40 first:border-t-0", variant === "board" && "border-white/12")}>
+      <TransactionRow
+        transaction={transaction}
+        variant={variant}
+        showMinorUnits={showMinorUnits}
+        showDate={showDate}
+        leadingAction={renderLeadingAction?.(transaction)}
+        trailingAccessory={renderTrailingAccessory?.(transaction)}
+        action={renderAction?.(transaction)}
+        className={getRowClassName?.(transaction)}
+        primaryLabelOverride={getPrimaryLabel?.(transaction)}
+        primaryLabelClassName={getPrimaryLabelClassName?.(transaction)}
+        secondaryLabelOverride={getSecondaryLabel?.(transaction)}
+        onClick={onTransactionClick}
+      />
+      {detail}
+    </div>
+  );
+}
 
 export function TransactionList({
   transactions,
@@ -11,7 +64,14 @@ export function TransactionList({
   variant = "default",
   showMinorUnits = true,
   groupByDate = false,
+  renderLeadingAction,
+  renderTrailingAccessory,
   renderAction,
+  renderDetail,
+  getRowClassName,
+  getPrimaryLabel,
+  getPrimaryLabelClassName,
+  getSecondaryLabel,
   onTransactionClick,
 }: {
   transactions: Transaction[];
@@ -19,7 +79,14 @@ export function TransactionList({
   variant?: "default" | "board";
   showMinorUnits?: boolean;
   groupByDate?: boolean;
+  renderLeadingAction?: (transaction: Transaction) => React.ReactNode;
+  renderTrailingAccessory?: (transaction: Transaction) => React.ReactNode;
   renderAction?: (transaction: Transaction) => React.ReactNode;
+  renderDetail?: (transaction: Transaction) => React.ReactNode;
+  getRowClassName?: (transaction: Transaction) => string | undefined;
+  getPrimaryLabel?: (transaction: Transaction) => string | undefined;
+  getPrimaryLabelClassName?: (transaction: Transaction) => string | undefined;
+  getSecondaryLabel?: (transaction: Transaction) => string | undefined;
   onTransactionClick?: (transaction: Transaction) => void;
 }) {
   const formatDate = useFormatter();
@@ -56,18 +123,24 @@ export function TransactionList({
                 year: "numeric",
               })}
             </p>
-            <div className="space-y-1">
-              {group.items.map((transaction) => (
-                <TransactionRow
-                  key={transaction.id}
-                  transaction={transaction}
-                  variant={variant}
-                  showMinorUnits={showMinorUnits}
-                  showDate={false}
-                  action={renderAction?.(transaction)}
-                  onClick={onTransactionClick}
-                />
-              ))}
+            <div className="space-y-0">
+              {group.items.map((transaction) =>
+                renderTransactionListItem({
+                  transaction,
+                  variant,
+                  showMinorUnits,
+                  showDate: false,
+                  renderLeadingAction,
+                  renderTrailingAccessory,
+                  renderAction,
+                  renderDetail,
+                  getRowClassName,
+                  getPrimaryLabel,
+                  getPrimaryLabelClassName,
+                  getSecondaryLabel,
+                  onTransactionClick,
+                }),
+              )}
             </div>
           </section>
         ))}
@@ -76,17 +149,24 @@ export function TransactionList({
   }
 
   return (
-    <div className={variant === "board" ? "space-y-0" : "space-y-1"}>
-      {visibleTransactions.map((transaction) => (
-        <TransactionRow
-          key={transaction.id}
-          transaction={transaction}
-          variant={variant}
-          showMinorUnits={showMinorUnits}
-          action={renderAction?.(transaction)}
-          onClick={onTransactionClick}
-        />
-      ))}
+    <div className="space-y-0">
+      {visibleTransactions.map((transaction) =>
+        renderTransactionListItem({
+          transaction,
+          variant,
+          showMinorUnits,
+          showDate: true,
+          renderLeadingAction,
+          renderTrailingAccessory,
+          renderAction,
+          renderDetail,
+          getRowClassName,
+          getPrimaryLabel,
+          getPrimaryLabelClassName,
+          getSecondaryLabel,
+          onTransactionClick,
+        }),
+      )}
     </div>
   );
 }

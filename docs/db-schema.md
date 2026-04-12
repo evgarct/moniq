@@ -119,6 +119,68 @@ Rules:
 - a recurring occurrence is unique per `(user_id, schedule_id, schedule_occurrence_date)`.
 - direct table access is protected by owner-only RLS policies.
 
+## Import staging tables
+
+### `import_batches`
+
+- `id uuid primary key`
+- `user_id uuid not null references auth.users(id)`
+- `wallet_id uuid not null references wallets(id)`
+- `source_filename text not null`
+- `created_at timestamptz not null`
+- `updated_at timestamptz not null`
+
+Rules:
+- a batch represents one uploaded file mapped to one primary wallet
+- batches only matter while draft imports still exist
+- deleting a batch removes its remaining draft imports
+- confirmed ledger transactions must not depend on batch existence
+
+### `import_transactions`
+
+- `id uuid primary key`
+- `user_id uuid not null references auth.users(id)`
+- `batch_id uuid not null references import_batches(id)`
+- `wallet_id uuid not null references wallets(id)`
+- `finance_transaction_id uuid null references finance_transactions(id)`
+- `external_id text null`
+- `row_index integer not null`
+- `fingerprint text not null`
+- `amount numeric(14,2) not null`
+- `currency currency_code not null`
+- `occurred_at date not null`
+- `kind finance_transaction_kind not null`
+- `counterpart_wallet_id uuid null references wallets(id)`
+- `merchant_raw text not null`
+- `merchant_clean text not null`
+- `category_id uuid null references finance_categories(id)`
+- `status import_transaction_status not null`
+  - `draft`
+  - `confirmed`
+- `created_at timestamptz not null`
+- `updated_at timestamptz not null`
+
+Rules:
+- imported rows land as `draft` first
+- `expense` and `income` drafts require a category before confirmation
+- `transfer` and `debt_payment` drafts require a counterpart wallet before confirmation
+- confirmation creates a row in `finance_transactions` and links it back through `finance_transaction_id`
+- deleting a draft import must not delete already confirmed ledger rows
+
+### `import_rules`
+
+- `id uuid primary key`
+- `user_id uuid not null references auth.users(id)`
+- `merchant_pattern text not null`
+- `category_id uuid not null references finance_categories(id)`
+- `created_at timestamptz not null`
+- `updated_at timestamptz not null`
+
+Rules:
+- rules are user-owned merchant-to-category hints
+- import normalization can use them to prefill categories on future draft rows
+- rules are best-effort suggestions and never bypass manual confirmation
+
 ## `finance_transaction_schedules`
 
 - `id uuid primary key`

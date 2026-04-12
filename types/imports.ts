@@ -1,6 +1,38 @@
-import type { Category, Transaction, Account } from "@/types/finance";
+import type { Category, Transaction, Account, TransactionKind } from "@/types/finance";
 
 export type TransactionImportStatus = "draft" | "confirmed" | "edited";
+export type ImportColumnKey = "date" | "amount" | "debit" | "credit" | "description" | "currency" | "type" | "externalId";
+
+export type ImportColumnOption = {
+  index: number;
+  key: string;
+  label: string;
+};
+
+export type ImportColumnMapping = {
+  date: string | null;
+  amount: string | null;
+  debit: string | null;
+  credit: string | null;
+  description: string | null;
+  currency: string | null;
+  type: string | null;
+  externalId: string | null;
+};
+
+export type ImportPreviewRow = {
+  rowIndex: number;
+  values: string[];
+};
+
+export type ImportFilePreview = {
+  fileName: string;
+  signature: string;
+  columns: ImportColumnOption[];
+  rows: ImportPreviewRow[];
+  suggestedMapping: ImportColumnMapping;
+  canImport: boolean;
+};
 
 export type TransactionImportBatch = {
   id: string;
@@ -35,6 +67,8 @@ export type TransactionImport = {
   amount: number;
   currency: string;
   occurred_at: string;
+  kind: Extract<TransactionKind, "income" | "expense" | "transfer" | "debt_payment">;
+  counterpart_wallet_id: string | null;
   merchant_raw: string;
   merchant_clean: string;
   category_id: string | null;
@@ -42,6 +76,7 @@ export type TransactionImport = {
   status: TransactionImportStatus;
   batch: TransactionImportBatch | null;
   wallet: Account | null;
+  counterpart_wallet: Account | null;
   finance_transaction: Transaction | null;
   created_at: string;
   updated_at: string;

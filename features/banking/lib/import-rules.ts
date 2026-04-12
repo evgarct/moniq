@@ -8,6 +8,7 @@ export type ImportedProviderTransaction = {
   currency: string;
   date: string;
   merchant: string;
+  kind: "income" | "expense" | "transfer";
 };
 
 export type MerchantRule = {

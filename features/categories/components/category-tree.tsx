@@ -1,6 +1,7 @@
 import { Ellipsis, PencilLine, Plus, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { CategoryIcon } from "@/components/category-icon";
 import { MoneyAmount } from "@/components/money-amount";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,7 +33,7 @@ function CategoryTreeRow({
             className="h-8 w-8 shrink-0 rounded-xl border border-black/5 bg-slate-50 text-center text-base leading-8"
             style={{ marginLeft: `${node.depth * 16}px` }}
           >
-            {node.icon ?? "📁"}
+            <CategoryIcon icon={node.icon} className="size-full" glyphClassName="text-slate-700" />
           </div>
           <div className="min-w-0">
             <p className="truncate text-sm font-medium text-slate-900">{node.name}</p>

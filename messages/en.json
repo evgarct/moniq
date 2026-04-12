@@ -43,8 +43,15 @@
       "upload": "Unable to import CSV file.",
       "update": "Unable to update imported transaction.",
       "confirm": "Unable to confirm imported transaction.",
+      "delete": "Unable to delete import batch.",
+      "deleteTransaction": "Unable to delete imported transaction.",
       "walletNotFound": "Wallet not found.",
+      "debtWalletRequired": "Choose the debt account before confirming this import.",
+      "debtWalletDifferentRequired": "Choose a different debt account for this payment.",
+      "transferWalletDifferentRequired": "Choose a different destination wallet for this transfer.",
       "transactionNotFound": "Imported transaction not found.",
+      "batchNotFound": "Import batch not found.",
+      "transactionDeleteDraftOnly": "Only draft imported transactions can be deleted.",
       "walletRequired": "Choose a wallet before importing.",
       "fileRequired": "Choose a CSV file to import.",
       "emptyFile": "CSV file is empty.",
@@ -460,7 +467,7 @@
       },
       "validation": {
         "nameRequired": "Category name is required.",
-        "iconMax": "Use a short emoji or icon token."
+        "iconMax": "Use a short icon token."
       }
     },
     "delete": {
@@ -656,6 +663,16 @@
     }
   },
   "imports": {
+    "hero": {
+      "eyebrow": "Review Queue",
+      "title": "Import, review, confirm",
+      "description": "Upload a CSV export, let Moniq guess categories from previous decisions, then clear the remaining drafts in one fast pass.",
+      "stats": {
+        "drafts": "Drafts",
+        "confirmed": "Confirmed",
+        "rules": "Rules"
+      }
+    },
     "loading": {
       "title": "Loading import inbox",
       "description": "Fetching uploaded batches, draft rows, and confirmation queue."
@@ -667,7 +684,9 @@
     "feedback": {
       "uploadFailed": "Unable to import transactions from the CSV file.",
       "updateFailed": "Unable to save imported transaction edits.",
-      "confirmFailed": "Unable to confirm imported transactions."
+      "confirmFailed": "Unable to confirm imported transactions.",
+      "deleteFailed": "Unable to delete the import batch.",
+      "deleteTransactionFailed": "Unable to delete the imported transaction."
     },
     "upload": {
       "title": "Import CSV",
@@ -679,30 +698,87 @@
       "batchCount": "{count, plural, =0 {0 batches} one {# batch} other {# batches}}",
       "latestBatch": "{file} · {count, plural, =0 {0 new rows} one {# new row} other {# new rows}}",
       "batchRows": "{count, plural, =0 {0 rows} one {# row} other {# rows}}",
+      "batchesTitle": "Recent draft batches",
+      "batchesEmpty": "Draft import batches will appear here after upload.",
+      "deleteBatch": "Delete batch",
       "emptyTitle": "No CSV imports yet",
       "emptyDescription": "Upload your first bank export to populate the review inbox.",
       "unknownWallet": "Unknown wallet",
+      "dropzone": {
+        "title": "Drop CSV",
+        "description": "Drop a bank export here or choose a file.",
+        "action": "Choose CSV"
+      },
       "fields": {
         "wallet": "Wallet",
         "walletPlaceholder": "Choose wallet",
         "walletHint": "Pick the wallet that should receive these imported rows.",
         "file": "CSV file",
-        "fileHint": "Use a standard bank export with date, merchant, and amount columns.",
         "fileSelected": "Selected file: {name}"
+      }
+    },
+    "mapping": {
+      "selectColumn": "Select column",
+      "none": "Not used",
+      "moreFields": "More fields",
+      "lessFields": "Fewer fields",
+      "showPreview": "Preview rows",
+      "hidePreview": "Hide preview",
+      "fields": {
+        "date": "Date",
+        "amount": "Amount",
+        "debit": "Debit",
+        "credit": "Credit",
+        "description": "Description",
+        "currency": "Currency",
+        "type": "Type",
+        "externalId": "External ID"
       }
     },
     "inbox": {
       "title": "Inbox",
       "description": "Every imported transaction lands here as a draft. Clean merchant names, assign categories, then confirm in bulk.",
       "count": "{count, plural, =0 {0 drafts} one {# draft} other {# drafts}}",
+      "multiSelectHint": "Select rows, apply one category to the batch, then confirm them in one pass.",
+      "merchantLabel": "Merchant label",
+      "categoryLabel": "Category",
       "batchCategory": "Batch category",
       "selectCategory": "Choose category",
       "applyCategory": "Apply category",
       "confirmSelected": "Confirm selected",
       "confirmAll": "Confirm all",
       "confirmOne": "Confirm",
+      "deleteOne": "Delete draft",
       "emptyTitle": "Inbox is clear",
       "emptyDescription": "Upload another CSV file to import the next batch."
+    },
+    "kinds": {
+      "expense": "Expense",
+      "income": "Income",
+      "transfer": "Transfer",
+      "debt_payment": "Debt payment"
+    },
+    "approval": {
+      "selectCategory": "Choose category",
+      "selectCounterpart": "Choose the other account"
+    },
+    "review": {
+      "title": "Review selected",
+      "description": "Use the existing transaction row as context, then fix merchant and category before confirming.",
+      "save": "Save edits",
+      "confirm": "Save and confirm",
+      "emptyTitle": "Select a draft",
+      "emptyDescription": "Pick a transaction from the inbox to review it in detail.",
+      "fields": {
+        "date": "Date",
+        "type": "Type",
+        "wallet": "Wallet",
+        "debtWallet": "Debt account",
+        "amount": "Amount",
+        "rawMerchant": "Original bank label",
+        "merchant": "Clean merchant",
+        "category": "Category"
+      }
     },
     "confirmed": {
       "title": "Confirmed imports",
