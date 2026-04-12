@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 
+import { CategoryIcon } from "@/components/category-icon";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -58,7 +59,10 @@ export function CategoryDeleteSheet({
         <div className="flex flex-1 flex-col p-4">
           <div className="space-y-4">
             <div className="rounded-xl border border-border bg-muted/40 px-4 py-3">
-              <p className="text-sm font-medium text-foreground">{category?.icon ?? "📁"} {category?.name}</p>
+              <p className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <CategoryIcon icon={category?.icon} glyphClassName="text-foreground" />
+                <span>{category?.name}</span>
+              </p>
               <p className="mt-1 text-sm text-muted-foreground">{t("linkedTransactions", { count: transactionCount })}</p>
             </div>
 
@@ -72,7 +76,7 @@ export function CategoryDeleteSheet({
                   <SelectContent>
                     {replacementOptions.map((option) => (
                       <SelectItem key={option.id} value={option.id}>
-                        <span>{option.icon ?? "•"}</span>
+                        <CategoryIcon icon={option.icon} glyphClassName="text-muted-foreground" />
                         <span>{option.name}</span>
                       </SelectItem>
                     ))}

@@ -6,6 +6,7 @@ import { Controller, useForm, useWatch } from "react-hook-form";
 import { useTranslations } from "next-intl";
 import { z } from "zod";
 
+import { CategoryIcon } from "@/components/category-icon";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -46,7 +47,7 @@ export function CategoryFormSheet({
   const t = useTranslations("categories.form");
   const categoryFormSchema = z.object({
     name: z.string().trim().min(1, t("validation.nameRequired")),
-    icon: z.string().trim().max(8, t("validation.iconMax")).nullable().optional(),
+    icon: z.string().trim().max(48, t("validation.iconMax")).nullable().optional(),
     type: z.enum(["income", "expense"]),
     parent_id: z.string().uuid().nullable().optional(),
   });
@@ -54,7 +55,7 @@ export function CategoryFormSheet({
     resolver: zodResolver(categoryFormSchema),
     defaultValues: {
       name: category?.name ?? "",
-      icon: category?.icon ?? "📁",
+      icon: category?.icon ?? "folder",
       type: category?.type ?? "expense",
       parent_id: category?.parent_id ?? null,
     },
@@ -63,7 +64,7 @@ export function CategoryFormSheet({
   useEffect(() => {
     form.reset({
       name: category?.name ?? "",
-      icon: category?.icon ?? "📁",
+      icon: category?.icon ?? "folder",
       type: category?.type ?? "expense",
       parent_id: category?.parent_id ?? null,
     });
@@ -101,7 +102,7 @@ export function CategoryFormSheet({
                 <label className="text-sm font-medium" htmlFor="category-icon">
                   {t("fields.icon")}
                 </label>
-                <Input id="category-icon" maxLength={8} {...form.register("icon")} />
+                <Input id="category-icon" maxLength={48} {...form.register("icon")} />
               </div>
 
               <div className="space-y-2">
@@ -144,7 +145,7 @@ export function CategoryFormSheet({
                       <SelectItem value="root">{t("topLevel")}</SelectItem>
                       {parentOptions.map((option) => (
                         <SelectItem key={option.id} value={option.id}>
-                          <span>{option.icon ?? "•"}</span>
+                          <CategoryIcon icon={option.icon} glyphClassName="text-muted-foreground" />
                           <span>{option.name}</span>
                         </SelectItem>
                       ))}

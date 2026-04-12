@@ -1,12 +1,14 @@
 import type { Category } from "@/types/finance";
 
 export type ImportedProviderTransaction = {
-  accountId: string;
+  walletId: string;
+  rowIndex: number;
   transactionId?: string | null;
   amount: number;
   currency: string;
   date: string;
   merchant: string;
+  kind: "income" | "expense" | "transfer";
 };
 
 export type MerchantRule = {
@@ -30,7 +32,7 @@ export function normalizeMerchant(raw: string) {
 
 export function buildImportFingerprint(transaction: ImportedProviderTransaction) {
   const merchant = normalizeMerchant(transaction.merchant).toLowerCase();
-  return `${transaction.accountId}:${transaction.amount.toFixed(2)}:${transaction.date}:${merchant}`;
+  return `${transaction.walletId}:${transaction.amount.toFixed(2)}:${transaction.date}:${merchant}`;
 }
 
 export function matchImportRule(

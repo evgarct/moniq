@@ -66,7 +66,7 @@ export const allocationInputSchema = z
 
 export const categoryInputSchema = z.object({
   name: z.string().trim().min(1, "Category name is required."),
-  icon: z.string().trim().max(8, "Use a short emoji or icon token.").nullable().optional(),
+  icon: z.string().trim().max(48, "Use a short icon token.").nullable().optional(),
   type: z.enum(["income", "expense"] satisfies [CategoryType, ...CategoryType[]]),
   parent_id: z.string().uuid().nullable().optional(),
 });

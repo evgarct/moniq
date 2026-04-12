@@ -117,17 +117,27 @@ export function TransactionRow({
   transaction,
   variant = "default",
   showMinorUnits = true,
+  leadingAction,
+  trailingAccessory,
   action,
   className,
   showDate = true,
+  primaryLabelOverride,
+  primaryLabelClassName,
+  secondaryLabelOverride,
   onClick,
 }: {
   transaction: Transaction;
   variant?: "default" | "board";
   showMinorUnits?: boolean;
+  leadingAction?: React.ReactNode;
+  trailingAccessory?: React.ReactNode;
   action?: React.ReactNode;
   className?: string;
   showDate?: boolean;
+  primaryLabelOverride?: string;
+  primaryLabelClassName?: string;
+  secondaryLabelOverride?: string;
   onClick?: (transaction: Transaction) => void;
 }) {
   const t = useTranslations("transactions");
@@ -141,11 +151,11 @@ export function TransactionRow({
         : transaction.kind === "debt_payment"
           ? t("kinds.debt_payment")
           : t("row.uncategorized");
-  const primaryLabel = buildPrimaryLabel(transaction, categoryLabel);
+  const primaryLabel = primaryLabelOverride ?? buildPrimaryLabel(transaction, categoryLabel);
   const primaryAccount = transaction.source_account ?? transaction.destination_account;
   const recurringLabel = transaction.schedule_id ? t("row.recurring") : null;
   const kindLabel = t(`kinds.${transaction.kind}`);
-  const secondaryLabel = buildSecondaryLabel(transaction, kindLabel, t("row.unlinkedAccount"));
+  const secondaryLabel = secondaryLabelOverride ?? buildSecondaryLabel(transaction, kindLabel, t("row.unlinkedAccount"));
   const showEncouragementBadge = isEncouragedTransaction(transaction);
   const interactive = Boolean(onClick);
 
@@ -218,7 +228,7 @@ export function TransactionRow({
   return (
     <div
       className={cn(
-        "grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 rounded-sm bg-transparent px-2 py-1 shadow-none transition-[background-color,color]",
+        "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-sm bg-transparent px-2 py-1 shadow-none transition-[background-color,color]",
         interactive && "cursor-pointer px-3 py-2 hover:bg-[#f3efe9] active:bg-[#ece8e1]",
         className,
       )}
@@ -237,11 +247,12 @@ export function TransactionRow({
       tabIndex={interactive ? 0 : undefined}
     >
       <div className="min-w-0">
-        <div className="flex items-start gap-2">
-          <TransactionKindIndicator kind={transaction.kind} className="mt-[3px] text-muted-foreground" />
+        <div className="flex items-center gap-2">
+          {leadingAction ? <div className="shrink-0">{leadingAction}</div> : null}
+          <TransactionKindIndicator kind={transaction.kind} className="shrink-0 text-muted-foreground" />
           <div className="min-w-0 flex-1 space-y-0">
             <div className="flex min-w-0 items-center gap-2">
-              <p className="type-body-14 truncate font-medium">{primaryLabel}</p>
+              <p className={cn("type-body-14 truncate font-medium", primaryLabelClassName)}>{primaryLabel}</p>
               {showEncouragementBadge ? (
                 <span className="shrink-0 rounded-sm bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium leading-none text-emerald-700">
                   {t("row.goodMove")}
@@ -256,7 +267,7 @@ export function TransactionRow({
       </div>
 
       {!showDate ? null : (
-        <p className="type-body-12 min-w-[82px] text-right text-muted-foreground">
+        <p className="type-body-12 min-w-[82px] self-center text-right text-muted-foreground">
           {formatDate.dateTime(parseISO(transaction.occurred_at), {
             month: "short",
             day: "numeric",
@@ -265,9 +276,10 @@ export function TransactionRow({
         </p>
       )}
 
-      <div className="flex shrink-0 items-start justify-end gap-3">
-        {renderAmount(transaction, showMinorUnits)}
-        {action}
+      <div className="grid shrink-0 grid-cols-[376px_140px_104px] items-center justify-end gap-6 self-center">
+        <div className="min-w-0">{trailingAccessory}</div>
+        <div className="min-w-0 justify-self-end">{renderAmount(transaction, showMinorUnits)}</div>
+        <div className="min-w-0 justify-self-end">{action}</div>
       </div>
     </div>
   );

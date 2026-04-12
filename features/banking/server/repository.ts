@@ -1,72 +1,85 @@
 import "server-only";
 
-import { subDays } from "date-fns";
-import { randomUUID } from "node:crypto";
-
 import {
   buildImportFingerprint,
   matchImportRule,
   normalizeMerchant,
-  type ImportedProviderTransaction,
 } from "@/features/banking/lib/import-rules";
 import {
-  createEnableBankingSession,
-  getEnableBankingAccountDetails,
-  getEnableBankingAccountTransactions,
-  getEnableBankingDefaults,
-  getEnableBankingSession,
-  startEnableBankingAuthorization,
-} from "@/features/banking/server/enable-banking";
+  buildImportFilePreview,
+  canImportWithMapping,
+  parseMappedTransactions,
+  suggestColumnMapping,
+} from "@/features/banking/lib/csv-import";
 import { createTransaction, getFinanceSnapshot } from "@/features/finance/server/repository";
 import { createClient } from "@/lib/supabase/server";
-import type { BankingAccount, BankingConnection, BankingRule, BankingSnapshot, BankingTransaction } from "@/types/banking";
-import type { Category, Transaction } from "@/types/finance";
+import type {
+  ImportColumnMapping,
+  ImportFilePreview,
+  TransactionImport,
+  TransactionImportBatch,
+  TransactionImportRule,
+  TransactionImportSnapshot,
+} from "@/types/imports";
+import type { Account, Category, Transaction } from "@/types/finance";
 import type { TransactionInput } from "@/types/finance-schemas";
 
-type BankingConnectionRow = BankingConnection;
-type BankingAccountRow = BankingAccount;
-type BankingRuleRow = Omit<BankingRule, "category">;
-type BankingTransactionRow = Omit<BankingTransaction, "category" | "banking_account" | "finance_transaction">;
+type TransactionImportBatchRow = Omit<TransactionImportBatch, "wallet">;
+type TransactionImportRuleRow = Omit<TransactionImportRule, "category">;
+type TransactionImportRow = Omit<TransactionImport, "batch" | "wallet" | "category" | "finance_transaction">;
 
-type BankingTransactionUpdateInput = {
+type TransactionImportUpdateInput = {
   merchant_clean?: string;
   category_id?: string | null;
+  kind?: "expense" | "income" | "transfer" | "debt_payment";
+  wallet_id?: string;
+  counterpart_wallet_id?: string | null;
 };
 
-function mapRule(row: BankingRuleRow, categoriesById: Map<string, Category>): BankingRule {
+function mapRule(row: TransactionImportRuleRow, categoriesById: Map<string, Category>): TransactionImportRule {
   return {
     ...row,
     category: categoriesById.get(row.category_id) ?? null,
   };
 }
 
-function mapBankingTransaction(
-  row: BankingTransactionRow,
+function mapBatch(row: TransactionImportBatchRow, walletsById: Map<string, Account>): TransactionImportBatch {
+  return {
+    ...row,
+    wallet: walletsById.get(row.wallet_id) ?? null,
+  };
+}
+
+function mapImportedTransaction(
+  row: TransactionImportRow,
   options: {
+    batchesById: Map<string, TransactionImportBatch>;
+    walletsById: Map<string, Account>;
     categoriesById: Map<string, Category>;
-    bankingAccountsById: Map<string, BankingAccount>;
     financeTransactionsById: Map<string, Transaction>;
   },
-): BankingTransaction {
+): TransactionImport {
   return {
     ...row,
     amount: Number(row.amount),
+    batch: options.batchesById.get(row.batch_id) ?? null,
+    wallet: options.walletsById.get(row.wallet_id) ?? null,
+    counterpart_wallet: row.counterpart_wallet_id ? options.walletsById.get(row.counterpart_wallet_id) ?? null : null,
     category: row.category_id ? options.categoriesById.get(row.category_id) ?? null : null,
-    banking_account: options.bankingAccountsById.get(row.banking_account_id) ?? null,
     finance_transaction: row.finance_transaction_id
       ? options.financeTransactionsById.get(row.finance_transaction_id) ?? null
       : null,
   };
 }
 
-function normalizeBankingRepositoryError(error: { message?: string } | null | undefined) {
-  const message = error?.message ?? "Unable to load banking data.";
+function normalizeImportRepositoryError(error: { message?: string } | null | undefined) {
+  const message = error?.message ?? "Unable to load imported transactions.";
 
   if (
-    message.includes("enable_banking_") ||
-    message.includes("provider_account_id") ||
+    message.includes("transaction_import") ||
+    message.includes("wallet_id") ||
     message.includes("fingerprint") ||
-    message.includes("wallet_id")
+    message.includes("imported_rows")
   ) {
     return "Supabase schema is out of date. Run `npx supabase db push` and reload the app.";
   }
@@ -92,75 +105,17 @@ async function getFinanceDependencies() {
   const snapshot = await getFinanceSnapshot();
   return {
     snapshot,
+    walletsById: new Map(snapshot.accounts.map((wallet) => [wallet.id, wallet])),
     categoriesById: new Map(snapshot.categories.map((category) => [category.id, category])),
     financeTransactionsById: new Map(snapshot.transactions.map((transaction) => [transaction.id, transaction])),
   };
 }
 
-async function ensureWalletForBankingAccount(
-  bankingAccount: Pick<BankingAccount, "id" | "name" | "currency" | "wallet_id">,
-  userId: string,
-) {
-  const { supabase } = await getAuthenticatedSupabase();
-
-  if (bankingAccount.wallet_id) {
-    return bankingAccount.wallet_id;
-  }
-
-  const financeSnapshot = await getFinanceSnapshot();
-  const matchedWallet = financeSnapshot.accounts.find(
-    (wallet) => wallet.name.toLowerCase() === bankingAccount.name.toLowerCase() && wallet.currency === bankingAccount.currency,
-  );
-
-  if (matchedWallet) {
-    const { error } = await supabase
-      .from("enable_banking_accounts")
-      .update({ wallet_id: matchedWallet.id })
-      .eq("id", bankingAccount.id)
-      .eq("user_id", userId);
-
-    if (error) {
-      throw new Error(normalizeBankingRepositoryError(error));
-    }
-
-    return matchedWallet.id;
-  }
-
-  const { data, error } = await supabase
-    .from("wallets")
-    .insert({
-      user_id: userId,
-      name: bankingAccount.name,
-      type: "cash",
-      cash_kind: "debit_card",
-      balance: 0,
-      currency: bankingAccount.currency,
-    })
-    .select("id")
-    .single();
-
-  if (error || !data?.id) {
-    throw new Error(normalizeBankingRepositoryError(error));
-  }
-
-  const { error: linkError } = await supabase
-    .from("enable_banking_accounts")
-    .update({ wallet_id: data.id })
-    .eq("id", bankingAccount.id)
-    .eq("user_id", userId);
-
-  if (linkError) {
-    throw new Error(normalizeBankingRepositoryError(linkError));
-  }
-
-  return data.id;
-}
-
-function toFinanceTransactionInput(transaction: BankingTransaction, walletId: string): TransactionInput {
+function toFinanceTransactionInput(transaction: TransactionImport): TransactionInput {
   const common = {
     title: transaction.merchant_clean.trim() || transaction.merchant_raw.trim(),
-    note: `Imported from bank on ${transaction.transaction_date}`,
-    occurred_at: transaction.transaction_date,
+    note: `Imported from CSV file${transaction.batch?.file_name ? ` (${transaction.batch.file_name})` : ""}`,
+    occurred_at: transaction.occurred_at,
     status: "paid" as const,
     amount: Math.abs(transaction.amount),
     destination_amount: null,
@@ -172,25 +127,67 @@ function toFinanceTransactionInput(transaction: BankingTransaction, walletId: st
     allocation_id: null,
   };
 
-  if (transaction.amount < 0) {
+  if (transaction.kind === "transfer") {
+    if (!transaction.counterpart_wallet_id) {
+      throw new Error("Choose the other wallet for this transfer.");
+    }
+
+    const isOutgoing = transaction.amount < 0;
+
+    return {
+      ...common,
+      kind: "transfer",
+      source_account_id: isOutgoing ? transaction.wallet_id : transaction.counterpart_wallet_id,
+      destination_account_id: isOutgoing ? transaction.counterpart_wallet_id : transaction.wallet_id,
+      destination_amount: Math.abs(transaction.amount),
+      category_id: null,
+    };
+  }
+
+  if (transaction.kind === "debt_payment") {
+    if (!transaction.counterpart_wallet_id) {
+      throw new Error("Choose the debt account for this payment.");
+    }
+
+    return {
+      ...common,
+      kind: "debt_payment",
+      source_account_id: transaction.wallet_id,
+      destination_account_id: transaction.counterpart_wallet_id,
+      principal_amount: Math.abs(transaction.amount),
+      interest_amount: 0,
+      extra_principal_amount: 0,
+      category_id: null,
+    };
+  }
+
+  if (transaction.kind === "expense" || transaction.amount < 0) {
+    if (!transaction.category_id) {
+      throw new Error("Choose an expense category before confirming this import.");
+    }
+
     return {
       ...common,
       kind: "expense",
-      source_account_id: walletId,
+      source_account_id: transaction.wallet_id,
       destination_account_id: null,
     };
+  }
+
+  if (!transaction.category_id) {
+    throw new Error("Choose an income category before confirming this import.");
   }
 
   return {
     ...common,
     kind: "income",
     source_account_id: null,
-    destination_account_id: walletId,
+    destination_account_id: transaction.wallet_id,
   };
 }
 
-async function createRuleFromConfirmedTransaction(transaction: BankingTransaction) {
-  if (!transaction.category_id) {
+async function createRuleFromConfirmedTransaction(transaction: TransactionImport) {
+  if (transaction.kind === "transfer" || !transaction.category_id) {
     return;
   }
 
@@ -202,7 +199,7 @@ async function createRuleFromConfirmedTransaction(transaction: BankingTransactio
   }
 
   const { data: existing, error: existingError } = await supabase
-    .from("enable_banking_rules")
+    .from("transaction_import_rules")
     .select("id")
     .eq("user_id", user.id)
     .eq("merchant_pattern", pattern)
@@ -210,323 +207,320 @@ async function createRuleFromConfirmedTransaction(transaction: BankingTransactio
     .maybeSingle();
 
   if (existingError) {
-    throw new Error(normalizeBankingRepositoryError(existingError));
+    throw new Error(normalizeImportRepositoryError(existingError));
   }
 
   if (existing?.id) {
     return;
   }
 
-  const { error } = await supabase.from("enable_banking_rules").insert({
+  const { error } = await supabase.from("transaction_import_rules").insert({
     user_id: user.id,
     merchant_pattern: pattern,
     category_id: transaction.category_id,
   });
 
   if (error) {
-    throw new Error(normalizeBankingRepositoryError(error));
+    throw new Error(normalizeImportRepositoryError(error));
   }
 }
 
-export async function getBankingSnapshot(): Promise<BankingSnapshot> {
+export async function getBankingSnapshot(): Promise<TransactionImportSnapshot> {
   const { supabase, user } = await getAuthenticatedSupabase();
   const [
-    { snapshot, categoriesById, financeTransactionsById },
-    { data: connectionRow, error: connectionError },
-    { data: accountRows, error: accountError },
+    { snapshot, walletsById, categoriesById, financeTransactionsById },
+    { data: batchRows, error: batchError },
     { data: ruleRows, error: ruleError },
-    { data: transactionRows, error: transactionError },
+    { data: importRows, error: importError },
   ] = await Promise.all([
     getFinanceDependencies(),
     supabase
-      .from("enable_banking_connections")
-      .select("id, user_id, provider, aspsp_name, session_id, state, redirect_url, status, last_error, created_at, updated_at")
+      .from("transaction_import_batches")
+      .select("id, user_id, wallet_id, source, file_name, imported_rows, created_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+      .limit(12),
     supabase
-      .from("enable_banking_accounts")
-      .select("id, user_id, connection_id, wallet_id, provider_account_id, name, currency, iban, institution_name, last_sync_date, created_at, updated_at")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: true }),
-    supabase
-      .from("enable_banking_rules")
+      .from("transaction_import_rules")
       .select("id, user_id, merchant_pattern, category_id, created_at, updated_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false }),
     supabase
-      .from("enable_banking_transactions")
-      .select("id, user_id, connection_id, banking_account_id, finance_transaction_id, external_id, fingerprint, amount, currency, transaction_date, merchant_raw, merchant_clean, category_id, status, created_at, updated_at")
+      .from("transaction_imports")
+      .select(
+        "id, user_id, batch_id, wallet_id, finance_transaction_id, external_id, row_index, fingerprint, amount, currency, occurred_at, kind, counterpart_wallet_id, merchant_raw, merchant_clean, category_id, status, created_at, updated_at",
+      )
       .eq("user_id", user.id)
-      .order("transaction_date", { ascending: false })
+      .order("occurred_at", { ascending: false })
       .order("created_at", { ascending: false }),
   ]);
 
-  if (connectionError) {
-    throw new Error(normalizeBankingRepositoryError(connectionError));
-  }
-
-  if (accountError) {
-    throw new Error(normalizeBankingRepositoryError(accountError));
+  if (batchError) {
+    throw new Error(normalizeImportRepositoryError(batchError));
   }
 
   if (ruleError) {
-    throw new Error(normalizeBankingRepositoryError(ruleError));
+    throw new Error(normalizeImportRepositoryError(ruleError));
   }
 
-  if (transactionError) {
-    throw new Error(normalizeBankingRepositoryError(transactionError));
+  if (importError) {
+    throw new Error(normalizeImportRepositoryError(importError));
   }
 
-  const accounts = (accountRows ?? []) as BankingAccountRow[];
-  const bankingAccountsById = new Map(accounts.map((account) => [account.id, account]));
-  const rules = (ruleRows ?? []).map((row) => mapRule(row as BankingRuleRow, categoriesById));
-  const transactions = (transactionRows ?? []).map((row) =>
-    mapBankingTransaction(row as BankingTransactionRow, {
+  const batches = (batchRows ?? []).map((row) => mapBatch(row as TransactionImportBatchRow, walletsById));
+  const batchesById = new Map(batches.map((batch) => [batch.id, batch]));
+  const rules = (ruleRows ?? []).map((row) => mapRule(row as TransactionImportRuleRow, categoriesById));
+  const imports = (importRows ?? []).map((row) =>
+    mapImportedTransaction(row as TransactionImportRow, {
+      batchesById,
+      walletsById,
       categoriesById,
-      bankingAccountsById,
       financeTransactionsById,
     }),
   );
 
   return {
-    connection: (connectionRow as BankingConnectionRow | null) ?? null,
-    accounts,
+    batches,
     rules,
+    wallets: snapshot.accounts,
     categories: snapshot.categories,
-    draftTransactions: transactions.filter((transaction) => transaction.status === "draft"),
-    confirmedTransactions: transactions.filter((transaction) => transaction.status !== "draft"),
+    draftTransactions: imports.filter((transaction) => transaction.status === "draft"),
+    confirmedTransactions: imports.filter((transaction) => transaction.status !== "draft"),
   };
 }
 
-export async function connectBank(input?: { redirectUrl?: string; aspspName?: string; aspspCountry?: string }) {
+async function getSavedImportMapping(signature: string) {
   const { supabase, user } = await getAuthenticatedSupabase();
-  const defaults = await getEnableBankingDefaults();
-  const state = randomUUID();
-  const redirectUrl = input?.redirectUrl?.trim() || defaults.redirectUrl;
-  const aspspName = input?.aspspName?.trim() || defaults.aspspName;
-  const aspspCountry = input?.aspspCountry?.trim() || defaults.aspspCountry;
-
-  const { data: connectionRow, error: insertError } = await supabase
-    .from("enable_banking_connections")
-    .insert({
-      user_id: user.id,
-      aspsp_name: aspspName,
-      state,
-      redirect_url: redirectUrl,
-      status: "pending",
-      last_error: null,
-    })
-    .select("id")
-    .single();
-
-  if (insertError || !connectionRow?.id) {
-    throw new Error(normalizeBankingRepositoryError(insertError));
-  }
-
-  try {
-    const authorization = await startEnableBankingAuthorization({
-      access: { accounts: ["balances", "transactions"] },
-      aspsp: {
-        name: aspspName,
-        ...(aspspCountry ? { country: aspspCountry } : {}),
-      },
-      state,
-      redirect_url: redirectUrl,
-      psu_type: "personal",
-    });
-
-    return {
-      redirectUrl: authorization.redirectUrl,
-    };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unable to connect a bank.";
-    await supabase
-      .from("enable_banking_connections")
-      .update({ status: "error", last_error: message })
-      .eq("id", connectionRow.id)
-      .eq("user_id", user.id);
-    throw error;
-  }
-}
-
-export async function finalizeBankConnection(code: string, state: string) {
-  const { supabase, user } = await getAuthenticatedSupabase();
-  const { data: connectionRow, error: connectionError } = await supabase
-    .from("enable_banking_connections")
-    .select("id")
+  const { data, error } = await supabase
+    .from("transaction_import_column_presets")
+    .select("mapping")
     .eq("user_id", user.id)
-    .eq("state", state)
+    .eq("signature", signature)
     .maybeSingle();
 
-  if (connectionError) {
-    throw new Error(normalizeBankingRepositoryError(connectionError));
+  if (error) {
+    throw new Error(normalizeImportRepositoryError(error));
   }
 
-  if (!connectionRow?.id) {
-    throw new Error("Bank connection state is invalid.");
-  }
+  return (data?.mapping ?? null) as ImportColumnMapping | null;
+}
 
-  const session = await createEnableBankingSession(code);
+async function saveImportMapping(signature: string, mapping: ImportColumnMapping) {
+  const { supabase, user } = await getAuthenticatedSupabase();
+  const { error } = await supabase.from("transaction_import_column_presets").upsert(
+    {
+      user_id: user.id,
+      signature,
+      mapping,
+    },
+    {
+      onConflict: "user_id,signature",
+    },
+  );
 
-  const { error: updateError } = await supabase
-    .from("enable_banking_connections")
-    .update({
-      session_id: session.session_id,
-      status: "connected",
-      last_error: null,
-    })
-    .eq("id", connectionRow.id)
-    .eq("user_id", user.id);
-
-  if (updateError) {
-    throw new Error(normalizeBankingRepositoryError(updateError));
+  if (error) {
+    throw new Error(normalizeImportRepositoryError(error));
   }
 }
 
-export async function syncBankTransactions() {
+export async function getImportPreview(input: {
+  fileName: string;
+  fileBuffer: Uint8Array;
+}): Promise<ImportFilePreview> {
+  const preview = buildImportFilePreview(input);
+  const savedMapping = await getSavedImportMapping(preview.signature);
+  const suggestedMapping = savedMapping ?? suggestColumnMapping(preview.columns);
+
+  return {
+    ...preview,
+    suggestedMapping,
+    canImport: canImportWithMapping(suggestedMapping),
+  };
+}
+
+export async function uploadCsvImport(input: {
+  walletId: string;
+  fileName: string;
+  fileBuffer: Uint8Array;
+  mapping: ImportColumnMapping;
+}) {
   const { supabase, user } = await getAuthenticatedSupabase();
-  const snapshot = await getBankingSnapshot();
-
-  if (!snapshot.connection?.session_id) {
-    throw new Error("Bank session is not connected.");
-  }
-
-  const session = await getEnableBankingSession(snapshot.connection.session_id);
-  const providerAccountIds = session.accounts ?? session.accounts_data?.map((account) => account.uid ?? "").filter(Boolean) ?? [];
-
-  if (!providerAccountIds.length) {
-    return getBankingSnapshot();
-  }
-
   const finance = await getFinanceSnapshot();
-  const categories = finance.categories;
-  const rules = snapshot.rules.map((rule) => ({
-    merchant_pattern: rule.merchant_pattern,
-    category_id: rule.category_id,
-  }));
-  const existingAccountsByProviderId = new Map(snapshot.accounts.map((account) => [account.provider_account_id, account]));
-  const lookbackDate = subDays(new Date(), 30).toISOString().slice(0, 10);
+  const wallet = finance.accounts.find((account) => account.id === input.walletId);
 
-  for (const providerAccountId of providerAccountIds) {
-    const [details, transactionsResponse] = await Promise.all([
-      getEnableBankingAccountDetails(providerAccountId),
-      getEnableBankingAccountTransactions(providerAccountId, lookbackDate),
-    ]);
+  if (!wallet) {
+    throw new Error("Wallet not found.");
+  }
 
-    const accountName = details.name?.trim() || details.details?.trim() || `Bank account ${providerAccountId.slice(0, 6)}`;
-    const currency = details.currency?.trim() || "EUR";
-    const iban = details.account_id?.iban ?? details.account_id?.other?.identification ?? null;
-    const existingAccount = existingAccountsByProviderId.get(providerAccountId);
+  const { data: ruleRows, error: ruleError } = await supabase
+    .from("transaction_import_rules")
+    .select("merchant_pattern, category_id")
+    .eq("user_id", user.id);
 
-    const { data: accountRow, error: accountError } = await supabase
-      .from("enable_banking_accounts")
-      .upsert(
-        {
-          user_id: user.id,
-          connection_id: snapshot.connection.id,
-          wallet_id: existingAccount?.wallet_id ?? null,
-          provider_account_id: providerAccountId,
-          name: accountName,
-          currency,
-          iban,
-          institution_name: session.aspsp?.name ?? snapshot.connection.aspsp_name,
-          last_sync_date: new Date().toISOString(),
-        },
-        { onConflict: "user_id,provider_account_id" },
-      )
-      .select("id, user_id, connection_id, wallet_id, provider_account_id, name, currency, iban, institution_name, last_sync_date, created_at, updated_at")
-      .single();
+  if (ruleError) {
+    throw new Error(normalizeImportRepositoryError(ruleError));
+  }
 
-    if (accountError || !accountRow) {
-      throw new Error(normalizeBankingRepositoryError(accountError));
+  const parsedRows = parseMappedTransactions({
+    fileName: input.fileName,
+    fileBuffer: input.fileBuffer,
+    walletId: wallet.id,
+    fallbackCurrency: wallet.currency,
+    mapping: input.mapping,
+  });
+
+  if (!parsedRows.length) {
+    throw new Error("CSV file did not contain recognizable transaction rows.");
+  }
+
+  await saveImportMapping(buildImportFilePreview({ fileName: input.fileName, fileBuffer: input.fileBuffer }).signature, input.mapping);
+
+  const { data: batchRow, error: batchError } = await supabase
+    .from("transaction_import_batches")
+    .insert({
+      user_id: user.id,
+      wallet_id: wallet.id,
+      source: "csv",
+      file_name: input.fileName.trim() || "import.csv",
+      imported_rows: 0,
+    })
+    .select("id, user_id, wallet_id, source, file_name, imported_rows, created_at")
+    .single();
+
+  if (batchError || !batchRow) {
+    throw new Error(normalizeImportRepositoryError(batchError));
+  }
+
+  let insertedRows = 0;
+
+  for (const row of parsedRows) {
+    const merchantClean = normalizeMerchant(row.merchant);
+    const matchedCategory = matchImportRule(merchantClean, ruleRows ?? [], finance.categories);
+    const fingerprint = buildImportFingerprint(row);
+    const externalId = row.transactionId?.replaceAll(",", "-") ?? null;
+
+    const { data: existingImport, error: existingError } = await supabase
+      .from("transaction_imports")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("wallet_id", wallet.id)
+      .or(externalId ? `external_id.eq.${externalId},fingerprint.eq.${fingerprint}` : `fingerprint.eq.${fingerprint}`)
+      .limit(1)
+      .maybeSingle();
+
+    if (existingError) {
+      throw new Error(normalizeImportRepositoryError(existingError));
     }
 
-    const bankingAccount = accountRow as BankingAccountRow;
-    existingAccountsByProviderId.set(providerAccountId, bankingAccount);
-    await ensureWalletForBankingAccount(bankingAccount, user.id);
+    if (existingImport?.id) {
+      continue;
+    }
 
-    const providerTransactions = (transactionsResponse.transactions ?? []).map<ImportedProviderTransaction>((transaction) => {
-      const amount = Number(transaction.transaction_amount?.amount ?? 0);
-      const signedAmount = transaction.credit_debit_indicator === "DBIT" ? -Math.abs(amount) : Math.abs(amount);
-      const merchant =
-        transaction.credit_debit_indicator === "DBIT"
-          ? transaction.creditor?.name ?? transaction.note ?? transaction.remittance_information?.[0] ?? "Card payment"
-          : transaction.debtor?.name ?? transaction.note ?? transaction.remittance_information?.[0] ?? "Incoming transfer";
-
-      return {
-        accountId: providerAccountId,
-        transactionId: transaction.transaction_id ?? transaction.entry_reference ?? null,
-        amount: signedAmount,
-        currency: transaction.transaction_amount?.currency ?? currency,
-        date: transaction.booking_date ?? transaction.transaction_date ?? transaction.value_date ?? new Date().toISOString().slice(0, 10),
-        merchant,
-      };
+    const { error: insertError } = await supabase.from("transaction_imports").insert({
+      user_id: user.id,
+      batch_id: batchRow.id,
+      wallet_id: wallet.id,
+      external_id: externalId,
+      row_index: row.rowIndex,
+      fingerprint,
+      amount: row.amount,
+      currency: row.currency,
+      occurred_at: row.date,
+      kind: row.kind,
+      counterpart_wallet_id: null,
+      merchant_raw: row.merchant,
+      merchant_clean: merchantClean,
+      category_id: matchedCategory?.id ?? null,
+      status: "draft",
     });
 
-    for (const providerTransaction of providerTransactions) {
-      const merchantClean = normalizeMerchant(providerTransaction.merchant);
-      const matchedCategory = matchImportRule(merchantClean, rules, categories);
-      const fingerprint = buildImportFingerprint(providerTransaction);
-      const transactionId = providerTransaction.transactionId?.replaceAll(",", "-");
-
-      const { data: existingTransaction, error: existingError } = await supabase
-        .from("enable_banking_transactions")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("banking_account_id", bankingAccount.id)
-        .or(transactionId ? `external_id.eq.${transactionId},fingerprint.eq.${fingerprint}` : `fingerprint.eq.${fingerprint}`)
-        .limit(1)
-        .maybeSingle();
-
-      if (existingError) {
-        throw new Error(normalizeBankingRepositoryError(existingError));
-      }
-
-      if (existingTransaction?.id) {
-        continue;
-      }
-
-      const { error: insertError } = await supabase.from("enable_banking_transactions").insert({
-        user_id: user.id,
-        connection_id: snapshot.connection.id,
-        banking_account_id: bankingAccount.id,
-        external_id: transactionId ?? null,
-        fingerprint,
-        amount: providerTransaction.amount,
-        currency: providerTransaction.currency,
-        transaction_date: providerTransaction.date,
-        merchant_raw: providerTransaction.merchant,
-        merchant_clean: merchantClean,
-        category_id: matchedCategory?.id ?? null,
-        status: "draft",
-      });
-
-      if (insertError) {
-        throw new Error(normalizeBankingRepositoryError(insertError));
-      }
+    if (insertError) {
+      throw new Error(normalizeImportRepositoryError(insertError));
     }
+
+    insertedRows += 1;
+  }
+
+  const { error: updateBatchError } = await supabase
+    .from("transaction_import_batches")
+    .update({ imported_rows: insertedRows })
+    .eq("id", batchRow.id)
+    .eq("user_id", user.id);
+
+  if (updateBatchError) {
+    throw new Error(normalizeImportRepositoryError(updateBatchError));
   }
 
   return getBankingSnapshot();
 }
 
-export async function updateBankingTransaction(transactionId: string, values: BankingTransactionUpdateInput) {
+export async function updateBankingTransaction(transactionId: string, values: TransactionImportUpdateInput) {
   const { supabase, user } = await getAuthenticatedSupabase();
-  const nextValues = {
-    ...(typeof values.merchant_clean === "string" ? { merchant_clean: normalizeMerchant(values.merchant_clean) } : {}),
-    ...(values.category_id !== undefined ? { category_id: values.category_id } : {}),
-  };
+  const { data: currentImport, error: currentImportError } = await supabase
+    .from("transaction_imports")
+    .select("id, wallet_id, counterpart_wallet_id, kind")
+    .eq("id", transactionId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (currentImportError) {
+    throw new Error(normalizeImportRepositoryError(currentImportError));
+  }
+
+  if (!currentImport?.id) {
+    throw new Error("Imported transaction not found.");
+  }
+
+  const nextValues: Record<string, unknown> = {};
+  const nextKind = values.kind ?? currentImport.kind;
+  const nextWalletId = values.wallet_id ?? currentImport.wallet_id;
+  const nextCounterpartWalletId =
+    values.counterpart_wallet_id !== undefined ? values.counterpart_wallet_id : currentImport.counterpart_wallet_id;
+
+  if (typeof values.merchant_clean === "string") {
+    nextValues.merchant_clean = normalizeMerchant(values.merchant_clean);
+  }
+
+  if (values.wallet_id) {
+    nextValues.wallet_id = values.wallet_id;
+  }
+
+  if (values.kind) {
+    nextValues.kind = values.kind;
+    if (values.kind === "transfer" || values.kind === "debt_payment") {
+      nextValues.category_id = null;
+    }
+  }
+
+  if (values.category_id !== undefined && values.kind !== "transfer" && values.kind !== "debt_payment") {
+    nextValues.category_id = values.category_id;
+  }
+
+  if (values.counterpart_wallet_id !== undefined) {
+    nextValues.counterpart_wallet_id = values.counterpart_wallet_id;
+  }
+
+  if (
+    (nextKind === "transfer" || nextKind === "debt_payment") &&
+    nextWalletId &&
+    nextCounterpartWalletId &&
+    nextWalletId === nextCounterpartWalletId
+  ) {
+    throw new Error(
+      nextKind === "debt_payment"
+        ? "Choose a different debt account for this payment."
+        : "Choose a different destination wallet for this transfer.",
+    );
+  }
 
   const { error } = await supabase
-    .from("enable_banking_transactions")
+    .from("transaction_imports")
     .update(nextValues)
     .eq("id", transactionId)
     .eq("user_id", user.id);
 
   if (error) {
-    throw new Error(normalizeBankingRepositoryError(error));
+    throw new Error(normalizeImportRepositoryError(error));
   }
 }
 
@@ -541,12 +535,11 @@ async function confirmSingleBankingTransaction(transactionId: string) {
     throw new Error("Imported transaction not found.");
   }
 
-  if (!target.banking_account) {
-    throw new Error("Imported bank account not found.");
+  if (!target.wallet) {
+    throw new Error("Wallet not found.");
   }
 
-  const walletId = await ensureWalletForBankingAccount(target.banking_account, user.id);
-  const financeInput = toFinanceTransactionInput(target, walletId);
+  const financeInput = toFinanceTransactionInput(target);
   await createTransaction(financeInput);
 
   const financeSnapshot = await getFinanceSnapshot();
@@ -558,7 +551,7 @@ async function confirmSingleBankingTransaction(transactionId: string) {
   );
 
   const { error } = await supabase
-    .from("enable_banking_transactions")
+    .from("transaction_imports")
     .update({
       finance_transaction_id: createdFinanceTransaction?.id ?? null,
       status: target.merchant_clean === normalizeMerchant(target.merchant_raw) ? "confirmed" : "edited",
@@ -567,7 +560,7 @@ async function confirmSingleBankingTransaction(transactionId: string) {
     .eq("user_id", user.id);
 
   if (error) {
-    throw new Error(normalizeBankingRepositoryError(error));
+    throw new Error(normalizeImportRepositoryError(error));
   }
 
   await createRuleFromConfirmedTransaction(target);
@@ -576,6 +569,72 @@ async function confirmSingleBankingTransaction(transactionId: string) {
 export async function batchConfirmBankingTransactions(transactionIds: string[]) {
   for (const transactionId of transactionIds) {
     await confirmSingleBankingTransaction(transactionId);
+  }
+
+  return getBankingSnapshot();
+}
+
+export async function deleteBankingTransaction(transactionId: string) {
+  const { supabase, user } = await getAuthenticatedSupabase();
+
+  const { data: importRow, error: importError } = await supabase
+    .from("transaction_imports")
+    .select("id, status, finance_transaction_id")
+    .eq("id", transactionId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (importError) {
+    throw new Error(normalizeImportRepositoryError(importError));
+  }
+
+  if (!importRow?.id) {
+    throw new Error("Imported transaction not found.");
+  }
+
+  if (importRow.status !== "draft" || importRow.finance_transaction_id) {
+    throw new Error("Only draft imported transactions can be deleted.");
+  }
+
+  const { error: deleteError } = await supabase
+    .from("transaction_imports")
+    .delete()
+    .eq("id", transactionId)
+    .eq("user_id", user.id);
+
+  if (deleteError) {
+    throw new Error(normalizeImportRepositoryError(deleteError));
+  }
+
+  return getBankingSnapshot();
+}
+
+export async function deleteImportBatch(batchId: string) {
+  const { supabase, user } = await getAuthenticatedSupabase();
+
+  const { data: batchRow, error: batchError } = await supabase
+    .from("transaction_import_batches")
+    .select("id")
+    .eq("id", batchId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (batchError) {
+    throw new Error(normalizeImportRepositoryError(batchError));
+  }
+
+  if (!batchRow?.id) {
+    throw new Error("Import batch not found.");
+  }
+
+  const { error: deleteError } = await supabase
+    .from("transaction_import_batches")
+    .delete()
+    .eq("id", batchId)
+    .eq("user_id", user.id);
+
+  if (deleteError) {
+    throw new Error(normalizeImportRepositoryError(deleteError));
   }
 
   return getBankingSnapshot();

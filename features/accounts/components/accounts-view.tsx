@@ -290,7 +290,7 @@ export function AccountsView({
 
   return (
     <>
-      <div className="grid h-full w-full grid-cols-1 lg:grid-cols-[minmax(320px,34vw)_minmax(0,1fr)]">
+      <div className="grid h-full w-full grid-cols-1 lg:grid-cols-[400px_minmax(0,1fr)]">
         <section className="flex min-h-0 flex-col border-b border-border/40 bg-card lg:border-r lg:border-b-0 lg:border-r-border/25">
           <div
             className={cn(

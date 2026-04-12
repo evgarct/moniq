@@ -31,6 +31,7 @@ Storybook is the review surface for Moniq UI work.
   - `Calendar`
   - `Today`
   - `Accounts`
+  - `Imports`
 
 ## Commands
 
@@ -52,3 +53,4 @@ Storybook is the review surface for Moniq UI work.
 - every meaningful UI surface should be represented in Storybook
 - stories should use mock data and stay independent from Supabase
 - page stories should reflect realistic Moniq layouts, not isolated demo fragments
+- stateful review surfaces such as the import inbox should have a focused story that opens directly into the target interaction state

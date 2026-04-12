@@ -5,7 +5,7 @@ import { hasLocale } from "next-intl";
 
 import { loadMessages } from "@/i18n/messages";
 import { routing, type AppLocale } from "@/i18n/routing";
-import type { BankingSnapshot } from "@/types/banking";
+import type { ImportColumnMapping, ImportFilePreview, TransactionImportSnapshot } from "@/types/imports";
 
 export const bankingSnapshotQueryKey = ["banking-snapshot"] as const;
 const REQUEST_TIMEOUT_MS = 15_000;
@@ -82,41 +82,67 @@ async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit) {
   }
 }
 
-export async function fetchBankingSnapshot(): Promise<BankingSnapshot> {
+export async function fetchBankingSnapshot(): Promise<TransactionImportSnapshot> {
   const response = await fetchWithTimeout("/api/banking/snapshot", {
     method: "GET",
     credentials: "include",
     cache: "no-store",
   });
 
-  return parseJsonResponse<BankingSnapshot>(response);
+  return parseJsonResponse<TransactionImportSnapshot>(response);
 }
 
-export async function connectBankRequest(input?: { redirectUrl?: string; aspspName?: string; aspspCountry?: string }) {
-  const response = await fetchWithTimeout("/api/banking/connect-bank", {
+export async function uploadCsvImportRequest(input: { walletId: string; file: File }) {
+  const formData = new FormData();
+  formData.set("walletId", input.walletId);
+  formData.set("file", input.file);
+
+  const response = await fetchWithTimeout("/api/banking/upload", {
     method: "POST",
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(input ?? {}),
+    body: formData,
   });
 
-  return parseJsonResponse<{ redirectUrl: string }>(response);
+  return parseJsonResponse<TransactionImportSnapshot>(response);
 }
 
-export async function syncBankTransactionsRequest() {
-  const response = await fetchWithTimeout("/api/banking/sync", {
+export async function fetchImportPreviewRequest(file: File) {
+  const formData = new FormData();
+  formData.set("file", file);
+
+  const response = await fetchWithTimeout("/api/banking/import-preview", {
     method: "POST",
     credentials: "include",
+    body: formData,
   });
 
-  return parseJsonResponse<BankingSnapshot>(response);
+  return parseJsonResponse<ImportFilePreview>(response);
+}
+
+export async function uploadMappedImportRequest(input: { walletId: string; file: File; mapping: ImportColumnMapping }) {
+  const formData = new FormData();
+  formData.set("walletId", input.walletId);
+  formData.set("file", input.file);
+  formData.set("mapping", JSON.stringify(input.mapping));
+
+  const response = await fetchWithTimeout("/api/banking/upload", {
+    method: "POST",
+    credentials: "include",
+    body: formData,
+  });
+
+  return parseJsonResponse<TransactionImportSnapshot>(response);
 }
 
 export async function updateImportedTransactionRequest(
   transactionId: string,
-  values: { merchant_clean?: string; category_id?: string | null },
+  values: {
+    merchant_clean?: string;
+    category_id?: string | null;
+    kind?: "expense" | "income" | "transfer" | "debt_payment";
+    wallet_id?: string;
+    counterpart_wallet_id?: string | null;
+  },
 ) {
   const response = await fetchWithTimeout(`/api/banking/transactions/${transactionId}`, {
     method: "PATCH",
@@ -127,7 +153,7 @@ export async function updateImportedTransactionRequest(
     body: JSON.stringify(values),
   });
 
-  return parseJsonResponse<BankingSnapshot>(response);
+  return parseJsonResponse<TransactionImportSnapshot>(response);
 }
 
 export async function batchConfirmImportedTransactionsRequest(transactionIds: string[]) {
@@ -140,5 +166,23 @@ export async function batchConfirmImportedTransactionsRequest(transactionIds: st
     body: JSON.stringify({ transactionIds }),
   });
 
-  return parseJsonResponse<BankingSnapshot>(response);
+  return parseJsonResponse<TransactionImportSnapshot>(response);
+}
+
+export async function deleteImportedTransactionRequest(transactionId: string) {
+  const response = await fetchWithTimeout(`/api/banking/transactions/${transactionId}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+
+  return parseJsonResponse<TransactionImportSnapshot>(response);
+}
+
+export async function deleteImportBatchRequest(batchId: string) {
+  const response = await fetchWithTimeout(`/api/banking/batches/${batchId}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+
+  return parseJsonResponse<TransactionImportSnapshot>(response);
 }

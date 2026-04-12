@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, WalletCards } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
 
+import { CategoryIcon } from "@/components/category-icon";
 import { MoneyAmount } from "@/components/money-amount";
 import { Surface } from "@/components/surface";
 import { Button } from "@/components/ui/button";
@@ -76,7 +77,7 @@ function BudgetCategoryRow({ node }: { node: CategoryTreeNode }) {
         <div className="min-w-0">
           <div className="flex items-center gap-3">
             <div className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border/70 bg-background text-base">
-              {node.icon ?? "•"}
+              <CategoryIcon icon={node.icon} glyphClassName="text-foreground" />
             </div>
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-foreground">{node.name}</p>

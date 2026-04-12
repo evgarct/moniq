@@ -8,6 +8,7 @@ import { Controller, type FieldError, useFieldArray, useForm, useWatch } from "r
 import { useTranslations } from "next-intl";
 import { z } from "zod";
 
+import { CategoryCascadePicker } from "@/components/category-cascade-picker";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { InlineIcon } from "@/components/ui/inline-icon";
@@ -467,6 +468,7 @@ function inferSingleTitle(values: TransactionFormInputs, accounts: Account[], ca
   return values.title.trim();
 }
 
+
 export function TransactionFormSheet({
   open,
   mode,
@@ -529,8 +531,6 @@ export function TransactionFormSheet({
   const formId = "transaction-form-sheet";
   const accountNameById = new Map(accounts.map((account) => [account.id, account.name]));
   const accountById = new Map(accounts.map((account) => [account.id, account]));
-  const categoryNameById = new Map(categories.map((category) => [category.id, category.name]));
-  const categoryById = new Map(categories.map((category) => [category.id, category]));
   const goalNameById = new Map(allocations.map((allocation) => [allocation.id, allocation.name]));
   const amountInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
   const lineTriggerRefs = useRef<Record<number, HTMLButtonElement | null>>({});
@@ -874,44 +874,22 @@ export function TransactionFormSheet({
                       onPointerCancel={clearLongPressTimer}
                       onPointerLeave={clearLongPressTimer}
                       left={
-                        kind === "income" || kind === "expense" ? (
+                          kind === "income" || kind === "expense" ? (
                             <Controller
                               control={form.control}
                               name={`line_items.${index}.category_id`}
                               render={({ field: itemField }) => (
-                                <Select
-                                  value={toSelectValue(itemField.value)}
-                                  onValueChange={(value) => {
+                                <CategoryCascadePicker
+                                  categories={categoryOptions}
+                                  value={itemField.value}
+                                  onSelect={(value) => {
                                     itemField.onChange(value);
                                     setTimeout(() => amountInputRefs.current[index]?.focus(), 0);
                                   }}
-                                >
-                                  <SelectTrigger
-                                    ref={(node) => {
-                                      lineTriggerRefs.current[index] = node;
-                                    }}
-                                      className="h-auto w-full border-0 bg-transparent px-0 py-0 text-left text-sm leading-5 shadow-none outline-none focus:outline-none focus-visible:border-transparent focus-visible:ring-0 [&>svg:last-child]:hidden"
-                                  >
-                                    <div className="flex min-w-0 items-center gap-2">
-                                      <span className={itemField.value ? "shrink-0 text-sm leading-none" : "hidden"}>
-                                        {itemField.value ? categoryById.get(itemField.value)?.icon ?? "•" : "•"}
-                                      </span>
-                                        <span className={cn("truncate capitalize", itemField.value ? "text-foreground" : "text-muted-foreground")}>
-                                          {itemField.value ? categoryNameById.get(itemField.value) ?? itemField.value : t("placeholders.category")}
-                                        </span>
-                                    </div>
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {categoryOptions.map((category) => (
-                                      <SelectItem key={category.id} value={category.id} className="capitalize">
-                                        <div className="flex min-w-0 items-center gap-2">
-                                          {category.icon ? <span className="shrink-0 text-base leading-none">{category.icon}</span> : null}
-                                          <span className="truncate">{category.name}</span>
-                                        </div>
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
+                                  placeholder={t("placeholders.category")}
+                                  triggerClassName="h-auto border-0 bg-transparent px-0 py-0 text-left text-sm leading-5 shadow-none outline-none hover:bg-transparent"
+                                  contentClassName="min-w-[16rem]"
+                                />
                               )}
                             />
                           ) : (
@@ -1239,16 +1217,14 @@ export function TransactionFormSheet({
                           control={form.control}
                           name="category_id"
                           render={({ field }) => (
-                            <Select value={toSelectValue(field.value)} onValueChange={field.onChange}>
-                              <SelectTrigger className="h-auto w-full justify-start border-0 bg-transparent px-0 py-0 text-sm shadow-none">
-                                <span className={cn("truncate text-left", field.value ? "text-foreground" : "text-muted-foreground")}>
-                                  {field.value ? categoryNameById.get(field.value) ?? field.value : t("placeholders.category")}
-                                </span>
-                              </SelectTrigger>
-                              <SelectContent>
-                                {categoryOptions.map((category) => <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>)}
-                              </SelectContent>
-                            </Select>
+                            <CategoryCascadePicker
+                              categories={categoryOptions}
+                              value={field.value}
+                              onSelect={field.onChange}
+                              placeholder={t("placeholders.category")}
+                              triggerClassName="h-auto w-full justify-start border-0 bg-transparent px-0 py-0 text-sm shadow-none hover:bg-transparent"
+                              contentClassName="min-w-[16rem]"
+                            />
                           )}
                         />
                         <FieldMessage error={form.formState.errors.category_id} />
