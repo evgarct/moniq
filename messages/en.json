@@ -221,44 +221,37 @@
     }
   },
   "today": {
-    "loading": {
-      "title": "Loading today",
-      "description": "Fetching planned and paid transactions from Supabase."
-    },
-    "error": {
-      "title": "Unable to load today",
-      "description": "Finance data could not be loaded."
-    },
-    "view": {
-      "title": "Today",
-      "description": "Use the month as the default planning surface. Select a date to inspect only that day's planned transactions."
-    },
-    "planned": {
-      "title": "Planned transactions",
-      "description": "Due today and overdue items that still need action.",
-      "empty": "Nothing planned or overdue right now."
-    },
-    "paid": {
-      "title": "Paid transactions",
-      "description": "Completed items for quick scanning.",
-      "empty": "No paid transactions today."
-    },
-    "actions": {
-      "markPaid": "Mark paid",
+      "loading": {
+        "title": "Loading today",
+        "description": "Fetching completed and planned transactions from Supabase."
+      },
+      "error": {
+        "title": "Unable to load today",
+        "description": "Finance data could not be loaded."
+      },
+      "view": {
+        "title": "Today",
+        "description": "Use the calendar to move between a focused today view, a single day, or the whole month."
+      },
+      "actions": {
+        "markPaid": "Mark paid",
       "edit": "Edit",
       "skip": "Skip",
       "deleteSeries": "Delete series"
+      },
+      "board": {
+        "agendaTitle": "Transactions",
+        "todayTitle": "Today",
+        "todayDescription": "Completed today and planned items coming up over the next week.",
+        "selectedDescription": "Transactions recorded for the selected date, with completed items before planned ones.",
+        "monthDescription": "All planned and completed transactions in the selected month, grouped by date.",
+        "jumpToday": "Today",
+        "clearDay": "Show month",
+        "todayEmpty": "No completed transactions today and no planned items in the next week.",
+        "monthEmpty": "No visible transactions in this month.",
+        "selectedEmpty": "No transactions for this day."
+      }
     },
-    "board": {
-      "agendaTitle": "Planned",
-      "selectedDescription": "Planned transactions scheduled exactly for the selected day.",
-      "monthDescription": "Active planned transactions visible in the current month.",
-      "jumpToday": "Today",
-      "clearDay": "Show month",
-      "empty": "No active planned items in this month.",
-      "selectedEmpty": "No planned items for this day."
-    }
-  },
   "accounts": {
     "loading": {
       "title": "Loading balance",

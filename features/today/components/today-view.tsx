@@ -1,6 +1,6 @@
 "use client";
 
-import { addMonths, isSameDay, isSameMonth, parseISO, startOfToday } from "date-fns";
+import { addMonths, isSameDay, isSameMonth, startOfToday } from "date-fns";
 import { ChevronLeft, ChevronRight, ListChecks, Plus, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
@@ -12,49 +12,62 @@ import { Button } from "@/components/ui/button";
 import { TransactionFormSheet, type TransactionFormSubmitPayload } from "@/features/transactions/components/transaction-form-sheet";
 import { TransactionRowActions } from "@/features/transactions/components/transaction-row-actions";
 import { useTransactionActions } from "@/features/transactions/hooks/use-transaction-actions";
-import { isVisibleTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
+import { getTodayViewTransactions } from "@/features/today/lib/today-transactions";
 import type { FinanceSnapshot, Transaction } from "@/types/finance";
 
-function sortTransactionsAscending(transactions: Transaction[]) {
-  return [...transactions].sort((left, right) => left.occurred_at.localeCompare(right.occurred_at));
-}
-
-export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
+export function TodayView({
+  snapshot,
+  initialMonth,
+  initialSelectedDate,
+}: {
+  snapshot: FinanceSnapshot;
+  initialMonth?: Date;
+  initialSelectedDate?: Date | null;
+}) {
   const t = useTranslations("today");
   const transactionViewT = useTranslations("transactions.view");
   const formatDate = useFormatter();
   const today = startOfToday();
   const transactionActions = useTransactionActions();
-  const [month, setMonth] = useState(today);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [month, setMonth] = useState(initialMonth ?? today);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(
+    initialSelectedDate === undefined ? today : initialSelectedDate,
+  );
   const [actionError, setActionError] = useState<string | null>(null);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [editingSeries, setEditingSeries] = useState<Transaction["schedule"] | null>(null);
   const [sheetMode, setSheetMode] = useState<"add" | "edit-transaction" | "edit-schedule">("add");
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  const plannedTransactions = useMemo(
+  const transactionState = useMemo(
     () =>
-      sortTransactionsAscending(
-        snapshot.transactions.filter(
-          (transaction) => isVisibleTransactionStatus(transaction.status) && transaction.status === "planned",
-        ),
-      ),
-    [snapshot.transactions],
+      getTodayViewTransactions({
+        transactions: snapshot.transactions,
+        month,
+        selectedDate,
+        today,
+      }),
+    [month, selectedDate, snapshot.transactions, today],
   );
 
-  const agendaTransactions = useMemo(() => {
-    if (selectedDate) {
-      return plannedTransactions.filter((transaction) => isSameDay(parseISO(transaction.occurred_at), selectedDate));
-    }
-
-    return plannedTransactions.filter((transaction) => isSameMonth(parseISO(transaction.occurred_at), month));
-  }, [month, plannedTransactions, selectedDate]);
-
-  const agendaLabel = selectedDate
-    ? formatDate.dateTime(selectedDate, { month: "long", day: "numeric" })
-    : formatDate.dateTime(month, { month: "long", year: "numeric" });
-  const agendaSubtitle = selectedDate ? t("board.selectedDescription") : t("board.monthDescription");
+  const agendaLabel =
+    transactionState.mode === "today"
+      ? t("board.todayTitle")
+      : selectedDate
+        ? formatDate.dateTime(selectedDate, { month: "long", day: "numeric" })
+        : formatDate.dateTime(month, { month: "long", year: "numeric" });
+  const agendaSubtitle =
+    transactionState.mode === "today"
+      ? t("board.todayDescription")
+      : transactionState.mode === "day"
+        ? t("board.selectedDescription")
+        : t("board.monthDescription");
+  const agendaEmptyMessage =
+    transactionState.mode === "today"
+      ? t("board.todayEmpty")
+      : transactionState.mode === "day"
+        ? t("board.selectedEmpty")
+        : t("board.monthEmpty");
 
   async function handleSubmit(payload: TransactionFormSubmitPayload) {
     try {
@@ -88,7 +101,15 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <Button variant="outline" size="icon-sm" className="rounded-full bg-background" onClick={() => setMonth((value) => addMonths(value, -1))}>
+              <Button
+                variant="outline"
+                size="icon-sm"
+                className="rounded-full bg-background"
+                onClick={() => {
+                  setMonth((value) => addMonths(value, -1));
+                  setSelectedDate(null);
+                }}
+              >
                 <ChevronLeft />
               </Button>
               <div className="rounded-full border border-border/80 bg-background px-4 py-2 text-sm font-medium text-foreground">
@@ -100,12 +121,20 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
                 className="rounded-full bg-background px-4"
                 onClick={() => {
                   setMonth(today);
-                  setSelectedDate(null);
+                  setSelectedDate(today);
                 }}
               >
                 {t("board.jumpToday")}
               </Button>
-              <Button variant="outline" size="icon-sm" className="rounded-full bg-background" onClick={() => setMonth((value) => addMonths(value, 1))}>
+              <Button
+                variant="outline"
+                size="icon-sm"
+                className="rounded-full bg-background"
+                onClick={() => {
+                  setMonth((value) => addMonths(value, 1));
+                  setSelectedDate(null);
+                }}
+              >
                 <ChevronRight />
               </Button>
               <Button
@@ -169,8 +198,9 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
 
               <div className="mt-4 min-h-0 flex-1 overflow-auto">
                 <TransactionList
-                  transactions={agendaTransactions}
-                  emptyMessage={selectedDate ? t("board.selectedEmpty") : t("board.empty")}
+                  transactions={transactionState.transactions}
+                  emptyMessage={agendaEmptyMessage}
+                  groupByDate={transactionState.groupByDate}
                   renderAction={(transaction) => (
                     <TransactionRowActions
                       transaction={transaction}
