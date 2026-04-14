@@ -436,6 +436,9 @@
     "rows": {
       "childCount": "{count, plural, one {# subcategory} other {# subcategories}}",
       "leaf": "Leaf category"
+    },
+    "category": {
+      "noTransactions": "No transactions in this category for the selected month."
     }
   },
   "categories": {

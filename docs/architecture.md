@@ -20,6 +20,16 @@
 7. UI mutations call wallet/allocation/category/transaction/import API routes and receive the updated snapshot back.
 8. TanStack Query replaces the cached snapshot, so the UI stays in sync without client-side mock state.
 
+## Feature modules
+
+- `features/accounts` — wallet inventory, allocation management, and the Balance workspace.
+- `features/budget` — monthly cashflow chart and category spending breakdown. See `docs/budget-feature.md`.
+- `features/transactions` — transaction form, recurring schedule logic, and transaction list primitives.
+- `features/categories` — category tree builder and category icon resolution.
+- `features/banking` — CSV import preview, draft inbox, and import rules.
+- `features/allocations` — allocation form and amount validation helpers.
+- `features/finance` — shared snapshot query (`useFinanceData`), server repository, and client-side API layer.
+
 ## Domain boundaries
 
 - `wallets` are real balances.
