@@ -20,9 +20,9 @@ function sortNodesByActivity(nodes: CategoryTreeNode[]) {
   return [...nodes].sort((a, b) => Math.abs(b.total_amount) - Math.abs(a.total_amount));
 }
 
-// ─── Category row ─────────────────────────────────────────────────────────────
+// ─── Category tile ────────────────────────────────────────────────────────────
 
-function CategoryRow({
+function CategoryTile({
   node,
   isSelected,
   onClick,
@@ -36,35 +36,37 @@ function CategoryRow({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex w-full items-center gap-3 rounded-md px-2 py-2.5 text-left transition-colors focus:outline-none",
+        "flex flex-col items-center gap-2 rounded-md px-2 py-3 text-center transition-colors focus:outline-none",
         "hover:bg-secondary/50",
         isSelected && "bg-secondary/60",
       )}
     >
-      <CategoryIcon icon={node.icon} glyphClassName="size-[18px] shrink-0 text-muted-foreground" />
-      <p className="type-body-14 min-w-0 flex-1 truncate font-medium text-foreground">{node.name}</p>
-      {node.totals_by_currency.length ? (
-        <div className="flex shrink-0 flex-col items-end">
-          {node.totals_by_currency.map((total) => (
-            <MoneyAmount
-              key={total.currency}
-              amount={total.amount}
-              currency={total.currency}
-              display="absolute"
-              className="text-sm font-medium tabular-nums text-foreground"
-            />
-          ))}
-        </div>
-      ) : (
-        <span className="shrink-0 text-sm text-muted-foreground">—</span>
-      )}
+      <CategoryIcon icon={node.icon} glyphClassName="size-[18px] text-muted-foreground" />
+      <div className="w-full min-w-0">
+        <p className="type-body-12 truncate font-medium leading-tight text-foreground">{node.name}</p>
+        {node.totals_by_currency.length ? (
+          <div className="mt-0.5 flex flex-col items-center">
+            {node.totals_by_currency.map((total) => (
+              <MoneyAmount
+                key={total.currency}
+                amount={total.amount}
+                currency={total.currency}
+                display="absolute"
+                className="type-body-12 text-muted-foreground tabular-nums"
+              />
+            ))}
+          </div>
+        ) : (
+          <span className="type-body-12 mt-0.5 text-muted-foreground">—</span>
+        )}
+      </div>
     </button>
   );
 }
 
-// ─── Category list (inline section, no own Surface) ───────────────────────────
+// ─── Category section ─────────────────────────────────────────────────────────
 
-function CategoryList({
+function CategorySection({
   title,
   nodes,
   emptyMessage,
@@ -79,28 +81,52 @@ function CategoryList({
 }) {
   return (
     <div>
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{title}</p>
-      <div className="mt-2 -mx-2 flex flex-col">
-        {nodes.length ? (
-          nodes.map((node) => (
-            <CategoryRow
+      <div className="mb-3 flex items-center justify-between">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{title}</p>
+        {nodes.length > 0 && nodes.some((n) => n.totals_by_currency.length > 0) && (
+          <div className="flex gap-3">
+            {nodes
+              .flatMap((n) => n.totals_by_currency)
+              .reduce<{ currency: string; amount: number }[]>((acc, t) => {
+                const existing = acc.find((x) => x.currency === t.currency);
+                if (existing) existing.amount += t.amount;
+                else acc.push({ ...t });
+                return acc;
+              }, [])
+              .map((total) => (
+                <MoneyAmount
+                  key={total.currency}
+                  amount={total.amount}
+                  currency={total.currency}
+                  display="absolute"
+                  className="type-body-12 font-medium tabular-nums text-foreground"
+                />
+              ))}
+          </div>
+        )}
+      </div>
+
+      {nodes.length ? (
+        <div className="-mx-2 grid grid-cols-4 sm:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
+          {nodes.map((node) => (
+            <CategoryTile
               key={node.id}
               node={node}
               isSelected={selectedCategoryId === node.id}
               onClick={() => onSelectCategory(selectedCategoryId === node.id ? null : node.id)}
             />
-          ))
-        ) : (
-          <div className="type-body-14 mx-2 rounded-lg border border-dashed border-border px-4 py-8 text-muted-foreground">
-            {emptyMessage}
-          </div>
-        )}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div className="type-body-14 rounded-lg border border-dashed border-border px-4 py-8 text-muted-foreground">
+          {emptyMessage}
+        </div>
+      )}
     </div>
   );
 }
 
-// ─── Selected category detail (inline, no own Surface) ────────────────────────
+// ─── Selected category detail ─────────────────────────────────────────────────
 
 function CategoryDetail({
   node,
@@ -115,7 +141,7 @@ function CategoryDetail({
 
   return (
     <div>
-      {/* Header row */}
+      {/* Header */}
       <div className="mb-4 flex items-center gap-3">
         <CategoryIcon icon={node.icon} glyphClassName="size-[18px] text-muted-foreground" />
         <div className="flex min-w-0 flex-1 items-center justify-between gap-4">
@@ -166,7 +192,6 @@ function CategoryDetail({
         </div>
       )}
 
-      {/* Transactions */}
       <TransactionList
         transactions={transactions}
         emptyMessage={emptyMessage}
@@ -219,14 +244,10 @@ export function BudgetView({ snapshot }: { snapshot: FinanceSnapshot }) {
     return monthTransactions.filter((tx) => tx.category_id && ids.has(tx.category_id));
   }, [selectedCategoryId, monthTransactions, snapshot.categories]);
 
-  function handleSelectCategory(id: string | null) {
-    setSelectedCategoryId(id);
-  }
-
   return (
     <div className="flex h-full flex-col overflow-y-auto">
       {/* Chart + nav */}
-      <div className="px-1 pb-5">
+      <div className="pb-5">
         <BudgetBarChart transactions={snapshot.transactions} currentMonth={month} />
         <div className="mt-3 flex items-center justify-between">
           <Button
@@ -255,37 +276,43 @@ export function BudgetView({ snapshot }: { snapshot: FinanceSnapshot }) {
 
       <div className="border-t border-border/40" />
 
-      {/* Categories + detail — direct rows on background, no card wrapper */}
-      <div className="flex flex-col py-5">
-        <CategoryList
+      {/* Expenses grid */}
+      <div className="py-5">
+        <CategorySection
           title={t("sections.expensesTitle")}
           nodes={expenseNodes}
           emptyMessage={t("sections.expensesEmpty")}
           selectedCategoryId={selectedCategoryId}
-          onSelectCategory={handleSelectCategory}
+          onSelectCategory={setSelectedCategoryId}
         />
+      </div>
 
-        <div className="my-5 border-t border-border/40" />
+      <div className="border-t border-border/40" />
 
-        <CategoryList
+      {/* Income grid */}
+      <div className="py-5">
+        <CategorySection
           title={t("sections.incomeTitle")}
           nodes={incomeNodes}
           emptyMessage={t("sections.incomeEmpty")}
           selectedCategoryId={selectedCategoryId}
-          onSelectCategory={handleSelectCategory}
+          onSelectCategory={setSelectedCategoryId}
         />
+      </div>
 
-        {selectedNode && (
-          <>
-            <div className="my-5 border-t border-border/40" />
+      {/* Selected category detail */}
+      {selectedNode && (
+        <>
+          <div className="border-t border-border/40" />
+          <div className="py-5">
             <CategoryDetail
               node={selectedNode}
               transactions={selectedTransactions}
               emptyMessage={t("category.noTransactions")}
             />
-          </>
-        )}
-      </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
