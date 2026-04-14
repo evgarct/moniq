@@ -8,7 +8,6 @@ import { useFormatter, useTranslations } from "next-intl";
 import { BudgetBarChart } from "@/features/budget/components/budget-bar-chart";
 import { CategoryIcon } from "@/components/category-icon";
 import { MoneyAmount } from "@/components/money-amount";
-import { Surface } from "@/components/surface";
 import { TransactionList } from "@/components/transaction-list";
 import { Button } from "@/components/ui/button";
 import { getCategoryDescendantIds } from "@/features/categories/lib/category-tree";
@@ -226,10 +225,9 @@ export function BudgetView({ snapshot }: { snapshot: FinanceSnapshot }) {
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">
-      {/* One shared Surface: chart + nav + all categories + detail */}
-      <Surface tone="panel" padding="lg" className="border border-black/5">
+      {/* Chart + nav */}
+      <div className="px-1 pb-5">
         <BudgetBarChart transactions={snapshot.transactions} currentMonth={month} />
-
         <div className="mt-3 flex items-center justify-between">
           <Button
             variant="ghost"
@@ -238,7 +236,6 @@ export function BudgetView({ snapshot }: { snapshot: FinanceSnapshot }) {
           >
             <ChevronLeft className="size-4" />
           </Button>
-
           <button
             type="button"
             onClick={() => { setMonth(today); setSelectedCategoryId(null); }}
@@ -246,7 +243,6 @@ export function BudgetView({ snapshot }: { snapshot: FinanceSnapshot }) {
           >
             {formatDate.dateTime(month, { month: "long", year: "numeric" })}
           </button>
-
           <Button
             variant="ghost"
             size="icon-sm"
@@ -255,9 +251,12 @@ export function BudgetView({ snapshot }: { snapshot: FinanceSnapshot }) {
             <ChevronRight className="size-4" />
           </Button>
         </div>
+      </div>
 
-        <div className="my-5 border-t border-border/40" />
+      <div className="border-t border-border/40" />
 
+      {/* Categories + detail — direct rows on background, no card wrapper */}
+      <div className="flex flex-col py-5">
         <CategoryList
           title={t("sections.expensesTitle")}
           nodes={expenseNodes}
@@ -286,7 +285,7 @@ export function BudgetView({ snapshot }: { snapshot: FinanceSnapshot }) {
             />
           </>
         )}
-      </Surface>
+      </div>
     </div>
   );
 }
