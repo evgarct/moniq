@@ -225,8 +225,8 @@ export function BudgetView({ snapshot }: { snapshot: FinanceSnapshot }) {
   }
 
   return (
-    <div className="flex h-full flex-col gap-4 overflow-y-auto">
-      {/* Bar chart + month navigation */}
+    <div className="flex h-full flex-col overflow-y-auto">
+      {/* One shared Surface: chart + nav + all categories + detail */}
       <Surface tone="panel" padding="lg" className="border border-black/5">
         <BudgetBarChart transactions={snapshot.transactions} currentMonth={month} />
 
@@ -255,10 +255,9 @@ export function BudgetView({ snapshot }: { snapshot: FinanceSnapshot }) {
             <ChevronRight className="size-4" />
           </Button>
         </div>
-      </Surface>
 
-      {/* All categories + selected detail — one shared Surface */}
-      <Surface tone="panel" padding="lg" className="border border-black/5">
+        <div className="my-5 border-t border-border/40" />
+
         <CategoryList
           title={t("sections.expensesTitle")}
           nodes={expenseNodes}
