@@ -64,69 +64,47 @@ function CategoryTile({
   );
 }
 
-// ─── Category section ─────────────────────────────────────────────────────────
+// ─── Section header ───────────────────────────────────────────────────────────
 
-function CategorySection({
+function SectionHeader({
   title,
   nodes,
-  emptyMessage,
-  selectedCategoryId,
-  onSelectCategory,
 }: {
   title: string;
   nodes: CategoryTreeNode[];
-  emptyMessage: string;
-  selectedCategoryId: string | null;
-  onSelectCategory: (id: string | null) => void;
 }) {
-  return (
-    <div>
-      <div className="mb-3 flex items-center justify-between">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{title}</p>
-        {nodes.length > 0 && nodes.some((n) => n.totals_by_currency.length > 0) && (
-          <div className="flex gap-3">
-            {nodes
-              .flatMap((n) => n.totals_by_currency)
-              .reduce<{ currency: string; amount: number }[]>((acc, t) => {
-                const existing = acc.find((x) => x.currency === t.currency);
-                if (existing) existing.amount += t.amount;
-                else acc.push({ ...t });
-                return acc;
-              }, [])
-              .map((total) => (
-                <MoneyAmount
-                  key={total.currency}
-                  amount={total.amount}
-                  currency={total.currency}
-                  display="absolute"
-                  className="type-body-12 font-medium tabular-nums text-foreground"
-                />
-              ))}
-          </div>
-        )}
-      </div>
+  const totals = useMemo(
+    () =>
+      nodes
+        .flatMap((n) => n.totals_by_currency)
+        .reduce<{ currency: string; amount: number }[]>((acc, t) => {
+          const existing = acc.find((x) => x.currency === t.currency);
+          if (existing) existing.amount += t.amount;
+          else acc.push({ ...t });
+          return acc;
+        }, []),
+    [nodes],
+  );
 
-      {nodes.length ? (
-        <div className="-mx-2 grid grid-cols-4 sm:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
-          {nodes.map((node) => (
-            <CategoryTile
-              key={node.id}
-              node={node}
-              isSelected={selectedCategoryId === node.id}
-              onClick={() => onSelectCategory(selectedCategoryId === node.id ? null : node.id)}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="type-body-14 rounded-lg border border-dashed border-border px-4 py-8 text-muted-foreground">
-          {emptyMessage}
-        </div>
-      )}
+  return (
+    <div className="flex shrink-0 items-center justify-between py-3">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{title}</p>
+      <div className="flex gap-3">
+        {totals.map((total) => (
+          <MoneyAmount
+            key={total.currency}
+            amount={total.amount}
+            currency={total.currency}
+            display="absolute"
+            className="type-body-12 font-semibold tabular-nums text-foreground"
+          />
+        ))}
+      </div>
     </div>
   );
 }
 
-// ─── Selected category detail ─────────────────────────────────────────────────
+// ─── Category detail ──────────────────────────────────────────────────────────
 
 function CategoryDetail({
   node,
@@ -141,7 +119,6 @@ function CategoryDetail({
 
   return (
     <div>
-      {/* Header */}
       <div className="mb-4 flex items-center gap-3">
         <CategoryIcon icon={node.icon} glyphClassName="size-[18px] text-muted-foreground" />
         <div className="flex min-w-0 flex-1 items-center justify-between gap-4">
@@ -162,7 +139,6 @@ function CategoryDetail({
         </div>
       </div>
 
-      {/* Subcategory rows */}
       {sortedChildren.length > 0 && (
         <div className="mb-4 flex flex-col">
           {sortedChildren.map((child, i) => (
@@ -245,9 +221,10 @@ export function BudgetView({ snapshot }: { snapshot: FinanceSnapshot }) {
   }, [selectedCategoryId, monthTransactions, snapshot.categories]);
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto">
-      {/* Chart + nav */}
-      <div className="pb-5">
+    <div className="flex h-full flex-col overflow-hidden">
+
+      {/* Chart + month nav — fixed height, never scrolls */}
+      <div className="shrink-0 border-b border-border/40 px-4 pb-4 pt-5 sm:px-6 lg:px-7">
         <BudgetBarChart transactions={snapshot.transactions} currentMonth={month} />
         <div className="mt-3 flex items-center justify-between">
           <Button
@@ -274,45 +251,77 @@ export function BudgetView({ snapshot }: { snapshot: FinanceSnapshot }) {
         </div>
       </div>
 
-      <div className="border-t border-border/40" />
+      {/* Content area — fills rest of viewport */}
+      <div className="flex min-h-0 flex-1">
 
-      {/* Expenses grid */}
-      <div className="py-5">
-        <CategorySection
-          title={t("sections.expensesTitle")}
-          nodes={expenseNodes}
-          emptyMessage={t("sections.expensesEmpty")}
-          selectedCategoryId={selectedCategoryId}
-          onSelectCategory={setSelectedCategoryId}
-        />
-      </div>
-
-      <div className="border-t border-border/40" />
-
-      {/* Income grid */}
-      <div className="py-5">
-        <CategorySection
-          title={t("sections.incomeTitle")}
-          nodes={incomeNodes}
-          emptyMessage={t("sections.incomeEmpty")}
-          selectedCategoryId={selectedCategoryId}
-          onSelectCategory={setSelectedCategoryId}
-        />
-      </div>
-
-      {/* Selected category detail */}
-      {selectedNode && (
-        <>
-          <div className="border-t border-border/40" />
-          <div className="py-5">
-            <CategoryDetail
-              node={selectedNode}
-              transactions={selectedTransactions}
-              emptyMessage={t("category.noTransactions")}
-            />
+        {/* Left: categories — always visible */}
+        <div className={cn(
+          "flex min-h-0 flex-col",
+          selectedNode ? "hidden lg:flex lg:w-[340px] xl:w-[400px] lg:border-r lg:border-border/40" : "flex-1",
+        )}>
+          {/* Expenses — flex-[3]: takes most of the vertical space */}
+          <div className="flex min-h-0 flex-[3] flex-col border-b border-border/40 px-4 sm:px-6 lg:px-7">
+            <SectionHeader title={t("sections.expensesTitle")} nodes={expenseNodes} />
+            <div className="flex-1 overflow-y-auto pb-3">
+              {expenseNodes.length ? (
+                <div className={cn(
+                  "-mx-2 grid",
+                  selectedNode ? "grid-cols-3 lg:grid-cols-4" : "grid-cols-4 sm:grid-cols-5 xl:grid-cols-6",
+                )}>
+                  {expenseNodes.map((node) => (
+                    <CategoryTile
+                      key={node.id}
+                      node={node}
+                      isSelected={selectedCategoryId === node.id}
+                      onClick={() => setSelectedCategoryId(selectedCategoryId === node.id ? null : node.id)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="type-body-14 py-6 text-muted-foreground">{t("sections.expensesEmpty")}</p>
+              )}
+            </div>
           </div>
-        </>
-      )}
+
+          {/* Income — flex-[2]: smaller, but still scrollable */}
+          <div className="flex min-h-0 flex-[2] flex-col px-4 sm:px-6 lg:px-7">
+            <SectionHeader title={t("sections.incomeTitle")} nodes={incomeNodes} />
+            <div className="flex-1 overflow-y-auto pb-3">
+              {incomeNodes.length ? (
+                <div className={cn(
+                  "-mx-2 grid",
+                  selectedNode ? "grid-cols-3 lg:grid-cols-4" : "grid-cols-4 sm:grid-cols-5 xl:grid-cols-6",
+                )}>
+                  {incomeNodes.map((node) => (
+                    <CategoryTile
+                      key={node.id}
+                      node={node}
+                      isSelected={selectedCategoryId === node.id}
+                      onClick={() => setSelectedCategoryId(selectedCategoryId === node.id ? null : node.id)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="type-body-14 py-6 text-muted-foreground">{t("sections.incomeEmpty")}</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Right: category detail — scrollable, only when selected */}
+        {selectedNode && (
+          <div className="flex min-h-0 flex-1 flex-col">
+            <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6 lg:px-7">
+              <CategoryDetail
+                node={selectedNode}
+                transactions={selectedTransactions}
+                emptyMessage={t("category.noTransactions")}
+              />
+            </div>
+          </div>
+        )}
+
+      </div>
     </div>
   );
 }
