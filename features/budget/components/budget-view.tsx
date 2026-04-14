@@ -1,62 +1,103 @@
 "use client";
 
 import { addMonths, isSameMonth, parseISO, startOfToday } from "date-fns";
-import { ChevronLeft, ChevronRight, WalletCards } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
 
+import { BudgetBarChart } from "@/features/budget/components/budget-bar-chart";
 import { CategoryIcon } from "@/components/category-icon";
 import { MoneyAmount } from "@/components/money-amount";
 import { Surface } from "@/components/surface";
+import { TransactionList } from "@/components/transaction-list";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { getIncomeExpenseSummaryByCurrency } from "@/lib/finance-selectors";
-import { getTransactionAnalyticsAmount } from "@/features/transactions/lib/transaction-utils";
-import { isSettledTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
+import { getCategoryDescendantIds } from "@/features/categories/lib/category-tree";
 import { buildCategoryTree } from "@/features/categories/lib/category-tree";
-import type { CurrencyCode } from "@/types/currency";
-import type { CategoryTreeNode, FinanceSnapshot } from "@/types/finance";
+import { isSettledTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
+import { cn } from "@/lib/utils";
+import type { CategoryTreeNode, FinanceSnapshot, Transaction } from "@/types/finance";
 
 function sortNodesByActivity(nodes: CategoryTreeNode[]) {
-  return [...nodes].sort((left, right) => Math.abs(right.total_amount) - Math.abs(left.total_amount));
+  return [...nodes].sort((a, b) => Math.abs(b.total_amount) - Math.abs(a.total_amount));
 }
 
-function BudgetSection({
-  title,
-  description,
-  nodes,
-  emptyMessage,
+// ─── Category tile ────────────────────────────────────────────────────────────
+
+function CategoryTile({
+  node,
+  isSelected,
+  onClick,
 }: {
-  title: string;
-  description: string;
-  nodes: CategoryTreeNode[];
-  emptyMessage: string;
+  node: CategoryTreeNode;
+  isSelected: boolean;
+  onClick: () => void;
 }) {
   return (
-    <Surface tone="panel" padding="lg" className="border border-black/5">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{title}</p>
-          <p className="mt-1 max-w-xl text-sm leading-6 text-muted-foreground">{description}</p>
-        </div>
-        <div className="border-l border-border/70 pl-3 text-right">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Count</p>
-          <p className="mt-1 text-sm font-medium text-foreground">{nodes.length}</p>
-        </div>
-      </div>
-
-      <div className="mt-5">
-        {nodes.length ? (
-          <div className="flex flex-col">
-            {nodes.map((node, index) => (
-              <div key={node.id}>
-                {index > 0 ? <Separator /> : null}
-                <BudgetCategoryRow node={node} />
-              </div>
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex flex-col items-center gap-2 rounded-lg px-2 py-3 text-center transition-colors focus:outline-none",
+        "hover:bg-secondary/60",
+        isSelected ? "bg-secondary/80" : "",
+      )}
+    >
+      <CategoryIcon icon={node.icon} glyphClassName="size-[18px] text-muted-foreground" />
+      <div className="w-full min-w-0">
+        <p className="truncate text-[13px] font-medium leading-tight text-foreground">{node.name}</p>
+        {node.totals_by_currency.length ? (
+          <div className="mt-0.5 flex flex-col items-center">
+            {node.totals_by_currency.map((total) => (
+              <MoneyAmount
+                key={total.currency}
+                amount={total.amount}
+                currency={total.currency}
+                display="absolute"
+                className="text-xs text-muted-foreground tabular-nums"
+              />
             ))}
           </div>
         ) : (
-          <div className="rounded-2xl border border-dashed border-border px-4 py-8 text-sm text-muted-foreground">
+          <span className="mt-0.5 text-xs text-muted-foreground">—</span>
+        )}
+      </div>
+    </button>
+  );
+}
+
+// ─── Category section ─────────────────────────────────────────────────────────
+
+function CategorySection({
+  title,
+  nodes,
+  emptyMessage,
+  selectedCategoryId,
+  onSelectCategory,
+}: {
+  title: string;
+  nodes: CategoryTreeNode[];
+  emptyMessage: string;
+  selectedCategoryId: string | null;
+  onSelectCategory: (id: string | null) => void;
+}) {
+  return (
+    <Surface tone="panel" padding="lg" className="border border-black/5">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{title}</p>
+
+      <div className="mt-4">
+        {nodes.length ? (
+          <div className="grid grid-cols-3 gap-1 sm:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4">
+            {nodes.map((node) => (
+              <CategoryTile
+                key={node.id}
+                node={node}
+                isSelected={selectedCategoryId === node.id}
+                onClick={() => onSelectCategory(selectedCategoryId === node.id ? null : node.id)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="type-body-14 rounded-lg border border-dashed border-border px-4 py-8 text-muted-foreground">
             {emptyMessage}
           </div>
         )}
@@ -65,75 +106,99 @@ function BudgetSection({
   );
 }
 
-function BudgetCategoryRow({ node }: { node: CategoryTreeNode }) {
-  const t = useTranslations("budget.rows");
+// ─── Inline transaction panel ─────────────────────────────────────────────────
+
+function CategoryTransactionPanel({
+  node,
+  transactions,
+  emptyMessage,
+}: {
+  node: CategoryTreeNode;
+  transactions: Transaction[];
+  emptyMessage: string;
+}) {
+  const sortedChildren = sortNodesByActivity(node.children);
 
   return (
-    <div className="py-3">
-      <div
-        className="grid items-center gap-3 rounded-2xl px-3 py-2 transition-colors hover:bg-background/80 md:grid-cols-[minmax(0,1fr)_auto]"
-        style={{ paddingLeft: `${12 + node.depth * 18}px` }}
-      >
-        <div className="min-w-0">
-          <div className="flex items-center gap-3">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border/70 bg-background text-base">
-              <CategoryIcon icon={node.icon} glyphClassName="text-foreground" />
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-foreground">{node.name}</p>
-              <p className="text-xs text-muted-foreground">
-                {node.children.length
-                  ? t("childCount", { count: node.children.length })
-                  : t("leaf")}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex min-w-[140px] flex-col items-end justify-center gap-1">
+    <Surface tone="panel" padding="lg" className="border border-black/5">
+      {/* Header */}
+      <div className="mb-4 flex items-center gap-3">
+        <CategoryIcon icon={node.icon} glyphClassName="size-[18px] text-muted-foreground" />
+        <div className="flex min-w-0 flex-1 items-center justify-between gap-4">
+          <p className="text-sm font-medium text-foreground">{node.name}</p>
           {node.totals_by_currency.length ? (
-            node.totals_by_currency.map((total) => (
-              <div key={`${node.id}-${total.currency}`} className="text-right">
+            <div className="flex gap-3">
+              {node.totals_by_currency.map((total) => (
                 <MoneyAmount
+                  key={total.currency}
                   amount={total.amount}
                   currency={total.currency}
                   display="absolute"
-                  className="text-sm font-semibold text-foreground"
+                  className="text-sm font-semibold tabular-nums text-foreground"
                 />
-              </div>
-            ))
-          ) : (
-            <span className="text-xs text-muted-foreground">0</span>
-          )}
+              ))}
+            </div>
+          ) : null}
         </div>
       </div>
 
-      {node.children.length ? (
-        <div className="mt-1 flex flex-col">
-          {sortNodesByActivity(node.children).map((child, index) => (
-            <div key={child.id}>
-              {index > 0 ? <Separator /> : null}
-              <BudgetCategoryRow node={child} />
+      {/* Subcategories */}
+      {sortedChildren.length > 0 && (
+        <div className="mb-5 flex flex-col">
+          {sortedChildren.map((child, i) => (
+            <div
+              key={child.id}
+              className={cn(
+                "flex items-center gap-3 py-2",
+                i > 0 && "border-t border-border/40",
+              )}
+            >
+              <CategoryIcon icon={child.icon} glyphClassName="size-4 text-muted-foreground" />
+              <p className="min-w-0 flex-1 truncate text-sm text-foreground">{child.name}</p>
+              {child.totals_by_currency.length ? (
+                <div className="flex gap-3">
+                  {child.totals_by_currency.map((total) => (
+                    <MoneyAmount
+                      key={total.currency}
+                      amount={total.amount}
+                      currency={total.currency}
+                      display="absolute"
+                      className="text-sm tabular-nums text-muted-foreground"
+                    />
+                  ))}
+                </div>
+              ) : (
+                <span className="text-sm text-muted-foreground">—</span>
+              )}
             </div>
           ))}
         </div>
-      ) : null}
-    </div>
+      )}
+
+      {/* Transactions */}
+      <TransactionList
+        transactions={transactions}
+        emptyMessage={emptyMessage}
+        groupByDate
+        showMinorUnits
+      />
+    </Surface>
   );
 }
 
+// ─── Main view ────────────────────────────────────────────────────────────────
+
 export function BudgetView({ snapshot }: { snapshot: FinanceSnapshot }) {
   const t = useTranslations("budget");
-  const commonT = useTranslations("common.actions");
   const formatDate = useFormatter();
   const today = startOfToday();
   const [month, setMonth] = useState(today);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
 
   const monthTransactions = useMemo(
     () =>
       snapshot.transactions.filter(
-        (transaction) =>
-          isSettledTransactionStatus(transaction.status) && isSameMonth(parseISO(transaction.occurred_at), month),
+        (tx) => isSettledTransactionStatus(tx.status) && isSameMonth(parseISO(tx.occurred_at), month),
       ),
     [month, snapshot.transactions],
   );
@@ -144,125 +209,90 @@ export function BudgetView({ snapshot }: { snapshot: FinanceSnapshot }) {
   );
 
   const expenseNodes = useMemo(
-    () => sortNodesByActivity(categoryTree.filter((node) => node.type === "expense" && node.total_amount > 0)),
+    () => sortNodesByActivity(categoryTree.filter((node) => node.type === "expense")),
     [categoryTree],
   );
   const incomeNodes = useMemo(
-    () => sortNodesByActivity(categoryTree.filter((node) => node.type === "income" && node.total_amount > 0)),
+    () => sortNodesByActivity(categoryTree.filter((node) => node.type === "income")),
     [categoryTree],
   );
-  const summary = useMemo(() => getIncomeExpenseSummaryByCurrency(monthTransactions), [monthTransactions]);
-  const netByCurrency = useMemo(
-    () =>
-      summary.map((item) => ({
-        currency: item.currency,
-        amount: item.income - item.expenses,
-      })),
-    [summary],
-  );
-  const totalTrackedCategories = categoryTree.filter((node) => node.total_amount > 0).length;
-  const totalTransactions = monthTransactions.reduce(
-    (count, transaction) => count + (getTransactionAnalyticsAmount(transaction) > 0 ? 1 : 0),
-    0,
-  );
+
+  // Resolve selected node across both trees
+  const selectedNode = useMemo(() => {
+    if (!selectedCategoryId) return null;
+    return [...expenseNodes, ...incomeNodes].find((n) => n.id === selectedCategoryId) ?? null;
+  }, [selectedCategoryId, expenseNodes, incomeNodes]);
+
+  // Transactions for selected category (including descendants)
+  const selectedTransactions = useMemo(() => {
+    if (!selectedCategoryId) return [];
+    const ids = new Set([selectedCategoryId, ...getCategoryDescendantIds(snapshot.categories, selectedCategoryId)]);
+    return monthTransactions.filter((tx) => tx.category_id && ids.has(tx.category_id));
+  }, [selectedCategoryId, monthTransactions, snapshot.categories]);
+
+  function handleSelectCategory(id: string | null) {
+    setSelectedCategoryId(id);
+  }
 
   return (
-      <div className="flex h-full flex-col gap-4">
+    <div className="flex h-full flex-col gap-4 overflow-y-auto">
+      {/* Bar chart + month navigation */}
       <Surface tone="panel" padding="lg" className="border border-black/5">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-          <div className="flex items-start gap-4">
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-full border border-border/80 bg-background text-foreground">
-              <WalletCards className="size-[18px]" strokeWidth={1.8} />
-            </div>
-            <div className="flex flex-col gap-1">
-              <h1 className="type-h3">{t("view.title")}</h1>
-              <p className="type-body-14 max-w-[44rem] text-muted-foreground">{t("view.description")}</p>
-            </div>
-          </div>
+        <BudgetBarChart transactions={snapshot.transactions} currentMonth={month} />
 
-          <div className="flex items-center gap-2 self-start">
-            <Button variant="outline" size="icon-sm" className="rounded-full bg-background" onClick={() => setMonth((value) => addMonths(value, -1))}>
-              <ChevronLeft />
-            </Button>
-            <div className="rounded-full border border-border/80 bg-background px-4 py-2 text-sm font-medium text-foreground">
-              {formatDate.dateTime(month, { month: "long", year: "numeric" })}
-            </div>
-            <Button variant="outline" size="sm" className="rounded-full bg-background px-4" onClick={() => setMonth(today)}>
-              {commonT("today")}
-            </Button>
-            <Button variant="outline" size="icon-sm" className="rounded-full bg-background" onClick={() => setMonth((value) => addMonths(value, 1))}>
-              <ChevronRight />
-            </Button>
-          </div>
-        </div>
+        <div className="mt-3 flex items-center justify-between">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => { setMonth((m) => addMonths(m, -1)); setSelectedCategoryId(null); }}
+          >
+            <ChevronLeft className="size-4" />
+          </Button>
 
-        <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <BudgetMetric label={t("metrics.trackedCategories")} value={String(totalTrackedCategories)} />
-          <BudgetMetric label={t("metrics.transactions")} value={String(totalTransactions)} />
-          <BudgetMetricGroup label={t("metrics.income")} values={summary.map((item) => ({ currency: item.currency, amount: item.income }))} />
-          <BudgetMetricGroup label={t("metrics.net")} values={netByCurrency} />
+          <button
+            type="button"
+            onClick={() => { setMonth(today); setSelectedCategoryId(null); }}
+            className="rounded-full px-3 py-1 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
+          >
+            {formatDate.dateTime(month, { month: "long", year: "numeric" })}
+          </button>
+
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => { setMonth((m) => addMonths(m, 1)); setSelectedCategoryId(null); }}
+          >
+            <ChevronRight className="size-4" />
+          </Button>
         </div>
       </Surface>
 
-      <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-2">
-        <BudgetSection
+      {/* Category grids */}
+      <div className="grid gap-4 xl:grid-cols-2">
+        <CategorySection
           title={t("sections.expensesTitle")}
-          description={t("sections.expensesDescription")}
           nodes={expenseNodes}
           emptyMessage={t("sections.expensesEmpty")}
+          selectedCategoryId={selectedCategoryId}
+          onSelectCategory={handleSelectCategory}
         />
-        <BudgetSection
+        <CategorySection
           title={t("sections.incomeTitle")}
-          description={t("sections.incomeDescription")}
           nodes={incomeNodes}
           emptyMessage={t("sections.incomeEmpty")}
+          selectedCategoryId={selectedCategoryId}
+          onSelectCategory={handleSelectCategory}
         />
       </div>
-    </div>
-  );
-}
 
-function BudgetMetric({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="border-l border-border/70 pl-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
-      <p className="mt-2 text-lg font-medium tracking-[-0.03em] text-foreground">{value}</p>
-    </div>
-  );
-}
-
-function BudgetMetricGroup({
-  label,
-  values,
-}: {
-  label: string;
-  values: Array<{ currency: CurrencyCode; amount: number }>;
-}) {
-  return (
-    <div className="border-l border-border/70 pl-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
-      <div className="mt-2 space-y-1">
-        {values.length ? (
-          values.map((value) => (
-            <div key={`${label}-${value.currency}`}>
-              <MoneyAmount
-                amount={value.amount}
-                currency={value.currency}
-                display="absolute"
-                className="text-sm font-semibold text-foreground"
-              />
-            </div>
-          ))
-        ) : (
-          <span className="text-sm text-muted-foreground">0</span>
-        )}
-      </div>
+      {/* Inline transaction panel */}
+      {selectedNode ? (
+        <CategoryTransactionPanel
+          node={selectedNode}
+          transactions={selectedTransactions}
+          emptyMessage={t("category.noTransactions")}
+        />
+      ) : null}
     </div>
   );
 }

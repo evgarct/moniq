@@ -18,7 +18,7 @@ type CookieToSet = {
   options?: Parameters<NextResponse["cookies"]["set"]>[2];
 };
 
-export default async function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const locale = request.nextUrl.pathname.split("/")[1];
   const localizedPathname = request.nextUrl.pathname;
   const internalPathname = stripLocaleFromPathname(localizedPathname);
@@ -82,6 +82,8 @@ export default async function proxy(request: NextRequest) {
 
   return applyCookies(response);
 }
+
+export default proxy;
 
 export const config = {
   matcher: "/((?!api|trpc|_next|_vercel|.*\\..*).*)",

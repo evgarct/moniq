@@ -198,6 +198,39 @@ export const mockTransactions: Transaction[] = [
     sourceAccountId: "travel-credit",
     status: "paid",
   }),
+
+  // ── March (month -1) ──────────────────────────────────────────────────────
+  makeTransaction({ id: "salary-m1", title: "Monthly salary", kind: "income", amount: 96500, dayOffset: -30, categoryId: "salary", destinationAccountId: "everyday", status: "paid" }),
+  makeTransaction({ id: "rent-m1", title: "Apartment rent", kind: "expense", amount: 28500, dayOffset: -32, categoryId: "rent", sourceAccountId: "everyday", status: "paid" }),
+  makeTransaction({ id: "grocery-m1", title: "Groceries", kind: "expense", amount: 3200, dayOffset: -33, categoryId: "food-home", sourceAccountId: "everyday", status: "paid" }),
+
+  // ── February (month -2) ───────────────────────────────────────────────────
+  makeTransaction({ id: "salary-m2", title: "Monthly salary", kind: "income", amount: 96500, dayOffset: -60, categoryId: "salary", destinationAccountId: "everyday", status: "paid" }),
+  makeTransaction({ id: "rent-m2", title: "Apartment rent", kind: "expense", amount: 28500, dayOffset: -62, categoryId: "rent", sourceAccountId: "everyday", status: "paid" }),
+  makeTransaction({ id: "loan-m2", title: "Car loan payment", kind: "expense", amount: 8200, dayOffset: -63, categoryId: "loans", sourceAccountId: "everyday", status: "paid" }),
+  makeTransaction({ id: "grocery-m2", title: "Groceries", kind: "expense", amount: 2400, dayOffset: -64, categoryId: "food-home", sourceAccountId: "everyday", status: "paid" }),
+
+  // ── January (month -3) ────────────────────────────────────────────────────
+  makeTransaction({ id: "salary-m3", title: "Monthly salary", kind: "income", amount: 96500, dayOffset: -90, categoryId: "salary", destinationAccountId: "everyday", status: "paid" }),
+  makeTransaction({ id: "rent-m3", title: "Apartment rent", kind: "expense", amount: 28500, dayOffset: -92, categoryId: "rent", sourceAccountId: "everyday", status: "paid" }),
+  makeTransaction({ id: "grocery-m3", title: "Groceries", kind: "expense", amount: 4500, dayOffset: -93, categoryId: "food-home", sourceAccountId: "everyday", status: "paid" }),
+  makeTransaction({ id: "ski-m3", title: "Ski trip", kind: "expense", amount: 15000, dayOffset: -95, categoryId: "travel-stay", sourceAccountId: "travel-credit", status: "paid" }),
+
+  // ── December (month -4) ───────────────────────────────────────────────────
+  makeTransaction({ id: "salary-m4", title: "Monthly salary", kind: "income", amount: 96500, dayOffset: -120, categoryId: "salary", destinationAccountId: "everyday", status: "paid" }),
+  makeTransaction({ id: "rent-m4", title: "Apartment rent", kind: "expense", amount: 28500, dayOffset: -122, categoryId: "rent", sourceAccountId: "everyday", status: "paid" }),
+  makeTransaction({ id: "gifts-m4", title: "Christmas gifts", kind: "expense", amount: 12000, dayOffset: -124, categoryId: "enjoy-life", sourceAccountId: "everyday", status: "paid" }),
+  makeTransaction({ id: "party-m4", title: "New Year party", kind: "expense", amount: 8000, dayOffset: -125, categoryId: "eat-out-chill", sourceAccountId: "everyday", status: "paid" }),
+
+  // ── November (month -5) ───────────────────────────────────────────────────
+  makeTransaction({ id: "salary-m5", title: "Monthly salary", kind: "income", amount: 96500, dayOffset: -150, categoryId: "salary", destinationAccountId: "everyday", status: "paid" }),
+  makeTransaction({ id: "rent-m5", title: "Apartment rent", kind: "expense", amount: 28500, dayOffset: -152, categoryId: "rent", sourceAccountId: "everyday", status: "paid" }),
+  makeTransaction({ id: "grocery-m5", title: "Groceries", kind: "expense", amount: 3800, dayOffset: -153, categoryId: "food-home", sourceAccountId: "everyday", status: "paid" }),
+
+  // ── October (month -6, negative net) ─────────────────────────────────────
+  makeTransaction({ id: "salary-m6", title: "Monthly salary", kind: "income", amount: 96500, dayOffset: -180, categoryId: "salary", destinationAccountId: "everyday", status: "paid" }),
+  makeTransaction({ id: "rent-m6", title: "Apartment rent", kind: "expense", amount: 28500, dayOffset: -182, categoryId: "rent", sourceAccountId: "everyday", status: "paid" }),
+  makeTransaction({ id: "vacation-m6", title: "Japan vacation", kind: "expense", amount: 78000, dayOffset: -183, categoryId: "travel-stay", sourceAccountId: "travel-credit", status: "paid" }),
 ];
 
 export const mockFinanceSnapshot: FinanceSnapshot = {
