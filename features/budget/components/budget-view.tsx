@@ -14,6 +14,7 @@ import { getCategoryDescendantIds } from "@/features/categories/lib/category-tre
 import { buildCategoryTree } from "@/features/categories/lib/category-tree";
 import { isSettledTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
 import { cn } from "@/lib/utils";
+import type { CurrencyCode } from "@/types/currency";
 import type { CategoryTreeNode, FinanceSnapshot, Transaction } from "@/types/finance";
 
 function sortNodesByActivity(nodes: CategoryTreeNode[]) {
@@ -77,7 +78,7 @@ function SectionHeader({
     () =>
       nodes
         .flatMap((n) => n.totals_by_currency)
-        .reduce<{ currency: string; amount: number }[]>((acc, t) => {
+        .reduce<{ currency: CurrencyCode; amount: number }[]>((acc, t) => {
           const existing = acc.find((x) => x.currency === t.currency);
           if (existing) existing.amount += t.amount;
           else acc.push({ ...t });

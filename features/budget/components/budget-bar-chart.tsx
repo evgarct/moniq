@@ -1,7 +1,8 @@
 "use client";
 
-import { addMonths, format, isSameMonth, parseISO } from "date-fns";
+import { addMonths, isSameMonth, parseISO } from "date-fns";
 import { useMemo } from "react";
+import { useFormatter } from "next-intl";
 
 import { isSettledTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
 import { getIncomeExpenseSummary } from "@/lib/finance-selectors";
@@ -17,6 +18,7 @@ export function BudgetBarChart({
   transactions: Transaction[];
   currentMonth: Date;
 }) {
+  const formatDate = useFormatter();
   const months = useMemo(
     () => Array.from({ length: MONTHS_SHOWN }, (_, i) => addMonths(currentMonth, i - (MONTHS_SHOWN - 1))),
     [currentMonth],
@@ -108,7 +110,7 @@ export function BudgetBarChart({
               (bar.isCurrent ? "font-medium text-foreground" : "")
             }
           >
-            {format(bar.month, "MMM")}
+            {formatDate.dateTime(bar.month, { month: "short" })}
           </div>
         ))}
       </div>
