@@ -21,9 +21,9 @@ function sortNodesByActivity(nodes: CategoryTreeNode[]) {
   return [...nodes].sort((a, b) => Math.abs(b.total_amount) - Math.abs(a.total_amount));
 }
 
-// ─── Category tile ────────────────────────────────────────────────────────────
+// ─── Category row ─────────────────────────────────────────────────────────────
 
-function CategoryTile({
+function CategoryRow({
   node,
   isSelected,
   onClick,
@@ -37,30 +37,28 @@ function CategoryTile({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex flex-col items-center gap-2 rounded-lg px-2 py-3 text-center transition-colors focus:outline-none",
-        "hover:bg-secondary/60",
-        isSelected ? "bg-secondary/80" : "",
+        "flex w-full items-center gap-3 rounded-md px-2 py-2.5 text-left transition-colors focus:outline-none",
+        "hover:bg-secondary/50",
+        isSelected && "bg-secondary/60",
       )}
     >
-      <CategoryIcon icon={node.icon} glyphClassName="size-[18px] text-muted-foreground" />
-      <div className="w-full min-w-0">
-        <p className="truncate text-[13px] font-medium leading-tight text-foreground">{node.name}</p>
-        {node.totals_by_currency.length ? (
-          <div className="mt-0.5 flex flex-col items-center">
-            {node.totals_by_currency.map((total) => (
-              <MoneyAmount
-                key={total.currency}
-                amount={total.amount}
-                currency={total.currency}
-                display="absolute"
-                className="text-xs text-muted-foreground tabular-nums"
-              />
-            ))}
-          </div>
-        ) : (
-          <span className="mt-0.5 text-xs text-muted-foreground">—</span>
-        )}
-      </div>
+      <CategoryIcon icon={node.icon} glyphClassName="size-[18px] shrink-0 text-muted-foreground" />
+      <p className="type-body-14 min-w-0 flex-1 truncate font-medium text-foreground">{node.name}</p>
+      {node.totals_by_currency.length ? (
+        <div className="flex shrink-0 flex-col items-end">
+          {node.totals_by_currency.map((total) => (
+            <MoneyAmount
+              key={total.currency}
+              amount={total.amount}
+              currency={total.currency}
+              display="absolute"
+              className="text-sm font-medium tabular-nums text-foreground"
+            />
+          ))}
+        </div>
+      ) : (
+        <span className="shrink-0 text-sm text-muted-foreground">—</span>
+      )}
     </button>
   );
 }
@@ -84,20 +82,18 @@ function CategorySection({
     <Surface tone="panel" padding="lg" className="border border-black/5">
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{title}</p>
 
-      <div className="mt-4">
+      <div className="mt-3 -mx-2 flex flex-col">
         {nodes.length ? (
-          <div className="grid grid-cols-3 gap-1 sm:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4">
-            {nodes.map((node) => (
-              <CategoryTile
-                key={node.id}
-                node={node}
-                isSelected={selectedCategoryId === node.id}
-                onClick={() => onSelectCategory(selectedCategoryId === node.id ? null : node.id)}
-              />
-            ))}
-          </div>
+          nodes.map((node) => (
+            <CategoryRow
+              key={node.id}
+              node={node}
+              isSelected={selectedCategoryId === node.id}
+              onClick={() => onSelectCategory(selectedCategoryId === node.id ? null : node.id)}
+            />
+          ))
         ) : (
-          <div className="type-body-14 rounded-lg border border-dashed border-border px-4 py-8 text-muted-foreground">
+          <div className="type-body-14 mx-2 rounded-lg border border-dashed border-border px-4 py-8 text-muted-foreground">
             {emptyMessage}
           </div>
         )}
@@ -252,7 +248,7 @@ export function BudgetView({ snapshot }: { snapshot: FinanceSnapshot }) {
           <button
             type="button"
             onClick={() => { setMonth(today); setSelectedCategoryId(null); }}
-            className="rounded-full px-3 py-1 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
+            className="type-body-14 rounded-md px-2 py-1 font-medium text-foreground transition-colors hover:bg-secondary/50"
           >
             {formatDate.dateTime(month, { month: "long", year: "numeric" })}
           </button>
