@@ -56,10 +56,15 @@ Right: category shown as plain muted text below the transaction title.
 - Use `chart-1` (#cc785c) through `chart-5` (#40403e) for data visualization.
 - Use `text-destructive` for negative/expense amounts and error states.
 
+## Full-bleed page views
+- Pages that fill the entire `main` area (Budget, Balance, Calendar) must NOT wrap their content in `Surface` — that creates a visible card box around the whole page. Use raw `<div>` or `<section>` elements directly on the background, exactly as `AccountsView` does.
+- Pages that own a full-height layout (viewport-fitting with internal section scrolls) must NOT use `PageContainer` — render the view directly from the route `page.tsx` so the view controls its own padding and `h-full` structure. `PageContainer` is only for simple padded-scroll pages.
+
 ## Storybook
 - Every new screen or stateful component gets a story in `stories/pages/` or `features/**/components/`.
 - Foundation stories in `stories/foundations/` are reference only — do not modify them to fix UI bugs. Fix the component.
 - Story `play` functions must not query inside portalled content (Sheet, Dialog, Popover) from the root canvas.
+- Storybook stories for full-height page views must use `<div className="h-screen">` (no padding) as the wrapper so the viewport-fitting layout renders correctly in the canvas.
 
 # Repo Workflow Rules
 
@@ -77,7 +82,7 @@ Right: category shown as plain muted text below the transaction title.
 - In this repo, when fixing visual alignment or spacing issues, inspect the actual box geometry, line-height, and spacing in DevTools before changing classes, and re-check the same elements after the patch. Do not rely on repeated blind 1px nudges without geometry inspection.
 - In this repo, when refining sheet-based or row-based forms, make spacing and ordering changes in shared layout wrappers or section structure first. Do not solve rhythm issues by repeatedly overriding control-level text size, radius, hover, or focus styles inside the form file.
 - In this repo, when labeling custom controls such as `Select`, `ToggleGroup`, or other non-native widgets inside `components/ui/field`, do not leave a bare `FieldLabel` without a native target. Use `FieldTitle` for section-style labels or wire an explicit accessible association.
-- For UI work in this repo, use `chrome-devtools` against the verified local preview when available to inspect live layout, interaction states, console errors, and network behavior before concluding a visual fix is correct. Do not rely only on static screenshots when the issue involves hover, focus, selection, auth redirects, or runtime rendering.
+- For UI work in this repo, use `chrome-devtools` against the verified local preview when available to inspect live layout, interaction states, console errors, and network behavior before concluding a visual fix is correct. Do not rely only on static screenshots when the issue involves hover, focus, selection, auth redirects, or runtime rendering. For screenshots specifically, always prefer `mcp__chrome-devtools__take_screenshot` (instant, no access grant needed) over `mcp__computer-use__screenshot`. If devtools MCP returns "already running", try calling the tool anyway — it often works despite the error; if it returns a black screen, call `navigate_page` first.
 - In this repo, do not sign off a Storybook or UI fix until the touched story/page has been opened in DevTools and checked for console errors introduced by the change, especially hydration warnings, nested interactive elements, and `next-intl` environment fallbacks.
 - In this repo, if both browser verification paths (`chrome-devtools` and Playwright/browser backend) are unavailable, stop presenting UI work as visually verified. Call out the browser-tool outage explicitly, switch to code-only verification, and avoid long iterative pixel-tuning until a live browser path is restored.
 - In this repo, when a Storybook story renders through a portal-backed primitive such as `Sheet`, `Dialog`, `Popover`, or `DropdownMenu`, do not write `play` assertions that search only inside the story canvas. Target the portalled surface explicitly or omit the `play` check, otherwise Storybook will report false runtime failures against working UI.
