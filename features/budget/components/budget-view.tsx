@@ -63,9 +63,9 @@ function CategoryRow({
   );
 }
 
-// ─── Category section ─────────────────────────────────────────────────────────
+// ─── Category list (inline section, no own Surface) ───────────────────────────
 
-function CategorySection({
+function CategoryList({
   title,
   nodes,
   emptyMessage,
@@ -79,10 +79,9 @@ function CategorySection({
   onSelectCategory: (id: string | null) => void;
 }) {
   return (
-    <Surface tone="panel" padding="lg" className="border border-black/5">
+    <div>
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{title}</p>
-
-      <div className="mt-3 -mx-2 flex flex-col">
+      <div className="mt-2 -mx-2 flex flex-col">
         {nodes.length ? (
           nodes.map((node) => (
             <CategoryRow
@@ -98,13 +97,13 @@ function CategorySection({
           </div>
         )}
       </div>
-    </Surface>
+    </div>
   );
 }
 
-// ─── Inline transaction panel ─────────────────────────────────────────────────
+// ─── Selected category detail (inline, no own Surface) ────────────────────────
 
-function CategoryTransactionPanel({
+function CategoryDetail({
   node,
   transactions,
   emptyMessage,
@@ -116,12 +115,12 @@ function CategoryTransactionPanel({
   const sortedChildren = sortNodesByActivity(node.children);
 
   return (
-    <Surface tone="panel" padding="lg" className="border border-black/5">
-      {/* Header */}
+    <div>
+      {/* Header row */}
       <div className="mb-4 flex items-center gap-3">
         <CategoryIcon icon={node.icon} glyphClassName="size-[18px] text-muted-foreground" />
         <div className="flex min-w-0 flex-1 items-center justify-between gap-4">
-          <p className="text-sm font-medium text-foreground">{node.name}</p>
+          <p className="type-body-14 font-medium text-foreground">{node.name}</p>
           {node.totals_by_currency.length ? (
             <div className="flex gap-3">
               {node.totals_by_currency.map((total) => (
@@ -138,16 +137,13 @@ function CategoryTransactionPanel({
         </div>
       </div>
 
-      {/* Subcategories */}
+      {/* Subcategory rows */}
       {sortedChildren.length > 0 && (
-        <div className="mb-5 flex flex-col">
+        <div className="mb-4 flex flex-col">
           {sortedChildren.map((child, i) => (
             <div
               key={child.id}
-              className={cn(
-                "flex items-center gap-3 py-2",
-                i > 0 && "border-t border-border/40",
-              )}
+              className={cn("flex items-center gap-3 py-2", i > 0 && "border-t border-border/40")}
             >
               <CategoryIcon icon={child.icon} glyphClassName="size-4 text-muted-foreground" />
               <p className="min-w-0 flex-1 truncate text-sm text-foreground">{child.name}</p>
@@ -178,7 +174,7 @@ function CategoryTransactionPanel({
         groupByDate
         showMinorUnits
       />
-    </Surface>
+    </div>
   );
 }
 
@@ -213,13 +209,11 @@ export function BudgetView({ snapshot }: { snapshot: FinanceSnapshot }) {
     [categoryTree],
   );
 
-  // Resolve selected node across both trees
   const selectedNode = useMemo(() => {
     if (!selectedCategoryId) return null;
     return [...expenseNodes, ...incomeNodes].find((n) => n.id === selectedCategoryId) ?? null;
   }, [selectedCategoryId, expenseNodes, incomeNodes]);
 
-  // Transactions for selected category (including descendants)
   const selectedTransactions = useMemo(() => {
     if (!selectedCategoryId) return [];
     const ids = new Set([selectedCategoryId, ...getCategoryDescendantIds(snapshot.categories, selectedCategoryId)]);
@@ -263,32 +257,37 @@ export function BudgetView({ snapshot }: { snapshot: FinanceSnapshot }) {
         </div>
       </Surface>
 
-      {/* Category grids */}
-      <div className="grid gap-4 xl:grid-cols-2">
-        <CategorySection
+      {/* All categories + selected detail — one shared Surface */}
+      <Surface tone="panel" padding="lg" className="border border-black/5">
+        <CategoryList
           title={t("sections.expensesTitle")}
           nodes={expenseNodes}
           emptyMessage={t("sections.expensesEmpty")}
           selectedCategoryId={selectedCategoryId}
           onSelectCategory={handleSelectCategory}
         />
-        <CategorySection
+
+        <div className="my-5 border-t border-border/40" />
+
+        <CategoryList
           title={t("sections.incomeTitle")}
           nodes={incomeNodes}
           emptyMessage={t("sections.incomeEmpty")}
           selectedCategoryId={selectedCategoryId}
           onSelectCategory={handleSelectCategory}
         />
-      </div>
 
-      {/* Inline transaction panel */}
-      {selectedNode ? (
-        <CategoryTransactionPanel
-          node={selectedNode}
-          transactions={selectedTransactions}
-          emptyMessage={t("category.noTransactions")}
-        />
-      ) : null}
+        {selectedNode && (
+          <>
+            <div className="my-5 border-t border-border/40" />
+            <CategoryDetail
+              node={selectedNode}
+              transactions={selectedTransactions}
+              emptyMessage={t("category.noTransactions")}
+            />
+          </>
+        )}
+      </Surface>
     </div>
   );
 }
