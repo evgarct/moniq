@@ -68,7 +68,41 @@ function NewKeyBanner({ rawKey }: { rawKey: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// Config snippet
+// MCP URL snippet (OAuth flow — no auth header needed)
+// ---------------------------------------------------------------------------
+
+function McpUrlSnippet({ host }: { host: string }) {
+  const t = useTranslations("settings.mcp");
+  const [copied, setCopied] = useState(false);
+  const url = `${host}/api/mcp`;
+
+  function copyUrl() {
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  return (
+    <div className="relative">
+      <p className="type-body-12 mb-1 text-muted-foreground">{t("mcpUrlLabel")}</p>
+      <div className="flex items-center gap-2 rounded-control bg-secondary px-4 py-3">
+        <code className="flex-1 truncate font-mono text-[12px] text-foreground">{url}</code>
+        <button
+          type="button"
+          onClick={copyUrl}
+          className="shrink-0 rounded-control p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          aria-label={t("copyUrl")}
+        >
+          {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Advanced: manual config snippet (for non-Claude clients)
 // ---------------------------------------------------------------------------
 
 function ConfigSnippet({ host }: { host: string }) {
@@ -124,6 +158,7 @@ export function McpSettings({ initialKeys }: { initialKeys: ApiKey[] }) {
   const [creating, setCreating] = useState(false);
   const [newKey, setNewKey] = useState<NewKeyResult | null>(null);
   const [revokingId, setRevokingId] = useState<string | null>(null);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [host] = useState(() =>
     process.env.NEXT_PUBLIC_APP_URL ??
     (typeof window !== "undefined" ? window.location.origin : ""),
@@ -171,7 +206,7 @@ export function McpSettings({ initialKeys }: { initialKeys: ApiKey[] }) {
         </div>
       </div>
 
-      {/* Setup steps */}
+      {/* OAuth setup — primary path */}
       <Surface tone="panel" padding="lg">
         <p className="mb-4 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
           {t("setupTitle")}
@@ -179,21 +214,44 @@ export function McpSettings({ initialKeys }: { initialKeys: ApiKey[] }) {
         <ol className="flex flex-col gap-5">
           <li className="flex gap-3">
             <span className="type-body-12 mt-px shrink-0 font-semibold text-muted-foreground">1.</span>
-            <p className="type-body-14 text-foreground">{t("setupStep1")}</p>
+            <p className="type-body-14 text-foreground">{t("oauthStep1")}</p>
+          </li>
+          <li className="pl-5">
+            <McpUrlSnippet host={host} />
           </li>
           <li className="flex gap-3">
             <span className="type-body-12 mt-px shrink-0 font-semibold text-muted-foreground">2.</span>
-            <p className="type-body-14 text-foreground">{t("setupStep2")}</p>
-          </li>
-          <li className="pl-5">
-            <ConfigSnippet host={host} />
+            <p className="type-body-14 text-foreground">{t("oauthStep2")}</p>
           </li>
           <li className="flex gap-3">
             <span className="type-body-12 mt-px shrink-0 font-semibold text-muted-foreground">3.</span>
-            <p className="type-body-14 text-foreground">{t("setupStep3")}</p>
+            <p className="type-body-14 text-foreground">{t("oauthStep3")}</p>
           </li>
         </ol>
       </Surface>
+
+      {/* Advanced section — non-Claude clients */}
+      <div>
+        <button
+          type="button"
+          onClick={() => setShowAdvanced((v) => !v)}
+          className="type-body-12 text-muted-foreground underline-offset-2 hover:underline"
+        >
+          {showAdvanced ? t("advancedHide") : t("advancedShow")}
+        </button>
+
+        {showAdvanced && (
+          <div className="mt-4">
+            <Surface tone="panel" padding="lg">
+              <p className="mb-4 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                {t("advancedTitle")}
+              </p>
+              <p className="type-body-14 mb-4 text-muted-foreground">{t("advancedDescription")}</p>
+              <ConfigSnippet host={host} />
+            </Surface>
+          </div>
+        )}
+      </div>
 
       {/* API Keys */}
       <Surface tone="panel" padding="lg">
@@ -204,7 +262,7 @@ export function McpSettings({ initialKeys }: { initialKeys: ApiKey[] }) {
           <p className="type-body-14 text-muted-foreground">{t("apiKeysDescription")}</p>
         </div>
 
-        {/* Create key form */}
+        {/* Create key form (advanced / non-Claude usage) */}
         <form onSubmit={createKey} className="mb-5 flex gap-2">
           <input
             type="text"
