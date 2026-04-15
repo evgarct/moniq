@@ -9,6 +9,7 @@ import {
   Settings2,
   UserRound,
   WalletCards,
+  Bot,
 } from "lucide-react";
 
 import type { AuthUser } from "@/types/auth";
@@ -29,6 +30,7 @@ const navigation = [
   { href: "/imports", labelKey: "imports", icon: FileUp },
   { href: "/accounts", labelKey: "balance", icon: Scale },
   { href: "/budget", labelKey: "budget", icon: WalletCards },
+  { href: "/claude-inbox", labelKey: "claudeInbox", icon: Bot },
 ] as const;
 
 export function AppSidebar({
@@ -165,7 +167,10 @@ function UserNavMenu({
           <LocaleSwitcher />
         </div>
         <DropdownMenuSeparator />
-        <DropdownMenuItem className="rounded-xl px-2 py-2 text-[13px]">
+        <DropdownMenuItem
+          className="rounded-xl px-2 py-2 text-[13px]"
+          render={<Link href="/settings" />}
+        >
           <Settings2 />
           {t("common.actions.settings")}
         </DropdownMenuItem>

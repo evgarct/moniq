@@ -10,7 +10,7 @@ The canonical UI reference is `stories/foundations/ui-playbook.stories.tsx`. Rea
 
 ## No cards. No chips. Ever.
 
-This is the single most important visual rule in Moniq.
+This is the single most important visual rule in Moniq. It applies to every new page without exception — including settings screens, inbox views, and admin-style pages. There is no "this is a settings page so cards are fine" exemption.
 
 **No card-per-item layout.** Do not wrap individual list items, transactions, accounts, or categories in their own bordered/shadowed card. Items live as rows inside a shared Surface. A card is for a major content region — not for a repeating data unit.
 
@@ -97,6 +97,8 @@ Right: category shown as plain muted text below the transaction title.
 - In this repo, server components and server helpers must use `getTranslations` or request-scoped translators; client components must use `useTranslations`. Do not bypass `next-intl` with ad-hoc locale conditionals in component code.
 - In this repo, when adding pluralized, conditional, or count-based copy, use ICU messages in the locale JSON files instead of assembling grammar in TypeScript.
 - In this repo, after editing `messages/{locale}.json`, validate the edited JSON files explicitly before reporting success. Do not assume a small manual patch preserved the namespace structure that `next-intl` expects.
+- In this repo, after adding new top-level namespaces or navigation keys to `messages/en.json`, also update `messages/en.d.json.ts` with the same additions — TypeScript reads the `.d.json.ts` declaration file, not the JSON directly, so new keys are invisible to the type checker until the declaration is updated.
+- When a feature needs to display the app's own public URL (MCP config snippets, OAuth callback URIs, webhook setup instructions), read it from `process.env.NEXT_PUBLIC_APP_URL` — never hardcode a placeholder like `your-domain`. The env var is set in `.env.local` and Vercel.
 - In this repo, when a new overlay mode or sheet behavior is needed in more than one place, extend the shared `components/ui` primitive instead of forcing it with consumer-side class overrides against an unrelated variant.
 - For Supabase schema changes in this repo, prefer the current schema as the source of truth. Do not add backward-compatibility fallbacks for obsolete columns, RPC signatures, or rows unless the user explicitly asks for a migration window; deleting or reshaping old data is acceptable when it keeps the schema clean.
 - This repo uses the linked remote Supabase project as the development database. When schema changes are required, apply the repo migrations to the linked remote immediately instead of deferring them to a separate local database flow.

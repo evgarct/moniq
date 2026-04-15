@@ -6,10 +6,9 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Check, Eye, EyeOff, FileUp, Info, PencilLine, SlidersHorizontal, Trash2 } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 
-import { CategoryCascadePicker } from "@/components/category-cascade-picker";
 import { EmptyState } from "@/components/empty-state";
 import { PageContainer } from "@/components/page-container";
-import { TransactionList } from "@/components/transaction-list";
+import { PendingTransactionRow } from "@/components/pending-transaction-row";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -28,7 +27,7 @@ import {
 import { useBankingData } from "@/features/banking/hooks/use-banking-data";
 import { cn } from "@/lib/utils";
 import type { ImportColumnKey, ImportColumnMapping, ImportFilePreview, TransactionImport } from "@/types/imports";
-import type { Category, Transaction } from "@/types/finance";
+import type { Category } from "@/types/finance";
 
 const KIND_OPTIONS = ["expense", "income", "transfer", "debt_payment"] as const;
 const BASIC_MAPPING_FIELDS: Array<{ key: ImportColumnKey; required?: boolean }> = [
@@ -44,72 +43,6 @@ const ADVANCED_MAPPING_FIELDS: Array<{ key: ImportColumnKey; required?: boolean 
   { key: "externalId" },
 ];
 
-function mapImportedTransactionToRow(transaction: TransactionImport): Transaction {
-  return {
-    id: transaction.id,
-    user_id: transaction.user_id,
-    title: transaction.merchant_clean,
-    note: transaction.merchant_clean,
-    occurred_at: transaction.occurred_at,
-    created_at: transaction.created_at,
-    status: "paid",
-    kind: transaction.kind,
-    amount: Math.abs(transaction.amount),
-    destination_amount: transaction.kind === "transfer" ? Math.abs(transaction.amount) : null,
-    fx_rate: null,
-    principal_amount: null,
-    interest_amount: null,
-    extra_principal_amount: null,
-    category_id: transaction.category_id,
-    source_account_id:
-      transaction.kind === "income"
-        ? null
-        : transaction.kind === "transfer"
-          ? transaction.amount < 0
-            ? transaction.wallet_id
-            : transaction.counterpart_wallet_id
-          : transaction.kind === "debt_payment"
-            ? transaction.wallet_id
-          : transaction.wallet_id,
-    destination_account_id:
-      transaction.kind === "expense"
-        ? null
-        : transaction.kind === "transfer"
-          ? transaction.amount < 0
-            ? transaction.counterpart_wallet_id
-            : transaction.wallet_id
-          : transaction.kind === "debt_payment"
-            ? transaction.counterpart_wallet_id
-          : transaction.wallet_id,
-    allocation_id: null,
-    schedule_id: null,
-    schedule_occurrence_date: null,
-    is_schedule_override: false,
-    category: transaction.category,
-    source_account:
-      transaction.kind === "income"
-        ? null
-        : transaction.kind === "transfer"
-          ? transaction.amount < 0
-            ? transaction.wallet
-            : transaction.counterpart_wallet
-          : transaction.kind === "debt_payment"
-            ? transaction.wallet
-          : transaction.wallet,
-    destination_account:
-      transaction.kind === "expense"
-        ? null
-        : transaction.kind === "transfer"
-          ? transaction.amount < 0
-            ? transaction.counterpart_wallet
-            : transaction.wallet
-          : transaction.kind === "debt_payment"
-            ? transaction.counterpart_wallet
-          : transaction.wallet,
-    allocation: null,
-    schedule: null,
-  };
-}
 
 function canImportWithCurrentMapping(mapping: ImportColumnMapping) {
   return Boolean(mapping.date && mapping.description && (mapping.amount || mapping.debit || mapping.credit));
@@ -182,155 +115,6 @@ function MappingField({
         </SelectContent>
       </Select>
     </Field>
-  );
-}
-
-function ImportRowAction({
-  transaction,
-  categories,
-  walletOptions,
-  debtWalletOptions,
-  t,
-  uncategorizedLabel,
-  onPatch,
-}: {
-  transaction: TransactionImport;
-  categories: Array<Pick<Category, "id" | "name" | "type" | "parent_id" | "icon">>;
-  walletOptions: Array<{ id: string; name: string }>;
-  debtWalletOptions: Array<{ id: string; name: string }>;
-  t: ReturnType<typeof useTranslations<"imports">>;
-  uncategorizedLabel: string;
-  onPatch: (values: {
-    merchant_clean?: string;
-    category_id?: string | null;
-    kind?: "expense" | "income" | "transfer" | "debt_payment";
-    wallet_id?: string;
-    counterpart_wallet_id?: string | null;
-  }) => Promise<void>;
-}) {
-  const categoryOptions = categories.filter((category) => category.type === transaction.kind);
-  const transferSourceWalletOptions = walletOptions.filter((wallet) => wallet.id !== transaction.counterpart_wallet_id);
-  const transferDestinationWalletOptions = walletOptions.filter((wallet) => wallet.id !== transaction.wallet_id);
-  const selectedKindLabel = t(`kinds.${transaction.kind}`);
-  const selectedSourceWalletLabel =
-    walletOptions.find((wallet) => wallet.id === transaction.wallet_id)?.name ?? t("review.fields.wallet");
-  const selectedDestinationWalletLabel =
-    transaction.kind === "debt_payment"
-      ? debtWalletOptions.find((wallet) => wallet.id === transaction.counterpart_wallet_id)?.name ?? t("review.fields.debtWallet")
-      : transferDestinationWalletOptions.find((wallet) => wallet.id === transaction.counterpart_wallet_id)?.name ??
-        t("review.fields.wallet");
-  return (
-    <div className="grid w-[376px] shrink-0 grid-cols-[132px_232px] items-center gap-2">
-      <Select
-        value={transaction.kind}
-        onValueChange={(value) => {
-          void onPatch({
-            kind: value as "expense" | "income" | "transfer" | "debt_payment",
-            category_id: value === "transfer" || value === "debt_payment" ? null : transaction.category_id,
-            counterpart_wallet_id: value === "transfer" || value === "debt_payment" ? null : null,
-          });
-        }}
-      >
-        <SelectTrigger
-          size="sm"
-          className="w-full justify-start border-transparent bg-transparent shadow-none hover:bg-muted/60"
-        >
-          <span className="truncate text-foreground">{selectedKindLabel}</span>
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            {KIND_OPTIONS.map((kind) => (
-              <SelectItem key={kind} value={kind}>
-                {t(`kinds.${kind}`)}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
-
-      {transaction.kind === "transfer" || transaction.kind === "debt_payment" ? (
-        <div className="grid w-full grid-cols-[minmax(0,1fr)_16px_minmax(0,1fr)] items-center gap-2">
-          <Select
-            value={transaction.wallet_id}
-            onValueChange={(value) => {
-              if (!value) {
-                return;
-              }
-
-              const nextCounterpartWalletId =
-                value === transaction.counterpart_wallet_id ? null : transaction.counterpart_wallet_id;
-              const nextValues: {
-                wallet_id: string;
-                counterpart_wallet_id?: string | null;
-              } = {
-                wallet_id: value,
-              };
-
-              nextValues.counterpart_wallet_id = nextCounterpartWalletId;
-              void onPatch(nextValues);
-            }}
-          >
-            <SelectTrigger
-              size="sm"
-              className="w-full justify-start border-transparent bg-transparent shadow-none hover:bg-muted/60"
-            >
-              <span className="truncate text-foreground">{selectedSourceWalletLabel}</span>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                {transferSourceWalletOptions.map((wallet) => (
-                  <SelectItem key={wallet.id} value={wallet.id}>
-                    {wallet.name}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-
-          <div className="flex justify-center text-muted-foreground">→</div>
-
-          <Select
-            value={transaction.counterpart_wallet_id ?? "__none__"}
-            onValueChange={(value) => {
-              void onPatch({ counterpart_wallet_id: value === "__none__" ? null : value });
-            }}
-          >
-            <SelectTrigger
-              size="sm"
-              className="w-full justify-start border-transparent bg-transparent shadow-none hover:bg-muted/60"
-            >
-              <span className={cn("truncate", transaction.counterpart_wallet_id ? "text-foreground" : "text-muted-foreground")}>
-                {selectedDestinationWalletLabel}
-              </span>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__none__">
-                {transaction.kind === "debt_payment" ? t("review.fields.debtWallet") : t("review.fields.wallet")}
-              </SelectItem>
-              <SelectGroup>
-                {(transaction.kind === "debt_payment" ? debtWalletOptions : transferDestinationWalletOptions).map((wallet) => (
-                  <SelectItem key={wallet.id} value={wallet.id}>
-                    {wallet.name}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        </div>
-      ) : (
-        <CategoryCascadePicker
-          categories={categoryOptions}
-          value={transaction.category_id}
-          onSelect={(value) => {
-            void onPatch({ category_id: value });
-          }}
-          placeholder={uncategorizedLabel}
-          clearLabel={uncategorizedLabel}
-          triggerClassName="h-7 w-full justify-start border-transparent bg-transparent shadow-none hover:bg-muted/60"
-          contentClassName="min-w-[16rem]"
-        />
-      )}
-    </div>
   );
 }
 
@@ -589,9 +373,28 @@ export function BankingView() {
   const visibleDraftBatches = data.batches.filter((batch) => (batchStatus.get(batch.id)?.draftCount ?? 0) > 0);
   const selectedWallet = walletOptions.find((wallet) => wallet.id === effectiveWalletId);
   const selectedWalletName = selectedWallet ? `${selectedWallet.name} · ${selectedWallet.currency}` : t("upload.fields.walletPlaceholder");
-  const draftLedgerTransactions = draftTransactions.map((transaction) => mapImportedTransactionToRow(transaction));
   const draftTransactionsById = new Map(draftTransactions.map((transaction) => [transaction.id, transaction]));
   const editingImport = editingImportId ? draftTransactionsById.get(editingImportId) ?? null : null;
+
+  // Group draft transactions by date for the review panel
+  const draftByDate: { dateKey: string; dateLabel: string; transactions: typeof draftTransactions }[] = [];
+  {
+    const groups = new Map<string, typeof draftTransactions>();
+    for (const tx of [...draftTransactions].sort(
+      (a, b) => new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime(),
+    )) {
+      const key = tx.occurred_at.slice(0, 10);
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(tx);
+    }
+    for (const [key, txs] of groups) {
+      draftByDate.push({
+        dateKey: key,
+        dateLabel: new Date(key).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }),
+        transactions: txs,
+      });
+    }
+  }
 
   return (
     <PageContainer className="h-full overflow-hidden px-0 py-0 sm:px-0">
@@ -894,161 +697,200 @@ export function BankingView() {
           </div>
 
           <div className="min-h-0 flex-1 overflow-auto px-3 pb-4 pt-2 sm:px-6 sm:pb-5 lg:px-7">
-            <TransactionList
-              transactions={draftLedgerTransactions}
-              emptyMessage={t("inbox.emptyDescription")}
-              groupByDate
-              getRowClassName={(transaction) => (editingImportId === transaction.id ? "rounded-none px-0 py-1.5 bg-[#f3efe9]" : "rounded-none px-0 py-1.5")}
-              getPrimaryLabel={(ledgerTransaction) => {
-                const transaction = draftTransactionsById.get(ledgerTransaction.id);
-                if (!transaction) {
-                  return ledgerTransaction.title;
-                }
+            {draftTransactions.length === 0 ? (
+              <EmptyState title={t("inbox.emptyTitle")} description={t("inbox.emptyDescription")} />
+            ) : (
+              <div className="flex flex-col gap-6">
+                {draftByDate.map(({ dateKey, dateLabel, transactions: dayTransactions }) => (
+                  <section key={dateKey} className="flex flex-col">
+                    <p className="type-body-12 mb-1 text-muted-foreground">{dateLabel}</p>
+                    <div className="flex flex-col">
+                      {dayTransactions.map((transaction) => {
+                        const isTransfer = transaction.kind === "transfer" || transaction.kind === "debt_payment";
+                        const categoriesForKind = categoryOptions.filter((c) => c.type === transaction.kind);
+                        const walletAccountOptions = walletOptions.map((w) => ({ id: w.id, name: w.name }));
 
-                const categoryLabel =
-                  transaction.kind === "debt_payment"
-                    ? transactionsT("kinds.debt_payment")
-                    : transaction.category?.name ?? transactionsT("row.uncategorized");
-                const merchantLabel = transaction.merchant_clean?.trim();
-
-                return merchantLabel ? `${categoryLabel} (${merchantLabel})` : categoryLabel;
-              }}
-              getPrimaryLabelClassName={(ledgerTransaction) =>
-                draftTransactionsById.get(ledgerTransaction.id)?.kind === "debt_payment" ||
-                draftTransactionsById.get(ledgerTransaction.id)?.category_id
-                  ? "text-foreground"
-                  : "text-muted-foreground"
-              }
-              getSecondaryLabel={(ledgerTransaction) => {
-                const transaction = draftTransactionsById.get(ledgerTransaction.id);
-                if (!transaction) {
-                  return undefined;
-                }
-
-                const walletLabel = transaction.wallet?.name ?? transactionsT("row.unlinkedAccount");
-                if (transaction.kind === "transfer" || transaction.kind === "debt_payment") {
-                  const counterpartWalletLabel =
-                    transaction.counterpart_wallet?.name ?? transactionsT("row.unlinkedAccount");
-                  return `${walletLabel} -> ${counterpartWalletLabel}`;
-                }
-
-                return walletLabel;
-              }}
-              renderTrailingAccessory={(ledgerTransaction) => {
-                const transaction = draftTransactionsById.get(ledgerTransaction.id);
-                if (!transaction) {
-                  return null;
-                }
-
-                return (
-                  <ImportRowAction
-              transaction={transaction}
-              categories={categoryOptions}
-              walletOptions={walletOptions}
-              debtWalletOptions={debtWalletOptions}
-              t={t}
-              uncategorizedLabel={transactionsT("row.uncategorized")}
-                    onPatch={async (values) => {
-                      try {
-                        await updateMutation.mutateAsync({
-                          transactionId: transaction.id,
-                          values,
-                        });
-                      } catch (caughtError) {
-                        setActionError(caughtError instanceof Error ? caughtError.message : t("feedback.updateFailed"));
-                        throw caughtError;
-                      }
-                    }}
-                  />
-                );
-              }}
-              renderAction={(ledgerTransaction) => {
-                const transaction = draftTransactionsById.get(ledgerTransaction.id);
-                if (!transaction) {
-                  return null;
-                }
-
-                return (
-                  <div className="flex w-[104px] shrink-0 items-center justify-end gap-2">
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon-sm"
-                            className="rounded-[10px] text-muted-foreground/70"
-                            aria-label={commonT("delete")}
-                            disabled={deleteTransactionMutation.isPending}
-                          />
-                        }
-                        onClick={async (event) => {
-                          event.stopPropagation();
+                        async function patchTransaction(values: Parameters<typeof updateMutation.mutateAsync>[0]["values"]) {
                           try {
-                            await deleteTransactionMutation.mutateAsync(transaction.id);
+                            await updateMutation.mutateAsync({ transactionId: transaction.id, values });
                           } catch (caughtError) {
-                            setActionError(
-                              caughtError instanceof Error ? caughtError.message : t("feedback.deleteTransactionFailed"),
-                            );
+                            setActionError(caughtError instanceof Error ? caughtError.message : t("feedback.updateFailed"));
                           }
-                        }}
-                      >
-                        <Trash2 />
-                      </TooltipTrigger>
-                      <TooltipContent>{commonT("delete")}</TooltipContent>
-                    </Tooltip>
-
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon-sm"
-                            className="rounded-[10px] text-muted-foreground"
-                            aria-label={commonT("edit")}
-                          />
                         }
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          setEditingImportId(ledgerTransaction.id);
-                        }}
-                      >
-                        <PencilLine />
-                      </TooltipTrigger>
-                      <TooltipContent>{commonT("edit")}</TooltipContent>
-                    </Tooltip>
 
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon-sm"
-                            className="rounded-[10px] text-muted-foreground"
-                            aria-label={t("inbox.confirmOne")}
-                            disabled={!isImportReadyForConfirmation(transaction)}
-                          />
+                        if (isTransfer) {
+                          // Transfer/debt_payment: simplified row (different UI pattern)
+                          const srcLabel = transaction.wallet?.name ?? transactionsT("row.unlinkedAccount");
+                          const dstLabel = transaction.counterpart_wallet?.name ?? "—";
+                          return (
+                            <div
+                              key={transaction.id}
+                              className="flex items-start gap-3 border-t border-border py-3 first:border-t-0"
+                            >
+                              <div className="flex-1 min-w-0 flex flex-col gap-1">
+                                <span className="type-body-14 font-medium text-muted-foreground">
+                                  {transactionsT(`kinds.${transaction.kind}`)}
+                                </span>
+                                <span className="type-body-12 text-muted-foreground">
+                                  {transaction.merchant_clean} · {srcLabel} → {dstLabel}
+                                </span>
+                              </div>
+                              <span className="shrink-0 pt-0.5 tabular-nums type-body-14 font-semibold text-foreground">
+                                {new Intl.NumberFormat(undefined, {
+                                  style: "currency",
+                                  currency: transaction.currency,
+                                }).format(Math.abs(transaction.amount))}
+                              </span>
+                              <div className="flex shrink-0 items-center gap-0.5">
+                                <Tooltip>
+                                  <TooltipTrigger
+                                    render={
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        className={actionButtonClassName}
+                                        aria-label={commonT("delete")}
+                                        disabled={deleteTransactionMutation.isPending}
+                                      />
+                                    }
+                                    onClick={async () => {
+                                      try { await deleteTransactionMutation.mutateAsync(transaction.id); } catch (e) {
+                                        setActionError(e instanceof Error ? e.message : t("feedback.deleteTransactionFailed"));
+                                      }
+                                    }}
+                                  >
+                                    <Trash2 />
+                                  </TooltipTrigger>
+                                  <TooltipContent>{commonT("delete")}</TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger
+                                    render={
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        className={actionButtonClassName}
+                                        aria-label={t("inbox.confirmOne")}
+                                        disabled={!isImportReadyForConfirmation(transaction)}
+                                      />
+                                    }
+                                    onClick={async () => {
+                                      try { await confirmMutation.mutateAsync([transaction.id]); } catch (e) {
+                                        setActionError(e instanceof Error ? e.message : t("feedback.confirmFailed"));
+                                      }
+                                    }}
+                                  >
+                                    <Check />
+                                  </TooltipTrigger>
+                                  <TooltipContent>{t("inbox.confirmOne")}</TooltipContent>
+                                </Tooltip>
+                              </div>
+                            </div>
+                          );
                         }
-                        onClick={async (event) => {
-                          event.stopPropagation();
-                          try {
-                            await confirmMutation.mutateAsync([transaction.id]);
-                          } catch (caughtError) {
-                            setActionError(caughtError instanceof Error ? caughtError.message : t("feedback.confirmFailed"));
-                            throw caughtError;
-                          }
-                        }}
-                      >
-                        <Check />
-                      </TooltipTrigger>
-                      <TooltipContent>{t("inbox.confirmOne")}</TooltipContent>
-                    </Tooltip>
-                  </div>
-                );
-              }}
-            />
+
+                        return (
+                          <PendingTransactionRow
+                            key={transaction.id}
+                            title={transaction.merchant_clean}
+                            amount={Math.abs(transaction.amount)}
+                            currency={transaction.currency}
+                            kind={transaction.kind as "income" | "expense"}
+                            occurredAt={transaction.occurred_at}
+                            categories={categoriesForKind}
+                            resolvedCategoryId={transaction.category_id}
+                            onCategoryChange={(id) => void patchTransaction({ category_id: id })}
+                            accounts={walletAccountOptions}
+                            resolvedAccountId={transaction.wallet_id}
+                            onAccountChange={(id) => id && void patchTransaction({ wallet_id: id })}
+                            kindOptions={[
+                              { value: "expense", label: t("kinds.expense") },
+                              { value: "income", label: t("kinds.income") },
+                            ]}
+                            onKindChange={(kind) =>
+                              void patchTransaction({
+                                kind: kind as "expense" | "income",
+                                category_id: null,
+                              })
+                            }
+                            selectCategoryPlaceholder={transactionsT("row.uncategorized")}
+                            noAccountPlaceholder={transactionsT("row.unlinkedAccount")}
+                            clearCategoryLabel={transactionsT("row.uncategorized")}
+                            actions={
+                              <div className="flex items-center gap-0.5">
+                                <Tooltip>
+                                  <TooltipTrigger
+                                    render={
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        className={actionButtonClassName}
+                                        aria-label={commonT("delete")}
+                                        disabled={deleteTransactionMutation.isPending}
+                                      />
+                                    }
+                                    onClick={async () => {
+                                      try { await deleteTransactionMutation.mutateAsync(transaction.id); } catch (e) {
+                                        setActionError(e instanceof Error ? e.message : t("feedback.deleteTransactionFailed"));
+                                      }
+                                    }}
+                                  >
+                                    <Trash2 />
+                                  </TooltipTrigger>
+                                  <TooltipContent>{commonT("delete")}</TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger
+                                    render={
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        className={actionButtonClassName}
+                                        aria-label={commonT("edit")}
+                                      />
+                                    }
+                                    onClick={() => setEditingImportId(transaction.id)}
+                                  >
+                                    <PencilLine />
+                                  </TooltipTrigger>
+                                  <TooltipContent>{commonT("edit")}</TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger
+                                    render={
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        className={actionButtonClassName}
+                                        aria-label={t("inbox.confirmOne")}
+                                        disabled={!isImportReadyForConfirmation(transaction)}
+                                      />
+                                    }
+                                    onClick={async () => {
+                                      try { await confirmMutation.mutateAsync([transaction.id]); } catch (e) {
+                                        setActionError(e instanceof Error ? e.message : t("feedback.confirmFailed"));
+                                      }
+                                    }}
+                                  >
+                                    <Check />
+                                  </TooltipTrigger>
+                                  <TooltipContent>{t("inbox.confirmOne")}</TooltipContent>
+                                </Tooltip>
+                              </div>
+                            }
+                          />
+                        );
+                      })}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            )}
             <ImportDetailSheet
               key={editingImport?.id ?? "import-detail"}
               transaction={editingImport}

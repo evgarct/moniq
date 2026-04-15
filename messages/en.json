@@ -119,7 +119,8 @@
     "workspace": "Workspace",
     "workspaceDescription": "Navigate Moniq product surfaces.",
     "openProfileMenu": "Open profile menu",
-    "openNavigation": "Open navigation"
+    "openNavigation": "Open navigation",
+    "claudeInbox": "Claude Inbox"
   },
   "localeSwitcher": {
     "label": "Language",
@@ -663,6 +664,78 @@
       "uncategorized": "Uncategorized",
       "recurring": "Recurring",
       "goodMove": "You earned it"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "mcp": {
+      "title": "Claude MCP Connector",
+      "description": "Connect Claude to Moniq so it can send transaction batches for review. Paste a bank screenshot or statement into Claude and ask it to submit transactions to Moniq.",
+      "setupTitle": "Setup",
+      "setupStep1": "Create an API key below.",
+      "setupStep2": "Add the Moniq MCP server to your Claude settings:",
+      "setupStep3": "In Claude, paste a bank screenshot or file and ask: \"Submit these transactions to Moniq\".",
+      "configLabel": "Claude settings.json snippet",
+      "apiKeysTitle": "API Keys",
+      "apiKeysDescription": "Each key authorizes Claude to submit batches on your behalf. Keep keys secret — they won't be shown again.",
+      "newKeyName": "Key name",
+      "newKeyNamePlaceholder": "e.g. My laptop",
+      "createKey": "Create key",
+      "creating": "Creating...",
+      "rawKeyNotice": "Copy this key now — it won't be shown again.",
+      "copyKey": "Copy",
+      "copied": "Copied!",
+      "noKeys": "No API keys yet.",
+      "lastUsed": "Last used",
+      "never": "Never",
+      "revokeKey": "Revoke",
+      "revoking": "Revoking...",
+      "created": "Created"
+    }
+  },
+  "claudeInbox": {
+    "title": "Claude Inbox",
+    "description": "Transaction batches submitted by Claude from your bank screenshots and files. Review, edit categories and accounts, then approve.",
+    "loading": {
+      "title": "Loading Claude Inbox",
+      "description": "Fetching pending transaction batches."
+    },
+    "error": {
+      "title": "Unable to load Claude Inbox",
+      "description": "Batch data could not be loaded."
+    },
+    "empty": {
+      "title": "Nothing pending",
+      "description": "Ask Claude to submit a batch from a bank screenshot or statement."
+    },
+    "batch": {
+      "items": "{count, plural, one {# transaction} other {# transactions}}",
+      "defaultTitle": "Batch from Claude",
+      "approveAll": "Approve all",
+      "reject": "Reject batch",
+      "approving": "Approving...",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "source": "Source",
+      "submitted": "Submitted"
+    },
+    "item": {
+      "category": "Category",
+      "account": "Account",
+      "suggested": "Suggested",
+      "approve": "Approve",
+      "reject": "Reject",
+      "edit": "Edit",
+      "uncategorized": "Uncategorized",
+      "noAccount": "No account",
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected"
+    },
+    "feedback": {
+      "approveError": "Unable to approve batch.",
+      "rejectError": "Unable to reject batch.",
+      "updateError": "Unable to update transaction."
     }
   },
   "imports": {
