@@ -119,7 +119,8 @@
     "workspace": "Рабочее пространство",
     "workspaceDescription": "Навигация по основным разделам Moniq.",
     "openProfileMenu": "Открыть меню профиля",
-    "openNavigation": "Открыть навигацию"
+    "openNavigation": "Открыть навигацию",
+    "claudeInbox": "Claude Inbox"
   },
   "localeSwitcher": {
     "label": "Язык",
@@ -801,6 +802,78 @@
       "date": "Дата",
       "actions": "Действия",
       "status": "Статус"
+    }
+  },
+  "settings": {
+    "title": "Настройки",
+    "mcp": {
+      "title": "Claude MCP Коннектор",
+      "description": "Подключите Claude к Moniq, чтобы он мог отправлять пакеты транзакций на проверку. Скиньте скриншот из банка или выписку в Claude и попросите отправить транзакции в Moniq.",
+      "setupTitle": "Настройка",
+      "setupStep1": "Создайте API-ключ ниже.",
+      "setupStep2": "Добавьте MCP-сервер Moniq в настройки Claude:",
+      "setupStep3": "В Claude вставьте скриншот из банка или файл и напишите: «Отправь эти транзакции в Moniq».",
+      "configLabel": "Фрагмент settings.json для Claude",
+      "apiKeysTitle": "API-ключи",
+      "apiKeysDescription": "Каждый ключ разрешает Claude отправлять пакеты от вашего имени. Храните ключи в тайне — они больше не будут показаны.",
+      "newKeyName": "Название ключа",
+      "newKeyNamePlaceholder": "например, Мой ноутбук",
+      "createKey": "Создать ключ",
+      "creating": "Создаём...",
+      "rawKeyNotice": "Скопируйте ключ сейчас — он больше не будет показан.",
+      "copyKey": "Скопировать",
+      "copied": "Скопировано!",
+      "noKeys": "API-ключей пока нет.",
+      "lastUsed": "Последнее использование",
+      "never": "Никогда",
+      "revokeKey": "Отозвать",
+      "revoking": "Отзываем...",
+      "created": "Создан"
+    }
+  },
+  "claudeInbox": {
+    "title": "Claude Inbox",
+    "description": "Пакеты транзакций, отправленные Claude из скриншотов банка и файлов. Проверьте, выберите категории и счета, затем подтвердите.",
+    "loading": {
+      "title": "Загрузка Claude Inbox",
+      "description": "Получаем ожидающие пакеты транзакций."
+    },
+    "error": {
+      "title": "Не удалось загрузить Claude Inbox",
+      "description": "Данные пакетов не загружены."
+    },
+    "empty": {
+      "title": "Ничего нет",
+      "description": "Попросите Claude отправить пакет из скриншота или выписки банка."
+    },
+    "batch": {
+      "items": "{count, plural, one {# транзакция} few {# транзакции} many {# транзакций} other {# транзакции}}",
+      "defaultTitle": "Пакет от Claude",
+      "approveAll": "Подтвердить всё",
+      "reject": "Отклонить пакет",
+      "approving": "Подтверждаем...",
+      "approved": "Подтверждён",
+      "rejected": "Отклонён",
+      "source": "Источник",
+      "submitted": "Отправлен"
+    },
+    "item": {
+      "category": "Категория",
+      "account": "Счёт",
+      "suggested": "Предложено",
+      "approve": "Подтвердить",
+      "reject": "Отклонить",
+      "edit": "Изменить",
+      "uncategorized": "Без категории",
+      "noAccount": "Без счёта",
+      "pending": "Ожидает",
+      "approved": "Подтверждено",
+      "rejected": "Отклонено"
+    },
+    "feedback": {
+      "approveError": "Не удалось подтвердить пакет.",
+      "rejectError": "Не удалось отклонить пакет.",
+      "updateError": "Не удалось обновить транзакцию."
     }
   }
 }
