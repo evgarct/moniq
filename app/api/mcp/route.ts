@@ -1,21 +1,13 @@
 /**
- * Moniq MCP Server — Streamable HTTP Transport
+ * Moniq MCP Server — Streamable HTTP Transport (MCP 2025-03-26)
  *
- * Implements the Model Context Protocol over HTTP so Claude can submit
- * transaction batches for review inside Moniq.
- *
- * Configure in Claude:
- *   ~/.claude/settings.json → mcpServers → moniq
- *   { "type": "http", "url": "<host>/api/mcp", "headers": { "Authorization": "Bearer <api-key>" } }
- *
- * Exposed tools:
- *   submit_transaction_batch — send a list of transactions with suggested categories
+ * All DB operations go through SECURITY DEFINER RPC functions so we never
+ * need the Supabase service role key — the public anon key is sufficient.
  */
 
 import { createHash } from "crypto";
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { createServiceClient } from "@/lib/supabase/service";
+import { createAnonClient } from "@/lib/supabase/anon";
 
 // ---------------------------------------------------------------------------
 // CORS — required for Claude.ai (browser-based MCP client)
@@ -58,7 +50,7 @@ interface McpResponse {
 interface BatchTransactionItem {
   title: string;
   amount: number;
-  occurred_at: string; // ISO date string YYYY-MM-DD
+  occurred_at: string;
   kind: "income" | "expense";
   suggested_category_name?: string;
   currency?: string;
@@ -66,7 +58,7 @@ interface BatchTransactionItem {
 }
 
 // ---------------------------------------------------------------------------
-// Auth helper: validate Bearer API key
+// Auth: validate Bearer API key via RPC (no service role needed)
 // ---------------------------------------------------------------------------
 
 async function authenticateApiKey(
@@ -79,26 +71,17 @@ async function authenticateApiKey(
   if (!rawKey) return null;
 
   const keyHash = createHash("sha256").update(rawKey).digest("hex");
+  const db = createAnonClient();
 
-  // Use service role to bypass RLS — the API key lookup is by secret hash,
-  // no user session exists at this point.
-  const service = createServiceClient();
+  const { data, error } = await db.rpc("mcp_lookup_api_key", { p_key_hash: keyHash });
+  if (error || !data || data.length === 0) return null;
 
-  const { data, error } = await service
-    .from("mcp_api_keys")
-    .select("id, user_id")
-    .eq("key_hash", keyHash)
-    .single();
+  const row = data[0] as { id: string; user_id: string };
 
-  if (error || !data) return null;
+  // Fire-and-forget: update last_used_at
+  db.rpc("mcp_touch_api_key", { p_key_id: row.id }).then(() => {});
 
-  // Update last_used_at
-  await service
-    .from("mcp_api_keys")
-    .update({ last_used_at: new Date().toISOString() })
-    .eq("id", data.id);
-
-  return { userId: data.user_id };
+  return { userId: row.user_id };
 }
 
 // ---------------------------------------------------------------------------
@@ -109,7 +92,6 @@ function handleInitialize(
   id: string | number | null,
   params?: Record<string, unknown>,
 ): McpResponse {
-  // Echo back the client's requested version; fall back to latest supported.
   const requestedVersion = (params?.protocolVersion as string | undefined) ?? "2025-03-26";
   const supported = ["2025-03-26", "2024-11-05"];
   const protocolVersion = supported.includes(requestedVersion) ? requestedVersion : "2025-03-26";
@@ -225,64 +207,23 @@ async function handleToolCall(
   // Validate items
   for (const tx of transactions) {
     if (!tx.title || typeof tx.title !== "string") {
-      return {
-        jsonrpc: "2.0",
-        id,
-        error: { code: -32602, message: "Each transaction must have a title" },
-      };
+      return { jsonrpc: "2.0", id, error: { code: -32602, message: "Each transaction must have a title" } };
     }
     if (typeof tx.amount !== "number" || tx.amount <= 0) {
-      return {
-        jsonrpc: "2.0",
-        id,
-        error: { code: -32602, message: `Transaction "${tx.title}" must have a positive amount` },
-      };
+      return { jsonrpc: "2.0", id, error: { code: -32602, message: `Transaction "${tx.title}" must have a positive amount` } };
     }
     if (!tx.occurred_at || !/^\d{4}-\d{2}-\d{2}$/.test(tx.occurred_at)) {
-      return {
-        jsonrpc: "2.0",
-        id,
-        error: {
-          code: -32602,
-          message: `Transaction "${tx.title}" must have occurred_at in YYYY-MM-DD format`,
-        },
-      };
+      return { jsonrpc: "2.0", id, error: { code: -32602, message: `Transaction "${tx.title}" must have occurred_at in YYYY-MM-DD format` } };
     }
     if (tx.kind !== "income" && tx.kind !== "expense") {
-      return {
-        jsonrpc: "2.0",
-        id,
-        error: { code: -32602, message: `Transaction "${tx.title}" kind must be "income" or "expense"` },
-      };
+      return { jsonrpc: "2.0", id, error: { code: -32602, message: `Transaction "${tx.title}" kind must be "income" or "expense"` } };
     }
   }
 
-  const supabase = await createClient();
+  const db = createAnonClient();
 
-  // Create batch
-  const { data: batch, error: batchError } = await supabase
-    .from("mcp_transaction_batches")
-    .insert({
-      user_id: userId,
-      status: "pending",
-      source_description: args.source_description ?? null,
-      submitted_by: "claude",
-    })
-    .select("id")
-    .single();
-
-  if (batchError || !batch) {
-    return {
-      jsonrpc: "2.0",
-      id,
-      error: { code: -32000, message: "Failed to create batch in database" },
-    };
-  }
-
-  // Insert batch items
+  // Submit batch + items via single atomic RPC call
   const items = transactions.map((tx) => ({
-    batch_id: batch.id,
-    user_id: userId,
     title: tx.title.trim(),
     amount: tx.amount,
     occurred_at: tx.occurred_at,
@@ -290,18 +231,19 @@ async function handleToolCall(
     currency: tx.currency ?? null,
     note: tx.note?.trim() ?? null,
     suggested_category_name: tx.suggested_category_name?.trim() ?? null,
-    status: "pending",
   }));
 
-  const { error: itemsError } = await supabase.from("mcp_batch_items").insert(items);
+  const { data: batchId, error } = await db.rpc("mcp_submit_batch", {
+    p_user_id: userId,
+    p_source_description: args.source_description ?? null,
+    p_items: items,
+  });
 
-  if (itemsError) {
-    // Clean up the batch
-    await supabase.from("mcp_transaction_batches").delete().eq("id", batch.id);
+  if (error || !batchId) {
     return {
       jsonrpc: "2.0",
       id,
-      error: { code: -32000, message: "Failed to save transaction items" },
+      error: { code: -32000, message: "Failed to save batch in database" },
     };
   }
 
@@ -312,7 +254,7 @@ async function handleToolCall(
       content: [
         {
           type: "text",
-          text: `Batch submitted successfully. ${transactions.length} transaction${transactions.length === 1 ? "" : "s"} are now in the Moniq Claude Inbox for review. Batch ID: ${batch.id}`,
+          text: `Batch submitted successfully. ${transactions.length} transaction${transactions.length === 1 ? "" : "s"} are now in the Moniq Claude Inbox for review. Batch ID: ${batchId}`,
         },
       ],
     },
@@ -324,15 +266,10 @@ async function handleToolCall(
 // ---------------------------------------------------------------------------
 
 export async function POST(request: Request) {
-  // Authenticate
   const auth = await authenticateApiKey(request);
   if (!auth) {
     return NextResponse.json(
-      {
-        jsonrpc: "2.0",
-        id: null,
-        error: { code: -32001, message: "Unauthorized: provide a valid Moniq API key as Bearer token" },
-      },
+      { jsonrpc: "2.0", id: null, error: { code: -32001, message: "Unauthorized: provide a valid Moniq API key as Bearer token" } },
       { status: 401, headers: CORS_HEADERS },
     );
   }
@@ -347,27 +284,19 @@ export async function POST(request: Request) {
     );
   }
 
-  // Handle batched requests
   if (Array.isArray(body)) {
-    const responses = await Promise.all(
-      body.map((msg) => dispatchMessage(msg, auth.userId)),
-    );
-    const nonNullResponses = responses.filter(Boolean);
-    return NextResponse.json(nonNullResponses, { headers: CORS_HEADERS });
+    const responses = await Promise.all(body.map((msg) => dispatchMessage(msg, auth.userId)));
+    return NextResponse.json(responses.filter(Boolean), { headers: CORS_HEADERS });
   }
 
   const response = await dispatchMessage(body, auth.userId);
   if (response === null) {
-    // Notification — no response
     return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
   }
   return NextResponse.json(response, { headers: CORS_HEADERS });
 }
 
-async function dispatchMessage(
-  msg: McpRequest,
-  userId: string,
-): Promise<McpResponse | null> {
+async function dispatchMessage(msg: McpRequest, userId: string): Promise<McpResponse | null> {
   const id = msg.id ?? null;
 
   switch (msg.method) {
@@ -376,7 +305,6 @@ async function dispatchMessage(
 
     case "notifications/initialized":
     case "initialized":
-      // Notifications — no response
       return null;
 
     case "ping":
@@ -389,10 +317,6 @@ async function dispatchMessage(
       return handleToolCall(id, (msg.params ?? {}) as Record<string, unknown>, userId);
 
     default:
-      return {
-        jsonrpc: "2.0",
-        id,
-        error: { code: -32601, message: `Method not found: ${msg.method}` },
-      };
+      return { jsonrpc: "2.0", id, error: { code: -32601, message: `Method not found: ${msg.method}` } };
   }
 }

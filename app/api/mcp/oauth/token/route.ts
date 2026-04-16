@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createServiceClient } from "@/lib/supabase/service";
+import { createAnonClient } from "@/lib/supabase/anon";
 import { verifyPkce, generateRawToken, sha256Hex } from "./pkce";
 
 const CORS_HEADERS = {
@@ -11,10 +11,6 @@ const CORS_HEADERS = {
 export async function OPTIONS() {
   return new Response(null, { status: 204, headers: CORS_HEADERS });
 }
-
-// ---------------------------------------------------------------------------
-// POST handler
-// ---------------------------------------------------------------------------
 
 export async function POST(request: Request) {
   const contentType = request.headers.get("content-type") ?? "";
@@ -63,35 +59,27 @@ export async function POST(request: Request) {
     );
   }
 
-  const service = createServiceClient();
+  const db = createAnonClient();
 
-  // Look up the authorization code
-  const { data: codeRow } = await service
-    .from("mcp_oauth_codes")
-    .select("id, user_id, client_id, redirect_uri, code_challenge, used, expires_at")
-    .eq("code", code)
-    .single();
+  // Atomically redeem the code via RPC — returns the row only if code is valid,
+  // unused, and not expired; marks it used in the same statement (no race condition).
+  const { data: rows, error: redeemError } = await db.rpc("mcp_oauth_redeem_code", {
+    p_code: code,
+  });
 
-  if (!codeRow) {
+  if (redeemError || !rows || rows.length === 0) {
     return NextResponse.json(
-      { error: "invalid_grant", error_description: "Unknown code" },
+      { error: "invalid_grant", error_description: "Code is invalid, expired, or already used" },
       { status: 400, headers: CORS_HEADERS },
     );
   }
 
-  if (codeRow.used) {
-    return NextResponse.json(
-      { error: "invalid_grant", error_description: "Code already used" },
-      { status: 400, headers: CORS_HEADERS },
-    );
-  }
-
-  if (new Date(codeRow.expires_at) < new Date()) {
-    return NextResponse.json(
-      { error: "invalid_grant", error_description: "Code expired" },
-      { status: 400, headers: CORS_HEADERS },
-    );
-  }
+  const codeRow = rows[0] as {
+    user_id: string;
+    client_id: string;
+    redirect_uri: string;
+    code_challenge: string;
+  };
 
   if (codeRow.client_id !== clientId) {
     return NextResponse.json(
@@ -116,36 +104,19 @@ export async function POST(request: Request) {
     );
   }
 
-  // Atomically mark code as used — conditional on used=false prevents races
-  // where two concurrent requests both read used=false and both mint tokens.
-  const { data: consumed, error: consumeError } = await service
-    .from("mcp_oauth_codes")
-    .update({ used: true })
-    .eq("id", codeRow.id)
-    .eq("used", false) // only succeeds if not yet redeemed
-    .select("id");
-
-  if (consumeError || !consumed || consumed.length === 0) {
-    return NextResponse.json(
-      { error: "invalid_grant", error_description: "Code already used" },
-      { status: 400, headers: CORS_HEADERS },
-    );
-  }
-
-  // Generate token
+  // Generate bearer token and store via RPC
   const rawToken = generateRawToken();
   const keyHash = await sha256Hex(rawToken);
   const keyPrefix = rawToken.slice(0, 10);
 
-  // Store in mcp_api_keys
-  const { error: insertError } = await service.from("mcp_api_keys").insert({
-    user_id: codeRow.user_id,
-    name: "Claude OAuth",
-    key_hash: keyHash,
-    key_prefix: keyPrefix,
+  const { error: storeError } = await db.rpc("mcp_oauth_store_token", {
+    p_user_id: codeRow.user_id,
+    p_name: "Claude OAuth",
+    p_key_hash: keyHash,
+    p_key_prefix: keyPrefix,
   });
 
-  if (insertError) {
+  if (storeError) {
     return NextResponse.json(
       { error: "server_error", error_description: "Failed to create access token" },
       { status: 500, headers: CORS_HEADERS },
@@ -153,11 +124,7 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json(
-    {
-      access_token: rawToken,
-      token_type: "bearer",
-      scope: "mcp",
-    },
+    { access_token: rawToken, token_type: "bearer", scope: "mcp" },
     { headers: CORS_HEADERS },
   );
 }
