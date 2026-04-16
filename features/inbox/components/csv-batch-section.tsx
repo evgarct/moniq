@@ -109,11 +109,13 @@ export function CsvBatchSection({
   transactions,
   categories,
   wallets,
+  onFinalized,
 }: {
   batch: TransactionImportBatch;
   transactions: TransactionImport[];
   categories: Category[];
   wallets: Account[];
+  onFinalized?: () => void;
 }) {
   const t = useTranslations("imports");
   const qc = useQueryClient();
@@ -122,31 +124,30 @@ export function CsvBatchSection({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const setSnapshot = (snapshot: Parameters<typeof qc.setQueryData>[1]) =>
-    qc.setQueryData(bankingSnapshotQueryKey, snapshot);
+  const invalidateSnapshot = () => void qc.invalidateQueries({ queryKey: bankingSnapshotQueryKey });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, values }: { id: string; values: Parameters<typeof updateImportedTransactionRequest>[1] }) =>
       updateImportedTransactionRequest(id, values),
-    onSuccess: (snapshot) => { setSnapshot(snapshot); setError(null); },
+    onSuccess: () => { invalidateSnapshot(); setError(null); },
     onError: () => setError(t("feedback.updateFailed")),
   });
 
   const confirmMutation = useMutation({
     mutationFn: batchConfirmImportedTransactionsRequest,
-    onSuccess: (snapshot) => { setSnapshot(snapshot); setError(null); },
+    onSuccess: () => { invalidateSnapshot(); setError(null); onFinalized?.(); },
     onError: () => setError(t("feedback.confirmFailed")),
   });
 
   const deleteTxMutation = useMutation({
     mutationFn: deleteImportedTransactionRequest,
-    onSuccess: (snapshot) => { setSnapshot(snapshot); setError(null); },
+    onSuccess: () => { invalidateSnapshot(); setError(null); },
     onError: () => setError(t("feedback.deleteTransactionFailed")),
   });
 
   const deleteBatchMutation = useMutation({
     mutationFn: deleteImportBatchRequest,
-    onSuccess: (snapshot) => { setSnapshot(snapshot); setError(null); },
+    onSuccess: () => { invalidateSnapshot(); setError(null); onFinalized?.(); },
     onError: () => setError(t("feedback.deleteFailed")),
   });
 
