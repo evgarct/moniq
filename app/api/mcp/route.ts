@@ -18,6 +18,26 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 
 // ---------------------------------------------------------------------------
+// CORS — required for Claude.ai (browser-based MCP client)
+// ---------------------------------------------------------------------------
+
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, Mcp-Session-Id",
+};
+
+export async function OPTIONS() {
+  return new Response(null, { status: 204, headers: CORS_HEADERS });
+}
+
+// GET is required by MCP 2025-03-26 for SSE server-push channel.
+// We don't implement server-initiated pushes, so we return 405.
+export async function GET() {
+  return new Response(null, { status: 405, headers: CORS_HEADERS });
+}
+
+// ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
@@ -85,19 +105,22 @@ async function authenticateApiKey(
 // MCP message handlers
 // ---------------------------------------------------------------------------
 
-function handleInitialize(id: string | number | null): McpResponse {
+function handleInitialize(
+  id: string | number | null,
+  params?: Record<string, unknown>,
+): McpResponse {
+  // Echo back the client's requested version; fall back to latest supported.
+  const requestedVersion = (params?.protocolVersion as string | undefined) ?? "2025-03-26";
+  const supported = ["2025-03-26", "2024-11-05"];
+  const protocolVersion = supported.includes(requestedVersion) ? requestedVersion : "2025-03-26";
+
   return {
     jsonrpc: "2.0",
     id,
     result: {
-      protocolVersion: "2024-11-05",
-      capabilities: {
-        tools: {},
-      },
-      serverInfo: {
-        name: "moniq",
-        version: "1.0.0",
-      },
+      protocolVersion,
+      capabilities: { tools: {} },
+      serverInfo: { name: "moniq", version: "1.0.0" },
     },
   };
 }
@@ -310,7 +333,7 @@ export async function POST(request: Request) {
         id: null,
         error: { code: -32001, message: "Unauthorized: provide a valid Moniq API key as Bearer token" },
       },
-      { status: 401 },
+      { status: 401, headers: CORS_HEADERS },
     );
   }
 
@@ -320,7 +343,7 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json(
       { jsonrpc: "2.0", id: null, error: { code: -32700, message: "Parse error" } },
-      { status: 400 },
+      { status: 400, headers: CORS_HEADERS },
     );
   }
 
@@ -330,15 +353,15 @@ export async function POST(request: Request) {
       body.map((msg) => dispatchMessage(msg, auth.userId)),
     );
     const nonNullResponses = responses.filter(Boolean);
-    return NextResponse.json(nonNullResponses);
+    return NextResponse.json(nonNullResponses, { headers: CORS_HEADERS });
   }
 
   const response = await dispatchMessage(body, auth.userId);
   if (response === null) {
     // Notification — no response
-    return new NextResponse(null, { status: 204 });
+    return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
   }
-  return NextResponse.json(response);
+  return NextResponse.json(response, { headers: CORS_HEADERS });
 }
 
 async function dispatchMessage(
@@ -349,7 +372,7 @@ async function dispatchMessage(
 
   switch (msg.method) {
     case "initialize":
-      return handleInitialize(id);
+      return handleInitialize(id, msg.params);
 
     case "notifications/initialized":
     case "initialized":

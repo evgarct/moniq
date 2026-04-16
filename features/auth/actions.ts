@@ -5,7 +5,9 @@ import { getLocale, getTranslations } from "next-intl/server";
 
 import { stripLocaleFromPathname } from "@/i18n/locale";
 import { createClient } from "@/lib/supabase/server";
+import { redirect as nextRedirect } from "next/navigation";
 import { getPathname, redirect } from "@/i18n/navigation";
+import type { AppLocale } from "@/i18n/routing";
 
 export type AuthActionState = {
   error?: string;
@@ -68,16 +70,23 @@ async function getOrigin() {
   return host ? `${protocol}://${host}` : "http://localhost:3000";
 }
 
-function getRedirectPath(formData: FormData) {
+function getRedirectPath(formData: FormData): { path: string; isApi: boolean } {
   const next = String(formData.get("next") ?? "").trim();
 
   if (next.startsWith("/") && !next.startsWith("//")) {
     const url = new URL(next, "http://localhost");
     const pathname = stripLocaleFromPathname(url.pathname);
-    return `${pathname}${url.search}${url.hash}`;
+    const isApi = pathname.startsWith("/api/");
+    return { path: `${pathname}${url.search}${url.hash}`, isApi };
   }
 
-  return "/today";
+  return { path: "/today", isApi: false };
+}
+
+function doRedirect(target: { path: string; isApi: boolean }, locale: string) {
+  // API routes must not receive a locale prefix — use Next.js redirect directly.
+  if (target.isApi) return nextRedirect(target.path);
+  return redirect({ href: target.path, locale: locale as AppLocale });
 }
 
 export async function signInWithPassword(
@@ -106,7 +115,7 @@ export async function signInWithPassword(
     };
   }
 
-  return redirect({ href: getRedirectPath(formData), locale });
+  return doRedirect(getRedirectPath(formData), locale);
 }
 
 export async function signUp(
@@ -143,7 +152,7 @@ export async function signUp(
   }
 
   if (data.session) {
-    return redirect({ href: getRedirectPath(formData), locale });
+    return doRedirect(getRedirectPath(formData), locale);
   }
 
   return redirect({
