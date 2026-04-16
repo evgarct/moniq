@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useBankingData } from "@/features/banking/hooks/use-banking-data";
 import { useMcpBatches, mcpBatchesQueryKey } from "@/features/inbox/hooks/use-mcp-batches";
 import { bankingSnapshotQueryKey } from "@/features/banking/lib/banking-api";
+import { financeSnapshotQueryKey } from "@/features/finance/lib/finance-api";
 import { McpBatchSection } from "@/features/inbox/components/mcp-batch-section";
 import { CsvBatchSection } from "@/features/inbox/components/csv-batch-section";
 import { CsvUploadSheet } from "@/features/inbox/components/csv-upload-sheet";
@@ -87,9 +88,11 @@ export function InboxView() {
 
   function handleMcpFinalized() {
     void qc.invalidateQueries({ queryKey: mcpBatchesQueryKey });
+    void qc.invalidateQueries({ queryKey: financeSnapshotQueryKey });
   }
   function handleCsvFinalized() {
     void qc.invalidateQueries({ queryKey: bankingSnapshotQueryKey });
+    void qc.invalidateQueries({ queryKey: financeSnapshotQueryKey });
   }
 
   // Data sources
