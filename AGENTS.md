@@ -110,6 +110,8 @@ Right: category shown as plain muted text below the transaction title.
 - In this repo, `proxy.ts` must export the middleware handler as a named `proxy` export in addition to default: `export async function proxy(...)` + `export default proxy`. Turbopack's middleware template resolves `mod.proxy` for proxy files; a default-only export causes a silent `adapterFn is not a function` error on every request.
 - If the app shows hydration mismatches or old styling after recent edits, treat a stale `.next` build or stale `next start` process as the first debugging target before changing React code.
 - If App Router files are moved or renamed in this repo and TypeScript still reports `.next/*/validator` imports for the old paths, clear `.next` before treating it as a code bug.
+- Every new screen or significant stateful component must have a Storybook story covering its key states (loading, empty, filled, error). Stories live in `stories/pages/` for page-level views and in `features/**/components/` for feature components. A PR that adds UI without a story is not ready to merge.
+- Before opening any PR that touches UI, the following steps are mandatory in order: (1) write or update the relevant Storybook stories, (2) run `npm run preview:live` to start both the app and Storybook on their stable ports, (3) open the affected pages in the browser and verify visually — app at `http://localhost:3008`, Storybook at `http://localhost:6008`, (4) only then create the PR.
 - In the final response, always include:
   - the PR link, if a PR exists
   - the local app URL, only after verifying it via HTTP
