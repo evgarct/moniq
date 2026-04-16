@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { createServiceClient } from "@/lib/supabase/service";
+import { createAnonClient } from "@/lib/supabase/anon";
 
 // ---------------------------------------------------------------------------
 // HTML helpers
@@ -118,13 +118,10 @@ export async function GET(request: Request) {
     );
   }
 
-  // Validate client
-  const service = createServiceClient();
-  const { data: client } = await service
-    .from("mcp_oauth_clients")
-    .select("client_id, client_name, redirect_uris")
-    .eq("client_id", clientId)
-    .single();
+  // Validate client via RPC (no service role needed)
+  const db = createAnonClient();
+  const { data: clientRows } = await db.rpc("mcp_oauth_get_client", { p_client_id: clientId });
+  const client = clientRows && clientRows.length > 0 ? clientRows[0] : null;
 
   if (!client) {
     return NextResponse.json(
@@ -200,26 +197,22 @@ export async function POST(request: Request) {
     return NextResponse.redirect(denyUrl.toString());
   }
 
-  // Insert authorization code
-  const service = createServiceClient();
-  const { data: codeRow, error } = await service
-    .from("mcp_oauth_codes")
-    .insert({
-      user_id: user.id,
-      client_id: clientId,
-      redirect_uri: redirectUri,
-      code_challenge: codeChallenge,
-      scope: "mcp",
-    })
-    .select("code")
-    .single();
+  // Issue authorization code via RPC (no service role needed)
+  const db = createAnonClient();
+  const { data: code, error } = await db.rpc("mcp_oauth_issue_code", {
+    p_user_id: user.id,
+    p_client_id: clientId,
+    p_redirect_uri: redirectUri,
+    p_code_challenge: codeChallenge,
+    p_scope: "mcp",
+  });
 
-  if (error || !codeRow) {
+  if (error || !code) {
     return NextResponse.json({ error: "server_error" }, { status: 500 });
   }
 
   const successUrl = new URL(redirectUri);
-  successUrl.searchParams.set("code", codeRow.code);
+  successUrl.searchParams.set("code", code as string);
   if (state) successUrl.searchParams.set("state", state);
 
   return NextResponse.redirect(successUrl.toString());
