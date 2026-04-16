@@ -110,6 +110,7 @@
     "overview": "Overview",
     "balance": "Balance",
     "imports": "Imports",
+    "inboxPage": "Inbox",
     "budget": "Budget",
     "calendar": "Calendar",
     "today": "Today",
@@ -698,6 +699,16 @@
       "revoking": "Revoking...",
       "created": "Created"
     }
+  },
+  "inbox": {
+    "title": "Inbox",
+    "description": "Review pending transactions from Claude and CSV imports.",
+    "importCsv": "Import CSV",
+    "filterAll": "All",
+    "filterClaude": "Claude",
+    "filterCsv": "CSV",
+    "emptyTitle": "All clear",
+    "emptyDescription": "No pending transactions. Ask Claude to submit a batch or import a CSV file."
   },
   "claudeInbox": {
     "title": "Claude Inbox",

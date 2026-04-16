@@ -1,5 +1,11 @@
-import { BankingView } from "@/features/banking/components/banking-view";
+import { redirect } from "@/i18n/navigation";
+import type { AppLocale } from "@/i18n/routing";
 
-export default function ImportsPage() {
-  return <BankingView />;
+export default async function ImportsPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  return redirect({ href: "/inbox", locale: locale as AppLocale });
 }
