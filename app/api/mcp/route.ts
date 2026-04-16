@@ -28,10 +28,16 @@ export async function OPTIONS() {
 // or Claude.ai rejects the server as unreachable ("Method Not Allowed").
 // We don't push server-initiated events, so the stream stays idle until the
 // client disconnects or Vercel's function timeout closes it.
+const WWW_AUTHENTICATE =
+  'Bearer realm="moniq", resource_metadata="https://moniq.safronov.dev/.well-known/oauth-protected-resource"';
+
 export async function GET(request: Request) {
   const auth = await authenticateApiKey(request);
   if (!auth) {
-    return new Response(null, { status: 401, headers: CORS_HEADERS });
+    return new Response(null, {
+      status: 401,
+      headers: { ...CORS_HEADERS, "WWW-Authenticate": WWW_AUTHENTICATE },
+    });
   }
 
   const encoder = new TextEncoder();
@@ -297,7 +303,7 @@ export async function POST(request: Request) {
   if (!auth) {
     return NextResponse.json(
       { jsonrpc: "2.0", id: null, error: { code: -32001, message: "Unauthorized: provide a valid Moniq API key as Bearer token" } },
-      { status: 401, headers: CORS_HEADERS },
+      { status: 401, headers: { ...CORS_HEADERS, "WWW-Authenticate": WWW_AUTHENTICATE } },
     );
   }
 
