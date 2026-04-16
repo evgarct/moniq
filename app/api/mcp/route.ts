@@ -23,10 +23,37 @@ export async function OPTIONS() {
   return new Response(null, { status: 204, headers: CORS_HEADERS });
 }
 
-// GET is required by MCP 2025-03-26 for SSE server-push channel.
-// We don't implement server-initiated pushes, so we return 405.
-export async function GET() {
-  return new Response(null, { status: 405, headers: CORS_HEADERS });
+// GET — MCP 2025-03-26 SSE channel for server-initiated messages.
+// Claude.ai opens this before sending POST; must return 200 + text/event-stream
+// or Claude.ai rejects the server as unreachable ("Method Not Allowed").
+// We don't push server-initiated events, so the stream stays idle until the
+// client disconnects or Vercel's function timeout closes it.
+export async function GET(request: Request) {
+  const auth = await authenticateApiKey(request);
+  if (!auth) {
+    return new Response(null, { status: 401, headers: CORS_HEADERS });
+  }
+
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    start(controller) {
+      // Send an initial keepalive comment so the client knows we're alive.
+      controller.enqueue(encoder.encode(": connected\n\n"));
+      // We intentionally never close — the client disconnects when done.
+      // Vercel will terminate after the function max duration.
+    },
+  });
+
+  return new Response(stream, {
+    status: 200,
+    headers: {
+      ...CORS_HEADERS,
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache, no-transform",
+      "Connection": "keep-alive",
+      "X-Accel-Buffering": "no",
+    },
+  });
 }
 
 // ---------------------------------------------------------------------------
