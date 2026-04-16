@@ -110,6 +110,7 @@
     "overview": "Обзор",
     "balance": "Баланс",
     "imports": "Импорт",
+    "inboxPage": "Входящие",
     "budget": "Бюджет",
     "calendar": "Календарь",
     "today": "Сегодня",
@@ -836,6 +837,16 @@
       "revoking": "Отзываем...",
       "created": "Создан"
     }
+  },
+  "inbox": {
+    "title": "Входящие",
+    "description": "Проверяйте транзакции от Claude и из CSV-импорта в одном месте.",
+    "importCsv": "Импорт CSV",
+    "filterAll": "Все",
+    "filterClaude": "Claude",
+    "filterCsv": "CSV",
+    "emptyTitle": "Всё проверено",
+    "emptyDescription": "Нет ожидающих транзакций. Попросите Claude отправить пакет или загрузите CSV-файл."
   },
   "claudeInbox": {
     "title": "Claude Inbox",

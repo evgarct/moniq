@@ -4,12 +4,11 @@ import type { ComponentType } from "react";
 import { useTranslations } from "next-intl";
 import {
   ListChecks,
-  FileUp,
+  Inbox,
   Scale,
   Settings2,
   UserRound,
   WalletCards,
-  Bot,
 } from "lucide-react";
 
 import type { AuthUser } from "@/types/auth";
@@ -27,10 +26,9 @@ import { cn } from "@/lib/utils";
 
 const navigation = [
   { href: "/today", labelKey: "today", icon: ListChecks },
-  { href: "/imports", labelKey: "imports", icon: FileUp },
+  { href: "/inbox", labelKey: "inboxPage", icon: Inbox },
   { href: "/accounts", labelKey: "balance", icon: Scale },
   { href: "/budget", labelKey: "budget", icon: WalletCards },
-  { href: "/claude-inbox", labelKey: "claudeInbox", icon: Bot },
 ] as const;
 
 export function AppSidebar({
@@ -49,7 +47,8 @@ export function AppSidebar({
         {navigation.map((item) => {
           const Icon = item.icon;
           const active = pathname === item.href;
-          const label = navT(item.labelKey);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const label = navT(item.labelKey as any);
 
           return (
             <SidebarNavLink
@@ -84,7 +83,8 @@ export function MobileBottomNav({
       {navigation.map((item) => {
         const Icon = item.icon;
         const active = pathname === item.href;
-        const label = navT(item.labelKey);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const label = navT(item.labelKey as any);
 
         return (
           <Link
