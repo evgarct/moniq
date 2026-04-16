@@ -146,7 +146,7 @@ export async function GET(request: Request) {
   if (!user) {
     const loginUrl = new URL("/en/login", url.origin);
     loginUrl.searchParams.set("next", url.pathname + url.search);
-    return NextResponse.redirect(loginUrl.toString());
+    return NextResponse.redirect(loginUrl.toString(), 302);
   }
 
   // Return consent page
@@ -194,7 +194,7 @@ export async function POST(request: Request) {
     const denyUrl = new URL(redirectUri);
     denyUrl.searchParams.set("error", "access_denied");
     if (state) denyUrl.searchParams.set("state", state);
-    return NextResponse.redirect(denyUrl.toString());
+    return NextResponse.redirect(denyUrl.toString(), 303);
   }
 
   // Issue authorization code via RPC (no service role needed)
@@ -215,5 +215,5 @@ export async function POST(request: Request) {
   successUrl.searchParams.set("code", code as string);
   if (state) successUrl.searchParams.set("state", state);
 
-  return NextResponse.redirect(successUrl.toString());
+  return NextResponse.redirect(successUrl.toString(), 303);
 }
