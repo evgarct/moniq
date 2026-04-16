@@ -14,6 +14,10 @@ export default defineConfig({
   test: {
     name: "unit",
     environment: "node",
-    include: ["features/**/*.test.ts", "lib/**/*.test.ts"],
+    include: [
+      "features/**/*.test.ts",
+      "lib/**/*.test.ts",
+      "app/**/*.test.ts",
+    ],
   },
 });
