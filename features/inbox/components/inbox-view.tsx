@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { useQueryClient } from "@tanstack/react-query";
 import { Bot, FileUp, Upload } from "lucide-react";
 
 import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 import { useBankingData } from "@/features/banking/hooks/use-banking-data";
-import { useMcpBatches } from "@/features/inbox/hooks/use-mcp-batches";
+import { bankingSnapshotQueryKey } from "@/features/banking/lib/banking-api";
+import { useMcpBatches, mcpBatchesQueryKey } from "@/features/inbox/hooks/use-mcp-batches";
 import { McpBatchSection } from "@/features/inbox/components/mcp-batch-section";
 import { CsvBatchSection } from "@/features/inbox/components/csv-batch-section";
 import { CsvUploadSheet } from "@/features/inbox/components/csv-upload-sheet";
@@ -78,14 +80,27 @@ function FilterPill({
 export function InboxView() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const t = useTranslations("inbox" as any) as (key: string) => string;
-  const claudeT = useTranslations("claudeInbox");
 
   const [filter, setFilter] = useState<Filter>("all");
   const [uploadOpen, setUploadOpen] = useState(false);
 
+  const qc = useQueryClient();
+
   // Data sources
   const bankingQuery = useBankingData();
   const mcpQuery = useMcpBatches();
+
+  // Called by McpBatchSection after approve/reject — refetch so the approved
+  // batch disappears from the list (the query filters by status=pending).
+  function handleMcpFinalized() {
+    void qc.invalidateQueries({ queryKey: mcpBatchesQueryKey });
+  }
+
+  // Called by CsvBatchSection after confirm/delete — refetch the banking
+  // snapshot so the batch disappears once all its drafts are gone.
+  function handleCsvFinalized() {
+    void qc.invalidateQueries({ queryKey: bankingSnapshotQueryKey });
+  }
 
   const bankingData = bankingQuery.data;
   const mcpBatches = mcpQuery.data ?? [];
@@ -203,6 +218,7 @@ export function InboxView() {
                   batch={batch}
                   categories={categories}
                   accounts={wallets}
+                  onFinalized={handleMcpFinalized}
                 />
               );
             }
@@ -218,6 +234,7 @@ export function InboxView() {
                   transactions={txs}
                   categories={categories}
                   wallets={wallets}
+                  onFinalized={handleCsvFinalized}
                 />
               );
             }

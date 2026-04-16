@@ -109,11 +109,13 @@ export function CsvBatchSection({
   transactions,
   categories,
   wallets,
+  onFinalized,
 }: {
   batch: TransactionImportBatch;
   transactions: TransactionImport[];
   categories: Category[];
   wallets: Account[];
+  onFinalized?: () => void;
 }) {
   const t = useTranslations("imports");
   const qc = useQueryClient();
@@ -134,7 +136,12 @@ export function CsvBatchSection({
 
   const confirmMutation = useMutation({
     mutationFn: batchConfirmImportedTransactionsRequest,
-    onSuccess: (snapshot) => { setSnapshot(snapshot); setError(null); },
+    onSuccess: (snapshot) => {
+      setSnapshot(snapshot);
+      setError(null);
+      // If all transactions in this batch were confirmed, notify parent to refetch
+      onFinalized?.();
+    },
     onError: () => setError(t("feedback.confirmFailed")),
   });
 
@@ -146,7 +153,11 @@ export function CsvBatchSection({
 
   const deleteBatchMutation = useMutation({
     mutationFn: deleteImportBatchRequest,
-    onSuccess: (snapshot) => { setSnapshot(snapshot); setError(null); },
+    onSuccess: (snapshot) => {
+      setSnapshot(snapshot);
+      setError(null);
+      onFinalized?.();
+    },
     onError: () => setError(t("feedback.deleteFailed")),
   });
 

@@ -27,7 +27,7 @@ export function McpBatchSection({
   batch: McpBatch;
   categories: Category[];
   accounts: Account[];
-  onFinalized?: (batchId: string) => void;
+  onFinalized?: () => void;
 }) {
   const t = useTranslations("claudeInbox");
   const [batch, setBatch] = useState(initialBatch);
@@ -86,7 +86,7 @@ export function McpBatchSection({
       });
       if (!res.ok) throw new Error();
       setBatch((prev) => ({ ...prev, status: "approved" }));
-      onFinalized?.(batch.id);
+      onFinalized?.();
     } catch {
       setError(t("feedback.approveError"));
     } finally {
@@ -103,7 +103,7 @@ export function McpBatchSection({
       });
       if (!res.ok) throw new Error();
       setBatch((prev) => ({ ...prev, status: "rejected" }));
-      onFinalized?.(batch.id);
+      onFinalized?.();
     } catch {
       setError(t("feedback.rejectError"));
     }
@@ -113,9 +113,6 @@ export function McpBatchSection({
   const accountOptions = accounts
     .filter((a) => a.type === "cash" || a.type === "credit_card")
     .map((a) => ({ id: a.id, name: a.name }));
-
-  // If finalized and collapsed, don't show at all (clean removal)
-  if (isFinalised) return null;
 
   return (
     <Surface tone="panel" padding="none">
