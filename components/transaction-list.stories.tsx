@@ -203,3 +203,55 @@ export const Empty: Story = {
     transactions: [],
   },
 };
+
+const plannedMix = [
+  byKind("income"),
+  {
+    ...byKind("expense"),
+    id: "story-planned-netflix",
+    title: "Netflix",
+    status: "planned" as const,
+    occurred_at: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) + "T00:00:00.000Z",
+  },
+  {
+    ...byKind("expense"),
+    id: "story-planned-rent",
+    title: "Monthly rent",
+    status: "planned" as const,
+    occurred_at: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) + "T00:00:00.000Z",
+  },
+  byKind("save_to_goal"),
+];
+
+export const WithContextMenu: Story = {
+  name: "With Context Menu",
+  args: {
+    transactions: denseDayLedger,
+    groupByDate: true,
+    onEditOccurrence: () => undefined,
+    onDeleteTransaction: () => undefined,
+    onMarkPaid: () => undefined,
+    onSkipOccurrence: () => undefined,
+    onEditSeries: () => undefined,
+    onDeleteSeries: () => undefined,
+    onToggleScheduleState: () => undefined,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: "Right-click any row (desktop) or long-press (mobile) to open the context menu with edit/delete actions.",
+      },
+    },
+  },
+};
+
+export const PlannedTransactions: Story = {
+  name: "Planned + Paid Mix",
+  args: {
+    transactions: plannedMix,
+    groupByDate: false,
+    onEditOccurrence: () => undefined,
+    onDeleteTransaction: () => undefined,
+    onMarkPaid: () => undefined,
+  },
+};

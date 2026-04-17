@@ -1,6 +1,8 @@
 "use client";
 
-import { ArrowLeft, X } from "lucide-react";
+"use client";
+
+import { ArrowLeft, Plus, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
@@ -20,6 +22,7 @@ type BalanceRegisterHeaderProps = {
   onEndDateChange: (value: string) => void;
   onClearSelection?: () => void;
   showClearSelection?: boolean;
+  onAddTransaction?: () => void;
   onBack?: () => void;
   scrolled?: boolean;
   className?: string;
@@ -34,6 +37,7 @@ export function BalanceRegisterHeader({
   onEndDateChange,
   onClearSelection,
   showClearSelection = false,
+  onAddTransaction,
   onBack,
   scrolled = false,
   className,
@@ -94,6 +98,24 @@ export function BalanceRegisterHeader({
           </div>
 
           <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+            {onAddTransaction ? (
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      className={actionButtonClassName}
+                      aria-label={t("view.addTransaction")}
+                    />
+                  }
+                  onClick={onAddTransaction}
+                >
+                  <Plus />
+                </TooltipTrigger>
+                <TooltipContent>{t("view.addTransaction")}</TooltipContent>
+              </Tooltip>
+            ) : null}
 
             {showClearSelection && onClearSelection ? (
               <Tooltip>
@@ -133,7 +155,12 @@ export function BalanceRegisterPanel({
   onStartDateChange,
   onEndDateChange,
   onClearSelection,
+  onAddTransaction,
   onTransactionClick,
+  onEditOccurrence,
+  onDeleteTransaction,
+  onMarkPaid,
+  onSkipOccurrence,
   className,
 }: {
   selectedAccount: Account | null;
@@ -146,7 +173,12 @@ export function BalanceRegisterPanel({
   onStartDateChange: (value: string) => void;
   onEndDateChange: (value: string) => void;
   onClearSelection?: () => void;
+  onAddTransaction?: () => void;
   onTransactionClick?: (transaction: Transaction) => void;
+  onEditOccurrence?: (transaction: Transaction) => void;
+  onDeleteTransaction?: (transaction: Transaction) => void;
+  onMarkPaid?: (transaction: Transaction) => void;
+  onSkipOccurrence?: (transaction: Transaction) => void;
   className?: string;
 }) {
   const tr = useTranslations();
@@ -174,6 +206,7 @@ export function BalanceRegisterPanel({
           onEndDateChange={onEndDateChange}
           onClearSelection={onClearSelection}
           showClearSelection={Boolean(selectedAccount || selectedAllocation)}
+          onAddTransaction={onAddTransaction}
           scrolled={scrolled}
         />
 
@@ -184,6 +217,10 @@ export function BalanceRegisterPanel({
             groupByDate
             showMinorUnits={showMinorUnits}
             onTransactionClick={onTransactionClick}
+            onEditOccurrence={onEditOccurrence}
+            onDeleteTransaction={onDeleteTransaction}
+            onMarkPaid={onMarkPaid}
+            onSkipOccurrence={onSkipOccurrence}
           />
         </div>
       </div>

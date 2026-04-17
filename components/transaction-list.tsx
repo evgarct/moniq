@@ -6,6 +6,16 @@ import { isVisibleTransactionStatus } from "@/features/transactions/lib/transact
 import { cn } from "@/lib/utils";
 import type { Transaction } from "@/types/finance";
 
+type ActionCallbacks = {
+  onEditOccurrence?: (transaction: Transaction) => void;
+  onEditSeries?: (transaction: Transaction) => void;
+  onDeleteTransaction?: (transaction: Transaction) => void;
+  onDeleteSeries?: (transaction: Transaction) => void;
+  onMarkPaid?: (transaction: Transaction) => void;
+  onSkipOccurrence?: (transaction: Transaction) => void;
+  onToggleScheduleState?: (transaction: Transaction) => void;
+};
+
 function renderTransactionListItem({
   transaction,
   variant,
@@ -20,6 +30,7 @@ function renderTransactionListItem({
   getPrimaryLabelClassName,
   getSecondaryLabel,
   onTransactionClick,
+  actionCallbacks,
 }: {
   transaction: Transaction;
   variant: "default" | "board";
@@ -34,6 +45,7 @@ function renderTransactionListItem({
   getPrimaryLabelClassName?: (transaction: Transaction) => string | undefined;
   getSecondaryLabel?: (transaction: Transaction) => string | undefined;
   onTransactionClick?: (transaction: Transaction) => void;
+  actionCallbacks: ActionCallbacks;
 }) {
   const detail = renderDetail?.(transaction);
 
@@ -52,6 +64,13 @@ function renderTransactionListItem({
         primaryLabelClassName={getPrimaryLabelClassName?.(transaction)}
         secondaryLabelOverride={getSecondaryLabel?.(transaction)}
         onClick={onTransactionClick}
+        onEditOccurrence={actionCallbacks.onEditOccurrence}
+        onEditSeries={actionCallbacks.onEditSeries}
+        onDeleteTransaction={actionCallbacks.onDeleteTransaction}
+        onDeleteSeries={actionCallbacks.onDeleteSeries}
+        onMarkPaid={actionCallbacks.onMarkPaid}
+        onSkipOccurrence={actionCallbacks.onSkipOccurrence}
+        onToggleScheduleState={actionCallbacks.onToggleScheduleState}
       />
       {detail}
     </div>
@@ -73,6 +92,13 @@ export function TransactionList({
   getPrimaryLabelClassName,
   getSecondaryLabel,
   onTransactionClick,
+  onEditOccurrence,
+  onEditSeries,
+  onDeleteTransaction,
+  onDeleteSeries,
+  onMarkPaid,
+  onSkipOccurrence,
+  onToggleScheduleState,
 }: {
   transactions: Transaction[];
   emptyMessage: string;
@@ -88,9 +114,18 @@ export function TransactionList({
   getPrimaryLabelClassName?: (transaction: Transaction) => string | undefined;
   getSecondaryLabel?: (transaction: Transaction) => string | undefined;
   onTransactionClick?: (transaction: Transaction) => void;
-}) {
+} & ActionCallbacks) {
   const formatDate = useFormatter();
   const visibleTransactions = transactions.filter((transaction) => isVisibleTransactionStatus(transaction.status));
+  const actionCallbacks: ActionCallbacks = {
+    onEditOccurrence,
+    onEditSeries,
+    onDeleteTransaction,
+    onDeleteSeries,
+    onMarkPaid,
+    onSkipOccurrence,
+    onToggleScheduleState,
+  };
 
   if (!visibleTransactions.length) {
     return variant === "board" ? (
@@ -116,7 +151,7 @@ export function TransactionList({
       <div className={variant === "board" ? "space-y-5" : "space-y-8"}>
         {groups.map((group) => (
           <section key={group.date} className="space-y-1">
-            <p className={variant === "board" ? "px-1 text-[11px] leading-4 text-[#8fb0b1]" : "type-body-12 px-1 text-muted-foreground"}>
+            <p className={variant === "board" ? "px-1 text-[11px] leading-4 text-[#8fb0b1]" : "type-body-12 px-2 text-muted-foreground"}>
               {formatDate.dateTime(parseISO(group.date), {
                 month: "short",
                 day: "numeric",
@@ -139,6 +174,7 @@ export function TransactionList({
                   getPrimaryLabelClassName,
                   getSecondaryLabel,
                   onTransactionClick,
+                  actionCallbacks,
                 }),
               )}
             </div>
@@ -165,6 +201,7 @@ export function TransactionList({
           getPrimaryLabelClassName,
           getSecondaryLabel,
           onTransactionClick,
+          actionCallbacks,
         }),
       )}
     </div>
