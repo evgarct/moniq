@@ -291,6 +291,7 @@
       "allActivityDescription": "Все транзакции во всех ваших балансах.",
       "showAllWallets": "Показать все кошельки",
       "backToBalance": "Назад к балансу",
+      "addTransaction": "Добавить транзакцию",
       "dateRange": "Период",
       "anyDate": "Этот месяц",
       "currentMonth": "Текущий месяц",

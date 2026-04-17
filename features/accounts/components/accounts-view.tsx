@@ -64,6 +64,7 @@ export function AccountsView({
   const [showMinorUnits, setShowMinorUnits] = useState(false);
   const [mobileRegisterOpen, setMobileRegisterOpen] = useState(false);
   const [transactionSheetOpen, setTransactionSheetOpen] = useState(false);
+  const [transactionSheetMode, setTransactionSheetMode] = useState<"add" | "edit-transaction">("add");
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [registerDateFrom, setRegisterDateFrom] = useState(defaultRegisterDateFrom);
   const [registerDateTo, setRegisterDateTo] = useState(defaultRegisterDateTo);
@@ -170,7 +171,15 @@ export function AccountsView({
 
   function openTransactionEditor(transaction: Transaction) {
     setActionError(null);
+    setTransactionSheetMode("edit-transaction");
     setEditingTransaction(transaction);
+    setTransactionSheetOpen(true);
+  }
+
+  function openAddTransaction() {
+    setActionError(null);
+    setTransactionSheetMode("add");
+    setEditingTransaction(null);
     setTransactionSheetOpen(true);
   }
 
@@ -456,7 +465,33 @@ export function AccountsView({
           defaultStartDate={defaultRegisterDateFrom}
           onStartDateChange={setRegisterDateFrom}
           onEndDateChange={setRegisterDateTo}
+          onAddTransaction={openAddTransaction}
           onTransactionClick={openTransactionEditor}
+          onEditOccurrence={openTransactionEditor}
+          onDeleteTransaction={async (transaction) => {
+            try {
+              await transactionActions.deleteTransaction(transaction.id);
+              setActionError(null);
+            } catch (error) {
+              setActionError(error instanceof Error ? error.message : tr("transactions.view.deleteError"));
+            }
+          }}
+          onMarkPaid={async (transaction) => {
+            try {
+              await transactionActions.markPaid(transaction.id);
+              setActionError(null);
+            } catch (error) {
+              setActionError(error instanceof Error ? error.message : tr("transactions.view.saveError"));
+            }
+          }}
+          onSkipOccurrence={async (transaction) => {
+            try {
+              await transactionActions.skipOccurrence(transaction.id);
+              setActionError(null);
+            } catch (error) {
+              setActionError(error instanceof Error ? error.message : tr("transactions.view.saveError"));
+            }
+          }}
           onClearSelection={() => {
             setSelectedAccountId(null);
             setSelectedAllocationId(null);
@@ -491,6 +526,7 @@ export function AccountsView({
                 setMobileRegisterOpen(false);
               }}
               showClearSelection={Boolean(selectedAccount || selectedAllocation)}
+              onAddTransaction={openAddTransaction}
               onBack={closeMobileRegister}
               scrolled={mobileRegisterScrolled}
             />
@@ -516,15 +552,19 @@ export function AccountsView({
 
       <TransactionFormSheet
         open={transactionSheetOpen}
-        mode="edit-transaction"
+        mode={transactionSheetMode}
         transaction={editingTransaction}
+        defaultSourceAccountId={transactionSheetMode === "add" ? selectedAccountId : null}
         accounts={accounts}
         allocations={allocations}
         categories={categories}
         onOpenChange={setTransactionSheetOpen}
         onSubmit={async (payload: TransactionFormSubmitPayload) => {
           try {
-            if (payload.kind === "transaction" && editingTransaction) {
+            if (payload.kind === "entry" || payload.kind === "entry-batch") {
+              await transactionActions.createEntry(payload.values);
+              setActionError(null);
+            } else if (payload.kind === "transaction" && editingTransaction) {
               await transactionActions.updateTransaction(editingTransaction.id, payload.values);
               setActionError(null);
             }

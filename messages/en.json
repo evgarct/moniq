@@ -291,6 +291,7 @@
       "allActivityDescription": "All transactions across your balance spaces.",
       "showAllWallets": "Show all wallets",
       "backToBalance": "Back to balance",
+      "addTransaction": "Add transaction",
       "dateRange": "Date range",
       "anyDate": "This month",
       "currentMonth": "Current month",

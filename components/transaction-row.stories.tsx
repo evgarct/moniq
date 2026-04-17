@@ -25,6 +25,47 @@ const investmentExpense: Transaction = {
   },
   category_id: "story-investment-category",
 };
+const plannedExpense: Transaction = {
+  ...byKind("expense"),
+  id: "story-planned-expense",
+  title: "Netflix subscription",
+  status: "planned",
+  occurred_at: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) + "T00:00:00.000Z",
+};
+const recurringPlanned: Transaction = {
+  ...plannedExpense,
+  id: "story-recurring-planned",
+  title: "Monthly rent",
+  schedule_id: "story-schedule-id",
+  schedule: {
+    id: "story-schedule-id",
+    user_id: "storybook-user",
+    title: "Monthly rent",
+    note: null,
+    start_date: "2026-01-01",
+    frequency: "monthly",
+    until_date: null,
+    state: "active",
+    kind: "expense",
+    amount: 1200,
+    destination_amount: null,
+    fx_rate: null,
+    principal_amount: null,
+    interest_amount: null,
+    extra_principal_amount: null,
+    category_id: null,
+    source_account_id: byKind("expense").source_account_id,
+    destination_account_id: null,
+    allocation_id: null,
+    category: byKind("expense").category,
+    source_account: byKind("expense").source_account,
+    destination_account: null,
+    allocation: null,
+    validation_error: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+};
 
 const meta = {
   title: "Molecules/TransactionRow",
@@ -91,6 +132,49 @@ export const InteractiveBoard: Story = {
       </div>
     ),
   ],
+};
+
+export const WithContextMenu: Story = {
+  name: "With Context Menu (right-click / long-press)",
+  args: {
+    transaction: byKind("expense"),
+    showDate: false,
+    onEditOccurrence: () => undefined,
+    onDeleteTransaction: () => undefined,
+    onMarkPaid: () => undefined,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: "Right-click (desktop) or long-press (mobile) to open the context menu.",
+      },
+    },
+  },
+};
+
+export const PlannedTransaction: Story = {
+  name: "Planned (upcoming)",
+  args: {
+    transaction: plannedExpense,
+    showDate: true,
+    onEditOccurrence: () => undefined,
+    onMarkPaid: () => undefined,
+    onDeleteTransaction: () => undefined,
+  },
+};
+
+export const RecurringPlanned: Story = {
+  name: "Recurring + Planned",
+  args: {
+    transaction: recurringPlanned,
+    showDate: true,
+    onEditOccurrence: () => undefined,
+    onEditSeries: () => undefined,
+    onMarkPaid: () => undefined,
+    onSkipOccurrence: () => undefined,
+    onDeleteSeries: () => undefined,
+    onToggleScheduleState: () => undefined,
+  },
 };
 
 export const Income: Story = {

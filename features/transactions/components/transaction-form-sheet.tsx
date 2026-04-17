@@ -405,13 +405,19 @@ function defaults({
   schedule,
   initialKind,
   mode,
+  defaultSourceAccountId,
 }: {
   transaction?: Transaction | null;
   schedule?: TransactionSchedule | null;
   initialKind?: Transaction["kind"];
   mode: "add" | "edit-transaction" | "edit-schedule";
+  defaultSourceAccountId?: string | null;
 }): TransactionFormInputs {
   const currentKind = schedule?.kind ?? transaction?.kind ?? initialKind ?? "expense";
+  const isAddMode = mode === "add";
+  const incomeKinds = new Set<Transaction["kind"]>(["income", "save_to_goal"]);
+  const defaultSourceId = isAddMode && defaultSourceAccountId ? defaultSourceAccountId : null;
+  const defaultDestId = isAddMode && defaultSourceAccountId && incomeKinds.has(currentKind) ? defaultSourceAccountId : null;
   return {
     title: schedule?.title ?? transaction?.title ?? "",
     note: schedule?.note ?? transaction?.note ?? "",
@@ -425,8 +431,8 @@ function defaults({
     interest_amount: schedule?.interest_amount ?? transaction?.interest_amount ?? null,
     extra_principal_amount: schedule?.extra_principal_amount ?? transaction?.extra_principal_amount ?? null,
     category_id: schedule?.category_id ?? transaction?.category_id ?? null,
-    source_account_id: schedule?.source_account_id ?? transaction?.source_account_id ?? null,
-    destination_account_id: schedule?.destination_account_id ?? transaction?.destination_account_id ?? null,
+    source_account_id: schedule?.source_account_id ?? transaction?.source_account_id ?? defaultSourceId,
+    destination_account_id: schedule?.destination_account_id ?? transaction?.destination_account_id ?? defaultDestId,
     allocation_id: schedule?.allocation_id ?? transaction?.allocation_id ?? null,
     is_recurring: mode === "edit-schedule",
     recurrence_frequency: schedule?.frequency ?? "monthly",
@@ -475,6 +481,7 @@ export function TransactionFormSheet({
   transaction,
   schedule,
   initialKind,
+  defaultSourceAccountId,
   accounts,
   allocations,
   categories,
@@ -487,6 +494,7 @@ export function TransactionFormSheet({
   transaction?: Transaction | null;
   schedule?: TransactionSchedule | null;
   initialKind?: Transaction["kind"];
+  defaultSourceAccountId?: string | null;
   accounts: Account[];
   allocations: Allocation[];
   categories: Category[];
@@ -500,13 +508,13 @@ export function TransactionFormSheet({
   const schema = useMemo(() => buildSchema(t, mode), [mode, t]);
   const form = useForm<TransactionFormInputs>({
     resolver: zodResolver(schema),
-    defaultValues: defaults({ transaction, schedule, initialKind, mode }),
+    defaultValues: defaults({ transaction, schedule, initialKind, mode, defaultSourceAccountId }),
   });
   const { fields, append, insert, remove, replace } = useFieldArray({ control: form.control, name: "line_items" });
 
   useEffect(() => {
-    form.reset(defaults({ transaction, schedule, initialKind, mode }));
-  }, [form, initialKind, mode, open, schedule, transaction]);
+    form.reset(defaults({ transaction, schedule, initialKind, mode, defaultSourceAccountId }));
+  }, [form, initialKind, mode, open, schedule, transaction, defaultSourceAccountId]);
 
   const kind = useWatch({ control: form.control, name: "kind" });
   const amount = useWatch({ control: form.control, name: "amount" });

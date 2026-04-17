@@ -10,7 +10,6 @@ import { FinanceBoardHeader, FinanceBoardPanel, FinanceBoardShell } from "@/comp
 import { TransactionList } from "@/components/transaction-list";
 import { Button } from "@/components/ui/button";
 import { TransactionFormSheet, type TransactionFormSubmitPayload } from "@/features/transactions/components/transaction-form-sheet";
-import { TransactionRowActions } from "@/features/transactions/components/transaction-row-actions";
 import { useTransactionActions } from "@/features/transactions/hooks/use-transaction-actions";
 import { isVisibleTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
 import type { FinanceSnapshot, Transaction, TransactionSchedule } from "@/types/finance";
@@ -114,76 +113,64 @@ export function CalendarView({ snapshot }: { snapshot: FinanceSnapshot }) {
               transactions={selectedTransactions}
               emptyMessage={t("board.empty")}
               variant="board"
-              renderAction={(transaction) => (
-                <TransactionRowActions
-                  variant="board"
-                  transaction={transaction}
-                  onEditOccurrence={(selectedTransaction) => {
-                    setSheetMode("edit-transaction");
-                    setEditingTransaction(selectedTransaction);
-                    setEditingSchedule(null);
-                    setSheetOpen(true);
-                  }}
-                  onEditSeries={(selectedTransaction) => {
-                    if (!selectedTransaction.schedule) {
-                      return;
-                    }
-                    setSheetMode("edit-schedule");
-                    setEditingTransaction(selectedTransaction);
-                    setEditingSchedule(selectedTransaction.schedule);
-                    setSheetOpen(true);
-                  }}
-                  onDeleteTransaction={async (selectedTransaction) => {
-                    try {
-                      await transactionActions.deleteTransaction(selectedTransaction.id);
-                      setActionError(null);
-                    } catch (error) {
-                      setActionError(error instanceof Error ? error.message : transactionViewT("deleteError"));
-                    }
-                  }}
-                  onDeleteSeries={async (selectedTransaction) => {
-                    if (!selectedTransaction.schedule_id) {
-                      return;
-                    }
-                    try {
-                      await transactionActions.deleteSchedule(selectedTransaction.schedule_id);
-                      setActionError(null);
-                    } catch (error) {
-                      setActionError(error instanceof Error ? error.message : transactionViewT("deleteError"));
-                    }
-                  }}
-                  onMarkPaid={async (selectedTransaction) => {
-                    try {
-                      await transactionActions.markPaid(selectedTransaction.id);
-                      setActionError(null);
-                    } catch (error) {
-                      setActionError(error instanceof Error ? error.message : transactionViewT("saveError"));
-                    }
-                  }}
-                  onSkipOccurrence={async (selectedTransaction) => {
-                    try {
-                      await transactionActions.skipOccurrence(selectedTransaction.id);
-                      setActionError(null);
-                    } catch (error) {
-                      setActionError(error instanceof Error ? error.message : transactionViewT("saveError"));
-                    }
-                  }}
-                  onToggleScheduleState={async (selectedTransaction) => {
-                    if (!selectedTransaction.schedule_id || !selectedTransaction.schedule) {
-                      return;
-                    }
-                    try {
-                      await transactionActions.setScheduleState(
-                        selectedTransaction.schedule_id,
-                        selectedTransaction.schedule.state === "paused" ? "active" : "paused",
-                      );
-                      setActionError(null);
-                    } catch (error) {
-                      setActionError(error instanceof Error ? error.message : transactionViewT("saveError"));
-                    }
-                  }}
-                />
-              )}
+              onEditOccurrence={(selectedTransaction) => {
+                setSheetMode("edit-transaction");
+                setEditingTransaction(selectedTransaction);
+                setEditingSchedule(null);
+                setSheetOpen(true);
+              }}
+              onEditSeries={(selectedTransaction) => {
+                if (!selectedTransaction.schedule) return;
+                setSheetMode("edit-schedule");
+                setEditingTransaction(selectedTransaction);
+                setEditingSchedule(selectedTransaction.schedule);
+                setSheetOpen(true);
+              }}
+              onDeleteTransaction={async (selectedTransaction) => {
+                try {
+                  await transactionActions.deleteTransaction(selectedTransaction.id);
+                  setActionError(null);
+                } catch (error) {
+                  setActionError(error instanceof Error ? error.message : transactionViewT("deleteError"));
+                }
+              }}
+              onDeleteSeries={async (selectedTransaction) => {
+                if (!selectedTransaction.schedule_id) return;
+                try {
+                  await transactionActions.deleteSchedule(selectedTransaction.schedule_id);
+                  setActionError(null);
+                } catch (error) {
+                  setActionError(error instanceof Error ? error.message : transactionViewT("deleteError"));
+                }
+              }}
+              onMarkPaid={async (selectedTransaction) => {
+                try {
+                  await transactionActions.markPaid(selectedTransaction.id);
+                  setActionError(null);
+                } catch (error) {
+                  setActionError(error instanceof Error ? error.message : transactionViewT("saveError"));
+                }
+              }}
+              onSkipOccurrence={async (selectedTransaction) => {
+                try {
+                  await transactionActions.skipOccurrence(selectedTransaction.id);
+                  setActionError(null);
+                } catch (error) {
+                  setActionError(error instanceof Error ? error.message : transactionViewT("saveError"));
+                }
+              }}
+              onToggleScheduleState={async (selectedTransaction) => {
+                if (!selectedTransaction.schedule_id || !selectedTransaction.schedule) return;
+                try {
+                  await transactionActions.setScheduleState(
+                    selectedTransaction.schedule_id,
+                    selectedTransaction.schedule.state === "paused" ? "active" : "paused",
+                  );
+                  setActionError(null);
+                } catch (error) {
+                  setActionError(error instanceof Error ? error.message : transactionViewT("saveError"));
+                }
+              }}
             />
           </FinanceBoardPanel>
         </div>
