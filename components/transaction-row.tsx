@@ -4,20 +4,47 @@ import { useState } from "react";
 import { parseISO } from "date-fns";
 import { CheckCircle2, Pause, Pencil, Play, SkipForward, Trash2 } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
+import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
 
 import { LedgerAmount } from "@/components/ledger-amount";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { getTransactionKindMeta, TransactionKindIndicator } from "@/features/transactions/components/transaction-kind-badge";
 import { cn } from "@/lib/utils";
 import type { Transaction } from "@/types/finance";
+
+function ContextMenuItem({
+  children,
+  onClick,
+  variant = "default",
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  variant?: "default" | "destructive";
+}) {
+  return (
+    <div
+      role="menuitem"
+      tabIndex={0}
+      className={cn(
+        "relative flex cursor-default items-center gap-1.5 rounded-[var(--radius-control)] px-2 py-1.5 text-sm outline-hidden select-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        variant === "destructive" &&
+          "text-destructive hover:bg-destructive/10 hover:text-destructive focus:bg-destructive/10 focus:text-destructive",
+      )}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick?.();
+        }
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function ContextMenuSeparator() {
+  return <div role="separator" className="-mx-1 my-1 h-px bg-border" />;
+}
 
 const INVESTMENT_PATTERN = /\b(invest|investment|investing|broker|brokerage|portfolio|etf|stock|stocks|share|shares|pension)\b/i;
 
@@ -193,121 +220,83 @@ export function TransactionRow({
     setContextAnchor(null);
   }
 
-  const contextMenu = hasContextActions && contextAnchor ? (
-    <DropdownMenu
-      open
+  const contextMenu = hasContextActions ? (
+    <PopoverPrimitive.Root
+      open={contextAnchor !== null}
       onOpenChange={(open) => {
         if (!open) closeContext();
       }}
     >
-      <DropdownMenuTrigger
+      <PopoverPrimitive.Trigger
         render={
-          <Button
-            className="pointer-events-none fixed h-px w-px min-h-0 min-w-0 p-0 opacity-0"
-            style={{ left: contextAnchor.x, top: contextAnchor.y }}
+          <div
+            className="pointer-events-none fixed h-px w-px"
+            style={contextAnchor ? { left: contextAnchor.x, top: contextAnchor.y } : { left: -9999, top: -9999 }}
           />
         }
       />
-      <DropdownMenuContent
-        align="start"
-        className="w-52 rounded-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <DropdownMenuGroup>
-          {canMarkPaid ? (
-            <DropdownMenuItem
-              onClick={() => {
-                onMarkPaid!(transaction);
-                closeContext();
-              }}
-            >
-              <CheckCircle2 />
-              {t("actions.markPaid")}
-            </DropdownMenuItem>
-          ) : null}
-          {canSkip ? (
-            <DropdownMenuItem
-              onClick={() => {
-                onSkipOccurrence!(transaction);
-                closeContext();
-              }}
-            >
-              <SkipForward />
-              {t("actions.skipOccurrence")}
-            </DropdownMenuItem>
-          ) : null}
-          {onEditOccurrence ? (
-            <DropdownMenuItem
-              onClick={() => {
-                onEditOccurrence(transaction);
-                closeContext();
-              }}
-            >
-              <Pencil />
-              {isRecurring ? t("actions.editOccurrence") : t("actions.edit")}
-            </DropdownMenuItem>
-          ) : null}
-          {isRecurring && onEditSeries ? (
-            <DropdownMenuItem
-              onClick={() => {
-                onEditSeries(transaction);
-                closeContext();
-              }}
-            >
-              <Pencil />
-              {t("actions.editSeries")}
-            </DropdownMenuItem>
-          ) : null}
-        </DropdownMenuGroup>
+      <PopoverPrimitive.Portal>
+        <PopoverPrimitive.Positioner className="isolate z-50" align="start" side="bottom" sideOffset={0}>
+          <PopoverPrimitive.Popup
+            onClick={(e) => e.stopPropagation()}
+            className="z-50 min-w-52 origin-(--transform-origin) overflow-hidden rounded-[var(--radius-floating)] bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10 outline-none duration-100 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95"
+          >
+            {canMarkPaid ? (
+              <ContextMenuItem onClick={() => { onMarkPaid!(transaction); closeContext(); }}>
+                <CheckCircle2 />
+                {t("actions.markPaid")}
+              </ContextMenuItem>
+            ) : null}
+            {canSkip ? (
+              <ContextMenuItem onClick={() => { onSkipOccurrence!(transaction); closeContext(); }}>
+                <SkipForward />
+                {t("actions.skipOccurrence")}
+              </ContextMenuItem>
+            ) : null}
+            {onEditOccurrence ? (
+              <ContextMenuItem onClick={() => { onEditOccurrence(transaction); closeContext(); }}>
+                <Pencil />
+                {isRecurring ? t("actions.editOccurrence") : t("actions.edit")}
+              </ContextMenuItem>
+            ) : null}
+            {isRecurring && onEditSeries ? (
+              <ContextMenuItem onClick={() => { onEditSeries(transaction); closeContext(); }}>
+                <Pencil />
+                {t("actions.editSeries")}
+              </ContextMenuItem>
+            ) : null}
 
-        {isRecurring && (onToggleScheduleState || onDeleteSeries) ? (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              {onToggleScheduleState ? (
-                <DropdownMenuItem
-                  onClick={() => {
-                    onToggleScheduleState(transaction);
-                    closeContext();
-                  }}
-                >
-                  {schedulePaused ? <Play /> : <Pause />}
-                  {schedulePaused ? t("actions.resumeSeries") : t("actions.pauseSeries")}
-                </DropdownMenuItem>
-              ) : null}
-              {onDeleteSeries ? (
-                <DropdownMenuItem
-                  variant="destructive"
-                  onClick={() => {
-                    onDeleteSeries(transaction);
-                    closeContext();
-                  }}
-                >
+            {isRecurring && (onToggleScheduleState || onDeleteSeries) ? (
+              <>
+                <ContextMenuSeparator />
+                {onToggleScheduleState ? (
+                  <ContextMenuItem onClick={() => { onToggleScheduleState(transaction); closeContext(); }}>
+                    {schedulePaused ? <Play /> : <Pause />}
+                    {schedulePaused ? t("actions.resumeSeries") : t("actions.pauseSeries")}
+                  </ContextMenuItem>
+                ) : null}
+                {onDeleteSeries ? (
+                  <ContextMenuItem variant="destructive" onClick={() => { onDeleteSeries(transaction); closeContext(); }}>
+                    <Trash2 />
+                    {t("actions.deleteSeries")}
+                  </ContextMenuItem>
+                ) : null}
+              </>
+            ) : null}
+
+            {!isRecurring && onDeleteTransaction ? (
+              <>
+                <ContextMenuSeparator />
+                <ContextMenuItem variant="destructive" onClick={() => { onDeleteTransaction(transaction); closeContext(); }}>
                   <Trash2 />
-                  {t("actions.deleteSeries")}
-                </DropdownMenuItem>
-              ) : null}
-            </DropdownMenuGroup>
-          </>
-        ) : null}
-
-        {!isRecurring && onDeleteTransaction ? (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              variant="destructive"
-              onClick={() => {
-                onDeleteTransaction(transaction);
-                closeContext();
-              }}
-            >
-              <Trash2 />
-              {t("actions.delete")}
-            </DropdownMenuItem>
-          </>
-        ) : null}
-      </DropdownMenuContent>
-    </DropdownMenu>
+                  {t("actions.delete")}
+                </ContextMenuItem>
+              </>
+            ) : null}
+          </PopoverPrimitive.Popup>
+        </PopoverPrimitive.Positioner>
+      </PopoverPrimitive.Portal>
+    </PopoverPrimitive.Root>
   ) : null;
 
   if (variant === "board") {
