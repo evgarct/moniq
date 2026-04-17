@@ -183,13 +183,8 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
                     setEditingSeries(selectedTransaction.schedule);
                     setSheetOpen(true);
                   }}
-                  onDeleteTransaction={async (selectedTransaction) => {
-                    try {
-                      await transactionActions.deleteTransaction(selectedTransaction.id);
-                      setActionError(null);
-                    } catch (error) {
-                      setActionError(error instanceof Error ? error.message : transactionViewT("deleteError"));
-                    }
+                  onDeleteTransaction={(selectedTransaction) => {
+                    transactionActions.deleteTransactionOptimistic(selectedTransaction.id);
                   }}
                   onDeleteSeries={async (selectedTransaction) => {
                     if (!selectedTransaction.schedule_id) return;
@@ -200,21 +195,11 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
                       setActionError(error instanceof Error ? error.message : transactionViewT("deleteError"));
                     }
                   }}
-                  onMarkPaid={async (selectedTransaction) => {
-                    try {
-                      await transactionActions.markPaid(selectedTransaction.id);
-                      setActionError(null);
-                    } catch (error) {
-                      setActionError(error instanceof Error ? error.message : transactionViewT("saveError"));
-                    }
+                  onMarkPaid={(selectedTransaction) => {
+                    transactionActions.markPaidOptimistic(selectedTransaction.id);
                   }}
-                  onSkipOccurrence={async (selectedTransaction) => {
-                    try {
-                      await transactionActions.skipOccurrence(selectedTransaction.id);
-                      setActionError(null);
-                    } catch (error) {
-                      setActionError(error instanceof Error ? error.message : transactionViewT("saveError"));
-                    }
+                  onSkipOccurrence={(selectedTransaction) => {
+                    transactionActions.skipOccurrenceOptimistic(selectedTransaction.id);
                   }}
                   onToggleScheduleState={async (selectedTransaction) => {
                     if (!selectedTransaction.schedule_id || !selectedTransaction.schedule) return;

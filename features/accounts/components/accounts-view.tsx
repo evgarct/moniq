@@ -468,29 +468,14 @@ export function AccountsView({
           onAddTransaction={openAddTransaction}
           onTransactionClick={openTransactionEditor}
           onEditOccurrence={openTransactionEditor}
-          onDeleteTransaction={async (transaction) => {
-            try {
-              await transactionActions.deleteTransaction(transaction.id);
-              setActionError(null);
-            } catch (error) {
-              setActionError(error instanceof Error ? error.message : tr("transactions.view.deleteError"));
-            }
+          onDeleteTransaction={(transaction) => {
+            transactionActions.deleteTransactionOptimistic(transaction.id);
           }}
-          onMarkPaid={async (transaction) => {
-            try {
-              await transactionActions.markPaid(transaction.id);
-              setActionError(null);
-            } catch (error) {
-              setActionError(error instanceof Error ? error.message : tr("transactions.view.saveError"));
-            }
+          onMarkPaid={(transaction) => {
+            transactionActions.markPaidOptimistic(transaction.id);
           }}
-          onSkipOccurrence={async (transaction) => {
-            try {
-              await transactionActions.skipOccurrence(transaction.id);
-              setActionError(null);
-            } catch (error) {
-              setActionError(error instanceof Error ? error.message : tr("transactions.view.saveError"));
-            }
+          onSkipOccurrence={(transaction) => {
+            transactionActions.skipOccurrenceOptimistic(transaction.id);
           }}
           onClearSelection={() => {
             setSelectedAccountId(null);

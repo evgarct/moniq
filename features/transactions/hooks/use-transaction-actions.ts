@@ -23,6 +23,25 @@ export function useTransactionActions() {
     queryClient.setQueryData(financeSnapshotQueryKey, nextSnapshot);
   };
 
+  // Optimistic helper: apply a local patch immediately, fire the request in the
+  // background, then sync with the authoritative server response. Reverts on error.
+  function optimistic(
+    patch: (current: FinanceSnapshot) => FinanceSnapshot,
+    request: () => Promise<FinanceSnapshot>,
+  ) {
+    const previous = queryClient.getQueryData<FinanceSnapshot>(financeSnapshotQueryKey);
+    if (previous) {
+      queryClient.setQueryData(financeSnapshotQueryKey, patch(previous));
+    }
+    request()
+      .then(setSnapshot)
+      .catch(() => {
+        if (previous) {
+          queryClient.setQueryData(financeSnapshotQueryKey, previous);
+        }
+      });
+  }
+
   const createEntryMutation = useMutation({
     mutationFn: createTransactionRequest,
     onSuccess: setSnapshot,
@@ -70,13 +89,43 @@ export function useTransactionActions() {
     createEntry: (values: TransactionEntryInput | TransactionEntryBatchInput) => createEntryMutation.mutateAsync(values),
     updateTransaction: (transactionId: string, values: TransactionInput) =>
       updateTransactionMutation.mutateAsync({ transactionId, values }),
+
+    // Blocking versions (await server before UI update) — used for create/edit
     deleteTransaction: (transactionId: string) => deleteTransactionMutation.mutateAsync(transactionId),
+    markPaid: (transactionId: string) => markPaidMutation.mutateAsync(transactionId),
+    skipOccurrence: (transactionId: string) => skipOccurrenceMutation.mutateAsync(transactionId),
+
+    // Optimistic versions — UI updates instantly, server syncs in background
+    deleteTransactionOptimistic: (transactionId: string) =>
+      optimistic(
+        (snap) => ({ ...snap, transactions: snap.transactions.filter((t) => t.id !== transactionId) }),
+        () => deleteTransactionRequest(transactionId),
+      ),
+    markPaidOptimistic: (transactionId: string) =>
+      optimistic(
+        (snap) => ({
+          ...snap,
+          transactions: snap.transactions.map((t) =>
+            t.id === transactionId ? { ...t, status: "paid" as const } : t,
+          ),
+        }),
+        () => markTransactionPaidRequest(transactionId),
+      ),
+    skipOccurrenceOptimistic: (transactionId: string) =>
+      optimistic(
+        (snap) => ({
+          ...snap,
+          transactions: snap.transactions.map((t) =>
+            t.id === transactionId ? { ...t, status: "skipped" as const } : t,
+          ),
+        }),
+        () => skipTransactionOccurrenceRequest(transactionId),
+      ),
+
     updateSchedule: (scheduleId: string, values: TransactionScheduleInput) =>
       updateScheduleMutation.mutateAsync({ scheduleId, values }),
     setScheduleState: (scheduleId: string, state: TransactionSchedule["state"]) =>
       setScheduleStateMutation.mutateAsync({ scheduleId, state }),
     deleteSchedule: (scheduleId: string) => deleteScheduleMutation.mutateAsync(scheduleId),
-    markPaid: (transactionId: string) => markPaidMutation.mutateAsync(transactionId),
-    skipOccurrence: (transactionId: string) => skipOccurrenceMutation.mutateAsync(transactionId),
   };
 }

@@ -185,6 +185,7 @@ export function TransactionRow({
   function handleContextMenu(event: React.MouseEvent) {
     if (!hasContextActions) return;
     event.preventDefault();
+    event.stopPropagation();
     setContextAnchor({ x: event.clientX, y: Math.max(event.clientY - 6, 0) });
   }
 
@@ -207,7 +208,11 @@ export function TransactionRow({
           />
         }
       />
-      <DropdownMenuContent align="start" className="w-52 rounded-xl">
+      <DropdownMenuContent
+        align="start"
+        className="w-52 rounded-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         <DropdownMenuGroup>
           {canMarkPaid ? (
             <DropdownMenuItem

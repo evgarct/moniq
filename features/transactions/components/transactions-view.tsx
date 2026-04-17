@@ -193,13 +193,8 @@ export function TransactionsView({
               setEditingSchedule(selectedTransaction.schedule);
               setTransactionSheetOpen(true);
             }}
-            onDeleteTransaction={async (selectedTransaction) => {
-              try {
-                await transactionActions.deleteTransaction(selectedTransaction.id);
-                setActionError(null);
-              } catch (error) {
-                setActionError(error instanceof Error ? error.message : t("view.deleteError"));
-              }
+            onDeleteTransaction={(selectedTransaction) => {
+              transactionActions.deleteTransactionOptimistic(selectedTransaction.id);
             }}
             onDeleteSeries={async (selectedTransaction) => {
               if (!selectedTransaction.schedule_id) return;
@@ -210,21 +205,11 @@ export function TransactionsView({
                 setActionError(error instanceof Error ? error.message : t("view.deleteError"));
               }
             }}
-            onMarkPaid={async (selectedTransaction) => {
-              try {
-                await transactionActions.markPaid(selectedTransaction.id);
-                setActionError(null);
-              } catch (error) {
-                setActionError(error instanceof Error ? error.message : t("view.saveError"));
-              }
+            onMarkPaid={(selectedTransaction) => {
+              transactionActions.markPaidOptimistic(selectedTransaction.id);
             }}
-            onSkipOccurrence={async (selectedTransaction) => {
-              try {
-                await transactionActions.skipOccurrence(selectedTransaction.id);
-                setActionError(null);
-              } catch (error) {
-                setActionError(error instanceof Error ? error.message : t("view.saveError"));
-              }
+            onSkipOccurrence={(selectedTransaction) => {
+              transactionActions.skipOccurrenceOptimistic(selectedTransaction.id);
             }}
             onToggleScheduleState={async (selectedTransaction) => {
               if (!selectedTransaction.schedule_id || !selectedTransaction.schedule) return;
