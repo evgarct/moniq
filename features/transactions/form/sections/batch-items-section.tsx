@@ -34,6 +34,7 @@ export function BatchItemsSection() {
     appendLineItem,
     lineMenu,
     setLineMenu,
+    lineMenuRef,
     amountInputRefs,
     lineTriggerRefs,
   } = useTransactionFormContext();
@@ -199,6 +200,7 @@ export function BatchItemsSection() {
       {/* Context menu */}
       {lineMenu ? (
         <div
+          ref={lineMenuRef}
           className="fixed z-50 min-w-36 rounded-[var(--radius-floating)] bg-popover p-1 text-sm text-popover-foreground shadow-md ring-1 ring-foreground/10"
           style={{ left: lineMenu.x, top: lineMenu.y }}
         >

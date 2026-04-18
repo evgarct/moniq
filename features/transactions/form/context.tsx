@@ -59,6 +59,7 @@ export type TransactionFormContextValue = {
   // line menu
   lineMenu: { index: number; x: number; y: number } | null;
   setLineMenu: (menu: { index: number; x: number; y: number } | null) => void;
+  lineMenuRef: React.MutableRefObject<HTMLDivElement | null>;
   // refs
   amountInputRefs: React.MutableRefObject<Record<number, HTMLInputElement | null>>;
   lineTriggerRefs: React.MutableRefObject<Record<number, HTMLButtonElement | null>>;
@@ -318,17 +319,22 @@ export function TransactionFormProvider({
 
   // line menu state
   const [lineMenu, setLineMenu] = useState<{ index: number; x: number; y: number } | null>(null);
+  const lineMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!lineMenu) return;
-    const close = () => setLineMenu(null);
+    const close = (e: PointerEvent) => {
+      if (lineMenuRef.current?.contains(e.target as Node)) return;
+      setLineMenu(null);
+    };
+    const closeImmediate = () => setLineMenu(null);
     window.addEventListener("pointerdown", close);
-    window.addEventListener("scroll", close, true);
-    window.addEventListener("resize", close);
+    window.addEventListener("scroll", closeImmediate, true);
+    window.addEventListener("resize", closeImmediate);
     return () => {
       window.removeEventListener("pointerdown", close);
-      window.removeEventListener("scroll", close, true);
-      window.removeEventListener("resize", close);
+      window.removeEventListener("scroll", closeImmediate, true);
+      window.removeEventListener("resize", closeImmediate);
     };
   }, [lineMenu]);
 
@@ -404,6 +410,7 @@ export function TransactionFormProvider({
     replace,
     lineMenu,
     setLineMenu,
+    lineMenuRef,
     amountInputRefs,
     lineTriggerRefs,
     appendLineItem,
