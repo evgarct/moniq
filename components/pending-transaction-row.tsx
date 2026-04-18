@@ -73,8 +73,6 @@ const CREDIT_KINDS = new Set<TransactionKind>(["income", "refund", "adjustment"]
 const NEEDS_SOURCE = new Set<TransactionKind>(["expense", "transfer", "save_to_goal", "spend_from_goal", "debt_payment", "investment", "adjustment"]);
 const NEEDS_DESTINATION = new Set<TransactionKind>(["income", "transfer", "save_to_goal", "spend_from_goal", "debt_payment", "refund"]);
 
-const EMPTY = "__none__";
-
 function formatAmount(amount: number, currency: string | null, kind: TransactionKind) {
   const sign = CREDIT_KINDS.has(kind) ? "+" : "−";
   try {
@@ -109,25 +107,22 @@ function InlinePicker({
 }) {
   return (
     <Select
-      value={value ?? EMPTY}
-      onValueChange={(v) => onChange(v === EMPTY ? null : v)}
+      value={value ?? ""}
+      onValueChange={(v) => onChange(v || null)}
     >
       <SelectTrigger
         className={cn(
           "inline-flex h-auto w-auto items-center gap-0.5 border-0 bg-transparent p-0 text-xs shadow-none outline-none",
           "focus-visible:ring-0 focus-visible:border-transparent",
           "hover:text-foreground transition-colors",
-          "data-placeholder:text-muted-foreground [&>svg:last-child]:hidden",
-          value ? "text-muted-foreground" : "text-muted-foreground/60",
+          "[&>svg:last-child]:hidden",
+          value ? "text-muted-foreground" : "text-muted-foreground/50",
         )}
       >
         <SelectValue placeholder={placeholder} />
         <ChevronDown className="size-3 shrink-0 opacity-50" />
       </SelectTrigger>
       <SelectContent align="start" className="min-w-40">
-        <SelectItem value={EMPTY} className="text-muted-foreground">
-          {placeholder}
-        </SelectItem>
         {options.map((opt) => (
           <SelectItem key={opt.value} value={opt.value}>
             {opt.label}
