@@ -124,9 +124,7 @@ export function McpBatchSection({
   }
 
   const isFinalised = batch.status !== "pending";
-  const accountOptions = accounts
-    .filter((a) => a.type === "cash" || a.type === "credit_card")
-    .map((a) => ({ id: a.id, name: a.name }));
+  const accountOptions = accounts.map((a) => ({ id: a.id, name: a.name }));
 
   return (
     <Surface tone="panel" padding="none">
