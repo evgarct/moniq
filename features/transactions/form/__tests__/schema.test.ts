@@ -67,6 +67,33 @@ describe("buildSchema – add mode", () => {
     expect(result.success).toBe(true);
   });
 
+  it("accepts batch expense with amount=0 at top level (realistic form default)", () => {
+    // The form initialises amount=0; user fills only line_items — top-level amount must be ignored
+    const result = schema.safeParse(
+      base({
+        amount: 0, // ← реальный дефолт useForm
+        line_items: [{ category_id: "cat-1", allocation_id: null, amount: 100, note: "" }],
+      }),
+    );
+    expect(result.success).toBe(true);
+  });
+
+  it("still rejects non-batch kind with amount=0", () => {
+    // transfer is not a batch kind — top-level amount must be positive
+    const result = schema.safeParse(
+      base({
+        kind: "transfer",
+        amount: 0,
+        destination_account_id: "acc-2",
+        destination_amount: 0,
+        line_items: [],
+      }),
+    );
+    expect(result.success).toBe(false);
+    const paths = result.error!.issues.map((i) => i.path.join("."));
+    expect(paths).toContain("amount");
+  });
+
   it("rejects expense without source_account_id", () => {
     const result = schema.safeParse(base({ source_account_id: null }));
     expect(result.success).toBe(false);
