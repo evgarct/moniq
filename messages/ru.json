@@ -894,6 +894,8 @@
       "edit": "Изменить",
       "uncategorized": "Без категории",
       "noAccount": "Без счёта",
+      "fromAccount": "Откуда",
+      "toAccount": "Куда",
       "pending": "Ожидает",
       "approved": "Подтверждено",
       "rejected": "Отклонено"
