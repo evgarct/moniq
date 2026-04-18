@@ -2,12 +2,14 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
+import type { TransactionKind } from "@/types/finance";
+
 export interface McpBatchItem {
   id: string;
   title: string;
   amount: number;
   occurred_at: string;
-  kind: "income" | "expense";
+  kind: TransactionKind;
   currency: string | null;
   note: string | null;
   suggested_category_name: string | null;
