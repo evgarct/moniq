@@ -9,7 +9,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { getCurrencySymbol } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
@@ -119,7 +118,7 @@ function InlinePicker({
           value ? "text-muted-foreground" : "text-muted-foreground/50",
         )}
       >
-        <SelectValue placeholder={placeholder} />
+        <span>{options.find((o) => o.value === value)?.label ?? placeholder}</span>
         <ChevronDown className="size-3 shrink-0 opacity-50" />
       </SelectTrigger>
       <SelectContent align="start" className="min-w-40">
