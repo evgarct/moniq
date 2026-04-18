@@ -238,6 +238,7 @@ export function TransactionRow({
       }}
     >
       <PopoverPrimitive.Trigger
+        nativeButton={false}
         render={
           <div
             className="pointer-events-none fixed h-px w-px"
