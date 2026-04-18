@@ -6,7 +6,7 @@ const updateItemSchema = z.object({
   title: z.string().trim().min(1).optional(),
   amount: z.number().positive().optional(),
   occurred_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  kind: z.enum(["income", "expense"]).optional(),
+  kind: z.enum(["income", "expense", "transfer", "save_to_goal", "spend_from_goal", "debt_payment", "investment", "refund", "adjustment"]).optional(),
   note: z.string().max(500).nullable().optional(),
   resolved_category_id: z.string().uuid().nullable().optional(),
   resolved_account_id: z.string().uuid().nullable().optional(),
