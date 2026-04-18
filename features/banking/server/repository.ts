@@ -112,9 +112,15 @@ async function getFinanceDependencies() {
 }
 
 function toFinanceTransactionInput(transaction: TransactionImport): TransactionInput {
+  // Merchant name (restaurant, store, taxi service, etc.) goes into note so it
+  // surfaces as "Category (merchant)" in the transaction list. Title is the
+  // category name when available, falling back to merchant as a readable label.
+  const merchantLabel = transaction.merchant_clean.trim() || transaction.merchant_raw.trim() || null;
+  const categoryLabel = transaction.category?.name?.trim() ?? null;
+
   const common = {
-    title: transaction.merchant_clean.trim() || transaction.merchant_raw.trim(),
-    note: `Imported from CSV file${transaction.batch?.file_name ? ` (${transaction.batch.file_name})` : ""}`,
+    title: categoryLabel ?? merchantLabel ?? "—",
+    note: merchantLabel,
     occurred_at: transaction.occurred_at,
     status: "paid" as const,
     amount: Math.abs(transaction.amount),
@@ -136,6 +142,8 @@ function toFinanceTransactionInput(transaction: TransactionImport): TransactionI
 
     return {
       ...common,
+      // Transfers have no category, so title = merchant already; note would duplicate it.
+      note: null,
       kind: "transfer",
       source_account_id: isOutgoing ? transaction.wallet_id : transaction.counterpart_wallet_id,
       destination_account_id: isOutgoing ? transaction.counterpart_wallet_id : transaction.wallet_id,
@@ -151,6 +159,8 @@ function toFinanceTransactionInput(transaction: TransactionImport): TransactionI
 
     return {
       ...common,
+      // Debt payments have no category either; title = merchant is self-descriptive.
+      note: null,
       kind: "debt_payment",
       source_account_id: transaction.wallet_id,
       destination_account_id: transaction.counterpart_wallet_id,
