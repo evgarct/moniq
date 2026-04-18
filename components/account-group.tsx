@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Check, PencilLine, Plus, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
-import { AccountAmount } from "@/components/account-amount";
+import { MoneyAmount } from "@/components/money-amount";
 import { AccountCard } from "@/components/account-card";
 import { ProgressTrack } from "@/components/progress-track";
 import { Button } from "@/components/ui/button";
@@ -272,14 +272,13 @@ function SavingChildRow({
                 </span>
               </span>
             ) : (
-              <AccountAmount
+              <MoneyAmount
                 amount={amount}
                 currency={currency}
                 display="absolute"
                 tone={selected ? "default" : "muted"}
                 showMinorUnits={showMinorUnits}
-                className="w-full"
-                numberClassName="text-[12px] leading-5"
+                className="w-full text-[12px] leading-5"
               />
             )}
           </div>

@@ -6,7 +6,7 @@ import { CheckCircle2, Pause, Pencil, Play, SkipForward, Trash2 } from "lucide-r
 import { useFormatter, useTranslations } from "next-intl";
 import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
 
-import { LedgerAmount } from "@/components/ledger-amount";
+import { MoneyAmount } from "@/components/money-amount";
 import { getTransactionKindMeta, TransactionKindIndicator } from "@/features/transactions/components/transaction-kind-badge";
 import { cn } from "@/lib/utils";
 import type { Transaction } from "@/types/finance";
@@ -65,7 +65,7 @@ function renderAmount(transaction: Transaction, showMinorUnits: boolean) {
     return (
       <div className="inline-grid min-w-[11ch] justify-items-end gap-y-0.5 text-right">
         <div className="flex justify-end">
-          <LedgerAmount
+          <MoneyAmount
             amount={transaction.amount}
             currency={transaction.source_account?.currency ?? primaryAccount.currency}
             display="absolute"
@@ -76,13 +76,13 @@ function renderAmount(transaction: Transaction, showMinorUnits: boolean) {
         {transaction.destination_amount !== null && transaction.destination_account ? (
           <div className="relative">
             <span className="type-body-12 absolute right-full top-1/2 mr-1 -translate-y-1/2 text-muted-foreground">→</span>
-            <LedgerAmount
+            <MoneyAmount
               amount={transaction.destination_amount}
               currency={transaction.destination_account.currency}
               display="absolute"
               tone="muted"
               showMinorUnits={showMinorUnits}
-              compact
+              className="text-[12px]"
             />
           </div>
         ) : null}
@@ -91,7 +91,7 @@ function renderAmount(transaction: Transaction, showMinorUnits: boolean) {
   }
 
   return (
-    <LedgerAmount
+    <MoneyAmount
       amount={transaction.amount}
       currency={primaryAccount.currency}
       display="absolute"
@@ -345,7 +345,7 @@ export function TransactionRow({
           {action}
           {transaction.source_account ?? transaction.destination_account ? (
             <div className="min-w-[110px] text-right">
-              <LedgerAmount
+              <MoneyAmount
                 amount={transaction.amount}
                 currency={(transaction.source_account ?? transaction.destination_account)!.currency}
                 display="absolute"
