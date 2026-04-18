@@ -77,7 +77,7 @@ const transactionFieldShape = {
   occurred_at: z.string().trim().min(1, "Date is required."),
   status: z.enum(["planned", "paid"] satisfies ["planned", "paid"]),
   kind: z.enum(
-    ["income", "expense", "transfer", "save_to_goal", "spend_from_goal", "debt_payment"] satisfies [
+    ["income", "expense", "transfer", "save_to_goal", "spend_from_goal", "debt_payment", "investment", "refund", "adjustment"] satisfies [
       TransactionKind,
       ...TransactionKind[],
     ],
@@ -109,10 +109,10 @@ function addTransactionValidation<
   }>
 >(schema: T) {
   return schema.superRefine((values, ctx) => {
-    const requireSource = values.kind === "expense" || values.kind === "transfer" || values.kind === "save_to_goal" || values.kind === "spend_from_goal" || values.kind === "debt_payment";
+    const requireSource = values.kind === "expense" || values.kind === "transfer" || values.kind === "save_to_goal" || values.kind === "spend_from_goal" || values.kind === "debt_payment" || values.kind === "investment";
     const requireDestination =
-      values.kind === "income" || values.kind === "transfer" || values.kind === "save_to_goal" || values.kind === "spend_from_goal" || values.kind === "debt_payment";
-    const requireCategory = values.kind === "income" || values.kind === "expense";
+      values.kind === "income" || values.kind === "transfer" || values.kind === "save_to_goal" || values.kind === "spend_from_goal" || values.kind === "debt_payment" || values.kind === "refund";
+    const requireCategory = values.kind === "income" || values.kind === "expense" || values.kind === "investment" || values.kind === "refund";
 
     if (requireSource && !values.source_account_id) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["source_account_id"], message: "Choose the source account." });

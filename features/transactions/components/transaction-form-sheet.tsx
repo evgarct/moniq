@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format, isBefore, isSameYear, parseISO, startOfDay } from "date-fns";
-import { ArrowLeftRight, BanknoteArrowDown, CalendarIcon, CheckCircle2, Clock3, CreditCard, Landmark, PiggyBank, Plus, ReceiptText, TrendingUp, WalletCards, X } from "lucide-react";
+import { ArrowLeftRight, BanknoteArrowDown, CalendarIcon, CheckCircle2, Clock3, CreditCard, Landmark, PiggyBank, Plus, ReceiptText, RotateCcw, SlidersHorizontal, TrendingUp, WalletCards, X } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, type FieldError, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { useTranslations } from "next-intl";
@@ -56,6 +56,8 @@ type TransactionFormInputs = {
   recurrence_frequency: TransactionSchedule["frequency"];
   recurrence_until: string | null;
   line_items: TransactionLineItemInput[];
+  // Adjustment-specific: user types the target balance, diff is computed on submit
+  adjustment_target_balance: number | null;
 };
 
 export type TransactionFormSubmitPayload =
@@ -217,6 +219,12 @@ function getKindIcon(kind: Transaction["kind"]) {
       return PiggyBank;
     case "debt_payment":
       return WalletCards;
+    case "investment":
+      return TrendingUp;
+    case "refund":
+      return RotateCcw;
+    case "adjustment":
+      return SlidersHorizontal;
     case "expense":
     default:
       return ReceiptText;
@@ -307,7 +315,7 @@ function buildSchema(
       note: z.string().trim().max(500, t("validation.noteMax")),
       occurred_at: z.string().trim().min(1, t("validation.dateRequired")),
       status: z.enum(["planned", "paid"]),
-      kind: z.enum(["income", "expense", "transfer", "save_to_goal", "spend_from_goal", "debt_payment"]),
+      kind: z.enum(["income", "expense", "transfer", "save_to_goal", "spend_from_goal", "debt_payment", "investment", "refund", "adjustment"]),
       amount: z.number().positive(t("validation.amountPositive")),
       destination_amount: z.number().positive(t("validation.destinationAmountPositive")).nullable(),
       fx_rate: z.number().positive(t("validation.fxRatePositive")).nullable(),
@@ -322,11 +330,12 @@ function buildSchema(
       recurrence_frequency: z.enum(["daily", "weekly", "monthly"]),
       recurrence_until: z.string().trim().nullable(),
       line_items: z.array(lineItemSchema),
+      adjustment_target_balance: z.number().positive(t("validation.adjustmentBalanceRequired")).nullable(),
     })
     .superRefine((values, ctx) => {
       const batchMode = mode === "add" && supportsBatchItems(values.kind);
-      const requireSource = ["expense", "transfer", "save_to_goal", "spend_from_goal", "debt_payment"].includes(values.kind);
-      const requireDestination = ["income", "transfer", "save_to_goal", "spend_from_goal", "debt_payment"].includes(values.kind);
+      const requireSource = ["expense", "transfer", "save_to_goal", "spend_from_goal", "debt_payment", "investment"].includes(values.kind);
+      const requireDestination = ["income", "transfer", "save_to_goal", "spend_from_goal", "debt_payment", "refund"].includes(values.kind);
 
       if (requireSource && !values.source_account_id) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["source_account_id"], message: t("validation.sourceRequired") });
@@ -340,8 +349,16 @@ function buildSchema(
       if ((values.kind === "save_to_goal" || values.kind === "spend_from_goal") && !values.allocation_id && !batchMode) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["allocation_id"], message: t("validation.goalRequired") });
       }
-      if ((values.kind === "income" || values.kind === "expense") && !values.category_id && !batchMode) {
+      if ((values.kind === "income" || values.kind === "expense" || values.kind === "investment" || values.kind === "refund") && !values.category_id && !batchMode) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["category_id"], message: t("validation.categoryRequired") });
+      }
+      if (values.kind === "adjustment") {
+        if (!values.source_account_id) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["source_account_id"], message: t("validation.sourceRequired") });
+        }
+        if (values.adjustment_target_balance == null) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["adjustment_target_balance"], message: t("validation.adjustmentBalanceRequired") });
+        }
       }
       if (batchMode) {
         if (!values.line_items.length) {
@@ -448,6 +465,7 @@ function defaults({
               note: schedule?.note ?? transaction?.note ?? "",
             },
           ],
+    adjustment_target_balance: null,
   };
 }
 
@@ -457,7 +475,7 @@ function inferBatchTitle(item: TransactionLineItemInput, kind: BatchKind, catego
 }
 
 function inferSingleTitle(values: TransactionFormInputs, accounts: Account[], categories: Category[], allocations: Allocation[]) {
-  if (values.kind === "income" || values.kind === "expense") {
+  if (values.kind === "income" || values.kind === "expense" || values.kind === "investment" || values.kind === "refund") {
     return categories.find((category) => category.id === values.category_id)?.name ?? values.title.trim();
   }
   if (values.kind === "save_to_goal" || values.kind === "spend_from_goal") {
@@ -528,7 +546,7 @@ export function TransactionFormSheet({
   const note = useWatch({ control: form.control, name: "note" });
   const lineItems = useWatch({ control: form.control, name: "line_items" });
   const supportsBatch = mode === "add" && supportsBatchItems(kind);
-  const selectedType = kind === "income" ? "income" : "expense";
+  const selectedType: "income" | "expense" = kind === "income" ? "income" : "expense";
   const categoryOptions = categories.filter((category) => category.type === selectedType);
   const goalOptions = allocations.filter((allocation) => {
     if (kind === "save_to_goal") return allocation.account_id === destinationAccountId;
@@ -601,11 +619,11 @@ export function TransactionFormSheet({
   useEffect(() => {
     if (!open || mode !== "add") return;
 
-    if (["expense", "transfer", "save_to_goal", "spend_from_goal", "debt_payment"].includes(kind) && !sourceAccountId) {
+    if (["expense", "transfer", "save_to_goal", "spend_from_goal", "debt_payment", "investment", "adjustment"].includes(kind) && !sourceAccountId) {
       form.setValue("source_account_id", mostUsedSourceAccountId ?? accounts[0]?.id ?? null, { shouldValidate: false });
     }
 
-    if (["income", "transfer", "save_to_goal", "spend_from_goal", "debt_payment"].includes(kind) && !destinationAccountId) {
+    if (["income", "transfer", "save_to_goal", "spend_from_goal", "debt_payment", "refund"].includes(kind) && !destinationAccountId) {
       form.setValue("destination_account_id", mostUsedDestinationAccountId ?? accounts[0]?.id ?? null, { shouldValidate: false });
     }
   }, [
@@ -647,6 +665,42 @@ export function TransactionFormSheet({
   };
 
   const handleSubmit = form.handleSubmit(async (values) => {
+    // Adjustment: compute diff from target balance and submit as a single paid entry
+    if (values.kind === "adjustment" && mode === "add") {
+      const account = accountById.get(values.source_account_id ?? "");
+      if (!account || values.adjustment_target_balance == null) return;
+
+      const diff = values.adjustment_target_balance - account.balance;
+      if (Math.abs(diff) < 0.001) {
+        form.setError("adjustment_target_balance", { message: t("validation.adjustmentNoDiff") });
+        return;
+      }
+
+      await onSubmit({
+        kind: "entry",
+        values: {
+          title: t("adjustmentTitle"),
+          note: values.note.trim() || null,
+          occurred_at: values.occurred_at,
+          status: "paid",
+          kind: "adjustment",
+          amount: Math.abs(diff),
+          destination_amount: null,
+          fx_rate: null,
+          principal_amount: null,
+          interest_amount: null,
+          extra_principal_amount: null,
+          category_id: null,
+          source_account_id: diff < 0 ? account.id : null,
+          destination_account_id: diff > 0 ? account.id : null,
+          allocation_id: null,
+          recurrence: null,
+        },
+      });
+      onOpenChange(false);
+      return;
+    }
+
     if (supportsBatchItems(values.kind) && mode === "add") {
       const batchKind = values.kind;
       await onSubmit({
@@ -747,6 +801,15 @@ export function TransactionFormSheet({
                         </SelectItem>
                         <SelectItem value="debt_payment">
                           <span className="inline-flex items-center gap-2"><WalletCards className="size-4 opacity-70" />{kindsT("debt_payment")}</span>
+                        </SelectItem>
+                        <SelectItem value="investment">
+                          <span className="inline-flex items-center gap-2"><TrendingUp className="size-4 opacity-70" />{kindsT("investment")}</span>
+                        </SelectItem>
+                        <SelectItem value="refund">
+                          <span className="inline-flex items-center gap-2"><RotateCcw className="size-4 opacity-70" />{kindsT("refund")}</span>
+                        </SelectItem>
+                        <SelectItem value="adjustment">
+                          <span className="inline-flex items-center gap-2"><SlidersHorizontal className="size-4 opacity-70" />{kindsT("adjustment")}</span>
                         </SelectItem>
                       </SelectContent>
                       </Select>
@@ -1132,9 +1195,114 @@ export function TransactionFormSheet({
                   </FormBlock>
                 ) : null}
 
-              {supportsBatch ? null : (
+              {kind === "adjustment" && !supportsBatch ? (
                 <FormBlock>
-                  {["expense", "transfer", "save_to_goal", "spend_from_goal", "debt_payment"].includes(kind) ? (
+                  <PickerRow className="border-b-0 pt-4">
+                    <div className="flex flex-col gap-1">
+                      <Controller
+                        control={form.control}
+                        name="source_account_id"
+                        render={({ field }) => {
+                          const selectedAccount = accountById.get(field.value ?? "");
+                          const AccountIcon = getAccountIcon(selectedAccount);
+                          return (
+                            <Select value={toSelectValue(field.value)} onValueChange={(v) => { field.onChange(v); form.setValue("adjustment_target_balance", null); }}>
+                              <SelectTrigger className="h-auto w-full justify-start border-0 bg-transparent px-0 py-0 text-sm shadow-none">
+                                <div className="flex min-w-0 items-center gap-2">
+                                  <InlineIcon icon={AccountIcon} />
+                                  <span className={cn("truncate text-left", field.value ? "text-foreground" : "text-muted-foreground")}>
+                                    {field.value ? accountNameById.get(field.value) ?? field.value : t("placeholders.adjustmentAccount")}
+                                  </span>
+                                </div>
+                              </SelectTrigger>
+                              <SelectContent>
+                                {accounts.map((account) => {
+                                  const AccountIconOption = getAccountIcon(account);
+                                  return (
+                                    <SelectItem key={account.id} value={account.id}>
+                                      <div className="flex min-w-0 items-center gap-2">
+                                        <InlineIcon icon={AccountIconOption} />
+                                        <span className="truncate">{account.name}</span>
+                                      </div>
+                                    </SelectItem>
+                                  );
+                                })}
+                              </SelectContent>
+                            </Select>
+                          );
+                        }}
+                      />
+                      <FieldMessage error={form.formState.errors.source_account_id} />
+                    </div>
+                  </PickerRow>
+
+                  {sourceAccountId ? (() => {
+                    const account = accountById.get(sourceAccountId);
+                    const symbol = getCurrencySymbol(account?.currency ?? "EUR");
+                    const currentBalance = account?.balance ?? 0;
+                    const targetBalance = form.watch("adjustment_target_balance");
+                    const diff = targetBalance != null ? targetBalance - currentBalance : null;
+                    return (
+                      <>
+                        <RowShell label={t("fields.currentBalance")}>
+                          <span className="tabular-nums text-sm text-muted-foreground">{currentBalance.toFixed(2)} {symbol}</span>
+                        </RowShell>
+                        <RowShell label={t("fields.newBalance")}>
+                          <div className="flex flex-col items-end gap-1">
+                            <Controller
+                              control={form.control}
+                              name="adjustment_target_balance"
+                              render={({ field }) => (
+                                <div className="flex items-center justify-end gap-2">
+                                  <DecimalInput
+                                    id="adjustment-target-balance"
+                                    className="h-8 w-[11rem] rounded-none border-0 bg-transparent px-0 py-1 text-right text-base leading-6 font-medium shadow-none"
+                                    hidePlaceholderOnFocus
+                                    placeholder="0.00"
+                                    value={field.value ?? null}
+                                    onValueChange={field.onChange}
+                                  />
+                                  <span className="text-sm text-foreground">{symbol}</span>
+                                </div>
+                              )}
+                            />
+                            <FieldMessage error={form.formState.errors.adjustment_target_balance} />
+                          </div>
+                        </RowShell>
+                        {diff != null && Math.abs(diff) >= 0.001 ? (
+                          <RowShell label={t("fields.adjustmentDiff")}>
+                            <span className={cn("tabular-nums text-sm font-medium", diff > 0 ? "text-emerald-600" : "text-destructive")}>
+                              {diff > 0 ? "+" : ""}{diff.toFixed(2)} {symbol}
+                            </span>
+                          </RowShell>
+                        ) : null}
+                      </>
+                    );
+                  })() : null}
+
+                  <SplitRow
+                    rowClassName="pt-5"
+                    left={
+                      <Controller
+                        control={form.control}
+                        name="occurred_at"
+                        render={({ field }) => <FlatDatePicker value={field.value} onChange={field.onChange} />}
+                      />
+                    }
+                    right={null}
+                  >
+                    <FieldMessage error={form.formState.errors.occurred_at} />
+                  </SplitRow>
+
+                  <PickerRow className={cn("pt-4", !form.watch("note")?.trim() && "border-b-0")}>
+                    <Input id="transaction-note" className="h-10 w-full rounded-none border-0 bg-transparent px-0 py-1 text-base leading-7 shadow-none" placeholder={t("placeholders.note")} {...form.register("note")} />
+                  </PickerRow>
+                </FormBlock>
+              ) : null}
+
+              {supportsBatch ? null : kind !== "adjustment" ? (
+                <FormBlock>
+                  {["expense", "transfer", "save_to_goal", "spend_from_goal", "debt_payment", "investment"].includes(kind) ? (
                     <PickerRow className="border-b-0 pt-4">
                       <div className="flex flex-col gap-1">
                         <Controller
@@ -1176,7 +1344,7 @@ export function TransactionFormSheet({
                     </PickerRow>
                   ) : null}
 
-                  {["income", "transfer", "save_to_goal", "spend_from_goal", "debt_payment"].includes(kind) ? (
+                  {["income", "transfer", "save_to_goal", "spend_from_goal", "debt_payment", "refund"].includes(kind) ? (
                     <PickerRow className="border-b-0">
                       <div className="flex flex-col gap-1">
                         <Controller
@@ -1218,7 +1386,7 @@ export function TransactionFormSheet({
                     </PickerRow>
                   ) : null}
 
-                  {kind === "income" || kind === "expense" || kind === "debt_payment" ? (
+                  {kind === "income" || kind === "expense" || kind === "debt_payment" || kind === "investment" || kind === "refund" ? (
                     <PickerRow className="border-b-0">
                       <div className="flex flex-col gap-1">
                         <Controller
@@ -1458,7 +1626,7 @@ export function TransactionFormSheet({
                     <Input id="transaction-note" className="h-10 w-full rounded-none border-0 bg-transparent px-0 py-1 text-base leading-7 shadow-none" placeholder={t("placeholders.note")} {...form.register("note")} />
                   </PickerRow>
                 </FormBlock>
-              )}
+              ) : null}
                 <div className="flex justify-end pt-2">
                   <Button type="submit" form={formId} variant="secondary" className="border-0 shadow-none">
                     {mode === "add"

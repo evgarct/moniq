@@ -2,7 +2,7 @@ import { useState } from "react";
 import { BanknoteArrowDown, CreditCard, Landmark, PencilLine, PiggyBank, Plus, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
-import { AccountAmount } from "@/components/account-amount";
+import { MoneyAmount } from "@/components/money-amount";
 import { ProgressTrack } from "@/components/progress-track";
 import { Button } from "@/components/ui/button";
 import { InlineIcon } from "@/components/ui/inline-icon";
@@ -93,14 +93,13 @@ export function AccountCard({
                   </div>
                 </div>
 
-                <AccountAmount
+                <MoneyAmount
                   amount={account.balance}
                   currency={account.currency}
                   display="signed"
                   tone="negative"
                   showMinorUnits={showMinorUnits}
-                  className="w-full justify-self-end"
-                  numberClassName="text-[13px] leading-[18px] font-medium sm:text-[14px] sm:leading-5"
+                  className="w-full justify-self-end text-[13px] leading-[18px] font-medium sm:text-[14px] sm:leading-5"
                 />
               </div>
 
@@ -133,14 +132,13 @@ export function AccountCard({
                 </div>
               </div>
 
-              <AccountAmount
+              <MoneyAmount
                 amount={account.balance}
                 currency={account.currency}
                 display={debt ? "signed" : "absolute"}
                 tone={debt ? "negative" : "default"}
                 showMinorUnits={showMinorUnits}
-                className="w-full justify-self-end"
-                numberClassName="text-[13px] leading-[18px] font-medium sm:text-[14px] sm:leading-5"
+                className="w-full justify-self-end text-[13px] leading-[18px] font-medium sm:text-[14px] sm:leading-5"
               />
             </>
           )}
@@ -205,15 +203,13 @@ function CreditCardMetric({
   return (
     <div className="inline-flex min-w-0 items-baseline gap-1.5">
       <p className="shrink-0 text-[10px] leading-3.5 text-muted-foreground sm:text-[11px] sm:leading-4">{label}</p>
-      <AccountAmount
+      <MoneyAmount
         amount={amount}
         currency={currency}
         display="absolute"
         tone={tone}
         showMinorUnits={showMinorUnits}
-        className="w-auto"
-        numberClassName="text-[10px] leading-3.5 font-medium sm:text-[11px] sm:leading-4"
-        currencyClassName="text-[10px] leading-3.5 sm:text-[11px] sm:leading-4"
+        className="w-auto text-[10px] leading-3.5 font-medium sm:text-[11px] sm:leading-4"
       />
     </div>
   );

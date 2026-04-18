@@ -366,9 +366,13 @@ function ImportApprovalListStory() {
                     return ledgerTransaction.title;
                   }
 
-                  const categoryLabel = transaction.category?.name ?? transactionsT("row.uncategorized");
-                  const merchantLabel = transaction.merchant_clean?.trim();
-                  return merchantLabel ? `${categoryLabel} (${merchantLabel})` : categoryLabel;
+                  // Mirror what toFinanceTransactionInput produces:
+                  // title = category name (or merchant as fallback), note = merchant.
+                  // buildPrimaryLabel renders "Category (merchant)" which is what we preview here.
+                  const categoryLabel = transaction.category?.name?.trim() ?? null;
+                  const merchantLabel = transaction.merchant_clean?.trim() || null;
+                  const title = categoryLabel ?? merchantLabel ?? "—";
+                  return merchantLabel && categoryLabel ? `${title} (${merchantLabel})` : title;
                 }}
                 getPrimaryLabelClassName={(ledgerTransaction) =>
                   draftTransactionsById.get(ledgerTransaction.id)?.category_id ? undefined : "text-secondary-foreground/70"
@@ -379,14 +383,16 @@ function ImportApprovalListStory() {
                     return undefined;
                   }
 
-                  const walletLabel = transaction.wallet?.name ?? transactionsT("row.unlinkedAccount");
+                  // For transfers and debt payments show the wallet flow.
+                  // For expense/income the wallet is shown in the controls area.
                   if (transaction.kind === "transfer" || transaction.kind === "debt_payment") {
+                    const walletLabel = transaction.wallet?.name ?? transactionsT("row.unlinkedAccount");
                     const counterpartWalletLabel =
                       transaction.counterpart_wallet?.name ?? transactionsT("row.unlinkedAccount");
-                    return `${walletLabel} -> ${counterpartWalletLabel}`;
+                    return `${walletLabel} → ${counterpartWalletLabel}`;
                   }
 
-                  return walletLabel;
+                  return undefined;
                 }}
                 renderTrailingAccessory={(ledgerTransaction) => {
                   const transaction = draftTransactionsById.get(ledgerTransaction.id);

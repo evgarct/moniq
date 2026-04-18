@@ -55,7 +55,7 @@ export type Allocation = {
 };
 
 export type TransactionStatus = "planned" | "paid" | "skipped";
-export type TransactionKind = "income" | "expense" | "transfer" | "save_to_goal" | "spend_from_goal" | "debt_payment";
+export type TransactionKind = "income" | "expense" | "transfer" | "save_to_goal" | "spend_from_goal" | "debt_payment" | "investment" | "refund" | "adjustment";
 export type TransactionScheduleFrequency = "daily" | "weekly" | "monthly";
 export type TransactionScheduleState = "active" | "paused";
 

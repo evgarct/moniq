@@ -6,8 +6,9 @@ import { CheckCircle2, Pause, Pencil, Play, SkipForward, Trash2 } from "lucide-r
 import { useFormatter, useTranslations } from "next-intl";
 import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
 
-import { LedgerAmount } from "@/components/ledger-amount";
+import { MoneyAmount } from "@/components/money-amount";
 import { getTransactionKindMeta, TransactionKindIndicator } from "@/features/transactions/components/transaction-kind-badge";
+import { formatMoneyNumber, getCurrencySymbol } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import type { Transaction } from "@/types/finance";
 
@@ -62,36 +63,45 @@ function renderAmount(transaction: Transaction, showMinorUnits: boolean) {
   if (!primaryAccount) return null;
 
   if (transaction.kind === "transfer" || transaction.kind === "save_to_goal" || transaction.kind === "spend_from_goal") {
+    const primaryCurrency = transaction.source_account?.currency ?? primaryAccount.currency;
+    const primaryToneClass =
+      kindMeta.amountTone === "positive"
+        ? "text-emerald-600"
+        : kindMeta.amountTone === "negative"
+          ? "text-destructive"
+          : "text-foreground";
+    const hasFxRow = transaction.destination_amount !== null && transaction.destination_account != null;
+
     return (
-      <div className="inline-grid min-w-[11ch] justify-items-end gap-y-0.5 text-right">
-        <div className="flex justify-end">
-          <LedgerAmount
-            amount={transaction.amount}
-            currency={transaction.source_account?.currency ?? primaryAccount.currency}
-            display="absolute"
-            tone={kindMeta.amountTone}
-            showMinorUnits={showMinorUnits}
-          />
-        </div>
-        {transaction.destination_amount !== null && transaction.destination_account ? (
-          <div className="relative">
-            <span className="type-body-12 absolute right-full top-1/2 mr-1 -translate-y-1/2 text-muted-foreground">→</span>
-            <LedgerAmount
-              amount={transaction.destination_amount}
-              currency={transaction.destination_account.currency}
-              display="absolute"
-              tone="muted"
-              showMinorUnits={showMinorUnits}
-              compact
-            />
-          </div>
+      // Single shared grid — both rows use the same column widths so number
+      // and currency symbol stay perfectly aligned regardless of font-size difference.
+      <span className="inline-grid grid-cols-[minmax(0,max-content)_2.25ch] items-baseline justify-end gap-x-[0.35em] gap-y-0.5">
+        {/* Row 1 — primary amount */}
+        <span className={cn("justify-self-end tabular-nums whitespace-nowrap tracking-[-0.025em]", primaryToneClass)}>
+          {formatMoneyNumber(transaction.amount, primaryCurrency, { showMinorUnits })}
+        </span>
+        <span className={cn("justify-self-center text-[0.8em] opacity-70", primaryToneClass)}>
+          {getCurrencySymbol(primaryCurrency)}
+        </span>
+
+        {/* Row 2 — destination amount when FX conversion */}
+        {hasFxRow ? (
+          <>
+            <span className="relative justify-self-end tabular-nums whitespace-nowrap tracking-[-0.025em] text-[0.86em] text-muted-foreground">
+              <span className="absolute right-full top-1/2 mr-1 -translate-y-1/2 select-none" aria-hidden>→</span>
+              {formatMoneyNumber(transaction.destination_amount!, transaction.destination_account!.currency, { showMinorUnits })}
+            </span>
+            <span className="justify-self-center text-[0.69em] opacity-70 text-muted-foreground">
+              {getCurrencySymbol(transaction.destination_account!.currency)}
+            </span>
+          </>
         ) : null}
-      </div>
+      </span>
     );
   }
 
   return (
-    <LedgerAmount
+    <MoneyAmount
       amount={transaction.amount}
       currency={primaryAccount.currency}
       display="absolute"
@@ -345,7 +355,7 @@ export function TransactionRow({
           {action}
           {transaction.source_account ?? transaction.destination_account ? (
             <div className="min-w-[110px] text-right">
-              <LedgerAmount
+              <MoneyAmount
                 amount={transaction.amount}
                 currency={(transaction.source_account ?? transaction.destination_account)!.currency}
                 display="absolute"

@@ -231,6 +231,11 @@ export const mockTransactions: Transaction[] = [
   makeTransaction({ id: "salary-m6", title: "Monthly salary", kind: "income", amount: 96500, dayOffset: -180, categoryId: "salary", destinationAccountId: "everyday", status: "paid" }),
   makeTransaction({ id: "rent-m6", title: "Apartment rent", kind: "expense", amount: 28500, dayOffset: -182, categoryId: "rent", sourceAccountId: "everyday", status: "paid" }),
   makeTransaction({ id: "vacation-m6", title: "Japan vacation", kind: "expense", amount: 78000, dayOffset: -183, categoryId: "travel-stay", sourceAccountId: "travel-credit", status: "paid" }),
+
+  // ── New kinds ─────────────────────────────────────────────────────────────
+  makeTransaction({ id: "etf-purchase", title: "S&P 500 ETF", kind: "investment", amount: 15000, dayOffset: -5, categoryId: "investments", sourceAccountId: "everyday", status: "paid" }),
+  makeTransaction({ id: "store-refund", title: "ASOS return", kind: "refund", amount: 3200, dayOffset: -8, categoryId: "subscriptions", destinationAccountId: "travel-credit", status: "paid" }),
+  makeTransaction({ id: "balance-adj", title: "Balance adjustment", kind: "adjustment", amount: 1250, dayOffset: -12, destinationAccountId: "everyday", status: "paid" }),
 ];
 
 export const mockFinanceSnapshot: FinanceSnapshot = {

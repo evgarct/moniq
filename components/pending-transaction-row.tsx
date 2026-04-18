@@ -2,7 +2,9 @@
 
 import { CategoryCascadePicker } from "@/components/category-cascade-picker";
 import { CategoryIcon } from "@/components/category-icon";
+import { getCurrencySymbol } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
+import type { CurrencyCode } from "@/types/currency";
 import type { Category } from "@/types/finance";
 
 // ---------------------------------------------------------------------------
@@ -55,10 +57,11 @@ export interface PendingTransactionRowProps {
 function formatAmount(amount: number, currency: string | null, kind: "income" | "expense") {
   const sign = kind === "expense" ? "−" : "+";
   try {
-    const formatted = currency
-      ? new Intl.NumberFormat(undefined, { style: "currency", currency }).format(amount)
+    const numStr = currency
+      ? new Intl.NumberFormat(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)
       : amount.toFixed(2);
-    return `${sign}${formatted}`;
+    const symbol = currency ? getCurrencySymbol(currency as CurrencyCode) : "";
+    return `${sign}${numStr}${symbol ? `\u2009${symbol}` : ""}`;
   } catch {
     return `${sign}${amount.toFixed(2)}`;
   }
