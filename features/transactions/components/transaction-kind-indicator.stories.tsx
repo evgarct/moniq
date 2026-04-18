@@ -11,6 +11,9 @@ const kinds: Transaction["kind"][] = [
   "save_to_goal",
   "spend_from_goal",
   "debt_payment",
+  "investment",
+  "refund",
+  "adjustment",
 ];
 
 const meta = {

@@ -10,6 +10,8 @@ const savingsTransaction = snapshot.transactions.find((transaction) => transacti
 const incomeTransaction = snapshot.transactions.find((transaction) => transaction.kind === "income") ?? snapshot.transactions[0];
 const transferTransaction = snapshot.transactions.find((transaction) => transaction.kind === "transfer") ?? snapshot.transactions[0];
 const debtPaymentTransaction = snapshot.transactions.find((transaction) => transaction.kind === "debt_payment") ?? snapshot.transactions[0];
+const investmentTransaction = snapshot.transactions.find((transaction) => transaction.kind === "investment") ?? snapshot.transactions[0];
+const refundTransaction = snapshot.transactions.find((transaction) => transaction.kind === "refund") ?? snapshot.transactions[0];
 
 const recurringSchedule: TransactionSchedule = {
   id: "schedule-story-netflix",
@@ -224,6 +226,96 @@ export const DebtPaymentEdit: Story = {
         open
         mode="edit-transaction"
         transaction={debtPaymentTransaction}
+        accounts={snapshot.accounts}
+        allocations={snapshot.allocations}
+        categories={snapshot.categories}
+        transactions={snapshot.transactions}
+        onOpenChange={() => {}}
+        onSubmit={async () => {}}
+      />
+    </StorySurface>
+  ),
+};
+
+export const AddInvestment: Story = {
+  render: () => (
+    <StorySurface>
+      <TransactionFormSheet
+        open
+        mode="add"
+        initialKind="investment"
+        accounts={snapshot.accounts}
+        allocations={snapshot.allocations}
+        categories={snapshot.categories}
+        transactions={snapshot.transactions}
+        onOpenChange={() => {}}
+        onSubmit={async () => {}}
+      />
+    </StorySurface>
+  ),
+};
+
+export const InvestmentEdit: Story = {
+  render: () => (
+    <StorySurface>
+      <TransactionFormSheet
+        open
+        mode="edit-transaction"
+        transaction={investmentTransaction}
+        accounts={snapshot.accounts}
+        allocations={snapshot.allocations}
+        categories={snapshot.categories}
+        transactions={snapshot.transactions}
+        onOpenChange={() => {}}
+        onSubmit={async () => {}}
+      />
+    </StorySurface>
+  ),
+};
+
+export const AddRefund: Story = {
+  render: () => (
+    <StorySurface>
+      <TransactionFormSheet
+        open
+        mode="add"
+        initialKind="refund"
+        accounts={snapshot.accounts}
+        allocations={snapshot.allocations}
+        categories={snapshot.categories}
+        transactions={snapshot.transactions}
+        onOpenChange={() => {}}
+        onSubmit={async () => {}}
+      />
+    </StorySurface>
+  ),
+};
+
+export const RefundEdit: Story = {
+  render: () => (
+    <StorySurface>
+      <TransactionFormSheet
+        open
+        mode="edit-transaction"
+        transaction={refundTransaction}
+        accounts={snapshot.accounts}
+        allocations={snapshot.allocations}
+        categories={snapshot.categories}
+        transactions={snapshot.transactions}
+        onOpenChange={() => {}}
+        onSubmit={async () => {}}
+      />
+    </StorySurface>
+  ),
+};
+
+export const AddAdjustment: Story = {
+  render: () => (
+    <StorySurface>
+      <TransactionFormSheet
+        open
+        mode="add"
+        initialKind="adjustment"
         accounts={snapshot.accounts}
         allocations={snapshot.allocations}
         categories={snapshot.categories}
