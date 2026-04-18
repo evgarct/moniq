@@ -49,7 +49,7 @@ export function buildSchema(msgs: SchemaMessages, mode: TransactionFormMode) {
         "income", "expense", "transfer", "save_to_goal", "spend_from_goal",
         "debt_payment", "investment", "refund", "adjustment",
       ]),
-      amount: z.number().positive(v.amountPositive),
+      amount: z.number().min(0),
       destination_amount: z.number().positive(v.destinationAmountPositive).nullable(),
       fx_rate: z.number().positive(v.fxRatePositive).nullable(),
       principal_amount: z.number().min(0, v.principalMin).nullable(),
@@ -67,6 +67,11 @@ export function buildSchema(msgs: SchemaMessages, mode: TransactionFormMode) {
     })
     .superRefine((values, ctx) => {
       const batchMode = mode === "add" && supportsBatchItems(values.kind);
+
+      // amount must be positive for non-batch, non-adjustment kinds
+      if (!batchMode && values.kind !== "adjustment" && values.amount <= 0) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["amount"], message: v.amountPositive });
+      }
 
       const requireSource = [
         "expense", "transfer", "save_to_goal", "spend_from_goal", "debt_payment", "investment",
