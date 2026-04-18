@@ -34,6 +34,7 @@ export async function GET(
         status,
         resolved_category_id,
         resolved_account_id,
+        resolved_destination_account_id,
         finance_transaction_id,
         created_at
       )
@@ -112,7 +113,19 @@ export async function PATCH(
   // Create finance_transactions for approved items
   const createdIds: { itemId: string; transactionId: string }[] = [];
 
+  // Kinds where resolved_account_id is the source (debit side)
+  const SOURCE_KINDS = new Set(["expense", "transfer", "save_to_goal", "spend_from_goal", "debt_payment", "investment", "adjustment"]);
+  // Kinds where resolved_account_id is the destination (credit side)
+  const DEST_KINDS = new Set(["income", "refund"]);
+
   for (const item of items ?? []) {
+    const sourceAccountId = SOURCE_KINDS.has(item.kind)
+      ? (item.resolved_account_id ?? null)
+      : null;
+    const destinationAccountId = DEST_KINDS.has(item.kind)
+      ? (item.resolved_account_id ?? null)
+      : (item.resolved_destination_account_id ?? null);
+
     const { data: tx, error: txError } = await supabase
       .from("finance_transactions")
       .insert({
@@ -124,8 +137,8 @@ export async function PATCH(
         kind: item.kind,
         amount: item.amount,
         category_id: item.resolved_category_id ?? null,
-        source_account_id: item.kind === "expense" ? item.resolved_account_id ?? null : null,
-        destination_account_id: item.kind === "income" ? item.resolved_account_id ?? null : null,
+        source_account_id: sourceAccountId,
+        destination_account_id: destinationAccountId,
       })
       .select("id")
       .single();

@@ -210,6 +210,8 @@ export function McpBatchSection({
                     accounts={accountOptions}
                     resolvedAccountId={item.resolved_account_id}
                     onAccountChange={(id) => void patchItem(item.id, { resolved_account_id: id })}
+                    resolvedDestinationAccountId={item.resolved_destination_account_id}
+                    onDestinationAccountChange={(id) => void patchItem(item.id, { resolved_destination_account_id: id })}
                     status={item.status}
                     statusLabel={
                       item.status === "approved"
@@ -220,6 +222,8 @@ export function McpBatchSection({
                     }
                     saving={savingItemId === item.id}
                     selectCategoryPlaceholder={t("item.uncategorized")}
+                    sourceAccountPlaceholder={t("item.fromAccount")}
+                    destinationAccountPlaceholder={t("item.toAccount")}
                     noAccountPlaceholder={t("item.noAccount")}
                     clearCategoryLabel={t("item.uncategorized")}
                     actions={

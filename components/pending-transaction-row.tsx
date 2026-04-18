@@ -27,25 +27,31 @@ export interface PendingTransactionRowProps {
   suggestedCategoryName?: string | null;
   onCategoryChange: (id: string | null) => void;
 
-  // Account (optional)
+  // Accounts — source (debit) side
   accounts?: { id: string; name: string }[];
   resolvedAccountId?: string | null;
   onAccountChange?: (id: string | null) => void;
 
-  // Optional kind picker (banking import — expense ↔ income)
+  // Accounts — destination (credit) side
+  resolvedDestinationAccountId?: string | null;
+  onDestinationAccountChange?: (id: string | null) => void;
+
+  // Optional kind picker
   kindOptions?: { value: string; label: string }[];
   onKindChange?: (kind: string) => void;
 
   // Row state
   status?: "pending" | "approved" | "rejected";
-  statusLabel?: string; // shown in secondary row when approved/rejected
+  statusLabel?: string;
   saving?: boolean;
 
-  // Actions slot (approve/reject or confirm/delete buttons)
+  // Actions slot
   actions?: React.ReactNode;
 
   // i18n
   selectCategoryPlaceholder?: string;
+  sourceAccountPlaceholder?: string;
+  destinationAccountPlaceholder?: string;
   noAccountPlaceholder?: string;
   clearCategoryLabel?: string;
 }
@@ -55,6 +61,8 @@ export interface PendingTransactionRowProps {
 // ---------------------------------------------------------------------------
 
 const CREDIT_KINDS = new Set<TransactionKind>(["income", "refund", "adjustment"]);
+const NEEDS_SOURCE = new Set<TransactionKind>(["expense", "transfer", "save_to_goal", "spend_from_goal", "debt_payment", "investment", "adjustment"]);
+const NEEDS_DESTINATION = new Set<TransactionKind>(["income", "transfer", "save_to_goal", "spend_from_goal", "debt_payment", "refund"]);
 
 function formatAmount(amount: number, currency: string | null, kind: TransactionKind) {
   const sign = CREDIT_KINDS.has(kind) ? "+" : "−";
@@ -93,6 +101,8 @@ export function PendingTransactionRow({
   accounts = [],
   resolvedAccountId = null,
   onAccountChange,
+  resolvedDestinationAccountId = null,
+  onDestinationAccountChange,
   kindOptions,
   onKindChange,
   status = "pending",
@@ -100,6 +110,8 @@ export function PendingTransactionRow({
   saving,
   actions,
   selectCategoryPlaceholder = "Select category",
+  sourceAccountPlaceholder = "From account",
+  destinationAccountPlaceholder = "To account",
   noAccountPlaceholder = "No account",
   clearCategoryLabel = "Uncategorized",
 }: PendingTransactionRowProps) {
@@ -107,11 +119,17 @@ export function PendingTransactionRow({
   const isApproved = status === "approved";
   const isRejected = status === "rejected";
 
+  const needsSource = NEEDS_SOURCE.has(kind);
+  const needsDestination = NEEDS_DESTINATION.has(kind);
+
   const resolvedCategory = resolvedCategoryId
     ? (categories.find((c) => c.id === resolvedCategoryId) ?? null)
     : null;
-  const resolvedAccount = resolvedAccountId
+  const resolvedSourceAccount = resolvedAccountId
     ? (accounts.find((a) => a.id === resolvedAccountId) ?? null)
+    : null;
+  const resolvedDestAccount = resolvedDestinationAccountId
+    ? (accounts.find((a) => a.id === resolvedDestinationAccountId) ?? null)
     : null;
 
   return (
@@ -181,8 +199,54 @@ export function PendingTransactionRow({
             </>
           )}
 
-          {/* Account */}
-          {accounts.length > 0 && isPending && onAccountChange ? (
+          {/* Source account (debit side) */}
+          {needsSource && accounts.length > 0 && (
+            <>
+              <span>·</span>
+              {isPending && onAccountChange ? (
+                <select
+                  value={resolvedAccountId ?? ""}
+                  onChange={(e) => onAccountChange(e.target.value || null)}
+                  className="m-0 appearance-none border-0 bg-transparent p-0 outline-none type-body-12 cursor-pointer text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <option value="">{sourceAccountPlaceholder}</option>
+                  {accounts.map((a) => (
+                    <option key={a.id} value={a.id}>{a.name}</option>
+                  ))}
+                </select>
+              ) : resolvedSourceAccount ? (
+                <span>{resolvedSourceAccount.name}</span>
+              ) : (
+                <span className="opacity-40">{sourceAccountPlaceholder}</span>
+              )}
+            </>
+          )}
+
+          {/* Destination account (credit side) */}
+          {needsDestination && accounts.length > 0 && (
+            <>
+              <span>{needsSource ? "→" : "·"}</span>
+              {isPending && onDestinationAccountChange ? (
+                <select
+                  value={resolvedDestinationAccountId ?? ""}
+                  onChange={(e) => onDestinationAccountChange(e.target.value || null)}
+                  className="m-0 appearance-none border-0 bg-transparent p-0 outline-none type-body-12 cursor-pointer text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <option value="">{destinationAccountPlaceholder}</option>
+                  {accounts.map((a) => (
+                    <option key={a.id} value={a.id}>{a.name}</option>
+                  ))}
+                </select>
+              ) : resolvedDestAccount ? (
+                <span>{resolvedDestAccount.name}</span>
+              ) : (
+                <span className="opacity-40">{destinationAccountPlaceholder}</span>
+              )}
+            </>
+          )}
+
+          {/* Legacy single-account fallback (banking-view usage) */}
+          {!needsSource && !needsDestination && accounts.length > 0 && isPending && onAccountChange && (
             <>
               <span>·</span>
               <select
@@ -192,18 +256,11 @@ export function PendingTransactionRow({
               >
                 <option value="">{noAccountPlaceholder}</option>
                 {accounts.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.name}
-                  </option>
+                  <option key={a.id} value={a.id}>{a.name}</option>
                 ))}
               </select>
             </>
-          ) : resolvedAccount ? (
-            <>
-              <span>·</span>
-              <span>{resolvedAccount.name}</span>
-            </>
-          ) : null}
+          )}
 
           {/* Resolved status label */}
           {!isPending && statusLabel && (
@@ -226,7 +283,7 @@ export function PendingTransactionRow({
       <span
         className={cn(
           "shrink-0 pt-0.5 tabular-nums type-body-14 font-semibold",
-          kind === "income"
+          CREDIT_KINDS.has(kind)
             ? "text-emerald-600 dark:text-emerald-500"
             : "text-foreground",
           saving && "opacity-50",

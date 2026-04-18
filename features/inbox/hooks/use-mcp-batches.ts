@@ -16,6 +16,7 @@ export interface McpBatchItem {
   status: "pending" | "approved" | "rejected";
   resolved_category_id: string | null;
   resolved_account_id: string | null;
+  resolved_destination_account_id: string | null;
   finance_transaction_id: string | null;
 }
 

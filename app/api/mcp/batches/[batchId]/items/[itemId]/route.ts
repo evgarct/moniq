@@ -10,6 +10,7 @@ const updateItemSchema = z.object({
   note: z.string().max(500).nullable().optional(),
   resolved_category_id: z.string().uuid().nullable().optional(),
   resolved_account_id: z.string().uuid().nullable().optional(),
+  resolved_destination_account_id: z.string().uuid().nullable().optional(),
   status: z.enum(["pending", "approved", "rejected"]).optional(),
 });
 

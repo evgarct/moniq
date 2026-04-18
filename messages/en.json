@@ -756,6 +756,8 @@
       "edit": "Edit",
       "uncategorized": "Uncategorized",
       "noAccount": "No account",
+      "fromAccount": "From account",
+      "toAccount": "To account",
       "pending": "Pending",
       "approved": "Approved",
       "rejected": "Rejected"
