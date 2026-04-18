@@ -1,7 +1,16 @@
 "use client";
 
+import { ChevronDown } from "lucide-react";
+
 import { CategoryCascadePicker } from "@/components/category-cascade-picker";
 import { CategoryIcon } from "@/components/category-icon";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { getCurrencySymbol } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import type { CurrencyCode } from "@/types/currency";
@@ -64,6 +73,8 @@ const CREDIT_KINDS = new Set<TransactionKind>(["income", "refund", "adjustment"]
 const NEEDS_SOURCE = new Set<TransactionKind>(["expense", "transfer", "save_to_goal", "spend_from_goal", "debt_payment", "investment", "adjustment"]);
 const NEEDS_DESTINATION = new Set<TransactionKind>(["income", "transfer", "save_to_goal", "spend_from_goal", "debt_payment", "refund"]);
 
+const EMPTY = "__none__";
+
 function formatAmount(amount: number, currency: string | null, kind: TransactionKind) {
   const sign = CREDIT_KINDS.has(kind) ? "+" : "−";
   try {
@@ -78,10 +89,53 @@ function formatAmount(amount: number, currency: string | null, kind: Transaction
 }
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-  });
+  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+// ---------------------------------------------------------------------------
+// InlinePicker — design-system Select styled for inline metadata rows
+// ---------------------------------------------------------------------------
+
+function InlinePicker({
+  value,
+  onChange,
+  options,
+  placeholder,
+}: {
+  value: string | null;
+  onChange: (v: string | null) => void;
+  options: { value: string; label: string }[];
+  placeholder: string;
+}) {
+  return (
+    <Select
+      value={value ?? EMPTY}
+      onValueChange={(v) => onChange(v === EMPTY ? null : v)}
+    >
+      <SelectTrigger
+        className={cn(
+          "inline-flex h-auto w-auto items-center gap-0.5 border-0 bg-transparent p-0 text-xs shadow-none outline-none",
+          "focus-visible:ring-0 focus-visible:border-transparent",
+          "hover:text-foreground transition-colors",
+          "data-placeholder:text-muted-foreground [&>svg:last-child]:hidden",
+          value ? "text-muted-foreground" : "text-muted-foreground/60",
+        )}
+      >
+        <SelectValue placeholder={placeholder} />
+        <ChevronDown className="size-3 shrink-0 opacity-50" />
+      </SelectTrigger>
+      <SelectContent align="start" className="min-w-40">
+        <SelectItem value={EMPTY} className="text-muted-foreground">
+          {placeholder}
+        </SelectItem>
+        {options.map((opt) => (
+          <SelectItem key={opt.value} value={opt.value}>
+            {opt.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -132,6 +186,8 @@ export function PendingTransactionRow({
     ? (accounts.find((a) => a.id === resolvedDestinationAccountId) ?? null)
     : null;
 
+  const accountOptions = accounts.map((a) => ({ value: a.id, label: a.name }));
+
   return (
     <div
       className={cn(
@@ -141,7 +197,7 @@ export function PendingTransactionRow({
     >
       {/* Left: category + meta */}
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        {/* Primary: category (picker when pending, label when resolved) */}
+        {/* Primary: category picker when pending, label when resolved */}
         {isPending ? (
           <CategoryCascadePicker
             categories={categories}
@@ -157,63 +213,51 @@ export function PendingTransactionRow({
           />
         ) : (
           <div className="flex min-w-0 items-center gap-2">
-            <CategoryIcon
-              icon={resolvedCategory?.icon}
-              glyphClassName="text-muted-foreground"
-            />
+            <CategoryIcon icon={resolvedCategory?.icon} glyphClassName="text-muted-foreground" />
             <span className="truncate type-body-14 font-medium text-foreground">
               {resolvedCategory?.name ?? selectCategoryPlaceholder}
             </span>
           </div>
         )}
 
-        {/* Secondary: merchant · date · kind · account · hint · status */}
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-0 type-body-12 text-muted-foreground">
+        {/* Secondary metadata row */}
+        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0 type-body-12 text-muted-foreground">
           <span className="max-w-[200px] truncate">{title}</span>
-          <span>·</span>
+          <span className="opacity-40">·</span>
           <span className="shrink-0">{formatDate(occurredAt)}</span>
 
-          {/* Kind picker (banking import only) */}
-          {kindOptions && onKindChange && (
+          {/* Kind picker */}
+          {kindOptions && onKindChange && isPending && (
             <>
-              <span>·</span>
-              <select
+              <span className="opacity-40">·</span>
+              <InlinePicker
                 value={kind}
-                onChange={(e) => onKindChange(e.target.value)}
-                className="m-0 appearance-none border-0 bg-transparent p-0 outline-none type-body-12 cursor-pointer text-muted-foreground transition-colors hover:text-foreground"
-              >
-                {kindOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => v && onKindChange(v)}
+                options={kindOptions}
+                placeholder={kind}
+              />
             </>
           )}
 
-          {/* Suggested category hint when unassigned */}
+          {/* Suggested category hint */}
           {suggestedCategoryName && !resolvedCategoryId && isPending && (
             <>
-              <span>·</span>
-              <span className="italic opacity-70">{suggestedCategoryName}</span>
+              <span className="opacity-40">·</span>
+              <span className="italic opacity-60">{suggestedCategoryName}</span>
             </>
           )}
 
-          {/* Source account (debit side) */}
+          {/* Source account */}
           {needsSource && accounts.length > 0 && (
             <>
-              <span>·</span>
+              <span className="opacity-40">·</span>
               {isPending && onAccountChange ? (
-                <select
-                  value={resolvedAccountId ?? ""}
-                  onChange={(e) => onAccountChange(e.target.value || null)}
-                  className="m-0 appearance-none border-0 bg-transparent p-0 outline-none type-body-12 cursor-pointer text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  <option value="">{sourceAccountPlaceholder}</option>
-                  {accounts.map((a) => (
-                    <option key={a.id} value={a.id}>{a.name}</option>
-                  ))}
-                </select>
+                <InlinePicker
+                  value={resolvedAccountId}
+                  onChange={onAccountChange}
+                  options={accountOptions}
+                  placeholder={sourceAccountPlaceholder}
+                />
               ) : resolvedSourceAccount ? (
                 <span>{resolvedSourceAccount.name}</span>
               ) : (
@@ -222,21 +266,17 @@ export function PendingTransactionRow({
             </>
           )}
 
-          {/* Destination account (credit side) */}
+          {/* Destination account */}
           {needsDestination && accounts.length > 0 && (
             <>
-              <span>{needsSource ? "→" : "·"}</span>
+              <span className={needsSource ? "" : "opacity-40"}>{needsSource ? "→" : "·"}</span>
               {isPending && onDestinationAccountChange ? (
-                <select
-                  value={resolvedDestinationAccountId ?? ""}
-                  onChange={(e) => onDestinationAccountChange(e.target.value || null)}
-                  className="m-0 appearance-none border-0 bg-transparent p-0 outline-none type-body-12 cursor-pointer text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  <option value="">{destinationAccountPlaceholder}</option>
-                  {accounts.map((a) => (
-                    <option key={a.id} value={a.id}>{a.name}</option>
-                  ))}
-                </select>
+                <InlinePicker
+                  value={resolvedDestinationAccountId}
+                  onChange={onDestinationAccountChange}
+                  options={accountOptions}
+                  placeholder={destinationAccountPlaceholder}
+                />
               ) : resolvedDestAccount ? (
                 <span>{resolvedDestAccount.name}</span>
               ) : (
@@ -245,27 +285,23 @@ export function PendingTransactionRow({
             </>
           )}
 
-          {/* Legacy single-account fallback (banking-view usage) */}
+          {/* Legacy single-account fallback (banking-view usage without source/dest distinction) */}
           {!needsSource && !needsDestination && accounts.length > 0 && isPending && onAccountChange && (
             <>
-              <span>·</span>
-              <select
-                value={resolvedAccountId ?? ""}
-                onChange={(e) => onAccountChange(e.target.value || null)}
-                className="m-0 appearance-none border-0 bg-transparent p-0 outline-none type-body-12 cursor-pointer text-muted-foreground transition-colors hover:text-foreground"
-              >
-                <option value="">{noAccountPlaceholder}</option>
-                {accounts.map((a) => (
-                  <option key={a.id} value={a.id}>{a.name}</option>
-                ))}
-              </select>
+              <span className="opacity-40">·</span>
+              <InlinePicker
+                value={resolvedAccountId}
+                onChange={onAccountChange}
+                options={accountOptions}
+                placeholder={noAccountPlaceholder}
+              />
             </>
           )}
 
-          {/* Resolved status label */}
+          {/* Status label when resolved */}
           {!isPending && statusLabel && (
             <>
-              <span>·</span>
+              <span className="opacity-40">·</span>
               <span
                 className={cn(
                   isApproved && "text-emerald-600 dark:text-emerald-500",
@@ -283,9 +319,7 @@ export function PendingTransactionRow({
       <span
         className={cn(
           "shrink-0 pt-0.5 tabular-nums type-body-14 font-semibold",
-          CREDIT_KINDS.has(kind)
-            ? "text-emerald-600 dark:text-emerald-500"
-            : "text-foreground",
+          CREDIT_KINDS.has(kind) ? "text-emerald-600 dark:text-emerald-500" : "text-foreground",
           saving && "opacity-50",
         )}
       >
