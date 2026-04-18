@@ -26,85 +26,85 @@
       "signedIn": "Signed in"
     },
     "empty": {
-    "noAccountsYet": "No accounts yet.",
-    "noTransactionsYet": "No transactions yet."
+      "noAccountsYet": "No accounts yet.",
+      "noTransactionsYet": "No transactions yet."
     },
     "errors": {
-    "unauthorized": "Session expired. Reload the page and sign in again.",
-    "unexpectedResponse": "Finance API returned an unexpected response.",
-    "requestFailed": "Request failed.",
-    "requestTimedOut": "Finance request timed out. Check the dev server and Supabase connection.",
-    "finance": {
-      "load": "Unable to load finance data.",
-      "schemaOutOfDate": "Supabase schema is out of date. Run `npx supabase db push` and reload the app."
+      "unauthorized": "Session expired. Reload the page and sign in again.",
+      "unexpectedResponse": "Finance API returned an unexpected response.",
+      "requestFailed": "Request failed.",
+      "requestTimedOut": "Finance request timed out. Check the dev server and Supabase connection.",
+      "finance": {
+        "load": "Unable to load finance data.",
+        "schemaOutOfDate": "Supabase schema is out of date. Run `npx supabase db push` and reload the app."
+      },
+      "imports": {
+        "load": "Unable to load imported transactions.",
+        "upload": "Unable to import CSV file.",
+        "update": "Unable to update imported transaction.",
+        "confirm": "Unable to confirm imported transaction.",
+        "delete": "Unable to delete import batch.",
+        "deleteTransaction": "Unable to delete imported transaction.",
+        "walletNotFound": "Wallet not found.",
+        "debtWalletRequired": "Choose the debt account before confirming this import.",
+        "debtWalletDifferentRequired": "Choose a different debt account for this payment.",
+        "transferWalletDifferentRequired": "Choose a different destination wallet for this transfer.",
+        "transactionNotFound": "Imported transaction not found.",
+        "batchNotFound": "Import batch not found.",
+        "transactionDeleteDraftOnly": "Only draft imported transactions can be deleted.",
+        "walletRequired": "Choose a wallet before importing.",
+        "fileRequired": "Choose a CSV file to import.",
+        "emptyFile": "CSV file is empty.",
+        "invalidFile": "CSV file did not contain recognizable transaction rows."
+      },
+      "wallet": {
+        "create": "Unable to create wallet.",
+        "update": "Unable to update wallet.",
+        "delete": "Unable to delete wallet."
+      },
+      "allocation": {
+        "walletRequired": "Wallet is required.",
+        "create": "Unable to create goal.",
+        "update": "Unable to update goal.",
+        "delete": "Unable to delete goal."
+      },
+      "category": {
+        "create": "Unable to create category.",
+        "update": "Unable to update category.",
+        "delete": "Unable to delete category.",
+        "notFound": "Category not found.",
+        "replacementRequired": "Choose a replacement category before deleting this category.",
+        "replacementNotFound": "Replacement category not found.",
+        "replacementDifferent": "Replacement category must be different.",
+        "replacementSameType": "Replacement category must have the same type.",
+        "parentNotFound": "Parent category not found.",
+        "parentSameType": "Parent category must have the same type.",
+        "cannotBeOwnParent": "A category cannot be its own parent.",
+        "cannotMoveUnderDescendant": "A category cannot be moved under its own descendant."
+      },
+      "transaction": {
+        "create": "Unable to create transaction.",
+        "update": "Unable to update transaction.",
+        "delete": "Unable to delete transaction.",
+        "notFound": "Transaction not found.",
+        "scheduleNotFound": "Recurring transaction series not found.",
+        "sourceNotFound": "Source account not found.",
+        "destinationNotFound": "Destination account not found.",
+        "categoryNotFound": "Category not found.",
+        "goalNotFound": "Savings goal not found.",
+        "categoryTypeMismatch": "Choose a category with the matching type.",
+        "debtCategoryExpenseOnly": "Debt payment interest can only use an expense category.",
+        "goalWalletMismatch": "Selected savings goal must belong to the savings wallet used in the transaction.",
+        "saveToGoalNeedsSavings": "Save to goal must land in a savings wallet.",
+        "spendFromGoalNeedsSavings": "Spend from goal must start from a savings wallet.",
+        "debtNeedsDebtAccount": "Debt payment must target a debt account.",
+        "transferNoCategory": "Transfers do not use categories."
+      }
     },
-    "imports": {
-      "load": "Unable to load imported transactions.",
-      "upload": "Unable to import CSV file.",
-      "update": "Unable to update imported transaction.",
-      "confirm": "Unable to confirm imported transaction.",
-      "delete": "Unable to delete import batch.",
-      "deleteTransaction": "Unable to delete imported transaction.",
-      "walletNotFound": "Wallet not found.",
-      "debtWalletRequired": "Choose the debt account before confirming this import.",
-      "debtWalletDifferentRequired": "Choose a different debt account for this payment.",
-      "transferWalletDifferentRequired": "Choose a different destination wallet for this transfer.",
-      "transactionNotFound": "Imported transaction not found.",
-      "batchNotFound": "Import batch not found.",
-      "transactionDeleteDraftOnly": "Only draft imported transactions can be deleted.",
-      "walletRequired": "Choose a wallet before importing.",
-      "fileRequired": "Choose a CSV file to import.",
-      "emptyFile": "CSV file is empty.",
-      "invalidFile": "CSV file did not contain recognizable transaction rows."
-    },
-    "wallet": {
-      "create": "Unable to create wallet.",
-      "update": "Unable to update wallet.",
-      "delete": "Unable to delete wallet."
-    },
-    "allocation": {
-      "walletRequired": "Wallet is required.",
-      "create": "Unable to create goal.",
-      "update": "Unable to update goal.",
-      "delete": "Unable to delete goal."
-    },
-    "category": {
-      "create": "Unable to create category.",
-      "update": "Unable to update category.",
-      "delete": "Unable to delete category.",
-      "notFound": "Category not found.",
-      "replacementRequired": "Choose a replacement category before deleting this category.",
-      "replacementNotFound": "Replacement category not found.",
-      "replacementDifferent": "Replacement category must be different.",
-      "replacementSameType": "Replacement category must have the same type.",
-      "parentNotFound": "Parent category not found.",
-      "parentSameType": "Parent category must have the same type.",
-      "cannotBeOwnParent": "A category cannot be its own parent.",
-      "cannotMoveUnderDescendant": "A category cannot be moved under its own descendant."
-    },
-    "transaction": {
-      "create": "Unable to create transaction.",
-      "update": "Unable to update transaction.",
-      "delete": "Unable to delete transaction.",
-      "notFound": "Transaction not found.",
-      "scheduleNotFound": "Recurring transaction series not found.",
-      "sourceNotFound": "Source account not found.",
-      "destinationNotFound": "Destination account not found.",
-      "categoryNotFound": "Category not found.",
-      "goalNotFound": "Savings goal not found.",
-      "categoryTypeMismatch": "Choose a category with the matching type.",
-      "debtCategoryExpenseOnly": "Debt payment interest can only use an expense category.",
-      "goalWalletMismatch": "Selected savings goal must belong to the savings wallet used in the transaction.",
-      "saveToGoalNeedsSavings": "Save to goal must land in a savings wallet.",
-      "spendFromGoalNeedsSavings": "Spend from goal must start from a savings wallet.",
-      "debtNeedsDebtAccount": "Debt payment must target a debt account.",
-      "transferNoCategory": "Transfers do not use categories."
+    "currencyGroups": {
+      "primary": "Primary currencies",
+      "secondary": "Other major currencies"
     }
-  },
-  "currencyGroups": {
-    "primary": "Primary currencies",
-    "secondary": "Other major currencies"
-  }
   },
   "navigation": {
     "overview": "Overview",
@@ -514,7 +514,10 @@
       "transfer": "Transfer",
       "save_to_goal": "Put on saving",
       "spend_from_goal": "Spend from saving",
-      "debt_payment": "Debt payment"
+      "debt_payment": "Debt payment",
+      "investment": "Investment",
+      "refund": "Refund",
+      "adjustment": "Balance adjustment"
     },
     "kindDescriptions": {
       "income": "Salary, freelance, refunds",
@@ -522,7 +525,10 @@
       "transfer": "Move money between your accounts",
       "save_to_goal": "Move money into a savings goal",
       "spend_from_goal": "Use money from a savings goal",
-      "debt_payment": "Principal, interest, extra payment"
+      "debt_payment": "Principal, interest, extra payment",
+      "investment": "Stocks, funds, crypto, and other assets",
+      "refund": "Return of a previous payment",
+      "adjustment": "Correct the actual wallet balance"
     },
     "view": {
       "title": "Transactions",
@@ -570,7 +576,10 @@
         "entries": "Entries",
         "row": "Row",
         "details": "Transaction details",
-        "additional": "Additional details"
+        "additional": "Additional details",
+        "newBalance": "New balance",
+        "currentBalance": "Current balance",
+        "adjustmentDiff": "Difference"
       },
       "entryTypes": {
         "oneOff": "One-time",
@@ -601,14 +610,8 @@
         "category": "Choose category",
         "goal": "Choose savings goal",
         "note": "Add notes",
-        "lineNote": "Optional note"
-      },
-      "actions": {
-        "addRow": "Add row"
-      },
-      "footer": {
-        "batchSummary": "{count, plural, one {# row ready to save.} other {# rows ready to save.}}",
-        "singleSummary": "Review the details and save when ready."
+        "lineNote": "Optional note",
+        "adjustmentAccount": "Choose wallet to adjust"
       },
       "actions": {
         "addOperation": "Add transaction",
@@ -616,6 +619,10 @@
         "addLineItem": "Add row",
         "duplicateLineItem": "Duplicate row",
         "removeLineItem": "Remove row"
+      },
+      "footer": {
+        "batchSummary": "{count, plural, one {# row ready to save.} other {# rows ready to save.}}",
+        "singleSummary": "Review the details and save when ready."
       },
       "submit": {
         "add": "Save transaction",
@@ -645,8 +652,11 @@
         "destinationAmountRequired": "Destination amount is required for account-to-account moves.",
         "lineItemsRequired": "Add at least one transaction row.",
         "recurringMustBePlanned": "Recurring transactions must start as planned.",
-        "recurrenceUntilBeforeStart": "End repeat must be on or after the start date."
-      }
+        "recurrenceUntilBeforeStart": "End repeat must be on or after the start date.",
+        "adjustmentBalanceRequired": "Enter the new balance.",
+        "adjustmentNoDiff": "New balance matches the current balance."
+      },
+      "adjustmentTitle": "Balance adjustment"
     },
     "actions": {
       "menu": "Transaction actions",

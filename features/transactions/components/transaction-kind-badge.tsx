@@ -1,4 +1,4 @@
-import { ArrowLeftRight, BanknoteArrowDown, BanknoteArrowUp, Landmark, PiggyBank } from "lucide-react";
+import { ArrowLeftRight, BanknoteArrowDown, BanknoteArrowUp, Landmark, PiggyBank, RotateCcw, SlidersHorizontal, TrendingUp } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { InlineIcon } from "@/components/ui/inline-icon";
@@ -54,6 +54,27 @@ const kindConfig: Record<
   debt_payment: {
     labelKey: "debt_payment",
     icon: Landmark,
+    className: "bg-secondary text-foreground",
+    indicatorClassName: "bg-secondary text-foreground",
+    amountTone: "default",
+  },
+  investment: {
+    labelKey: "investment",
+    icon: TrendingUp,
+    className: "bg-secondary text-foreground",
+    indicatorClassName: "bg-secondary text-foreground",
+    amountTone: "default",
+  },
+  refund: {
+    labelKey: "refund",
+    icon: RotateCcw,
+    className: "bg-secondary text-foreground",
+    indicatorClassName: "bg-secondary text-foreground",
+    amountTone: "positive",
+  },
+  adjustment: {
+    labelKey: "adjustment",
+    icon: SlidersHorizontal,
     className: "bg-secondary text-foreground",
     indicatorClassName: "bg-secondary text-foreground",
     amountTone: "default",
