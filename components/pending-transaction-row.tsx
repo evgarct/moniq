@@ -5,7 +5,7 @@ import { CategoryIcon } from "@/components/category-icon";
 import { getCurrencySymbol } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import type { CurrencyCode } from "@/types/currency";
-import type { Category } from "@/types/finance";
+import type { Category, TransactionKind } from "@/types/finance";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -18,7 +18,7 @@ export interface PendingTransactionRowProps {
   title: string;
   amount: number;
   currency: string | null;
-  kind: "income" | "expense";
+  kind: TransactionKind;
   occurredAt: string;
 
   // Category — pass categories already filtered by kind
@@ -54,8 +54,10 @@ export interface PendingTransactionRowProps {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatAmount(amount: number, currency: string | null, kind: "income" | "expense") {
-  const sign = kind === "expense" ? "−" : "+";
+const CREDIT_KINDS = new Set<TransactionKind>(["income", "refund", "adjustment"]);
+
+function formatAmount(amount: number, currency: string | null, kind: TransactionKind) {
+  const sign = CREDIT_KINDS.has(kind) ? "+" : "−";
   try {
     const numStr = currency
       ? new Intl.NumberFormat(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)

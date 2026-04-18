@@ -7,8 +7,19 @@ import { Button } from "@/components/ui/button";
 import { Surface } from "@/components/surface";
 import { PendingTransactionRow } from "@/components/pending-transaction-row";
 import { cn } from "@/lib/utils";
-import type { Category, Account } from "@/types/finance";
+import type { Category, Account, TransactionKind } from "@/types/finance";
 import type { McpBatch, McpBatchItem } from "@/features/inbox/hooks/use-mcp-batches";
+
+const ALL_KINDS: TransactionKind[] = [
+  "expense", "income", "transfer", "save_to_goal", "spend_from_goal",
+  "debt_payment", "investment", "refund", "adjustment",
+];
+
+function categoryTypeForKind(kind: TransactionKind): "income" | "expense" | null {
+  if (kind === "income") return "income";
+  if (kind === "expense" || kind === "investment" || kind === "refund" || kind === "debt_payment") return "expense";
+  return null;
+}
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, {
@@ -30,6 +41,9 @@ export function McpBatchSection({
   onFinalized?: () => void;
 }) {
   const t = useTranslations("claudeInbox");
+  const tKinds = useTranslations("transactions.kinds");
+
+  const kindOptions = ALL_KINDS.map((k) => ({ value: k, label: tKinds(k) }));
   const [batch, setBatch] = useState(initialBatch);
   const [expanded, setExpanded] = useState(true);
   const [approvingAll, setApprovingAll] = useState(false);
@@ -176,7 +190,8 @@ export function McpBatchSection({
             <div className="flex flex-col">
               {batch.mcp_batch_items.map((item) => {
                 const isPending = item.status === "pending";
-                const categoriesForKind = categories.filter((c) => c.type === item.kind);
+                const catType = categoryTypeForKind(item.kind);
+                const categoriesForKind = catType ? categories.filter((c) => c.type === catType) : [];
 
                 return (
                   <PendingTransactionRow
@@ -190,6 +205,8 @@ export function McpBatchSection({
                     resolvedCategoryId={item.resolved_category_id}
                     suggestedCategoryName={item.suggested_category_name}
                     onCategoryChange={(id) => void patchItem(item.id, { resolved_category_id: id })}
+                    kindOptions={kindOptions}
+                    onKindChange={(kind) => void patchItem(item.id, { kind: kind as TransactionKind, resolved_category_id: null })}
                     accounts={accountOptions}
                     resolvedAccountId={item.resolved_account_id}
                     onAccountChange={(id) => void patchItem(item.id, { resolved_account_id: id })}
