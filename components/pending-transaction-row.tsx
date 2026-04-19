@@ -9,10 +9,11 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
+import { InlineIcon } from "@/components/ui/inline-icon";
 import { getCurrencySymbol } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
+import type { LucideIcon } from "lucide-react";
 import type { CurrencyCode } from "@/types/currency";
 import type { Category, TransactionKind } from "@/types/finance";
 
@@ -37,7 +38,7 @@ export interface PendingTransactionRowProps {
   onCategoryChange: (id: string | null) => void;
 
   // Accounts — source (debit) side
-  accounts?: { id: string; name: string }[];
+  accounts?: { id: string; name: string; icon?: LucideIcon }[];
   resolvedAccountId?: string | null;
   onAccountChange?: (id: string | null) => void;
 
@@ -94,6 +95,12 @@ function formatDate(iso: string) {
 // InlinePicker — design-system Select styled for inline metadata rows
 // ---------------------------------------------------------------------------
 
+type PickerOption = {
+  value: string;
+  label: string;
+  icon?: LucideIcon;
+};
+
 function InlinePicker({
   value,
   onChange,
@@ -102,30 +109,35 @@ function InlinePicker({
 }: {
   value: string | null;
   onChange: (v: string | null) => void;
-  options: { value: string; label: string }[];
+  options: PickerOption[];
   placeholder: string;
 }) {
+  const selected = options.find((o) => o.value === value);
+  const Icon = selected?.icon;
+
   return (
-    <Select
-      value={value ?? ""}
-      onValueChange={(v) => onChange(v || null)}
-    >
+    <Select value={value ?? ""} onValueChange={(v) => onChange(v || null)}>
       <SelectTrigger
         className={cn(
           "inline-flex h-auto w-auto items-center gap-0.5 border-0 bg-transparent p-0 text-xs shadow-none outline-none",
           "focus-visible:ring-0 focus-visible:border-transparent",
-          "hover:text-foreground transition-colors",
-          "[&>svg:last-child]:hidden",
+          "hover:text-foreground transition-colors [&>svg:last-child]:hidden",
           value ? "text-muted-foreground" : "text-muted-foreground/50",
         )}
       >
-        <SelectValue placeholder={placeholder} />
+        <span className="inline-flex items-center gap-1">
+          {Icon && <InlineIcon icon={Icon} className="size-3 opacity-60" />}
+          {selected?.label ?? placeholder}
+        </span>
         <ChevronDown className="size-3 shrink-0 opacity-50" />
       </SelectTrigger>
       <SelectContent align="start" className="min-w-40">
         {options.map((opt) => (
           <SelectItem key={opt.value} value={opt.value}>
-            {opt.label}
+            <span className="flex items-center gap-2">
+              {opt.icon && <InlineIcon icon={opt.icon} className="size-3.5 text-muted-foreground" />}
+              {opt.label}
+            </span>
           </SelectItem>
         ))}
       </SelectContent>
@@ -181,7 +193,7 @@ export function PendingTransactionRow({
     ? (accounts.find((a) => a.id === resolvedDestinationAccountId) ?? null)
     : null;
 
-  const accountOptions = accounts.map((a) => ({ value: a.id, label: a.name }));
+  const accountOptions = accounts.map((a) => ({ value: a.id, label: a.name, icon: a.icon }));
 
   return (
     <div
@@ -234,49 +246,49 @@ export function PendingTransactionRow({
             </>
           )}
 
-          {/* Suggested category hint */}
-          {suggestedCategoryName && !resolvedCategoryId && isPending && (
+          {/* Accounts — kept in one nowrap block to avoid mid-arrow line breaks */}
+          {accounts.length > 0 && (needsSource || needsDestination) && (
             <>
               <span className="opacity-40">·</span>
-              <span className="italic opacity-60">{suggestedCategoryName}</span>
-            </>
-          )}
-
-          {/* Source account */}
-          {needsSource && accounts.length > 0 && (
-            <>
-              <span className="opacity-40">·</span>
-              {isPending && onAccountChange ? (
-                <InlinePicker
-                  value={resolvedAccountId}
-                  onChange={onAccountChange}
-                  options={accountOptions}
-                  placeholder={sourceAccountPlaceholder}
-                />
-              ) : resolvedSourceAccount ? (
-                <span>{resolvedSourceAccount.name}</span>
-              ) : (
-                <span className="opacity-40">{sourceAccountPlaceholder}</span>
-              )}
-            </>
-          )}
-
-          {/* Destination account */}
-          {needsDestination && accounts.length > 0 && (
-            <>
-              <span className={needsSource ? "" : "opacity-40"}>{needsSource ? "→" : "·"}</span>
-              {isPending && onDestinationAccountChange ? (
-                <InlinePicker
-                  value={resolvedDestinationAccountId}
-                  onChange={onDestinationAccountChange}
-                  options={accountOptions}
-                  placeholder={destinationAccountPlaceholder}
-                />
-              ) : resolvedDestAccount ? (
-                <span>{resolvedDestAccount.name}</span>
-              ) : (
-                <span className="opacity-40">{destinationAccountPlaceholder}</span>
-              )}
+              <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                {needsSource && (
+                  isPending && onAccountChange ? (
+                    <InlinePicker
+                      value={resolvedAccountId}
+                      onChange={onAccountChange}
+                      options={accountOptions}
+                      placeholder={sourceAccountPlaceholder}
+                    />
+                  ) : resolvedSourceAccount ? (
+                    <span className="inline-flex items-center gap-1">
+                      {resolvedSourceAccount.icon && <InlineIcon icon={resolvedSourceAccount.icon} className="size-3 opacity-60" />}
+                      {resolvedSourceAccount.name}
+                    </span>
+                  ) : (
+                    <span className="opacity-40">{sourceAccountPlaceholder}</span>
+                  )
+                )}
+                {needsSource && needsDestination && (
+                  <span className="opacity-40">→</span>
+                )}
+                {needsDestination && (
+                  isPending && onDestinationAccountChange ? (
+                    <InlinePicker
+                      value={resolvedDestinationAccountId}
+                      onChange={onDestinationAccountChange}
+                      options={accountOptions}
+                      placeholder={destinationAccountPlaceholder}
+                    />
+                  ) : resolvedDestAccount ? (
+                    <span className="inline-flex items-center gap-1">
+                      {resolvedDestAccount.icon && <InlineIcon icon={resolvedDestAccount.icon} className="size-3 opacity-60" />}
+                      {resolvedDestAccount.name}
+                    </span>
+                  ) : (
+                    <span className="opacity-40">{destinationAccountPlaceholder}</span>
+                  )
+                )}
+              </span>
             </>
           )}
 
