@@ -6,6 +6,7 @@ import { Bot, ChevronDown, ChevronUp, Check, X, AlertCircle } from "lucide-react
 import { Button } from "@/components/ui/button";
 import { Surface } from "@/components/surface";
 import { PendingTransactionRow } from "@/components/pending-transaction-row";
+import { getAccountIcon } from "@/features/transactions/form/account-select";
 import { cn } from "@/lib/utils";
 import type { Category, Account, TransactionKind } from "@/types/finance";
 import type { McpBatch, McpBatchItem } from "@/features/inbox/hooks/use-mcp-batches";
@@ -124,7 +125,7 @@ export function McpBatchSection({
   }
 
   const isFinalised = batch.status !== "pending";
-  const accountOptions = accounts.map((a) => ({ id: a.id, name: a.name }));
+  const accountOptions = accounts.map((a) => ({ id: a.id, name: a.name, icon: getAccountIcon(a) }));
 
   return (
     <Surface tone="panel" padding="none">
