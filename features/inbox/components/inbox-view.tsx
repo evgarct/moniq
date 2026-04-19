@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useQueryClient } from "@tanstack/react-query";
-import { Bot, FileUp, Upload } from "lucide-react";
+import { Bot, FileUp, Info, Upload } from "lucide-react";
 
 import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useBankingData } from "@/features/banking/hooks/use-banking-data";
 import { useMcpBatches, mcpBatchesQueryKey } from "@/features/inbox/hooks/use-mcp-batches";
 import { bankingSnapshotQueryKey } from "@/features/banking/lib/banking-api";
@@ -22,13 +24,14 @@ import { cn } from "@/lib/utils";
 
 type Filter = "all" | "claude" | "csv";
 
-// ---------------------------------------------------------------------------
-// Unified batch list item (discriminated union for sorting)
-// ---------------------------------------------------------------------------
-
 type InboxEntry =
-  | { source: "claude"; batchId: string; createdAt: string }
-  | { source: "csv"; batchId: string; createdAt: string };
+  | { source: "claude"; batchId: string; createdAt: string; title: string; itemCount: number }
+  | { source: "csv"; batchId: string; createdAt: string; title: string; itemCount: number };
+
+type Selection = {
+  source: "claude" | "csv";
+  batchId: string;
+};
 
 // ---------------------------------------------------------------------------
 // Filter pill button
@@ -74,15 +77,29 @@ function FilterPill({
   );
 }
 
-// ---------------------------------------------------------------------------
-// Main view
-// ---------------------------------------------------------------------------
+function formatDateLabel(iso: string) {
+  return new Date(iso).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function sameSelection(a: Selection | null, b: Selection | null) {
+  return a?.source === b?.source && a?.batchId === b?.batchId;
+}
 
 export function InboxView() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const t = useTranslations("inbox" as any) as (key: string) => string;
+  const claudeT = useTranslations("claudeInbox");
+  const importsT = useTranslations("imports");
   const [filter, setFilter] = useState<Filter>("all");
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [selected, setSelected] = useState<Selection | null>(null);
+  const [mobileDetailsOpen, setMobileDetailsOpen] = useState(false);
+  const [leftPanelScrolled, setLeftPanelScrolled] = useState(false);
+  const [rightPanelScrolled, setRightPanelScrolled] = useState(false);
 
   const qc = useQueryClient();
 
@@ -110,11 +127,26 @@ export function InboxView() {
       })
     : [];
 
-  // Build a sorted list of entries for the unified feed
-  const allEntries: InboxEntry[] = [
-    ...mcpBatches.map((b) => ({ source: "claude" as const, batchId: b.id, createdAt: b.created_at })),
-    ...csvBatches.map((b) => ({ source: "csv" as const, batchId: b.id, createdAt: b.created_at })),
-  ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const allEntries: InboxEntry[] = useMemo(
+    () =>
+      [
+        ...mcpBatches.map((b) => ({
+          source: "claude" as const,
+          batchId: b.id,
+          createdAt: b.created_at,
+          title: b.source_description ?? claudeT("batch.defaultTitle"),
+          itemCount: b.mcp_batch_items.length,
+        })),
+        ...csvBatches.map((b) => ({
+          source: "csv" as const,
+          batchId: b.id,
+          createdAt: b.created_at,
+          title: b.file_name,
+          itemCount: bankingData?.draftTransactions.filter((tx) => tx.batch_id === b.id).length ?? 0,
+        })),
+      ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    [bankingData?.draftTransactions, claudeT, csvBatches, mcpBatches],
+  );
 
   const filteredEntries = allEntries.filter((entry) => {
     if (filter === "claude") return entry.source === "claude";
@@ -130,118 +162,254 @@ export function InboxView() {
   const wallets = bankingData?.wallets ?? [];
 
   const isLoading = bankingQuery.isLoading || mcpQuery.isLoading;
+  const selectedEntry = selected
+    ? filteredEntries.find((entry) => entry.source === selected.source && entry.batchId === selected.batchId) ?? null
+    : null;
+
+  useEffect(() => {
+    if (filteredEntries.length === 0) {
+      if (selected) {
+        setSelected(null);
+      }
+      if (mobileDetailsOpen) {
+        setMobileDetailsOpen(false);
+      }
+      return;
+    }
+
+    const currentSelection = selected ?? null;
+    const firstSelection: Selection = {
+      source: filteredEntries[0].source,
+      batchId: filteredEntries[0].batchId,
+    };
+
+    const hasCurrentSelection = filteredEntries.some(
+      (entry) => entry.source === currentSelection?.source && entry.batchId === currentSelection?.batchId,
+    );
+
+    if (!hasCurrentSelection && !sameSelection(currentSelection, firstSelection)) {
+      setSelected(firstSelection);
+    }
+  }, [filteredEntries, mobileDetailsOpen, selected]);
+
+  function openDetails(entry: InboxEntry) {
+    const nextSelection: Selection = { source: entry.source, batchId: entry.batchId };
+    setSelected(nextSelection);
+    if (typeof window !== "undefined" && !window.matchMedia("(min-width: 1024px)").matches) {
+      setMobileDetailsOpen(true);
+    }
+  }
+
+  function renderSelectedSection(entry: InboxEntry | null) {
+    if (!entry) {
+      return <EmptyState title={t("emptyTitle")} description={t("emptyDescription")} />;
+    }
+
+    if (entry.source === "claude") {
+      const batch = mcpBatches.find((item) => item.id === entry.batchId);
+      if (!batch) {
+        return <EmptyState title={t("emptyTitle")} description={t("emptyDescription")} />;
+      }
+      return (
+        <McpBatchSection
+          batch={batch}
+          categories={categories}
+          accounts={wallets}
+          onFinalized={handleMcpFinalized}
+        />
+      );
+    }
+
+    if (!bankingData) {
+      return <EmptyState title={t("emptyTitle")} description={t("emptyDescription")} />;
+    }
+
+    const batch = bankingData.batches.find((item) => item.id === entry.batchId);
+    const txs = bankingData.draftTransactions.filter((tx) => tx.batch_id === entry.batchId);
+    if (!batch || txs.length === 0) {
+      return <EmptyState title={t("emptyTitle")} description={t("emptyDescription")} />;
+    }
+
+    return (
+      <CsvBatchSection
+        batch={batch}
+        transactions={txs}
+        categories={categories}
+        wallets={wallets}
+        onFinalized={handleCsvFinalized}
+      />
+    );
+  }
 
   return (
     <>
-      {/* Page header */}
-      <div className="mb-5 flex items-start justify-between gap-3 sm:mb-6 sm:items-center">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground sm:text-2xl">{t("title")}</h1>
-          <p className="mt-0.5 text-[13px] text-muted-foreground">{t("description")}</p>
-        </div>
-        <Button
-          size="sm"
-          variant="outline"
-          className="shrink-0 gap-1.5"
-          onClick={() => setUploadOpen(true)}
-        >
-          <Upload className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">{t("importCsv")}</span>
-          <span className="sm:hidden">CSV</span>
-        </Button>
+      <div className="grid h-full w-full grid-cols-1 lg:grid-cols-[360px_minmax(0,1fr)]">
+        <section className="flex min-h-0 flex-col border-b border-border/40 bg-card lg:border-r lg:border-b-0 lg:border-r-border/25">
+          <div
+            className={cn(
+              "bg-card/96 backdrop-blur transition-shadow supports-[backdrop-filter]:bg-card/88",
+              leftPanelScrolled && "shadow-[0_10px_24px_-22px_rgba(28,22,17,0.75)]",
+            )}
+          >
+            <div className="flex flex-col gap-3 px-3 pt-4 pb-3 sm:gap-4 sm:px-6 sm:pt-7 sm:pb-5 lg:px-7 lg:pt-8 lg:pb-6">
+              <div className="flex items-start justify-between gap-3 px-1.5 sm:items-center sm:px-2.5">
+                <div className="flex min-w-0 items-center gap-2">
+                  <h1 className="min-w-0 truncate font-heading text-[28px] leading-none tracking-[-0.035em] text-foreground sm:type-h1">
+                    {t("title")}
+                  </h1>
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          className="rounded-md bg-transparent text-muted-foreground hover:bg-[#ece8e1] hover:text-foreground active:bg-[#e6e1d9]"
+                          aria-label={t("description")}
+                        />
+                      }
+                    >
+                      <Info className="size-4 translate-y-[2px]" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-72 text-balance">{t("description")}</TooltipContent>
+                  </Tooltip>
+                </div>
+
+                <Button size="sm" variant="outline" className="shrink-0 gap-1.5" onClick={() => setUploadOpen(true)}>
+                  <Upload className="h-3.5 w-3.5" />
+                  {t("importCsv")}
+                </Button>
+              </div>
+
+              {!isLoading && totalCount > 0 ? (
+                <div className="flex flex-wrap gap-2 px-1.5 sm:px-2.5">
+                  <FilterPill
+                    active={filter === "all"}
+                    count={totalCount}
+                    label={t("filterAll")}
+                    onClick={() => setFilter("all")}
+                  />
+                  <FilterPill
+                    active={filter === "claude"}
+                    count={claudeCount}
+                    icon={Bot}
+                    label={t("filterClaude")}
+                    onClick={() => setFilter("claude")}
+                  />
+                  <FilterPill
+                    active={filter === "csv"}
+                    count={csvCount}
+                    icon={FileUp}
+                    label={t("filterCsv")}
+                    onClick={() => setFilter("csv")}
+                  />
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          <div
+            className="min-h-0 flex-1 overflow-auto px-3 py-2 sm:px-6 sm:py-4 lg:px-7"
+            onScroll={(event) => setLeftPanelScrolled(event.currentTarget.scrollTop > 0)}
+          >
+            {isLoading ? (
+              <div className="flex flex-col gap-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-20 animate-pulse rounded-2xl bg-muted/40" />
+                ))}
+              </div>
+            ) : filteredEntries.length === 0 ? (
+              <EmptyState
+                title={t("emptyTitle")}
+                description={t("emptyDescription")}
+                action={
+                  <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setUploadOpen(true)}>
+                    <Upload className="h-3.5 w-3.5" />
+                    {t("importCsv")}
+                  </Button>
+                }
+              />
+            ) : (
+              <div className="flex flex-col">
+                {filteredEntries.map((entry) => {
+                  const isActive = selectedEntry?.source === entry.source && selectedEntry.batchId === entry.batchId;
+                  const SourceIcon = entry.source === "claude" ? Bot : FileUp;
+                  const sourceLabel = entry.source === "claude" ? t("filterClaude") : t("filterCsv");
+
+                  return (
+                    <button
+                      key={`${entry.source}:${entry.batchId}`}
+                      type="button"
+                      onClick={() => openDetails(entry)}
+                      className={cn(
+                        "flex w-full items-start gap-3 border-t border-border px-2 py-3 text-left first:border-t-0",
+                        "hover:bg-secondary/50",
+                        isActive && "bg-secondary/60",
+                      )}
+                    >
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted/45">
+                        <SourceIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="type-body-14 truncate font-medium text-foreground">{entry.title}</p>
+                        <p className="type-body-12 text-muted-foreground">
+                          {sourceLabel} · {formatDateLabel(entry.createdAt)} ·{" "}
+                          {entry.source === "claude"
+                            ? claudeT("batch.items", { count: entry.itemCount })
+                            : importsT("inbox.count", { count: entry.itemCount })}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="hidden min-h-0 flex-col bg-background lg:flex">
+          <div
+            className={cn(
+              "sticky top-0 z-10 bg-background/94 backdrop-blur transition-shadow supports-[backdrop-filter]:bg-background/84",
+              rightPanelScrolled && "shadow-[0_10px_24px_-22px_rgba(28,22,17,0.75)]",
+            )}
+          >
+            <div className="px-3 pt-4 pb-3 sm:px-6 sm:pt-7 sm:pb-5 lg:px-7 lg:pt-8 lg:pb-6">
+              <h2 className="min-w-0 truncate font-heading text-[28px] leading-none tracking-[-0.035em] text-foreground sm:type-h1">
+                {selectedEntry?.title ?? t("title")}
+              </h2>
+            </div>
+          </div>
+
+          <div
+            className="min-h-0 flex-1 overflow-auto px-3 pb-4 pt-2 sm:px-6 sm:pb-5 lg:px-7"
+            onScroll={(event) => setRightPanelScrolled(event.currentTarget.scrollTop > 0)}
+          >
+            {renderSelectedSection(selectedEntry)}
+          </div>
+        </section>
       </div>
 
-      {/* Filter tabs */}
-      {!isLoading && totalCount > 0 && (
-        <div className="mb-5 flex flex-wrap gap-2">
-          <FilterPill
-            active={filter === "all"}
-            count={totalCount}
-            label={t("filterAll")}
-            onClick={() => setFilter("all")}
-          />
-          <FilterPill
-            active={filter === "claude"}
-            count={claudeCount}
-            icon={Bot}
-            label={t("filterClaude")}
-            onClick={() => setFilter("claude")}
-          />
-          <FilterPill
-            active={filter === "csv"}
-            count={csvCount}
-            icon={FileUp}
-            label={t("filterCsv")}
-            onClick={() => setFilter("csv")}
-          />
-        </div>
-      )}
+      <Sheet open={mobileDetailsOpen} onOpenChange={setMobileDetailsOpen}>
+        <SheetContent side="fullscreen" className="gap-0 p-0 lg:hidden" showCloseButton={false}>
+          <div className="min-h-0 flex-1 overflow-auto">
+            <div className="sticky top-0 z-10 bg-background/94 backdrop-blur supports-[backdrop-filter]:bg-background/84">
+              <div className="px-4 pt-5 pb-3">
+                <div className="flex items-center justify-between gap-3">
+                  <h2 className="min-w-0 truncate font-heading text-[24px] leading-none tracking-[-0.03em] text-foreground">
+                    {selectedEntry?.title ?? t("title")}
+                  </h2>
+                  <Button type="button" size="sm" variant="outline" onClick={() => setMobileDetailsOpen(false)}>
+                    {t("backToList")}
+                  </Button>
+                </div>
+              </div>
+            </div>
 
-      {/* Content */}
-      {isLoading ? (
-        <div className="flex flex-col gap-3">
-          {[1, 2].map((i) => (
-            <div
-              key={i}
-              className="h-24 animate-pulse rounded-2xl bg-muted/40"
-            />
-          ))}
-        </div>
-      ) : filteredEntries.length === 0 ? (
-        <EmptyState
-          title={t("emptyTitle")}
-          description={t("emptyDescription")}
-          action={
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-              onClick={() => setUploadOpen(true)}
-            >
-              <Upload className="h-3.5 w-3.5" />
-              {t("importCsv")}
-            </Button>
-          }
-        />
-      ) : (
-        <div className="flex flex-col gap-4">
-          {filteredEntries.map((entry) => {
-            if (entry.source === "claude") {
-              const batch = mcpBatches.find((b) => b.id === entry.batchId);
-              if (!batch) return null;
-              return (
-                <McpBatchSection
-                  key={batch.id}
-                  batch={batch}
-                  categories={categories}
-                  accounts={wallets}
-                  onFinalized={handleMcpFinalized}
-                />
-              );
-            }
+            <div className="px-4 pb-4 pt-2">{renderSelectedSection(selectedEntry)}</div>
+          </div>
+        </SheetContent>
+      </Sheet>
 
-            if (entry.source === "csv" && bankingData) {
-              const batch = bankingData.batches.find((b) => b.id === entry.batchId);
-              const txs = bankingData.draftTransactions.filter((tx) => tx.batch_id === entry.batchId);
-              if (!batch || txs.length === 0) return null;
-              return (
-                <CsvBatchSection
-                  key={batch.id}
-                  batch={batch}
-                  transactions={txs}
-                  categories={categories}
-                  wallets={wallets}
-                  onFinalized={handleCsvFinalized}
-                />
-              );
-            }
-
-            return null;
-          })}
-        </div>
-      )}
-
-      {/* CSV Upload Sheet */}
       <CsvUploadSheet
         open={uploadOpen}
         onOpenChange={setUploadOpen}

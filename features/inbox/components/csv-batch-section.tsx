@@ -8,6 +8,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Surface } from "@/components/surface";
 import { PendingTransactionRow } from "@/components/pending-transaction-row";
+import { ViewportScrollRegion } from "@/features/inbox/components/viewport-scroll-region";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -168,7 +169,8 @@ export function CsvBatchSection({
 
   return (
     <>
-      <Surface tone="panel" padding="none">
+      <ViewportScrollRegion overflow={false} className="overflow-hidden">
+        <Surface tone="panel" padding="none" className="flex h-full min-h-0 flex-col">
         {/* Header */}
         <div className="flex items-center gap-3 px-4 py-3.5 sm:px-5 sm:py-4">
           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/40">
@@ -224,8 +226,8 @@ export function CsvBatchSection({
 
         {/* Items */}
         {expanded && (
-          <div className="px-4 pb-4 sm:px-5">
-            <div className="flex flex-col">
+          <div className="flex min-h-0 flex-1 flex-col px-4 pb-4 sm:px-5">
+            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain pr-1 -mr-1">
               {transactions.map((tx) => {
                 const categoriesForKind = categories.filter((c) => c.type === tx.kind);
                 const isTransfer = tx.kind === "transfer" || tx.kind === "debt_payment";
@@ -289,7 +291,8 @@ export function CsvBatchSection({
             </div>
           </div>
         )}
-      </Surface>
+        </Surface>
+      </ViewportScrollRegion>
 
       {/* Edit merchant sheet */}
       <EditSheet

@@ -156,3 +156,19 @@ export const DenseScroll: Story = {
     await expect(canvas.getByRole("heading", { name: "Balance", level: 1 })).toBeInTheDocument();
   },
 };
+
+export const MobileLeftPanelScroll: Story = {
+  args: {
+    data: scrollSnapshot,
+  },
+  parameters: {
+    viewport: {
+      defaultViewport: "mobile1",
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("heading", { name: "Balance", level: 1 })).toBeInTheDocument();
+    await expect(canvas.getByText("Cash 1")).toBeInTheDocument();
+  },
+};

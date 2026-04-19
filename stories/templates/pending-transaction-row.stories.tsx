@@ -1,10 +1,11 @@
+import { Wallet, PiggyBank, CreditCard } from "lucide-react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { PendingTransactionRow } from "@/components/pending-transaction-row";
 
 const ACCOUNTS = [
-  { id: "acc-1", name: "Wallet" },
-  { id: "acc-2", name: "Savings" },
-  { id: "acc-3", name: "Credit Card" },
+  { id: "acc-1", name: "Wallet", icon: Wallet },
+  { id: "acc-2", name: "Savings", icon: PiggyBank },
+  { id: "acc-3", name: "Credit Card", icon: CreditCard },
 ];
 
 const CATEGORIES_EXPENSE = [

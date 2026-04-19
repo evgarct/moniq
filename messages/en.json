@@ -715,6 +715,7 @@
     "title": "Inbox",
     "description": "Review pending transactions from Claude and CSV imports.",
     "importCsv": "Import CSV",
+    "backToList": "Back to list",
     "filterAll": "All",
     "filterClaude": "Claude",
     "filterCsv": "CSV",

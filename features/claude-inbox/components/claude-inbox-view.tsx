@@ -213,7 +213,7 @@ function BatchSection({
           {batch.mcp_batch_items.length === 0 ? (
             <p className="py-4 text-center type-body-14 text-muted-foreground">—</p>
           ) : (
-            <div className="flex flex-col">
+            <div className="flex flex-col max-h-[28rem] overflow-y-auto overscroll-contain pr-1 -mr-1">
               {batch.mcp_batch_items.map((item) => {
                 const isPending = item.status === "pending";
                 const categoriesForKind = categories.filter((c) => c.type === item.kind);
