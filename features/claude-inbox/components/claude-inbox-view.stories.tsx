@@ -183,6 +183,40 @@ export const RejectedBatch: Story = {
   },
 };
 
+const longBatch = {
+  id: "batch-long",
+  status: "pending" as const,
+  source_description: "Long batch — scroll test",
+  submitted_by: "claude",
+  created_at: "2026-04-18T10:00:00Z",
+  mcp_batch_items: Array.from({ length: 12 }, (_, i) => ({
+    id: `long-item-${i}`,
+    title: ["Пятёрочка", "Netflix", "Uber", "Salary", "Amazon", "Кофе", "Gym"][i % 7],
+    amount: (i + 1) * 500,
+    occurred_at: `2026-04-${String(i + 1).padStart(2, "0")}T12:00:00Z`,
+    kind: (["expense", "expense", "expense", "income", "expense", "expense", "expense"] as const)[i % 7],
+    currency: "RUB",
+    note: null,
+    suggested_category_name: null,
+    status: "pending" as const,
+    resolved_category_id: null,
+    resolved_account_id: null,
+    resolved_destination_account_id: null,
+    finance_transaction_id: null,
+  })),
+};
+
+export const LongBatch: Story = {
+  name: "Long batch — scroll inside panel",
+  render: () => (
+    <ClaudeInboxView
+      batches={[longBatch]}
+      categories={categories}
+      accounts={accounts}
+    />
+  ),
+};
+
 export const MultipleBatches: Story = {
   render: () => (
     <ClaudeInboxView
