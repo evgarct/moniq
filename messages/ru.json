@@ -853,6 +853,7 @@
     "title": "Входящие",
     "description": "Проверяйте транзакции от Claude и из CSV-импорта в одном месте.",
     "importCsv": "Импорт CSV",
+    "backToList": "К списку",
     "filterAll": "Все",
     "filterClaude": "Claude",
     "filterCsv": "CSV",

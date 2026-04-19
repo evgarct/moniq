@@ -20,7 +20,7 @@ export default async function InboxPage({
   }
 
   return (
-    <PageContainer className="max-w-3xl">
+    <PageContainer className="h-full overflow-hidden px-0 py-0 sm:px-0">
       <InboxView />
     </PageContainer>
   );

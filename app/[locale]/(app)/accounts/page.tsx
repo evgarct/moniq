@@ -31,7 +31,7 @@ export default function AccountsPage() {
   }
 
   return (
-    <PageContainer className="px-0 py-0 sm:px-0">
+    <PageContainer className="h-full overflow-hidden px-0 py-0 sm:px-0">
       <AccountsView
         accounts={data?.accounts ?? []}
         allocations={data?.allocations ?? []}
