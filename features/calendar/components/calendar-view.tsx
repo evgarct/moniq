@@ -44,7 +44,7 @@ export function CalendarView({ snapshot }: { snapshot: FinanceSnapshot }) {
 
   return (
     <>
-      <FinanceBoardShell className="h-full min-h-[720px]">
+      <FinanceBoardShell className="h-full">
         <FinanceBoardHeader
           title={formatDate.dateTime(month, { month: "long", year: "numeric" })}
           actions={

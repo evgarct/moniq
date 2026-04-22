@@ -17,7 +17,7 @@ export function FinanceBoardShell({
       )}
     >
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),transparent_18%,transparent_82%,rgba(0,0,0,0.14))]" />
-      <div className="relative">{children}</div>
+      <div className="relative h-full">{children}</div>
     </section>
   );
 }
@@ -61,7 +61,7 @@ export function FinanceBoardPanel({
         </div>
         {actions}
       </div>
-      <div className="min-h-0 flex-1 px-4 py-2">{children}</div>
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-2">{children}</div>
     </section>
   );
 }

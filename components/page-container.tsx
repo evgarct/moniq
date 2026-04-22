@@ -7,5 +7,5 @@ export function PageContainer({
   children: React.ReactNode;
   className?: string;
 }) {
-  return <div className={cn("h-full w-full px-4 py-5 sm:px-6", className)}>{children}</div>;
+  return <div className={cn("h-full w-full overflow-y-auto overscroll-contain px-4 py-5 sm:px-6", className)}>{children}</div>;
 }

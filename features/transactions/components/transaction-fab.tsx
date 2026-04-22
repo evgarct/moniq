@@ -49,7 +49,7 @@ export function TransactionFab({
   const t = useTranslations("transactions");
 
   return (
-    <div className="fixed right-6 bottom-24 sm:right-8 sm:bottom-8">
+    <div className="fixed right-6 bottom-24 lg:right-8 lg:bottom-8">
       <DropdownMenu>
         <Tooltip>
           <TooltipTrigger

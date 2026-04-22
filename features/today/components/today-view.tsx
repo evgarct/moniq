@@ -124,8 +124,8 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
           </div>
         </Surface>
 
-        <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(380px,0.88fr)]">
-          <Surface tone="panel" padding="lg" className="min-h-0 border border-black/5">
+        <div className="flex flex-1 flex-col gap-4 overflow-y-auto overscroll-contain xl:grid xl:min-h-0 xl:overflow-hidden xl:grid-cols-[minmax(0,1.4fr)_minmax(380px,0.88fr)]">
+          <Surface tone="panel" padding="lg" className="border border-black/5 xl:min-h-0">
             <CalendarGrid
               month={month}
               selectedDate={selectedDate}
@@ -144,8 +144,8 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
             />
           </Surface>
 
-          <Surface tone="panel" padding="lg" className="min-h-0 border border-black/5">
-            <div className="flex h-full min-h-0 flex-col">
+          <Surface tone="panel" padding="lg" className="border border-black/5 xl:min-h-0">
+            <div className="xl:flex xl:h-full xl:min-h-0 xl:flex-col">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{t("board.agendaTitle")}</p>
@@ -166,7 +166,7 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
                 </div>
               ) : null}
 
-              <div className="mt-4 min-h-0 flex-1 overflow-auto">
+              <div className="mt-4 xl:min-h-0 xl:flex-1 xl:overflow-auto">
                 <TransactionList
                   transactions={agendaTransactions}
                   emptyMessage={selectedDate ? t("board.selectedEmpty") : t("board.empty")}
