@@ -305,6 +305,13 @@ export function TransactionsView({
               }
 
               await transactionActions.updateTransaction(editingTransaction.id, payload.values);
+              if (payload.rescheduleFrom) {
+                await transactionActions.rescheduleFromDate(
+                  payload.rescheduleFrom.scheduleId,
+                  payload.rescheduleFrom.originalDate,
+                  payload.rescheduleFrom.newDate,
+                );
+              }
             } else {
               if (!editingSchedule) {
                 throw new Error(t("view.saveError"));

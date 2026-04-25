@@ -1,6 +1,6 @@
 "use client";
 
-import { eachDayOfInterval, endOfMonth, endOfWeek, format, isBefore, startOfDay, startOfMonth, startOfWeek, startOfToday } from "date-fns";
+import { eachDayOfInterval, endOfMonth, endOfWeek, format, isBefore, parseISO, startOfDay, startOfMonth, startOfWeek, startOfToday } from "date-fns";
 import { useTranslations } from "next-intl";
 
 import { CalendarCell } from "@/components/calendar-cell";
@@ -47,10 +47,10 @@ export function CalendarGrid({
           );
           const paidCount = dayTxs.filter((tx) => tx.status === "paid").length;
           const plannedNonOverdue = dayTxs.filter(
-            (tx) => tx.status === "planned" && !isBefore(startOfDay(new Date(tx.occurred_at)), today),
+            (tx) => tx.status === "planned" && !isBefore(startOfDay(parseISO(tx.occurred_at)), today),
           ).length;
           const overdueCount = dayTxs.filter(
-            (tx) => tx.status === "planned" && isBefore(startOfDay(new Date(tx.occurred_at)), today),
+            (tx) => tx.status === "planned" && isBefore(startOfDay(parseISO(tx.occurred_at)), today),
           ).length;
 
           return (

@@ -1068,7 +1068,7 @@ export async function rescheduleScheduleFromDate(
 
   // Delete all non-overridden planned occurrences from the original date onwards
   // so the reconciler regenerates them at the shifted dates
-  const { error: deleteError } = await supabase
+  const { error: deleteNonOverrideError } = await supabase
     .from("finance_transactions")
     .delete()
     .eq("user_id", user.id)
@@ -1077,8 +1077,26 @@ export async function rescheduleScheduleFromDate(
     .eq("is_schedule_override", false)
     .gte("occurred_at", fromOccurrenceDate);
 
-  if (deleteError) {
-    throw new Error(normalizeFinanceRepositoryError(deleteError));
+  if (deleteNonOverrideError) {
+    throw new Error(normalizeFinanceRepositoryError(deleteNonOverrideError));
+  }
+
+  // Also delete override occurrences whose schedule slot is on or after the pivot date.
+  // The "all following" flow first marks the edited occurrence as an override (via
+  // updateTransaction), then calls this function. Without this delete the override
+  // would survive, the reconciler would also regenerate a planned row for the same
+  // slot, and the user would see duplicate transactions.
+  const { error: deleteOverrideError } = await supabase
+    .from("finance_transactions")
+    .delete()
+    .eq("user_id", user.id)
+    .eq("schedule_id", scheduleId)
+    .eq("status", "planned")
+    .eq("is_schedule_override", true)
+    .gte("schedule_occurrence_date", fromOccurrenceDate);
+
+  if (deleteOverrideError) {
+    throw new Error(normalizeFinanceRepositoryError(deleteOverrideError));
   }
 }
 
