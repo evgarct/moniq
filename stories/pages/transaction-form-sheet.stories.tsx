@@ -397,13 +397,11 @@ export const RescheduleDialog: Story = {
         onSubmit={async () => {}}
       />
       {/* Overlay rendered on top — simulates the state after the user changed the date */}
-      <div className="fixed inset-0 z-[60]">
-        <RescheduleConfirmOverlay
-          onOnlyThis={() => {}}
-          onAllFollowing={() => {}}
-          onCancel={() => {}}
-        />
-      </div>
+      <RescheduleConfirmOverlay
+        onOnlyThis={() => {}}
+        onAllFollowing={() => {}}
+        onCancel={() => {}}
+      />
     </StorySurface>
   ),
 };
@@ -423,13 +421,11 @@ export const MobileRescheduleDialog: Story = {
         onOpenChange={() => {}}
         onSubmit={async () => {}}
       />
-      <div className="fixed inset-0 z-[60]">
-        <RescheduleConfirmOverlay
-          onOnlyThis={() => {}}
-          onAllFollowing={() => {}}
-          onCancel={() => {}}
-        />
-      </div>
+      <RescheduleConfirmOverlay
+        onOnlyThis={() => {}}
+        onAllFollowing={() => {}}
+        onCancel={() => {}}
+      />
     </StorySurface>
   ),
 };

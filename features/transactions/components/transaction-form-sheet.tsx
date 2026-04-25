@@ -285,7 +285,7 @@ export function TransactionFormSheet({
       <SheetContent
         side="right"
         showCloseButton={false}
-        className="relative w-full gap-0 border-l-0 bg-background p-0 sm:top-6 sm:right-0 sm:h-[calc(100vh-3rem)] sm:w-[42rem] sm:max-w-none sm:border sm:border-border/30 sm:border-r-0 sm:shadow-[0_24px_72px_rgba(15,23,42,0.14)]"
+        className="w-full gap-0 border-l-0 bg-background p-0 sm:top-6 sm:right-0 sm:h-[calc(100vh-3rem)] sm:w-[42rem] sm:max-w-none sm:border sm:border-border/30 sm:border-r-0 sm:shadow-[0_24px_72px_rgba(15,23,42,0.14)]"
       >
         <TransactionFormProvider
           open={open}
