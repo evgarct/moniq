@@ -551,6 +551,13 @@ export function AccountsView({
               setActionError(null);
             } else if (payload.kind === "transaction" && editingTransaction) {
               await transactionActions.updateTransaction(editingTransaction.id, payload.values);
+              if (payload.rescheduleFrom) {
+                await transactionActions.rescheduleFromDate(
+                  payload.rescheduleFrom.scheduleId,
+                  payload.rescheduleFrom.originalDate,
+                  payload.rescheduleFrom.newDate,
+                );
+              }
               setActionError(null);
             }
           } catch (error) {

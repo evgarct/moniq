@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { parseISO } from "date-fns";
+import { isBefore, parseISO, startOfDay, startOfToday } from "date-fns";
 import { CheckCircle2, Pause, Pencil, Play, SkipForward, Trash2 } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
@@ -189,6 +189,7 @@ export function TransactionRow({
 
   const isRecurring = Boolean(transaction.schedule_id && transaction.schedule);
   const isPlanned = transaction.status === "planned";
+  const isOverdue = isPlanned && isBefore(startOfDay(parseISO(transaction.occurred_at)), startOfToday());
   const schedulePaused = transaction.schedule?.state === "paused";
   const canMarkPaid = isPlanned && Boolean(onMarkPaid);
   const canSkip = isPlanned && isRecurring && Boolean(onSkipOccurrence);
@@ -375,7 +376,7 @@ export function TransactionRow({
   return (
     <div
       className={cn(
-        "group flex items-center gap-2.5 rounded-md px-2 py-1.5 transition-[background-color] select-none",
+        "group flex items-center gap-2.5 rounded-[var(--radius-control)] px-2 py-1.5 transition-[background-color] select-none",
         interactive && "cursor-pointer hover:bg-[#f3efe9] active:bg-[#ece8e1]",
         hasContextActions && !interactive && "hover:bg-[#f8f5f1]",
         isPlanned && "opacity-70",
@@ -405,8 +406,12 @@ export function TransactionRow({
           <p className={cn("type-body-14 truncate font-medium leading-5", isPlanned && "italic", primaryLabelClassName)}>
             {primaryLabel}
           </p>
-          {showEncouragementBadge ? (
-            <span className="shrink-0 rounded-sm bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium leading-none text-emerald-700">
+          {isOverdue ? (
+            <span className="shrink-0 rounded-[var(--radius-tight)] bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-destructive">
+              {t("row.overdue")}
+            </span>
+          ) : showEncouragementBadge ? (
+            <span className="shrink-0 rounded-[var(--radius-tight)] bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium leading-none text-emerald-700">
               {t("row.goodMove")}
             </span>
           ) : null}

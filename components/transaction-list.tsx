@@ -50,7 +50,7 @@ function renderTransactionListItem({
   const detail = renderDetail?.(transaction);
 
   return (
-    <div key={transaction.id} className={cn("border-t border-border/40 first:border-t-0", variant === "board" && "border-white/12")}>
+    <div key={transaction.id}>
       <TransactionRow
         transaction={transaction}
         variant={variant}
@@ -83,6 +83,7 @@ export function TransactionList({
   variant = "default",
   showMinorUnits = true,
   groupByDate = false,
+  showDate,
   renderLeadingAction,
   renderTrailingAccessory,
   renderAction,
@@ -105,6 +106,7 @@ export function TransactionList({
   variant?: "default" | "board";
   showMinorUnits?: boolean;
   groupByDate?: boolean;
+  showDate?: boolean;
   renderLeadingAction?: (transaction: Transaction) => React.ReactNode;
   renderTrailingAccessory?: (transaction: Transaction) => React.ReactNode;
   renderAction?: (transaction: Transaction) => React.ReactNode;
@@ -191,7 +193,7 @@ export function TransactionList({
           transaction,
           variant,
           showMinorUnits,
-          showDate: true,
+          showDate: showDate ?? true,
           renderLeadingAction,
           renderTrailingAccessory,
           renderAction,

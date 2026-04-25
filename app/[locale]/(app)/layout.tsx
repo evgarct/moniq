@@ -1,5 +1,4 @@
 import { signOut } from "@/features/auth/actions";
-import { GlobalTransactionFab } from "@/features/transactions/components/global-transaction-fab";
 import { createClient } from "@/lib/supabase/server";
 import { AppSidebar, MobileBottomNav } from "@/components/app-sidebar";
 import { redirect } from "@/i18n/navigation";
@@ -34,7 +33,6 @@ export default async function AuthenticatedLayout({
         </div>
       </div>
 
-      <GlobalTransactionFab />
       <MobileBottomNav user={user} onSignOut={signOut} />
     </div>
   );

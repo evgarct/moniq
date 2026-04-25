@@ -174,6 +174,13 @@ export function CalendarView({ snapshot }: { snapshot: FinanceSnapshot }) {
           try {
             if (payload.kind === "transaction" && editingTransaction) {
               await transactionActions.updateTransaction(editingTransaction.id, payload.values);
+              if (payload.rescheduleFrom) {
+                await transactionActions.rescheduleFromDate(
+                  payload.rescheduleFrom.scheduleId,
+                  payload.rescheduleFrom.originalDate,
+                  payload.rescheduleFrom.newDate,
+                );
+              }
             } else if (payload.kind === "schedule" && editingSchedule) {
               await transactionActions.updateSchedule(editingSchedule.id, payload.values);
             }

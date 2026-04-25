@@ -12,6 +12,7 @@ import {
   WalletCards,
   X,
 } from "lucide-react";
+import { useState } from "react";
 import { useFormContext } from "react-hook-form";
 import { useTranslations } from "next-intl";
 
@@ -21,6 +22,7 @@ import { Sheet, SheetClose, SheetContent, SheetHeader } from "@/components/ui/sh
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Account, Allocation, Category, Transaction, TransactionSchedule } from "@/types/finance";
 
+import { RescheduleConfirmOverlay } from "./reschedule-confirm-overlay";
 import { TransactionFormProvider, useTransactionFormContext } from "../form/context";
 import { buildSubmitPayload } from "../form/submit";
 import {
@@ -216,6 +218,7 @@ export function TransactionFormSheet({
   transaction,
   schedule,
   initialKind,
+  initialDate,
   defaultSourceAccountId,
   accounts,
   allocations,
@@ -229,6 +232,7 @@ export function TransactionFormSheet({
   transaction?: Transaction | null;
   schedule?: TransactionSchedule | null;
   initialKind?: Transaction["kind"];
+  initialDate?: string | null;
   defaultSourceAccountId?: string | null;
   accounts: Account[];
   allocations: Allocation[];
@@ -237,8 +241,47 @@ export function TransactionFormSheet({
   onOpenChange: (open: boolean) => void;
   onSubmit: (payload: TransactionFormSubmitPayload) => Promise<void> | void;
 }) {
+  const [pendingPayload, setPendingPayload] = useState<(TransactionFormSubmitPayload & { kind: "transaction" }) | null>(null);
+
+  // Intercept submissions for scheduled occurrence edits where the date changed
+  const wrappedOnSubmit = async (payload: TransactionFormSubmitPayload) => {
+    if (
+      payload.kind === "transaction" &&
+      transaction?.schedule_id &&
+      transaction.status === "planned" &&
+      payload.values.occurred_at !== transaction.occurred_at
+    ) {
+      setPendingPayload(payload);
+      // Throw so TransactionFormInner doesn't call onOpenChange(false)
+      throw new Error("__reschedule_pending__");
+    }
+    await onSubmit(payload);
+  };
+
+  const handleOnlyThis = async () => {
+    if (!pendingPayload) return;
+    setPendingPayload(null);
+    await onSubmit(pendingPayload);
+    onOpenChange(false);
+  };
+
+  const handleAllFollowing = async () => {
+    if (!pendingPayload || !transaction?.schedule_id) return;
+    const payload: TransactionFormSubmitPayload = {
+      ...pendingPayload,
+      rescheduleFrom: {
+        scheduleId: transaction.schedule_id,
+        originalDate: transaction.occurred_at,
+        newDate: pendingPayload.values.occurred_at,
+      },
+    };
+    setPendingPayload(null);
+    await onSubmit(payload);
+    onOpenChange(false);
+  };
+
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet open={open} onOpenChange={(next) => { setPendingPayload(null); onOpenChange(next); }}>
       <SheetContent
         side="right"
         showCloseButton={false}
@@ -250,16 +293,25 @@ export function TransactionFormSheet({
           transaction={transaction}
           schedule={schedule}
           initialKind={initialKind}
+          initialDate={initialDate}
           defaultSourceAccountId={defaultSourceAccountId}
           accounts={accounts}
           allocations={allocations}
           categories={categories}
           transactions={transactions}
-          onSubmit={onSubmit}
+          onSubmit={wrappedOnSubmit}
           onOpenChange={onOpenChange}
         >
           <TransactionFormInner />
         </TransactionFormProvider>
+
+        {pendingPayload && (
+          <RescheduleConfirmOverlay
+            onOnlyThis={handleOnlyThis}
+            onAllFollowing={handleAllFollowing}
+            onCancel={() => setPendingPayload(null)}
+          />
+        )}
       </SheetContent>
     </Sheet>
   );

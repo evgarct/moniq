@@ -31,8 +31,8 @@ export default function TodayPage() {
   }
 
   return (
-    <PageContainer>
+    <div className="h-full">
       <TodayView snapshot={data ?? { accounts: [], allocations: [], categories: [], schedules: [], transactions: [] }} />
-    </PageContainer>
+    </div>
   );
 }
