@@ -1,6 +1,6 @@
 "use client";
 
-import { eachDayOfInterval, endOfMonth, endOfWeek, format, startOfMonth, startOfWeek } from "date-fns";
+import { eachDayOfInterval, endOfMonth, endOfWeek, format, isBefore, startOfDay, startOfMonth, startOfWeek, startOfToday } from "date-fns";
 import { useTranslations } from "next-intl";
 
 import { CalendarCell } from "@/components/calendar-cell";
@@ -20,29 +20,39 @@ export function CalendarGrid({
 }) {
   const t = useTranslations("calendar.weekdays");
   const weekdayLabels = [t("mon"), t("tue"), t("wed"), t("thu"), t("fri"), t("sat"), t("sun")];
+  const today = startOfToday();
+
   const days = eachDayOfInterval({
     start: startOfWeek(startOfMonth(month), { weekStartsOn: 1 }),
     end: endOfWeek(endOfMonth(month), { weekStartsOn: 1 }),
   });
 
   return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-7 gap-2">
+    <div className="space-y-0.5">
+      {/* Weekday headers */}
+      <div className="grid grid-cols-7">
         {weekdayLabels.map((day) => (
-          <div key={day} className="px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-[#85a5a8]">
+          <div key={day} className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/60">
             {day}
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-7 gap-2">
+      {/* Day cells */}
+      <div className="grid grid-cols-7 gap-px">
         {days.map((day) => {
-          const dayTransactions = transactions.filter(
-            (transaction) =>
-              isVisibleTransactionStatus(transaction.status) && transaction.occurred_at === format(day, "yyyy-MM-dd"),
+          const dateStr = format(day, "yyyy-MM-dd");
+          const dayTxs = transactions.filter(
+            (tx) => isVisibleTransactionStatus(tx.status) && tx.occurred_at === dateStr,
           );
-          const paidCount = dayTransactions.filter((transaction) => transaction.status === "paid").length;
-          const plannedCount = dayTransactions.filter((transaction) => transaction.status === "planned").length;
+          const paidCount = dayTxs.filter((tx) => tx.status === "paid").length;
+          const plannedNonOverdue = dayTxs.filter(
+            (tx) => tx.status === "planned" && !isBefore(startOfDay(new Date(tx.occurred_at)), today),
+          ).length;
+          const overdueCount = dayTxs.filter(
+            (tx) => tx.status === "planned" && isBefore(startOfDay(new Date(tx.occurred_at)), today),
+          ).length;
+
           return (
             <CalendarCell
               key={day.toISOString()}
@@ -50,9 +60,9 @@ export function CalendarGrid({
               currentMonth={month}
               selectedDate={selectedDate}
               onSelect={onSelectDate}
-              indicatorCount={dayTransactions.length}
               paidCount={paidCount}
-              plannedCount={plannedCount}
+              plannedCount={plannedNonOverdue}
+              overdueCount={overdueCount}
             />
           );
         })}

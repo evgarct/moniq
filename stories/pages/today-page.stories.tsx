@@ -10,7 +10,7 @@ const meta = {
   title: "Pages/Today",
   render: () => (
     <StoryWorkspace pathname="/today">
-      <div className="h-full">
+      <div className="h-screen">
         <TodayView snapshot={snapshot} />
       </div>
     </StoryWorkspace>
@@ -28,7 +28,23 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText("Planned")).toBeInTheDocument();
     await expect(canvas.getByText("Today")).toBeInTheDocument();
+    await expect(canvas.getByText("PLANNED")).toBeInTheDocument();
   },
+};
+
+/** Mobile list mode — agenda view showing all planned + today's paid transactions. */
+export const MobileList: Story = {
+  parameters: {
+    ...withPathname("/today"),
+    layout: "fullscreen",
+    viewport: { defaultViewport: "mobile2" },
+  },
+  render: () => (
+    <StoryWorkspace pathname="/today">
+      <div className="h-screen">
+        <TodayView snapshot={snapshot} />
+      </div>
+    </StoryWorkspace>
+  ),
 };

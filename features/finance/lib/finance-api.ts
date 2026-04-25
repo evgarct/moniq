@@ -306,6 +306,21 @@ export async function setTransactionScheduleStateRequest(
   return parseJsonResponse<FinanceSnapshot>(response);
 }
 
+export async function rescheduleTransactionSeriesRequest(
+  scheduleId: string,
+  fromOccurrenceDate: string,
+  newOccurrenceDate: string,
+): Promise<FinanceSnapshot> {
+  const response = await fetchWithTimeout(`/api/transaction-schedules/${scheduleId}`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ mode: "reschedule", fromOccurrenceDate, newOccurrenceDate }),
+  });
+
+  return parseJsonResponse<FinanceSnapshot>(response);
+}
+
 export async function deleteTransactionScheduleRequest(scheduleId: string): Promise<FinanceSnapshot> {
   const response = await fetchWithTimeout(`/api/transaction-schedules/${scheduleId}`, {
     method: "DELETE",

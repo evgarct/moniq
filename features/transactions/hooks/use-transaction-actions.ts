@@ -8,6 +8,7 @@ import {
   deleteTransactionScheduleRequest,
   financeSnapshotQueryKey,
   markTransactionPaidRequest,
+  rescheduleTransactionSeriesRequest,
   setTransactionScheduleStateRequest,
   skipTransactionOccurrenceRequest,
   updateTransactionRequest,
@@ -75,6 +76,12 @@ export function useTransactionActions() {
     onSuccess: setSnapshot,
   });
 
+  const rescheduleSeriesMutation = useMutation({
+    mutationFn: ({ scheduleId, fromOccurrenceDate, newOccurrenceDate }: { scheduleId: string; fromOccurrenceDate: string; newOccurrenceDate: string }) =>
+      rescheduleTransactionSeriesRequest(scheduleId, fromOccurrenceDate, newOccurrenceDate),
+    onSuccess: setSnapshot,
+  });
+
   const markPaidMutation = useMutation({
     mutationFn: markTransactionPaidRequest,
     onSuccess: setSnapshot,
@@ -127,5 +134,7 @@ export function useTransactionActions() {
     setScheduleState: (scheduleId: string, state: TransactionSchedule["state"]) =>
       setScheduleStateMutation.mutateAsync({ scheduleId, state }),
     deleteSchedule: (scheduleId: string) => deleteScheduleMutation.mutateAsync(scheduleId),
+    rescheduleFromDate: (scheduleId: string, fromOccurrenceDate: string, newOccurrenceDate: string) =>
+      rescheduleSeriesMutation.mutateAsync({ scheduleId, fromOccurrenceDate, newOccurrenceDate }),
   };
 }

@@ -879,25 +879,32 @@ export async function updateTransaction(transactionId: string, values: Transacti
 
   validateTransactionRelationships(values, snapshot);
 
+  const updateFields: Record<string, unknown> = {
+    title: values.title.trim(),
+    note: values.note,
+    occurred_at: values.occurred_at,
+    status: values.status,
+    kind: values.kind,
+    amount: values.amount,
+    destination_amount: values.destination_amount,
+    fx_rate: values.fx_rate,
+    principal_amount: values.principal_amount,
+    interest_amount: values.interest_amount,
+    extra_principal_amount: values.extra_principal_amount,
+    category_id: values.category_id,
+    source_account_id: values.source_account_id,
+    destination_account_id: values.destination_account_id,
+    allocation_id: values.allocation_id,
+  };
+
+  // Mark as overridden so the reconciler doesn't overwrite manual edits
+  if (existing.schedule_id) {
+    updateFields.is_schedule_override = true;
+  }
+
   const { error } = await supabase
     .from("finance_transactions")
-    .update({
-      title: values.title.trim(),
-      note: values.note,
-      occurred_at: values.occurred_at,
-      status: values.status,
-      kind: values.kind,
-      amount: values.amount,
-      destination_amount: values.destination_amount,
-      fx_rate: values.fx_rate,
-      principal_amount: values.principal_amount,
-      interest_amount: values.interest_amount,
-      extra_principal_amount: values.extra_principal_amount,
-      category_id: values.category_id,
-      source_account_id: values.source_account_id,
-      destination_account_id: values.destination_account_id,
-      allocation_id: values.allocation_id,
-    })
+    .update(updateFields)
     .eq("id", transactionId)
     .eq("user_id", user.id);
 
@@ -1027,6 +1034,51 @@ export async function deleteTransactionSchedule(scheduleId: string) {
 
   if (error) {
     throw new Error(normalizeFinanceRepositoryError(error));
+  }
+}
+
+export async function rescheduleScheduleFromDate(
+  scheduleId: string,
+  fromOccurrenceDate: string,
+  newOccurrenceDate: string,
+) {
+  const { supabase, user } = await getAuthenticatedSupabase();
+  const snapshot = await getFinanceSnapshot();
+  const schedule = snapshot.schedules.find((s) => s.id === scheduleId);
+
+  if (!schedule) {
+    throw new Error("Schedule not found.");
+  }
+
+  // Shift the schedule anchor by the same offset as the date change
+  const fromMs = new Date(fromOccurrenceDate).getTime();
+  const newMs = new Date(newOccurrenceDate).getTime();
+  const offsetDays = Math.round((newMs - fromMs) / 86_400_000);
+  const newStartDate = format(addDays(new Date(schedule.start_date), offsetDays), "yyyy-MM-dd");
+
+  const { error: scheduleError } = await supabase
+    .from("finance_transaction_schedules")
+    .update({ start_date: newStartDate })
+    .eq("id", scheduleId)
+    .eq("user_id", user.id);
+
+  if (scheduleError) {
+    throw new Error(normalizeFinanceRepositoryError(scheduleError));
+  }
+
+  // Delete all non-overridden planned occurrences from the original date onwards
+  // so the reconciler regenerates them at the shifted dates
+  const { error: deleteError } = await supabase
+    .from("finance_transactions")
+    .delete()
+    .eq("user_id", user.id)
+    .eq("schedule_id", scheduleId)
+    .eq("status", "planned")
+    .eq("is_schedule_override", false)
+    .gte("occurred_at", fromOccurrenceDate);
+
+  if (deleteError) {
+    throw new Error(normalizeFinanceRepositoryError(deleteError));
   }
 }
 

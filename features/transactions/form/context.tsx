@@ -105,12 +105,14 @@ function makeDefaults({
   transaction,
   schedule,
   initialKind,
+  initialDate,
   mode,
   defaultSourceAccountId,
 }: {
   transaction?: Transaction | null;
   schedule?: TransactionSchedule | null;
   initialKind?: Transaction["kind"];
+  initialDate?: string | null;
   mode: TransactionFormMode;
   defaultSourceAccountId?: string | null;
 }): TransactionFormInputs {
@@ -122,7 +124,7 @@ function makeDefaults({
   return {
     title: schedule?.title ?? transaction?.title ?? "",
     note: schedule?.note ?? transaction?.note ?? "",
-    occurred_at: schedule?.start_date ?? transaction?.occurred_at ?? new Date().toISOString().slice(0, 10),
+    occurred_at: schedule?.start_date ?? transaction?.occurred_at ?? initialDate ?? new Date().toISOString().slice(0, 10),
     status: mode === "edit-schedule" ? "planned" : transaction?.status === "paid" ? "paid" : "planned",
     kind: currentKind,
     amount: schedule?.amount ?? transaction?.amount ?? 0,
@@ -162,6 +164,7 @@ export function TransactionFormProvider({
   transaction,
   schedule,
   initialKind,
+  initialDate,
   defaultSourceAccountId,
   accounts,
   allocations,
@@ -176,6 +179,7 @@ export function TransactionFormProvider({
   transaction?: Transaction | null;
   schedule?: TransactionSchedule | null;
   initialKind?: Transaction["kind"];
+  initialDate?: string | null;
   defaultSourceAccountId?: string | null;
   accounts: Account[];
   allocations: Allocation[];
@@ -220,7 +224,7 @@ export function TransactionFormProvider({
 
   const form = useForm<TransactionFormInputs>({
     resolver: zodResolver(schema),
-    defaultValues: makeDefaults({ transaction, schedule, initialKind, mode, defaultSourceAccountId }),
+    defaultValues: makeDefaults({ transaction, schedule, initialKind, initialDate, mode, defaultSourceAccountId }),
   });
 
   const { fields, append, insert, remove, replace } = useFieldArray({
@@ -229,8 +233,8 @@ export function TransactionFormProvider({
   });
 
   useEffect(() => {
-    form.reset(makeDefaults({ transaction, schedule, initialKind, mode, defaultSourceAccountId }));
-  }, [form, initialKind, mode, open, schedule, transaction, defaultSourceAccountId]);
+    form.reset(makeDefaults({ transaction, schedule, initialKind, initialDate, mode, defaultSourceAccountId }));
+  }, [form, initialKind, initialDate, mode, open, schedule, transaction, defaultSourceAccountId]);
 
   const kind = useWatch({ control: form.control, name: "kind" });
   const amount = useWatch({ control: form.control, name: "amount" });

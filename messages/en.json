@@ -252,13 +252,18 @@
       "deleteSeries": "Delete series"
     },
     "board": {
-      "agendaTitle": "Planned",
-      "selectedDescription": "Planned transactions scheduled exactly for the selected day.",
+      "agendaTitle": "Agenda",
+      "selectedDescription": "Planned transactions scheduled for the selected day.",
+      "doneDescription": "Completed transactions on the selected day.",
       "monthDescription": "Active planned transactions visible in the current month.",
       "jumpToday": "Today",
       "clearDay": "Show month",
+      "tabPlanned": "Planned",
+      "tabDone": "Done",
+      "addForDay": "Add for this day",
       "empty": "No active planned items in this month.",
-      "selectedEmpty": "No planned items for this day."
+      "selectedEmpty": "No planned items for this day.",
+      "doneEmpty": "No completed transactions for this day."
     }
   },
   "accounts": {
@@ -571,6 +576,7 @@
         "lineNote": "Line note",
         "recurrenceFrequency": "Repeat",
         "recurrenceUntil": "End repeat",
+        "recurrenceUntilNever": "Never",
         "shared": "Shared details",
         "accounts": "Accounts",
         "entries": "Entries",
@@ -624,6 +630,12 @@
         "batchSummary": "{count, plural, one {# row ready to save.} other {# rows ready to save.}}",
         "singleSummary": "Review the details and save when ready."
       },
+      "reschedule": {
+        "title": "Change recurring date",
+        "description": "Do you want to move only this occurrence, or shift this and all following occurrences?",
+        "onlyThis": "Only this occurrence",
+        "allFollowing": "This and all following"
+      },
       "submit": {
         "add": "Save transaction",
         "edit": "Update transaction",
@@ -675,7 +687,8 @@
       "savingsGoal": "Savings goal",
       "uncategorized": "Uncategorized",
       "recurring": "Recurring",
-      "goodMove": "You earned it"
+      "goodMove": "You earned it",
+      "overdue": "Overdue"
     }
   },
   "settings": {

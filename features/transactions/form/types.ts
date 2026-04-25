@@ -36,10 +36,16 @@ export type TransactionFormInputs = {
   adjustment_target_balance: number | null;
 };
 
+export type RescheduleFrom = {
+  scheduleId: string;
+  originalDate: string;
+  newDate: string;
+};
+
 export type TransactionFormSubmitPayload =
   | { kind: "entry"; values: TransactionEntryInput }
   | { kind: "entry-batch"; values: TransactionEntryBatchInput }
-  | { kind: "transaction"; values: TransactionInput }
+  | { kind: "transaction"; values: TransactionInput; rescheduleFrom?: RescheduleFrom }
   | { kind: "schedule"; values: TransactionScheduleInput };
 
 export type TransactionFormMode = "add" | "edit-transaction" | "edit-schedule";

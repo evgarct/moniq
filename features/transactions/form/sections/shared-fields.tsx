@@ -117,11 +117,30 @@ export function SharedFields({
               rowClassName="min-h-8 py-0 -mt-1"
               left={<span className="text-sm text-foreground">{t("fields.recurrenceUntil")}</span>}
               right={
-                <FlatDatePicker
-                  value={recurrenceUntil ?? occurredAt}
-                  onChange={(value) => setValue("recurrence_until", value, { shouldValidate: true })}
-                  className="justify-end text-right"
-                />
+                recurrenceUntil === null ? (
+                  <button
+                    type="button"
+                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    onClick={() => setValue("recurrence_until", occurredAt, { shouldValidate: true })}
+                  >
+                    {t("fields.recurrenceUntilNever")}
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <FlatDatePicker
+                      value={recurrenceUntil}
+                      onChange={(value) => setValue("recurrence_until", value, { shouldValidate: true })}
+                      className="justify-end text-right"
+                    />
+                    <button
+                      type="button"
+                      className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+                      onClick={() => setValue("recurrence_until", null, { shouldValidate: true })}
+                    >
+                      {t("fields.recurrenceUntilNever")}
+                    </button>
+                  </div>
+                )
               }
             >
               <FieldMessage error={errors.recurrence_until} />
