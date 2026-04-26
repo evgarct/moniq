@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { TransactionFormSheet, type TransactionFormSubmitPayload } from "@/features/transactions/components/transaction-form-sheet";
 import { useTransactionActions } from "@/features/transactions/hooks/use-transaction-actions";
 import { isVisibleTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
+import { calDate } from "@/lib/formatters";
 import type { FinanceSnapshot, Transaction, TransactionSchedule } from "@/types/finance";
 
 function sortTransactionsAscending(transactions: Transaction[]) {
@@ -46,7 +47,7 @@ export function CalendarView({ snapshot }: { snapshot: FinanceSnapshot }) {
     <>
       <FinanceBoardShell className="h-full">
         <FinanceBoardHeader
-          title={formatDate.dateTime(month, { month: "long", year: "numeric" })}
+          title={formatDate.dateTime(calDate(month), { month: "long", year: "numeric" })}
           actions={
             <div className="flex items-center gap-2">
               <Button
@@ -99,7 +100,7 @@ export function CalendarView({ snapshot }: { snapshot: FinanceSnapshot }) {
             subtitle={t("board.dayDescription")}
             actions={
               <div className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-[#dceeed]">
-                {formatDate.dateTime(selectedDate, { month: "long", day: "numeric" })}
+                {formatDate.dateTime(calDate(selectedDate), { month: "long", day: "numeric" })}
               </div>
             }
             className="min-h-0"

@@ -3,6 +3,7 @@ import { useFormatter } from "next-intl";
 
 import { TransactionRow } from "@/components/transaction-row";
 import { isVisibleTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
+import { calDate } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import type { Transaction } from "@/types/finance";
 
@@ -154,7 +155,7 @@ export function TransactionList({
         {groups.map((group) => (
           <section key={group.date} className="space-y-1">
             <p className={variant === "board" ? "px-1 text-[11px] leading-4 text-[#8fb0b1]" : "type-body-12 px-2 text-muted-foreground"}>
-              {formatDate.dateTime(parseISO(group.date), {
+              {formatDate.dateTime(calDate(group.date), {
                 month: "short",
                 day: "numeric",
                 year: "numeric",

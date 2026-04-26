@@ -1,5 +1,17 @@
+import { format } from "date-fns";
+
 import { getCurrencyMeta } from "@/lib/currencies";
 import type { CurrencyCode } from "@/types/currency";
+
+/**
+ * Converts a calendar date (date-only string or local-midnight Date from date-fns)
+ * to a UTC-midnight Date for use with next-intl formatters (which use timeZone: "UTC").
+ * Use this everywhere you pass a date to formatDate.dateTime / formatDate.relativeTime.
+ */
+export function calDate(input: Date | string): Date {
+  const str = typeof input === "string" ? input : format(input, "yyyy-MM-dd");
+  return new Date(str + "T00:00:00Z");
+}
 
 function getCurrencyLocale(currency: CurrencyCode) {
   return getCurrencyMeta(currency).locale;
@@ -72,7 +84,8 @@ export function formatLongDate(value: string) {
     month: "short",
     day: "numeric",
     year: "numeric",
-  }).format(new Date(value));
+    timeZone: "UTC",
+  }).format(new Date(value + "T00:00:00Z"));
 }
 
 function getFractionDigits(currency: CurrencyCode, showMinorUnits: boolean) {
