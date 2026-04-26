@@ -1,6 +1,6 @@
 import "server-only";
 
-import { addDays, format, startOfToday } from "date-fns";
+import { addDays, differenceInCalendarDays, format, parseISO, startOfToday } from "date-fns";
 
 import { validateAccountValues } from "@/features/accounts/lib/account-state";
 import { validateCategoryHierarchy } from "@/features/categories/lib/category-tree";
@@ -1017,10 +1017,8 @@ export async function rescheduleScheduleFromDate(
   }
 
   // Shift the schedule anchor by the same offset as the date change
-  const fromMs = new Date(fromOccurrenceDate).getTime();
-  const newMs = new Date(newOccurrenceDate).getTime();
-  const offsetDays = Math.round((newMs - fromMs) / 86_400_000);
-  const newStartDate = format(addDays(new Date(schedule.start_date), offsetDays), "yyyy-MM-dd");
+  const offsetDays = differenceInCalendarDays(parseISO(newOccurrenceDate), parseISO(fromOccurrenceDate));
+  const newStartDate = format(addDays(parseISO(schedule.start_date), offsetDays), "yyyy-MM-dd");
 
   const { error: scheduleError } = await supabase
     .from("finance_transaction_schedules")

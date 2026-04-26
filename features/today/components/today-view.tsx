@@ -14,6 +14,7 @@ import { TransactionAddButton } from "@/features/transactions/components/transac
 import { TransactionFormSheet, type TransactionFormSubmitPayload } from "@/features/transactions/components/transaction-form-sheet";
 import { useTransactionActions } from "@/features/transactions/hooks/use-transaction-actions";
 import { isVisibleTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
+import { calDate } from "@/lib/formatters";
 import type { FinanceSnapshot, Transaction } from "@/types/finance";
 
 function sortAscending(transactions: Transaction[]) {
@@ -55,7 +56,9 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
       plannedTransactions: sortAscending(
         visible.filter((tx) => tx.status === "planned" && isSameMonth(parseISO(tx.occurred_at), month)),
       ),
-      paidTransactions: [],
+      paidTransactions: sortAscending(
+        visible.filter((tx) => tx.status !== "planned" && isSameMonth(parseISO(tx.occurred_at), month)),
+      ),
     };
   }, [month, selectedDate, visible]);
 
@@ -69,8 +72,8 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
   const initialDate = selectedDate ? format(selectedDate, "yyyy-MM-dd") : null;
 
   const panelLabel = selectedDate
-    ? formatDate.dateTime(selectedDate, { weekday: "long", month: "long", day: "numeric" })
-    : formatDate.dateTime(month, { month: "long", year: "numeric" });
+    ? formatDate.dateTime(calDate(selectedDate), { weekday: "long", month: "long", day: "numeric" })
+    : formatDate.dateTime(calDate(month), { month: "long", year: "numeric" });
 
   const isEmpty = plannedTransactions.length === 0 && paidTransactions.length === 0;
 
@@ -189,7 +192,7 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
         onClick={() => { setMonth(today); setSelectedDate(null); }}
         className="rounded-[var(--radius-control)] px-2.5 py-1 text-sm font-medium text-foreground transition-colors hover:bg-[#ece8e1]"
       >
-        {formatDate.dateTime(month, { month: "long", year: "numeric" })}
+        {formatDate.dateTime(calDate(month), { month: "long", year: "numeric" })}
       </button>
       <Button
         variant="ghost"
@@ -224,27 +227,18 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
         <>
           {plannedTransactions.length > 0 ? (
             <>
-              <div className="border-b border-border/25 px-5 py-2.5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  {t("board.tabPlanned")}
-                </p>
+              <div className="px-[18px] pb-1 pt-6 sm:px-[34px] lg:px-[38px]">
+                <p className="font-heading text-[18px] leading-tight tracking-[-0.022em] text-foreground">{t("board.tabPlanned")}</p>
               </div>
-              <div className="border-b border-border/25 px-3 py-1">
-                <TransactionList transactions={plannedTransactions} emptyMessage="" showDate={false} {...sharedListProps} />
+              <div className="px-2.5 pb-4 sm:px-[26px] lg:px-[30px]">
+                <TransactionList transactions={plannedTransactions} emptyMessage="" showDate={!selectedDate} groupByDate={!selectedDate} {...sharedListProps} />
               </div>
             </>
           ) : null}
           {paidTransactions.length > 0 ? (
-            <>
-              <div className="border-b border-border/25 px-5 py-2.5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  {t("board.tabDone")}
-                </p>
-              </div>
-              <div className="px-3 py-1">
-                <TransactionList transactions={paidTransactions} emptyMessage="" showDate={false} {...sharedListProps} />
-              </div>
-            </>
+            <div className="px-2.5 pb-4 pt-1 sm:px-[26px] lg:px-[30px]">
+              <TransactionList transactions={paidTransactions} emptyMessage="" showDate={!selectedDate} groupByDate={!selectedDate} {...sharedListProps} />
+            </div>
           ) : null}
         </>
       )}
@@ -259,7 +253,7 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
           <>
             {/* Mobile date header */}
             <PageHeader
-              title={formatDate.dateTime(mobileDisplayDate, { weekday: "long", day: "numeric", month: "long" })}
+              title={formatDate.dateTime(calDate(mobileDisplayDate), { weekday: "long", day: "numeric", month: "long" })}
               actions={
                 <>
                   {selectedDate ? (
@@ -300,12 +294,12 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
                 <>
                   {mobileListPlanned.length > 0 ? (
                     <>
-                      <div className="border-b border-border/25 px-5 py-2.5">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      <div className="px-[18px] pb-1 pt-4 sm:px-[34px]">
+                        <p className="type-h5">
                           {t("board.tabPlanned")}
                         </p>
                       </div>
-                      <div className="px-3 py-1">
+                      <div className="px-2.5 pb-3 sm:px-[26px]">
                         <TransactionList
                           transactions={mobileListPlanned}
                           emptyMessage=""
@@ -317,21 +311,14 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
                     </>
                   ) : null}
                   {mobileListPaid.length > 0 ? (
-                    <>
-                      <div className="border-b border-border/25 px-5 py-2.5">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                          {t("board.tabDone")}
-                        </p>
-                      </div>
-                      <div className="px-3 py-1">
-                        <TransactionList
-                          transactions={mobileListPaid}
-                          emptyMessage=""
-                          showDate={false}
-                          {...sharedListProps}
-                        />
-                      </div>
-                    </>
+                    <div className="px-2.5 pb-4 pt-1 sm:px-[26px]">
+                      <TransactionList
+                        transactions={mobileListPaid}
+                        emptyMessage=""
+                        showDate={false}
+                        {...sharedListProps}
+                      />
+                    </div>
                   ) : null}
                 </>
               )}
@@ -403,7 +390,7 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
             title={t("view.title")}
             actions={calendarNav}
           />
-          <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-3 sm:px-5">
+          <div className="flex-1 overflow-y-auto overscroll-contain px-2.5 pt-4 pb-6 sm:px-[26px] lg:px-[30px]">
             {calendarGrid}
           </div>
         </section>

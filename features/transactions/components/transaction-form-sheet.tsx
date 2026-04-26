@@ -77,8 +77,13 @@ function TransactionFormInner() {
   const handleSubmit = form.handleSubmit(async (values) => {
     const payload = buildSubmitPayload(values, mode, accounts, categories);
     if (!payload) return;
-    await onSubmit(payload);
-    onOpenChange(false);
+    try {
+      await onSubmit(payload);
+      onOpenChange(false);
+    } catch (error) {
+      if (error instanceof Error && error.message === "__reschedule_pending__") return;
+      throw error;
+    }
   });
 
   return (

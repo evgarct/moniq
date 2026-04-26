@@ -2,13 +2,15 @@
 
 import { useState } from "react";
 import { isBefore, parseISO, startOfDay, startOfToday } from "date-fns";
-import { CheckCircle2, Pause, Pencil, Play, SkipForward, Trash2 } from "lucide-react";
+import { CheckCircle2, Pause, Pencil, Play, Repeat, SkipForward, Trash2 } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
 
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
 import { MoneyAmount } from "@/components/money-amount";
 import { getTransactionKindMeta, TransactionKindIndicator } from "@/features/transactions/components/transaction-kind-badge";
-import { formatMoneyNumber, getCurrencySymbol } from "@/lib/formatters";
+import { calDate, formatMoneyNumber, getCurrencySymbol } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import type { Transaction } from "@/types/finance";
 
@@ -195,7 +197,7 @@ export function TransactionRow({
   const recurringLabel = transaction.schedule_id ? t("row.recurring") : null;
   const kindLabel = t(`kinds.${transaction.kind}`);
   const secondaryLabel = secondaryLabelOverride ?? buildSecondaryLabel(transaction, kindLabel, t("row.unlinkedAccount"));
-  const secondaryMeta = buildMetaParts([secondaryLabel, recurringLabel]).join(" · ");
+  const secondaryMeta = secondaryLabel;
   const showEncouragementBadge = isEncouragedTransaction(transaction);
   const interactive = Boolean(onClick);
 
@@ -325,7 +327,7 @@ export function TransactionRow({
               <p className="truncate text-[14px] font-medium leading-5 text-[#f4f8f7]">{primaryLabel}</p>
               <div className="flex items-center gap-2">
                 <p className="truncate text-[11px] leading-4 text-[#8fb0b1]">
-                  {formatDate.dateTime(parseISO(transaction.occurred_at), { month: "short", day: "numeric" })}
+                  {formatDate.dateTime(calDate(transaction.occurred_at), { month: "short", day: "numeric" })}
                 </p>
                 <span className="text-[11px] leading-4 text-[#5f8084]">/</span>
                 <p className="truncate text-[11px] leading-4 text-[#8fb0b1]">
@@ -382,7 +384,7 @@ export function TransactionRow({
     >
       {leadingAction ? <div className="shrink-0">{leadingAction}</div> : null}
 
-      <TransactionKindIndicator kind={transaction.kind} className="shrink-0 text-muted-foreground" />
+      <TransactionKindIndicator kind={transaction.kind} className="shrink-0 self-start mt-[3px] text-muted-foreground" />
 
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-center gap-2">
@@ -394,9 +396,14 @@ export function TransactionRow({
               {t("row.overdue")}
             </span>
           ) : showEncouragementBadge ? (
-            <span className="shrink-0 rounded-[var(--radius-tight)] bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium leading-none text-emerald-700">
-              {t("row.goodMove")}
-            </span>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger render={<span className="shrink-0 cursor-default text-[13px] leading-none" />}>
+                  ✨
+                </TooltipTrigger>
+                <TooltipContent side="top">{t("row.goodMove")}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           ) : null}
         </div>
         <p className="type-body-12 truncate text-muted-foreground">{secondaryMeta}</p>
@@ -404,17 +411,40 @@ export function TransactionRow({
 
       {trailingAccessory ? <div className="shrink-0">{trailingAccessory}</div> : null}
 
-      <div className="shrink-0 text-right">
-        <div className="flex justify-end">{renderAmount(transaction, showMinorUnits)}</div>
-        {showDate ? (
-          <p className="type-body-12 mt-0.5 whitespace-nowrap text-muted-foreground">
-            {formatDate.dateTime(parseISO(transaction.occurred_at), {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            })}
-          </p>
+      <div className="flex shrink-0 items-center gap-1.5">
+        {isRecurring && transaction.schedule ? (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <span className="text-muted-foreground/50 hover:text-muted-foreground transition-colors cursor-default" />
+                }
+              >
+                <Repeat className="size-3" />
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                {[
+                  t(`form.recurrence.${transaction.schedule.frequency}`),
+                  transaction.schedule.until_date
+                    ? `${formatDate.dateTime(calDate(transaction.schedule.start_date), { month: "short", year: "numeric" })} – ${formatDate.dateTime(calDate(transaction.schedule.until_date), { month: "short", year: "numeric" })}`
+                    : `${t("row.from")} ${formatDate.dateTime(calDate(transaction.schedule.start_date), { month: "short", year: "numeric" })}`,
+                ].join(" · ")}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         ) : null}
+        <div className="text-right">
+          <div className="flex justify-end">{renderAmount(transaction, showMinorUnits)}</div>
+          {showDate ? (
+            <p className="type-body-12 mt-0.5 whitespace-nowrap text-muted-foreground">
+              {formatDate.dateTime(calDate(transaction.occurred_at), {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </p>
+          ) : null}
+        </div>
       </div>
 
       {action ? <div className="shrink-0">{action}</div> : null}

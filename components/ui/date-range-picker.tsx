@@ -21,6 +21,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { calDate } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 
 function buildRangeLabel({
@@ -48,18 +49,18 @@ function buildRangeLabel({
     isSameDay(start, startOfMonth(start)) &&
     isSameDay(end, endOfMonth(start))
   ) {
-    return formatDate.dateTime(start, includeYear ? { month: "long", year: "numeric" } : { month: "long" });
+    return formatDate.dateTime(calDate(startDate), includeYear ? { month: "long", year: "numeric" } : { month: "long" });
   }
 
   if (isSameDay(start, end)) {
-    return formatDate.dateTime(start, includeYear ? { month: "short", day: "numeric", year: "numeric" } : { month: "short", day: "numeric" });
+    return formatDate.dateTime(calDate(startDate), includeYear ? { month: "short", day: "numeric", year: "numeric" } : { month: "short", day: "numeric" });
   }
 
-  return `${formatDate.dateTime(start, {
+  return `${formatDate.dateTime(calDate(startDate), {
     month: "short",
     day: "numeric",
     ...(includeYear ? { year: "numeric" } : {}),
-  })} - ${formatDate.dateTime(end, {
+  })} - ${formatDate.dateTime(calDate(endDate), {
     month: "short",
     day: "numeric",
     ...(includeYear ? { year: "numeric" } : {}),
@@ -281,10 +282,10 @@ export function DateRangePicker({
 
                 <div className="grid grid-cols-2 items-center gap-6 px-8">
                   <p className="truncate text-center text-sm font-medium tracking-[-0.02em] text-foreground">
-                    {formatDate.dateTime(visibleMonth, { month: "long", year: "numeric" })}
+                    {formatDate.dateTime(calDate(visibleMonth), { month: "long", year: "numeric" })}
                   </p>
                   <p className="truncate text-center text-sm font-medium tracking-[-0.02em] text-foreground">
-                    {formatDate.dateTime(addMonths(visibleMonth, 1), { month: "long", year: "numeric" })}
+                    {formatDate.dateTime(calDate(addMonths(visibleMonth, 1)), { month: "long", year: "numeric" })}
                   </p>
                 </div>
 
