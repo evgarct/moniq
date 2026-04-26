@@ -64,7 +64,7 @@ export function buildSubmitPayload(
           ...normalizePayload({
             ...values,
             title: inferBatchTitle(item, batchKind, categories),
-            note: item.note,
+            note: item.note || values.note,
             amount: item.amount ?? 0,
             category_id: item.category_id,
             status: values.is_recurring ? "planned" : values.status,
