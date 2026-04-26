@@ -10,7 +10,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 
 import { MoneyAmount } from "@/components/money-amount";
 import { getTransactionKindMeta, TransactionKindIndicator } from "@/features/transactions/components/transaction-kind-badge";
-import { formatMoneyNumber, getCurrencySymbol } from "@/lib/formatters";
+import { calDate, formatMoneyNumber, getCurrencySymbol } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import type { Transaction } from "@/types/finance";
 
@@ -344,7 +344,7 @@ export function TransactionRow({
               <p className="truncate text-[14px] font-medium leading-5 text-[#f4f8f7]">{primaryLabel}</p>
               <div className="flex items-center gap-2">
                 <p className="truncate text-[11px] leading-4 text-[#8fb0b1]">
-                  {formatDate.dateTime(parseISO(transaction.occurred_at), { month: "short", day: "numeric" })}
+                  {formatDate.dateTime(calDate(transaction.occurred_at), { month: "short", day: "numeric" })}
                 </p>
                 <span className="text-[11px] leading-4 text-[#5f8084]">/</span>
                 <p className="truncate text-[11px] leading-4 text-[#8fb0b1]">
@@ -443,8 +443,8 @@ export function TransactionRow({
                 {[
                   t(`form.recurrence.${transaction.schedule.frequency}`),
                   transaction.schedule.until_date
-                    ? `${formatDate.dateTime(parseISO(transaction.schedule.start_date), { month: "short", year: "numeric" })} – ${formatDate.dateTime(parseISO(transaction.schedule.until_date), { month: "short", year: "numeric" })}`
-                    : `${t("row.from")} ${formatDate.dateTime(parseISO(transaction.schedule.start_date), { month: "short", year: "numeric" })}`,
+                    ? `${formatDate.dateTime(calDate(transaction.schedule.start_date), { month: "short", year: "numeric" })} – ${formatDate.dateTime(calDate(transaction.schedule.until_date), { month: "short", year: "numeric" })}`
+                    : `${t("row.from")} ${formatDate.dateTime(calDate(transaction.schedule.start_date), { month: "short", year: "numeric" })}`,
                 ].join(" · ")}
               </TooltipContent>
             </Tooltip>
@@ -454,7 +454,7 @@ export function TransactionRow({
           <div className="flex justify-end">{renderAmount(transaction, showMinorUnits)}</div>
           {showDate ? (
             <p className="type-body-12 mt-0.5 whitespace-nowrap text-muted-foreground">
-              {formatDate.dateTime(parseISO(transaction.occurred_at), {
+              {formatDate.dateTime(calDate(transaction.occurred_at), {
                 month: "short",
                 day: "numeric",
                 year: "numeric",

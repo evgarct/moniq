@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { getCategoryDescendantIds } from "@/features/categories/lib/category-tree";
 import { buildCategoryTree } from "@/features/categories/lib/category-tree";
 import { isSettledTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
+import { calDate } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import type { CurrencyCode } from "@/types/currency";
 import type { CategoryTreeNode, FinanceSnapshot, Transaction } from "@/types/finance";
@@ -240,7 +241,7 @@ export function BudgetView({ snapshot }: { snapshot: FinanceSnapshot }) {
             onClick={() => { setMonth(today); setSelectedCategoryId(null); }}
             className="type-body-14 rounded-md px-2 py-1 font-medium text-foreground transition-colors hover:bg-secondary/50"
           >
-            {formatDate.dateTime(month, { month: "long", year: "numeric" })}
+            {formatDate.dateTime(calDate(month), { month: "long", year: "numeric" })}
           </button>
           <Button
             variant="ghost"

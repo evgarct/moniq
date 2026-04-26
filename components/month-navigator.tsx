@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
+import { calDate } from "@/lib/formatters";
 
 export function MonthNavigator({
   month,
@@ -23,7 +24,7 @@ export function MonthNavigator({
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <p className="font-heading text-xl font-semibold">
-          {formatDate.dateTime(month, { month: "long", year: "numeric" })}
+          {formatDate.dateTime(calDate(month), { month: "long", year: "numeric" })}
         </p>
         <p className="text-sm text-muted-foreground">{t("calendar.navigator.description")}</p>
       </div>

@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import { useFormatter } from "next-intl";
 
 import { isSettledTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
+import { calDate } from "@/lib/formatters";
 import { getIncomeExpenseSummary } from "@/lib/finance-selectors";
 import type { Transaction } from "@/types/finance";
 
@@ -110,7 +111,7 @@ export function BudgetBarChart({
               (bar.isCurrent ? "font-medium text-foreground" : "")
             }
           >
-            {formatDate.dateTime(bar.month, { month: "short" })}
+            {formatDate.dateTime(calDate(bar.month), { month: "short" })}
           </div>
         ))}
       </div>

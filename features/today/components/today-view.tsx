@@ -14,6 +14,7 @@ import { TransactionAddButton } from "@/features/transactions/components/transac
 import { TransactionFormSheet, type TransactionFormSubmitPayload } from "@/features/transactions/components/transaction-form-sheet";
 import { useTransactionActions } from "@/features/transactions/hooks/use-transaction-actions";
 import { isVisibleTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
+import { calDate } from "@/lib/formatters";
 import type { FinanceSnapshot, Transaction } from "@/types/finance";
 
 function sortAscending(transactions: Transaction[]) {
@@ -71,8 +72,8 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
   const initialDate = selectedDate ? format(selectedDate, "yyyy-MM-dd") : null;
 
   const panelLabel = selectedDate
-    ? formatDate.dateTime(selectedDate, { weekday: "long", month: "long", day: "numeric" })
-    : formatDate.dateTime(month, { month: "long", year: "numeric" });
+    ? formatDate.dateTime(calDate(selectedDate), { weekday: "long", month: "long", day: "numeric" })
+    : formatDate.dateTime(calDate(month), { month: "long", year: "numeric" });
 
   const isEmpty = plannedTransactions.length === 0 && paidTransactions.length === 0;
 
@@ -191,7 +192,7 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
         onClick={() => { setMonth(today); setSelectedDate(null); }}
         className="rounded-[var(--radius-control)] px-2.5 py-1 text-sm font-medium text-foreground transition-colors hover:bg-[#ece8e1]"
       >
-        {formatDate.dateTime(month, { month: "long", year: "numeric" })}
+        {formatDate.dateTime(calDate(month), { month: "long", year: "numeric" })}
       </button>
       <Button
         variant="ghost"
@@ -252,7 +253,7 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
           <>
             {/* Mobile date header */}
             <PageHeader
-              title={formatDate.dateTime(mobileDisplayDate, { weekday: "long", day: "numeric", month: "long" })}
+              title={formatDate.dateTime(calDate(mobileDisplayDate), { weekday: "long", day: "numeric", month: "long" })}
               actions={
                 <>
                   {selectedDate ? (
