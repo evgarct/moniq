@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BanknoteArrowDown, CreditCard, Landmark, PencilLine, PiggyBank, Plus, Trash2 } from "lucide-react";
+import { BanknoteArrowDown, CreditCard, Landmark, PencilLine, PiggyBank, SlidersHorizontal, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { MoneyAmount } from "@/components/money-amount";
@@ -23,7 +23,7 @@ export function AccountCard({
   showMinorUnits = true,
   onEdit,
   onDelete,
-  onAddSubgroup,
+  onAdjustBalance,
 }: {
   account: Account;
   selected?: boolean;
@@ -31,7 +31,7 @@ export function AccountCard({
   showMinorUnits?: boolean;
   onEdit?: (account: Account) => void;
   onDelete?: (account: Account) => void;
-  onAddSubgroup?: (account: Account) => void;
+  onAdjustBalance?: (account: Account, newBalance: number) => void;
 }) {
   const tr = useTranslations();
   const t = useTranslations("accounts");
@@ -50,7 +50,7 @@ export function AccountCard({
         : account.type === "debt"
           ? Landmark
           : BanknoteArrowDown;
-  const hasActions = Boolean(onEdit || onDelete || (account.type === "saving" && onAddSubgroup));
+  const hasActions = Boolean(onEdit || onDelete || onAdjustBalance);
   const [contextAnchor, setContextAnchor] = useState<{ x: number; y: number } | null>(null);
 
   function handleContextMenu(event: React.MouseEvent<HTMLDivElement>) {
@@ -158,10 +158,18 @@ export function AccountCard({
             }
           />
           <DropdownMenuContent className="w-40 rounded-xl p-1.5" side="right" align="start" sideOffset={6} alignOffset={-6}>
-            {account.type === "saving" && onAddSubgroup ? (
-              <DropdownMenuItem className="rounded-lg px-2 py-2 text-[13px]" onClick={() => onAddSubgroup(account)}>
-                <Plus className="h-4 w-4" />
-                {t("actions.addGoal")}
+            {onAdjustBalance ? (
+              <DropdownMenuItem
+                className="rounded-lg px-2 py-2 text-[13px]"
+                onClick={() => {
+                  const rawValue = window.prompt(t("actions.adjustBalancePrompt"), String(account.balance));
+                  if (rawValue === null) return;
+                  const newBalance = parseFloat(rawValue);
+                  if (!isNaN(newBalance)) onAdjustBalance(account, newBalance);
+                }}
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+                {t("actions.adjustBalance")}
               </DropdownMenuItem>
             ) : null}
             {onEdit ? (

@@ -19,12 +19,10 @@ function base(overrides: Partial<TransactionFormInputs> = {}): TransactionFormIn
     category_id: "cat-1",
     source_account_id: "acc-1",
     destination_account_id: null,
-    allocation_id: null,
     is_recurring: false,
     recurrence_frequency: "monthly",
     recurrence_until: null,
     line_items: [],
-    adjustment_target_balance: null,
     ...overrides,
   };
 }
@@ -38,11 +36,8 @@ const accounts = [
   { id: "acc-2", name: "Savings", balance: 500, currency: EUR, type: "saving" as const, user_id: "u1", created_at: "" },
 ];
 const categories = [
-  { id: "cat-1", name: "Food", type: "expense" as const, user_id: "u1", icon: null, parent_id: null, created_at: "" },
-  { id: "cat-2", name: "Salary", type: "income" as const, user_id: "u1", icon: null, parent_id: null, created_at: "" },
-];
-const allocations = [
-  { id: "goal-1", name: "Holiday", account_id: "acc-2", kind: "goal_open" as const, amount: 200, target_amount: null, user_id: "u1", created_at: "" },
+  { id: "cat-1", name: "Food", type: "expense" as const, user_id: "u1", icon: null, parent_id: null, is_system: false, created_at: "" },
+  { id: "cat-2", name: "Salary", type: "income" as const, user_id: "u1", icon: null, parent_id: null, is_system: false, created_at: "" },
 ];
 
 describe("normalizePayload", () => {
@@ -80,37 +75,24 @@ describe("normalizePayload", () => {
     expect(result.interest_amount).toBe(15);
     expect(result.extra_principal_amount).toBe(5);
   });
-
-  it("strips allocation_id for non-goal kinds", () => {
-    const result = normalizePayload(base({ kind: "expense", allocation_id: "goal-1" }));
-    expect(result.allocation_id).toBeNull();
-  });
-
-  it("includes allocation_id for save_to_goal", () => {
-    const result = normalizePayload(
-      base({ kind: "save_to_goal", destination_account_id: "acc-2", destination_amount: 50, allocation_id: "goal-1" }),
-    );
-    expect(result.allocation_id).toBe("goal-1");
-  });
 });
 
-describe("buildSubmitPayload – add refund single (non-batch kind)", () => {
+describe("buildSubmitPayload – add income single (non-batch kind)", () => {
   it("returns entry payload", () => {
-    // refund is not a batch kind, so add mode produces a single entry
-    const values = base({ kind: "refund", source_account_id: null, destination_account_id: "acc-2" });
-    const payload = buildSubmitPayload(values, "add", accounts, categories, allocations, "Balance adjustment");
+    const values = base({ kind: "income", source_account_id: null, destination_account_id: "acc-2" });
+    const payload = buildSubmitPayload(values, "add", accounts, categories);
     expect(payload?.kind).toBe("entry");
     if (payload?.kind === "entry") {
-      expect(payload.values.kind).toBe("refund");
+      expect(payload.values.kind).toBe("income");
       expect(payload.values.recurrence).toBeNull();
     }
   });
 
-  it("infers title from category name for refund", () => {
-    const values = base({ kind: "refund", source_account_id: null, destination_account_id: "acc-2" });
-    const payload = buildSubmitPayload(values, "add", accounts, categories, allocations, "Adjustment");
+  it("infers title from category name for income", () => {
+    const values = base({ kind: "income", category_id: "cat-2", source_account_id: null, destination_account_id: "acc-2" });
+    const payload = buildSubmitPayload(values, "add", accounts, categories);
     if (payload?.kind === "entry") {
-      expect(payload.values.title).toBe("Food");
+      expect(payload.values.title).toBe("Salary");
     }
   });
 });
@@ -121,11 +103,11 @@ describe("buildSubmitPayload – add expense batch", () => {
       kind: "expense",
       source_account_id: "acc-1",
       line_items: [
-        { category_id: "cat-1", allocation_id: null, amount: 30, note: "" },
-        { category_id: "cat-1", allocation_id: null, amount: 70, note: "lunch" },
+        { category_id: "cat-1", amount: 30, note: "" },
+        { category_id: "cat-1", amount: 70, note: "lunch" },
       ],
     });
-    const payload = buildSubmitPayload(values, "add", accounts, categories, allocations, "Adjustment");
+    const payload = buildSubmitPayload(values, "add", accounts, categories);
     expect(payload?.kind).toBe("entry-batch");
     if (payload?.kind === "entry-batch") {
       expect(payload.values.entries).toHaveLength(2);
@@ -135,70 +117,9 @@ describe("buildSubmitPayload – add expense batch", () => {
   });
 });
 
-describe("buildSubmitPayload – adjustment", () => {
-  it("returns null when no target balance", () => {
-    const result = buildSubmitPayload(
-      base({ kind: "adjustment", adjustment_target_balance: null }),
-      "add",
-      accounts,
-      categories,
-      allocations,
-      "Adjustment",
-    );
-    expect(result).toBeNull();
-  });
-
-  it("returns null when diff is negligible", () => {
-    const result = buildSubmitPayload(
-      base({ kind: "adjustment", source_account_id: "acc-1", adjustment_target_balance: 1000 }),
-      "add",
-      accounts,
-      categories,
-      allocations,
-      "Adjustment",
-    );
-    // account balance is 1000, target is 1000 → diff = 0 → null
-    expect(result).toBeNull();
-  });
-
-  it("builds a positive adjustment (income direction) when target > balance", () => {
-    const result = buildSubmitPayload(
-      base({ kind: "adjustment", source_account_id: "acc-1", adjustment_target_balance: 1100 }),
-      "add",
-      accounts,
-      categories,
-      allocations,
-      "Adj",
-    );
-    expect(result?.kind).toBe("entry");
-    if (result?.kind === "entry") {
-      expect(result.values.amount).toBe(100);
-      expect(result.values.destination_account_id).toBe("acc-1");
-      expect(result.values.source_account_id).toBeNull();
-    }
-  });
-
-  it("builds a negative adjustment (expense direction) when target < balance", () => {
-    const result = buildSubmitPayload(
-      base({ kind: "adjustment", source_account_id: "acc-1", adjustment_target_balance: 900 }),
-      "add",
-      accounts,
-      categories,
-      allocations,
-      "Adj",
-    );
-    expect(result?.kind).toBe("entry");
-    if (result?.kind === "entry") {
-      expect(result.values.amount).toBe(100);
-      expect(result.values.source_account_id).toBe("acc-1");
-      expect(result.values.destination_account_id).toBeNull();
-    }
-  });
-});
-
 describe("buildSubmitPayload – edit-transaction", () => {
   it("returns transaction payload", () => {
-    const result = buildSubmitPayload(base(), "edit-transaction", accounts, categories, allocations, "Adj");
+    const result = buildSubmitPayload(base(), "edit-transaction", accounts, categories);
     expect(result?.kind).toBe("transaction");
   });
 });
@@ -210,8 +131,6 @@ describe("buildSubmitPayload – edit-schedule", () => {
       "edit-schedule",
       accounts,
       categories,
-      allocations,
-      "Adj",
     );
     expect(result?.kind).toBe("schedule");
     if (result?.kind === "schedule") {
@@ -222,14 +141,11 @@ describe("buildSubmitPayload – edit-schedule", () => {
 
 describe("buildSubmitPayload – recurring add entry", () => {
   it("includes recurrence when is_recurring is true", () => {
-    // Use refund (non-batch) so add mode produces a single entry
     const result = buildSubmitPayload(
-      base({ kind: "refund", source_account_id: null, destination_account_id: "acc-2", is_recurring: true, status: "planned", recurrence_frequency: "monthly", recurrence_until: "2026-12-31" }),
+      base({ kind: "income", source_account_id: null, destination_account_id: "acc-2", is_recurring: true, status: "planned", recurrence_frequency: "monthly", recurrence_until: "2026-12-31" }),
       "add",
       accounts,
       categories,
-      allocations,
-      "Adj",
     );
     expect(result?.kind).toBe("entry");
     if (result?.kind === "entry") {

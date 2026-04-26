@@ -8,7 +8,6 @@ import { makeFinanceSnapshot } from "@/stories/fixtures/story-data";
 const snapshot = makeFinanceSnapshot();
 const selectedAccount = snapshot.accounts.find((account) => account.id === "everyday") ?? snapshot.accounts[0];
 const savingsAccount = snapshot.accounts.find((account) => account.id === "reserve") ?? snapshot.accounts[1];
-const selectedGoal = snapshot.allocations.find((allocation) => allocation.id === "travel-goal") ?? snapshot.allocations[0];
 const defaultStartDate = format(startOfMonth(new Date()), "yyyy-MM-dd");
 const defaultEndDate = format(endOfMonth(new Date()), "yyyy-MM-dd");
 
@@ -17,7 +16,6 @@ const meta = {
   component: BalanceRegisterPanel,
   args: {
     selectedAccount,
-    selectedAllocation: null,
     transactions: snapshot.transactions.filter(
       (transaction) =>
         transaction.source_account?.id === selectedAccount.id || transaction.destination_account?.id === selectedAccount.id,
@@ -53,7 +51,6 @@ type Story = StoryObj<typeof meta>;
 export const WalletFocused: Story = {
   args: {
     selectedAccount,
-    selectedAllocation: null,
     transactions: snapshot.transactions.filter(
       (transaction) =>
         transaction.source_account?.id === selectedAccount.id || transaction.destination_account?.id === selectedAccount.id,
@@ -72,11 +69,13 @@ export const WalletFocused: Story = {
   },
 };
 
-export const GoalFocused: Story = {
+export const SavingsFocused: Story = {
   args: {
     selectedAccount: savingsAccount,
-    selectedAllocation: selectedGoal,
-    transactions: snapshot.transactions.filter((transaction) => transaction.allocation?.id === selectedGoal.id),
+    transactions: snapshot.transactions.filter(
+      (transaction) =>
+        transaction.source_account?.id === savingsAccount.id || transaction.destination_account?.id === savingsAccount.id,
+    ),
     showMinorUnits: false,
     startDate: defaultStartDate,
     endDate: defaultEndDate,
@@ -89,7 +88,6 @@ export const GoalFocused: Story = {
 export const AllTransactions: Story = {
   args: {
     selectedAccount: null,
-    selectedAllocation: null,
     transactions: snapshot.transactions,
     showMinorUnits: false,
     startDate: defaultStartDate,

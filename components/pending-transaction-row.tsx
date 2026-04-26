@@ -70,9 +70,9 @@ export interface PendingTransactionRowProps {
 // Helpers
 // ---------------------------------------------------------------------------
 
-const CREDIT_KINDS = new Set<TransactionKind>(["income", "refund", "adjustment"]);
-const NEEDS_SOURCE = new Set<TransactionKind>(["expense", "transfer", "save_to_goal", "spend_from_goal", "debt_payment", "investment", "adjustment"]);
-const NEEDS_DESTINATION = new Set<TransactionKind>(["income", "transfer", "save_to_goal", "spend_from_goal", "debt_payment", "refund"]);
+const CREDIT_KINDS = new Set<TransactionKind>(["income"]);
+const NEEDS_SOURCE = new Set<TransactionKind>(["expense", "transfer", "debt_payment"]);
+const NEEDS_DESTINATION = new Set<TransactionKind>(["income", "transfer", "debt_payment"]);
 
 function formatAmount(amount: number, currency: string | null, kind: TransactionKind) {
   const sign = CREDIT_KINDS.has(kind) ? "+" : "−";

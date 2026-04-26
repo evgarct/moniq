@@ -14,7 +14,7 @@ describe("finance-selectors", () => {
 
   it("groups income and expenses by transaction currency", () => {
     expect(getIncomeExpenseSummaryByCurrency(mockTransactions)).toEqual([
-      { currency: "CZK", income: 96500, expenses: 45738.73 },
+      { currency: "CZK", income: 678700, expenses: 366838.73 },
     ]);
   });
 });

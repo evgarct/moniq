@@ -29,7 +29,6 @@ import { useRouter } from "@/i18n/navigation";
 
 const emptySnapshot: FinanceSnapshot = {
   accounts: [],
-  allocations: [],
   categories: [],
   schedules: [],
   transactions: [],
@@ -97,8 +96,6 @@ export function TransactionsView({
     transactionKindFromSearch === "income" ||
     transactionKindFromSearch === "expense" ||
     transactionKindFromSearch === "transfer" ||
-    transactionKindFromSearch === "save_to_goal" ||
-    transactionKindFromSearch === "spend_from_goal" ||
     transactionKindFromSearch === "debt_payment"
       ? transactionKindFromSearch
       : "expense";
@@ -144,6 +141,7 @@ export function TransactionsView({
                   icon: node.icon,
                   type: node.type,
                   parent_id: node.id,
+                  is_system: false,
                   created_at: new Date().toISOString(),
                 });
                 setCategorySheetOpen(true);
@@ -283,7 +281,6 @@ export function TransactionsView({
         schedule={editingSchedule}
         initialKind={draftTransactionKind}
         accounts={snapshot.accounts}
-        allocations={snapshot.allocations}
         categories={flatCategoryTree}
         transactions={snapshot.transactions}
         onOpenChange={(open) => {

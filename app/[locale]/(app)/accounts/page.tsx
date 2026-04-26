@@ -34,7 +34,6 @@ export default function AccountsPage() {
     <PageContainer className="h-full overflow-hidden px-0 py-0 sm:px-0">
       <AccountsView
         accounts={data?.accounts ?? []}
-        allocations={data?.allocations ?? []}
         categories={data?.categories ?? []}
         transactions={data?.transactions ?? []}
       />

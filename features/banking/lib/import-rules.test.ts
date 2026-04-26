@@ -16,6 +16,7 @@ describe("import-rules", () => {
         currency: "EUR",
         date: "2026-04-10",
         merchant: "TESCO 001 PRAHA",
+        kind: "expense",
       }),
     ).toBe("wallet-1:-42.50:2026-04-10:tesco praha");
   });
@@ -33,6 +34,7 @@ describe("import-rules", () => {
             icon: null,
             type: "expense",
             parent_id: null,
+            is_system: false,
             created_at: "2026-04-10T10:00:00.000Z",
           },
         ],

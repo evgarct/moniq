@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { deleteAccount, normalizeAccountBalance, normalizeCreditLimit, saveAccount, validateAccountValues } from "@/features/accounts/lib/account-state";
-import type { Account, Allocation, Category, Transaction } from "@/types/finance";
+import type { Account, Category, Transaction } from "@/types/finance";
 
 const baseCategory: Category = {
   id: "cafe",
@@ -10,6 +10,7 @@ const baseCategory: Category = {
   icon: "☕",
   type: "expense",
   parent_id: null,
+  is_system: false,
   created_at: "2026-03-28T10:00:00.000Z",
 };
 
@@ -20,6 +21,7 @@ const incomeCategory: Category = {
   icon: "💼",
   type: "income",
   parent_id: null,
+  is_system: false,
   created_at: "2026-03-28T10:00:00.000Z",
 };
 
@@ -49,19 +51,6 @@ const savingAccount: Account = {
   created_at: "2026-03-28T10:00:00.000Z",
 };
 
-const allocations: Allocation[] = [
-  {
-    id: "allocation-1",
-    user_id: "user-1",
-    account_id: "wallet-2",
-    name: "Vet",
-    kind: "goal_open",
-    amount: 600,
-    target_amount: null,
-    created_at: "2026-03-28T10:00:00.000Z",
-  },
-];
-
 const transactions: Transaction[] = [
   {
     id: "tx-1",
@@ -81,14 +70,12 @@ const transactions: Transaction[] = [
     category_id: "cafe",
     source_account_id: "wallet-2",
     destination_account_id: null,
-    allocation_id: null,
     schedule_id: null,
     schedule_occurrence_date: null,
     is_schedule_override: false,
     category: baseCategory,
     source_account: savingAccount,
     destination_account: null,
-    allocation: null,
     schedule: null,
   },
 ];
@@ -127,7 +114,7 @@ describe("account-state", () => {
 
   it("creates a new wallet with normalized shape", () => {
     const result = saveAccount({
-      snapshot: { accounts: [baseAccount], allocations: [], transactions: [] },
+      snapshot: { accounts: [baseAccount], transactions: [] },
       values: {
         name: "Travel",
         type: "debt",
@@ -159,7 +146,6 @@ describe("account-state", () => {
     const result = saveAccount({
       snapshot: {
         accounts: [baseAccount],
-        allocations: [],
         transactions: [
           {
             id: "tx-2",
@@ -179,14 +165,12 @@ describe("account-state", () => {
             category_id: "salary",
             source_account_id: null,
             destination_account_id: "wallet-1",
-            allocation_id: null,
             schedule_id: null,
             schedule_occurrence_date: null,
             is_schedule_override: false,
             category: incomeCategory,
             source_account: null,
             destination_account: baseAccount,
-            allocation: null,
             schedule: null,
           },
         ],
@@ -207,11 +191,10 @@ describe("account-state", () => {
     expect(result.snapshot.transactions[0]?.destination_account?.currency).toBe("CZK");
   });
 
-  it("updates linked transactions and removes saving allocations when a saving wallet changes type", () => {
+  it("updates linked transactions when a saving wallet changes type", () => {
     const result = saveAccount({
       snapshot: {
         accounts: [baseAccount, savingAccount],
-        allocations,
         transactions,
       },
       values: {
@@ -229,23 +212,20 @@ describe("account-state", () => {
     expect(result.account.type).toBe("credit_card");
     expect(result.account.balance).toBe(-700);
     expect(result.account.credit_limit).toBe(5000);
-    expect(result.snapshot.allocations).toHaveLength(0);
     expect(result.snapshot.transactions[0]?.source_account?.type).toBe("credit_card");
     expect(result.snapshot.transactions[0]?.source_account?.name).toBe("Emergency Card");
   });
 
-  it("deletes a wallet together with related transactions and allocations", () => {
+  it("deletes a wallet together with its related transactions", () => {
     const result = deleteAccount(
       {
         accounts: [baseAccount, savingAccount],
-        allocations,
         transactions,
       },
       "wallet-2",
     );
 
     expect(result.accounts).toEqual([baseAccount]);
-    expect(result.allocations).toEqual([]);
     expect(result.transactions).toEqual([]);
   });
 });

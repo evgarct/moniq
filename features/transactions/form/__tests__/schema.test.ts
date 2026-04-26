@@ -15,7 +15,6 @@ const msgs = {
     sourceRequired: "sourceRequired",
     destinationRequired: "destinationRequired",
     categoryRequired: "categoryRequired",
-    goalRequired: "goalRequired",
     differentDestination: "differentDestination",
     debtBreakdownRequired: "debtBreakdownRequired",
     debtBreakdownMismatch: "debtBreakdownMismatch",
@@ -23,8 +22,6 @@ const msgs = {
     lineItemsRequired: "lineItemsRequired",
     recurringMustBePlanned: "recurringMustBePlanned",
     recurrenceUntilBeforeStart: "recurrenceUntilBeforeStart",
-    adjustmentBalanceRequired: "adjustmentBalanceRequired",
-    adjustmentNoDiff: "adjustmentNoDiff",
   },
 };
 
@@ -44,12 +41,10 @@ function base(overrides = {}) {
     category_id: "cat-1",
     source_account_id: "acc-1",
     destination_account_id: null,
-    allocation_id: null,
     is_recurring: false,
     recurrence_frequency: "monthly" as const,
     recurrence_until: null,
     line_items: [],
-    adjustment_target_balance: null,
     ...overrides,
   };
 }
@@ -61,7 +56,7 @@ describe("buildSchema – add mode", () => {
     // In add mode, expense is always batch — must have at least one line item
     const result = schema.safeParse(
       base({
-        line_items: [{ category_id: "cat-1", allocation_id: null, amount: 100, note: "" }],
+        line_items: [{ category_id: "cat-1", amount: 100, note: "" }],
       }),
     );
     expect(result.success).toBe(true);
@@ -71,8 +66,8 @@ describe("buildSchema – add mode", () => {
     // The form initialises amount=0; user fills only line_items — top-level amount must be ignored
     const result = schema.safeParse(
       base({
-        amount: 0, // ← реальный дефолт useForm
-        line_items: [{ category_id: "cat-1", allocation_id: null, amount: 100, note: "" }],
+        amount: 0,
+        line_items: [{ category_id: "cat-1", amount: 100, note: "" }],
       }),
     );
     expect(result.success).toBe(true);
@@ -126,41 +121,6 @@ describe("buildSchema – add mode", () => {
     expect(result.success).toBe(false);
     const paths = result.error!.issues.map((i) => i.path.join("."));
     expect(paths).toContain("destination_amount");
-  });
-
-  it("accepts save_to_goal with allocation in batch mode (no allocation_id required)", () => {
-    const result = schema.safeParse(
-      base({
-        kind: "save_to_goal",
-        source_account_id: "acc-1",
-        destination_account_id: "acc-2",
-        destination_amount: 50,
-        allocation_id: null,
-        category_id: null,
-        line_items: [{ category_id: null, allocation_id: "goal-1", amount: 50, note: "" }],
-      }),
-    );
-    // batch mode: allocation_id not required at top level
-    const paths = result.error?.issues.map((i) => i.path.join(".")) ?? [];
-    expect(paths).not.toContain("allocation_id");
-  });
-
-  it("rejects batch save_to_goal line item without allocation_id", () => {
-    // In add mode, save_to_goal is batch — line items must have allocation_id
-    const result = schema.safeParse(
-      base({
-        kind: "save_to_goal",
-        source_account_id: "acc-1",
-        destination_account_id: "acc-2",
-        destination_amount: 50,
-        allocation_id: null,
-        category_id: null,
-        line_items: [{ category_id: null, allocation_id: null, amount: 50, note: "" }],
-      }),
-    );
-    expect(result.success).toBe(false);
-    const paths = result.error!.issues.map((i) => i.path.join("."));
-    expect(paths).toContain("line_items.0.allocation_id");
   });
 
   it("rejects debt_payment when breakdown does not sum to amount", () => {
@@ -229,22 +189,6 @@ describe("buildSchema – add mode", () => {
     expect(result.success).toBe(false);
     const paths = result.error!.issues.map((i) => i.path.join("."));
     expect(paths).toContain("line_items");
-  });
-
-  it("accepts adjustment with target balance", () => {
-    const result = schema.safeParse(
-      base({
-        kind: "adjustment",
-        source_account_id: "acc-1",
-        destination_account_id: null,
-        category_id: null,
-        adjustment_target_balance: 500,
-        amount: 1, // will be computed externally
-      }),
-    );
-    const paths = result.error?.issues.map((i) => i.path.join(".")) ?? [];
-    expect(paths).not.toContain("adjustment_target_balance");
-    expect(paths).not.toContain("source_account_id");
   });
 });
 

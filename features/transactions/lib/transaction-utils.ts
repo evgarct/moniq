@@ -1,5 +1,5 @@
 import type { TransactionInput } from "@/types/finance-schemas";
-import type { Account, Allocation, Category, Transaction } from "@/types/finance";
+import type { Account, Category, Transaction } from "@/types/finance";
 import { isSettledTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
 
 export function getTransactionAnalyticsAmount(transaction: Transaction) {
@@ -27,10 +27,6 @@ export function getTransactionDisplayCategory(transaction: Transaction) {
     return transaction.category.name;
   }
 
-  if (transaction.kind === "save_to_goal" || transaction.kind === "spend_from_goal") {
-    return transaction.allocation?.name ?? "Savings goal";
-  }
-
   if (transaction.kind === "transfer") {
     return "Transfer";
   }
@@ -46,7 +42,6 @@ export function validateTransactionRelationships(
   values: TransactionInput,
   options: {
     accounts: Account[];
-    allocations: Allocation[];
     categories: Category[];
   },
 ) {
@@ -58,9 +53,6 @@ export function validateTransactionRelationships(
     : null;
   const category = values.category_id
     ? options.categories.find((item) => item.id === values.category_id) ?? null
-    : null;
-  const allocation = values.allocation_id
-    ? options.allocations.find((item) => item.id === values.allocation_id) ?? null
     : null;
 
   if (values.source_account_id && !sourceAccount) {
@@ -75,32 +67,12 @@ export function validateTransactionRelationships(
     throw new Error("Category not found.");
   }
 
-  if (values.allocation_id && !allocation) {
-    throw new Error("Savings goal not found.");
-  }
-
   if ((values.kind === "income" || values.kind === "expense") && category?.type !== values.kind) {
     throw new Error("Choose a category with the matching type.");
   }
 
   if (values.kind === "debt_payment" && category && category.type !== "expense") {
     throw new Error("Debt payment interest can only use an expense category.");
-  }
-
-  if ((values.kind === "save_to_goal" || values.kind === "spend_from_goal") && allocation) {
-    const savingAccountId = values.kind === "save_to_goal" ? values.destination_account_id : values.source_account_id;
-
-    if (allocation.account_id !== savingAccountId) {
-      throw new Error("Selected savings goal must belong to the savings wallet used in the transaction.");
-    }
-  }
-
-  if (values.kind === "save_to_goal" && destinationAccount?.type !== "saving") {
-    throw new Error("Save to goal must land in a savings wallet.");
-  }
-
-  if (values.kind === "spend_from_goal" && sourceAccount?.type !== "saving") {
-    throw new Error("Spend from goal must start from a savings wallet.");
   }
 
   if (values.kind === "debt_payment" && destinationAccount?.type !== "debt") {
@@ -121,7 +93,7 @@ export function getTransactionSignedAmount(transaction: Transaction) {
     return Math.abs(transaction.amount);
   }
 
-  if (transaction.kind === "transfer" || transaction.kind === "save_to_goal" || transaction.kind === "spend_from_goal") {
+  if (transaction.kind === "transfer") {
     return 0;
   }
 

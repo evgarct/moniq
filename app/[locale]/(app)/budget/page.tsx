@@ -31,6 +31,6 @@ export default function BudgetPage() {
   }
 
   return (
-    <BudgetView snapshot={data ?? { accounts: [], allocations: [], categories: [], schedules: [], transactions: [] }} />
+    <BudgetView snapshot={data ?? { accounts: [], categories: [], schedules: [], transactions: [] }} />
   );
 }

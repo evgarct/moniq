@@ -114,9 +114,9 @@ export async function PATCH(
   const createdIds: { itemId: string; transactionId: string }[] = [];
 
   // Kinds where resolved_account_id is the source (debit side)
-  const SOURCE_KINDS = new Set(["expense", "transfer", "save_to_goal", "spend_from_goal", "debt_payment", "investment", "adjustment"]);
+  const SOURCE_KINDS = new Set(["expense", "transfer", "debt_payment"]);
   // Kinds where resolved_account_id is the destination (credit side)
-  const DEST_KINDS = new Set(["income", "refund"]);
+  const DEST_KINDS = new Set(["income"]);
 
   for (const item of items ?? []) {
     const sourceAccountId = SOURCE_KINDS.has(item.kind)

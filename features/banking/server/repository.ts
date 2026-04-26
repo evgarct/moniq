@@ -130,7 +130,6 @@ function toFinanceTransactionInput(transaction: TransactionImport): TransactionI
     interest_amount: null,
     extra_principal_amount: null,
     category_id: transaction.category_id ?? null,
-    allocation_id: null,
   };
 
   if (transaction.kind === "transfer") {

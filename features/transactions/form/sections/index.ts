@@ -1,9 +1,4 @@
 export { ExpenseSection } from "./expense-section";
 export { IncomeSection } from "./income-section";
 export { TransferSection } from "./transfer-section";
-export { SaveToGoalSection } from "./save-to-goal-section";
-export { SpendFromGoalSection } from "./spend-from-goal-section";
 export { DebtPaymentSection } from "./debt-payment-section";
-export { InvestmentSection } from "./investment-section";
-export { RefundSection } from "./refund-section";
-export { AdjustmentSection } from "./adjustment-section";

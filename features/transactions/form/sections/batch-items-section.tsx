@@ -7,13 +7,10 @@ import { useRef } from "react";
 
 import { CategoryCascadePicker } from "@/components/category-cascade-picker";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
 
 import { useTransactionFormContext } from "../context";
 import { AccountSelect } from "../account-select";
 import { DecimalInput, FieldMessage, SplitRow, PickerRow } from "../primitives";
-import { toSelectValue } from "../helpers";
 import type { TransactionFormInputs } from "../types";
 
 export function BatchItemsSection() {
@@ -25,8 +22,6 @@ export function BatchItemsSection() {
     kind,
     accounts,
     categoryOptions,
-    goalOptions,
-    goalNameById,
     primaryCurrencySymbol,
     fields,
     insert,
@@ -93,51 +88,23 @@ export function BatchItemsSection() {
           onPointerCancel={clearLongPress}
           onPointerLeave={clearLongPress}
           left={
-            kind === "income" || kind === "expense" ? (
-              <Controller
-                control={control}
-                name={`line_items.${index}.category_id`}
-                render={({ field: itemField }) => (
-                  <CategoryCascadePicker
-                    categories={categoryOptions}
-                    value={itemField.value}
-                    onSelect={(value) => {
-                      itemField.onChange(value);
-                      setTimeout(() => amountInputRefs.current[index]?.focus(), 0);
-                    }}
-                    placeholder={t("placeholders.category")}
-                    triggerClassName="h-auto border-0 bg-transparent px-0 py-0 text-left text-sm leading-5 shadow-none outline-none hover:bg-transparent"
-                    contentClassName="min-w-[16rem]"
-                  />
-                )}
-              />
-            ) : (
-              <Controller
-                control={control}
-                name={`line_items.${index}.allocation_id`}
-                render={({ field: itemField }) => (
-                  <Select value={toSelectValue(itemField.value)} onValueChange={itemField.onChange}>
-                    <SelectTrigger
-                      ref={(node) => {
-                        lineTriggerRefs.current[index] = node;
-                      }}
-                      className="h-auto w-full border-0 bg-transparent px-0 py-0 text-left text-sm leading-5 shadow-none outline-none focus:outline-none focus-visible:border-transparent focus-visible:ring-0 [&>svg:last-child]:hidden"
-                    >
-                      <span className={cn("truncate capitalize", itemField.value ? "text-foreground" : "text-muted-foreground")}>
-                        {itemField.value ? (goalNameById.get(itemField.value) ?? itemField.value) : t("placeholders.goal")}
-                      </span>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {goalOptions.map((allocation) => (
-                        <SelectItem key={allocation.id} value={allocation.id} className="capitalize">
-                          {allocation.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            )
+            <Controller
+              control={control}
+              name={`line_items.${index}.category_id`}
+              render={({ field: itemField }) => (
+                <CategoryCascadePicker
+                  categories={categoryOptions}
+                  value={itemField.value}
+                  onSelect={(value) => {
+                    itemField.onChange(value);
+                    setTimeout(() => amountInputRefs.current[index]?.focus(), 0);
+                  }}
+                  placeholder={t("placeholders.category")}
+                  triggerClassName="h-auto border-0 bg-transparent px-0 py-0 text-left text-sm leading-5 shadow-none outline-none hover:bg-transparent"
+                  contentClassName="min-w-[16rem]"
+                />
+              )}
+            />
           }
           right={
             <Controller
@@ -163,7 +130,6 @@ export function BatchItemsSection() {
           }
         >
           <FieldMessage error={errors.line_items?.[index]?.category_id as FieldError | undefined} />
-          <FieldMessage error={errors.line_items?.[index]?.allocation_id as FieldError | undefined} />
           <FieldMessage error={errors.line_items?.[index]?.amount as FieldError | undefined} />
         </SplitRow>
       ))}

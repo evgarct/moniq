@@ -1,7 +1,7 @@
 import { normalizeCurrencyCode } from "@/lib/currencies";
 import { createClientId } from "@/lib/utils";
 import type { CurrencyCode } from "@/types/currency";
-import type { Account, Allocation, CashKind, DebtKind, Transaction } from "@/types/finance";
+import type { Account, CashKind, DebtKind, Transaction } from "@/types/finance";
 
 export type AccountDraftValues = {
   name: string;
@@ -14,7 +14,6 @@ export type AccountDraftValues = {
 
 export type AccountStateSnapshot = {
   accounts: Account[];
-  allocations: Allocation[];
   transactions: Transaction[];
 };
 
@@ -130,10 +129,6 @@ export function saveAccount({
 
     const nextAccount = updateAccount(editingAccount, values);
     const nextAccounts = snapshot.accounts.map((account) => (account.id === nextAccount.id ? nextAccount : account));
-    const nextAllocations =
-      editingAccount.type === "saving" && values.type !== "saving"
-        ? snapshot.allocations.filter((allocation) => allocation.account_id !== nextAccount.id)
-        : snapshot.allocations;
     const nextTransactions = snapshot.transactions.map((transaction) => ({
         ...transaction,
         source_account: transaction.source_account_id === nextAccount.id ? nextAccount : transaction.source_account,
@@ -144,7 +139,6 @@ export function saveAccount({
     return {
       snapshot: {
         accounts: nextAccounts,
-        allocations: nextAllocations,
         transactions: nextTransactions,
       },
       account: nextAccount,
@@ -161,7 +155,6 @@ export function saveAccount({
   return {
     snapshot: {
       accounts: [createdAccount, ...snapshot.accounts],
-      allocations: snapshot.allocations,
       transactions: snapshot.transactions,
     },
     account: createdAccount,
@@ -171,7 +164,6 @@ export function saveAccount({
 export function deleteAccount(snapshot: AccountStateSnapshot, accountId: string): AccountStateSnapshot {
   return {
     accounts: snapshot.accounts.filter((account) => account.id !== accountId),
-    allocations: snapshot.allocations.filter((allocation) => allocation.account_id !== accountId),
     transactions: snapshot.transactions.filter(
       (transaction) => transaction.source_account_id !== accountId && transaction.destination_account_id !== accountId,
     ),

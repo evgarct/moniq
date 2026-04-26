@@ -47,13 +47,8 @@ function ContextMenuSeparator() {
   return <div role="separator" className="-mx-1 my-1 h-px bg-border" />;
 }
 
-const INVESTMENT_PATTERN = /\b(invest|investment|investing|broker|brokerage|portfolio|etf|stock|stocks|share|shares|pension)\b/i;
-
 function isEncouragedTransaction(transaction: Transaction) {
-  if (transaction.kind === "income" || transaction.kind === "save_to_goal") return true;
-  if (transaction.kind !== "expense") return false;
-  const haystack = [transaction.title, transaction.category?.name].filter(Boolean).join(" ");
-  return INVESTMENT_PATTERN.test(haystack);
+  return transaction.kind === "income";
 }
 
 function renderAmount(transaction: Transaction, showMinorUnits: boolean) {
@@ -62,7 +57,7 @@ function renderAmount(transaction: Transaction, showMinorUnits: boolean) {
 
   if (!primaryAccount) return null;
 
-  if (transaction.kind === "transfer" || transaction.kind === "save_to_goal" || transaction.kind === "spend_from_goal") {
+  if (transaction.kind === "transfer") {
     const primaryCurrency = transaction.source_account?.currency ?? primaryAccount.currency;
     const primaryToneClass =
       kindMeta.amountTone === "positive"
@@ -116,7 +111,7 @@ function buildMetaParts(parts: Array<string | null>) {
 }
 
 function buildPrimaryLabel(transaction: Transaction, fallback: string) {
-  const base = transaction.category?.name ?? transaction.allocation?.name ?? fallback;
+  const base = transaction.category?.name ?? fallback;
   return transaction.note ? `${base} (${transaction.note})` : base;
 }
 
@@ -125,16 +120,6 @@ function buildSecondaryLabel(transaction: Transaction, kindLabel: string, fallba
     case "transfer":
       return buildMetaParts([
         transaction.source_account?.name ?? null,
-        transaction.destination_account?.name ? `→ ${transaction.destination_account.name}` : null,
-      ]).join(" ");
-    case "save_to_goal":
-      return buildMetaParts([
-        transaction.source_account?.name ?? null,
-        transaction.allocation?.name ? `→ ${transaction.allocation.name}` : null,
-      ]).join(" ");
-    case "spend_from_goal":
-      return buildMetaParts([
-        transaction.allocation?.name ?? null,
         transaction.destination_account?.name ? `→ ${transaction.destination_account.name}` : null,
       ]).join(" ");
     default:
@@ -200,9 +185,7 @@ export function TransactionRow({
 
   const categoryLabel = transaction.category
     ? transaction.category.name
-    : transaction.kind === "save_to_goal" || transaction.kind === "spend_from_goal"
-      ? transaction.allocation?.name ?? t("row.savingsGoal")
-      : transaction.kind === "transfer"
+    : transaction.kind === "transfer"
         ? t("kinds.transfer")
         : transaction.kind === "debt_payment"
           ? t("kinds.debt_payment")

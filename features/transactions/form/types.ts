@@ -8,7 +8,6 @@ import type {
 
 export type TransactionLineItemInput = {
   category_id: string | null;
-  allocation_id: string | null;
   amount: number | null;
   note: string;
 };
@@ -28,12 +27,10 @@ export type TransactionFormInputs = {
   category_id: string | null;
   source_account_id: string | null;
   destination_account_id: string | null;
-  allocation_id: string | null;
   is_recurring: boolean;
   recurrence_frequency: TransactionSchedule["frequency"];
   recurrence_until: string | null;
   line_items: TransactionLineItemInput[];
-  adjustment_target_balance: number | null;
 };
 
 export type RescheduleFrom = {
@@ -50,4 +47,4 @@ export type TransactionFormSubmitPayload =
 
 export type TransactionFormMode = "add" | "edit-transaction" | "edit-schedule";
 
-export type BatchKind = "income" | "expense" | "save_to_goal" | "spend_from_goal";
+export type BatchKind = "income" | "expense";

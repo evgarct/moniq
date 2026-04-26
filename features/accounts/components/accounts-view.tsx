@@ -13,37 +13,28 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { AccountFormSheet } from "@/features/accounts/components/account-form-sheet";
 import { BalanceRegisterHeader, BalanceRegisterPanel } from "@/features/accounts/components/balance-register-panel";
-import { AllocationFormSheet } from "@/features/allocations/components/allocation-form-sheet";
 import {
-  getFreeMoney,
-  validateAllocationAmount,
-} from "@/features/allocations/lib/allocation-utils";
-import {
-  createAllocationRequest,
+  adjustWalletBalanceRequest,
   createWalletRequest,
-  deleteAllocationRequest,
   deleteWalletRequest,
   financeSnapshotQueryKey,
-  updateAllocationRequest,
   updateWalletRequest,
 } from "@/features/finance/lib/finance-api";
 import { TransactionFormSheet, type TransactionFormSubmitPayload } from "@/features/transactions/components/transaction-form-sheet";
 import { useTransactionActions } from "@/features/transactions/hooks/use-transaction-actions";
 import { isSettledTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
-import { getTransactionsForAccount, getTransactionsForAllocation } from "@/lib/finance-selectors";
+import { getTransactionsForAccount } from "@/lib/finance-selectors";
 import { cn } from "@/lib/utils";
 import type { CurrencyCode } from "@/types/currency";
-import type { Account, Allocation, Category, FinanceSnapshot, Transaction } from "@/types/finance";
-import type { AllocationInput, WalletInput } from "@/types/finance-schemas";
+import type { Account, Category, FinanceSnapshot, Transaction } from "@/types/finance";
+import type { WalletInput } from "@/types/finance-schemas";
 
 export function AccountsView({
   accounts,
-  allocations,
   categories,
   transactions,
 }: {
   accounts: Account[];
-  allocations: Allocation[];
   categories: Category[];
   transactions: Transaction[];
 }) {
@@ -55,7 +46,6 @@ export function AccountsView({
   const defaultRegisterDateFrom = format(startOfMonth(new Date()), "yyyy-MM-dd");
   const defaultRegisterDateTo = format(endOfMonth(new Date()), "yyyy-MM-dd");
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
-  const [selectedAllocationId, setSelectedAllocationId] = useState<string | null>(null);
   const [walletSheetOpen, setWalletSheetOpen] = useState(false);
   const [walletSheetMode, setWalletSheetMode] = useState<"add" | "edit">("add");
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
@@ -70,8 +60,6 @@ export function AccountsView({
   const [registerDateTo, setRegisterDateTo] = useState(defaultRegisterDateTo);
   const [leftPanelScrolled, setLeftPanelScrolled] = useState(false);
   const [mobileRegisterScrolled, setMobileRegisterScrolled] = useState(false);
-  const [allocationSheetOpen, setAllocationSheetOpen] = useState(false);
-  const [editingAllocation, setEditingAllocation] = useState<Allocation | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const setSnapshot = (snapshot: FinanceSnapshot) => {
@@ -95,26 +83,9 @@ export function AccountsView({
     },
   });
 
-  const allocationMutation = useMutation({
-    mutationFn: async ({
-      mode,
-      walletId,
-      allocationId,
-      values,
-    }: {
-      mode: "add" | "edit";
-      walletId?: string;
-      allocationId?: string;
-      values: AllocationInput;
-    }) => (mode === "add" ? createAllocationRequest(walletId!, values) : updateAllocationRequest(allocationId!, values)),
-    onSuccess: (snapshot) => {
-      setSnapshot(snapshot);
-      setActionError(null);
-    },
-  });
-
-  const deleteAllocationMutation = useMutation({
-    mutationFn: deleteAllocationRequest,
+  const adjustBalanceMutation = useMutation({
+    mutationFn: async ({ walletId, newBalance, note }: { walletId: string; newBalance: number; note: string | null }) =>
+      adjustWalletBalanceRequest(walletId, newBalance, note),
     onSuccess: (snapshot) => {
       setSnapshot(snapshot);
       setActionError(null);
@@ -122,8 +93,6 @@ export function AccountsView({
   });
 
   const selectedAccount = selectedAccountId ? accounts.find((account) => account.id === selectedAccountId) ?? null : null;
-  const selectedAllocation =
-    selectedAllocationId ? allocations.find((allocation) => allocation.id === selectedAllocationId) ?? null : null;
   const settledTransactions = useMemo(
     () =>
       [...transactions]
@@ -131,32 +100,18 @@ export function AccountsView({
         .sort((left, right) => right.occurred_at.localeCompare(left.occurred_at)),
     [transactions],
   );
-  const register = selectedAllocation
-    ? getTransactionsForAllocation(settledTransactions, selectedAllocation.id)
-    : selectedAccount
-      ? getTransactionsForAccount(settledTransactions, selectedAccount.id)
-      : settledTransactions;
+  const register = selectedAccount
+    ? getTransactionsForAccount(settledTransactions, selectedAccount.id)
+    : settledTransactions;
   const filteredRegister = register.filter((transaction) => {
     const occurredOn = transaction.occurred_at.slice(0, 10);
-
-    if (registerDateFrom && occurredOn < registerDateFrom) {
-      return false;
-    }
-
-    if (registerDateTo && occurredOn > registerDateTo) {
-      return false;
-    }
-
+    if (registerDateFrom && occurredOn < registerDateFrom) return false;
+    if (registerDateTo && occurredOn > registerDateTo) return false;
     return true;
   });
-  const freeMoney = selectedAccount ? getFreeMoney(selectedAccount.balance, allocations, selectedAccount.id) : 0;
-  const pending =
-    walletMutation.isPending ||
-    deleteWalletMutation.isPending ||
-    allocationMutation.isPending ||
-    deleteAllocationMutation.isPending;
+  const pending = walletMutation.isPending || deleteWalletMutation.isPending || adjustBalanceMutation.isPending;
   const hasAccounts = accounts.length > 0;
-  const registerTitle = selectedAllocation ? selectedAllocation.name : selectedAccount ? selectedAccount.name : t("view.activity");
+  const registerTitle = selectedAccount ? selectedAccount.name : t("view.activity");
   const toolbarButtonClassName =
     "rounded-md bg-transparent text-muted-foreground hover:bg-[#ece8e1] hover:text-foreground active:bg-[#e6e1d9]";
 
@@ -166,7 +121,6 @@ export function AccountsView({
   function closeMobileRegister() {
     setMobileRegisterOpen(false);
     setSelectedAccountId(null);
-    setSelectedAllocationId(null);
   }
 
   function openTransactionEditor(transaction: Transaction) {
@@ -220,7 +174,6 @@ export function AccountsView({
           : snapshot.accounts[snapshot.accounts.length - 1]?.id ?? null;
 
       setSelectedAccountId(nextSelectedId);
-      setSelectedAllocationId(null);
     } catch (error) {
       const message = error instanceof Error ? error.message : t("messages.saveWalletError");
       setActionError(message);
@@ -236,9 +189,6 @@ export function AccountsView({
     try {
       await deleteWalletMutation.mutateAsync(account.id);
       setSelectedAccountId((current) => (current === account.id ? null : current));
-      setSelectedAllocationId((current) =>
-        current && allocations.some((allocation) => allocation.id === current && allocation.account_id === account.id) ? null : current,
-      );
     } catch (error) {
       const message = error instanceof Error ? error.message : t("messages.deleteWalletError");
       setActionError(message);
@@ -246,52 +196,11 @@ export function AccountsView({
     }
   }
 
-  function openAddSubgroup() {
-    setActionError(null);
-    setEditingAllocation(null);
-    setAllocationSheetOpen(true);
-  }
-
-  async function handleSaveAllocation(values: { name: string; amount: number; kind: Allocation["kind"]; target_amount: number | null }) {
-    if (!selectedAccount) {
-      return;
-    }
-
+  async function handleAdjustBalance(account: Account, newBalance: number) {
     try {
-      validateAllocationAmount({
-        balance: selectedAccount.balance,
-        allocations,
-        accountId: selectedAccount.id,
-        nextAmount: values.amount,
-        nextKind: values.kind,
-        nextTargetAmount: values.target_amount,
-        editingAllocationId: editingAllocation?.id,
-      });
-
-      await allocationMutation.mutateAsync({
-        mode: editingAllocation ? "edit" : "add",
-        walletId: selectedAccount.id,
-        allocationId: editingAllocation?.id,
-        values,
-      });
+      await adjustBalanceMutation.mutateAsync({ walletId: account.id, newBalance, note: null });
     } catch (error) {
-      const message = error instanceof Error ? error.message : t("messages.saveGoalError");
-      setActionError(message);
-      window.alert(message);
-      throw error;
-    }
-  }
-
-  async function handleDeleteAllocation(allocation: Allocation) {
-    if (!window.confirm(t("messages.deleteGoalConfirm", { name: allocation.name }))) {
-      return;
-    }
-
-    try {
-      await deleteAllocationMutation.mutateAsync(allocation.id);
-      setSelectedAllocationId((current) => (current === allocation.id ? null : current));
-    } catch (error) {
-      const message = error instanceof Error ? error.message : t("messages.deleteGoalError");
+      const message = error instanceof Error ? error.message : t("messages.saveWalletError");
       setActionError(message);
       window.alert(message);
     }
@@ -406,13 +315,10 @@ export function AccountsView({
           >
             <AccountList
               accounts={accounts}
-              allocations={allocations}
               selectedAccountId={selectedAccountId}
-              selectedAllocationId={selectedAllocationId}
               editing={walletsEditMode}
               showMinorUnits={showMinorUnits}
               onSelect={(accountId) => {
-                setSelectedAllocationId(null);
                 setSelectedAccountId((current) => {
                   const nextId = current === accountId ? null : accountId;
 
@@ -423,41 +329,16 @@ export function AccountsView({
                   return nextId;
                 });
               }}
-              onSelectAllocation={(allocation) => {
-                setSelectedAccountId(allocation.account_id);
-                setSelectedAllocationId((current) => {
-                  const nextId = current === allocation.id ? null : allocation.id;
-
-                  if (!isDesktopViewport()) {
-                    setMobileRegisterOpen(Boolean(nextId));
-                    if (!nextId) {
-                      setSelectedAccountId(null);
-                    }
-                  }
-
-                  return nextId;
-                });
-              }}
               onAddAccount={openAddWallet}
               onEditAccount={openEditWallet}
               onDeleteAccount={handleDeleteWallet}
-              onAddSubgroup={(account) => {
-                setSelectedAccountId(account.id);
-                openAddSubgroup();
-              }}
-              onEditAllocation={(allocation) => {
-                setSelectedAccountId(allocation.account_id);
-                setEditingAllocation(allocation);
-                setAllocationSheetOpen(true);
-              }}
-              onDeleteAllocation={handleDeleteAllocation}
+              onAdjustBalance={handleAdjustBalance}
             />
           </div>
         </section>
 
         <BalanceRegisterPanel
           selectedAccount={selectedAccount}
-          selectedAllocation={selectedAllocation}
           transactions={filteredRegister}
           showMinorUnits={showMinorUnits}
           startDate={registerDateFrom}
@@ -479,7 +360,6 @@ export function AccountsView({
           }}
           onClearSelection={() => {
             setSelectedAccountId(null);
-            setSelectedAllocationId(null);
           }}
         />
       </div>
@@ -507,10 +387,9 @@ export function AccountsView({
               onEndDateChange={setRegisterDateTo}
               onClearSelection={() => {
                 setSelectedAccountId(null);
-                setSelectedAllocationId(null);
                 setMobileRegisterOpen(false);
               }}
-              showClearSelection={Boolean(selectedAccount || selectedAllocation)}
+              showClearSelection={Boolean(selectedAccount)}
               onAddTransaction={openAddTransaction}
               onBack={closeMobileRegister}
               scrolled={mobileRegisterScrolled}
@@ -520,11 +399,9 @@ export function AccountsView({
               <TransactionList
                 transactions={filteredRegister}
                 emptyMessage={
-                  selectedAllocation
-                    ? t("messages.noTransactionsForGoal")
-                    : selectedAccount
-                      ? t("messages.noTransactionsForWallet")
-                      : tr("common.empty.noTransactionsYet")
+                  selectedAccount
+                    ? t("messages.noTransactionsForWallet")
+                    : tr("common.empty.noTransactionsYet")
                 }
                 groupByDate
                 showMinorUnits={showMinorUnits}
@@ -541,7 +418,6 @@ export function AccountsView({
         transaction={editingTransaction}
         defaultSourceAccountId={transactionSheetMode === "add" ? selectedAccountId : null}
         accounts={accounts}
-        allocations={allocations}
         categories={categories}
         onOpenChange={setTransactionSheetOpen}
         onSubmit={async (payload: TransactionFormSubmitPayload) => {
@@ -576,18 +452,6 @@ export function AccountsView({
         onOpenChange={setWalletSheetOpen}
         onSubmit={handleSaveWallet}
       />
-
-      {selectedAccount?.type === "saving" ? (
-        <AllocationFormSheet
-          open={allocationSheetOpen}
-          mode={editingAllocation ? "edit" : "add"}
-          allocation={editingAllocation}
-          currency={selectedAccount.currency}
-          freeMoney={freeMoney}
-          onOpenChange={setAllocationSheetOpen}
-          onSubmit={handleSaveAllocation}
-        />
-      ) : null}
     </>
   );
 }

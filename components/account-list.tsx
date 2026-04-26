@@ -7,38 +7,28 @@ import {
   getDebtAccounts,
   getSavingAccounts,
 } from "@/lib/finance-selectors";
-import type { Account, Allocation } from "@/types/finance";
+import type { Account } from "@/types/finance";
 
 export function AccountList({
   accounts,
-  allocations,
   selectedAccountId,
-  selectedAllocationId,
   editing = false,
   showMinorUnits = true,
   onSelect,
-  onSelectAllocation,
   onAddAccount,
   onEditAccount,
   onDeleteAccount,
-  onAddSubgroup,
-  onEditAllocation,
-  onDeleteAllocation,
+  onAdjustBalance,
 }: {
   accounts: Account[];
-  allocations: Allocation[];
   selectedAccountId: string | null;
-  selectedAllocationId?: string | null;
   editing?: boolean;
   showMinorUnits?: boolean;
   onSelect: (accountId: string) => void;
-  onSelectAllocation?: (allocation: Allocation) => void;
   onAddAccount?: (type: Account["type"]) => void;
   onEditAccount?: (account: Account) => void;
   onDeleteAccount?: (account: Account) => void;
-  onAddSubgroup?: (account: Account) => void;
-  onEditAllocation?: (allocation: Allocation) => void;
-  onDeleteAllocation?: (allocation: Allocation) => void;
+  onAdjustBalance?: (account: Account, newBalance: number) => void;
 }) {
   const t = useTranslations("accounts.groups");
   const cashAccounts = getCashAccounts(accounts);
@@ -51,61 +41,50 @@ export function AccountList({
       <AccountGroup
         title={t("cash")}
         accounts={cashAccounts}
-        allocations={allocations}
         selectedAccountId={selectedAccountId}
-        selectedAllocationId={selectedAllocationId}
         editing={editing}
         showMinorUnits={showMinorUnits}
         onSelect={onSelect}
-        onSelectAllocation={onSelectAllocation}
         onAddAccount={onAddAccount ? () => onAddAccount("cash") : undefined}
         onEditAccount={onEditAccount}
         onDeleteAccount={onDeleteAccount}
+        onAdjustBalance={onAdjustBalance}
       />
       <AccountGroup
         title={t("savings")}
         accounts={savingAccounts}
-        allocations={allocations}
         selectedAccountId={selectedAccountId}
-        selectedAllocationId={selectedAllocationId}
         editing={editing}
         showMinorUnits={showMinorUnits}
         onSelect={onSelect}
-        onSelectAllocation={onSelectAllocation}
         onAddAccount={onAddAccount ? () => onAddAccount("saving") : undefined}
         onEditAccount={onEditAccount}
         onDeleteAccount={onDeleteAccount}
-        onAddSubgroup={onAddSubgroup}
-        onEditAllocation={onEditAllocation}
-        onDeleteAllocation={onDeleteAllocation}
+        onAdjustBalance={onAdjustBalance}
       />
       <AccountGroup
         title={t("creditCards")}
         accounts={creditCardAccounts}
-        allocations={allocations}
         selectedAccountId={selectedAccountId}
-        selectedAllocationId={selectedAllocationId}
         editing={editing}
         showMinorUnits={showMinorUnits}
         onSelect={onSelect}
-        onSelectAllocation={onSelectAllocation}
         onAddAccount={onAddAccount ? () => onAddAccount("credit_card") : undefined}
         onEditAccount={onEditAccount}
         onDeleteAccount={onDeleteAccount}
+        onAdjustBalance={onAdjustBalance}
       />
       <AccountGroup
         title={t("debt")}
         accounts={debtAccounts}
-        allocations={allocations}
         selectedAccountId={selectedAccountId}
-        selectedAllocationId={selectedAllocationId}
         editing={editing}
         showMinorUnits={showMinorUnits}
         onSelect={onSelect}
-        onSelectAllocation={onSelectAllocation}
         onAddAccount={onAddAccount ? () => onAddAccount("debt") : undefined}
         onEditAccount={onEditAccount}
         onDeleteAccount={onDeleteAccount}
+        onAdjustBalance={onAdjustBalance}
       />
     </div>
   );

@@ -7,7 +7,7 @@ import { FormProvider, useFieldArray, useForm, useWatch, type UseFormReturn } fr
 import { useTranslations } from "next-intl";
 
 import { getCurrencySymbol } from "@/lib/formatters";
-import type { Account, Allocation, Category, Transaction, TransactionSchedule } from "@/types/finance";
+import type { Account, Category, Transaction, TransactionSchedule } from "@/types/finance";
 
 import { buildSchema } from "./schema";
 import { supportsBatchItems, isMoveKind, createEmptyLineItem } from "./helpers";
@@ -25,7 +25,6 @@ export type TransactionFormContextValue = {
   open: boolean;
   // data
   accounts: Account[];
-  allocations: Allocation[];
   categories: Category[];
   transactions: Transaction[];
   // callbacks
@@ -46,10 +45,8 @@ export type TransactionFormContextValue = {
   destinationCurrencySymbol: string;
   primaryCurrencySymbol: string;
   categoryOptions: Category[];
-  goalOptions: Allocation[];
   accountById: Map<string, Account>;
   accountNameById: Map<string, string>;
-  goalNameById: Map<string, string>;
   // field array
   fields: ReturnType<typeof useFieldArray<TransactionFormInputs, "line_items">>["fields"];
   append: ReturnType<typeof useFieldArray<TransactionFormInputs, "line_items">>["append"];
@@ -118,9 +115,8 @@ function makeDefaults({
 }): TransactionFormInputs {
   const currentKind = schedule?.kind ?? transaction?.kind ?? initialKind ?? "expense";
   const isAddMode = mode === "add";
-  const incomeKinds = new Set<Transaction["kind"]>(["income", "save_to_goal"]);
-  const defaultSourceId = isAddMode && defaultSourceAccountId && !incomeKinds.has(currentKind) ? defaultSourceAccountId : null;
-  const defaultDestId = isAddMode && defaultSourceAccountId && incomeKinds.has(currentKind) ? defaultSourceAccountId : null;
+  const defaultSourceId = isAddMode && defaultSourceAccountId && currentKind !== "income" ? defaultSourceAccountId : null;
+  const defaultDestId = isAddMode && defaultSourceAccountId && currentKind === "income" ? defaultSourceAccountId : null;
   return {
     title: schedule?.title ?? transaction?.title ?? "",
     note: schedule?.note ?? transaction?.note ?? "",
@@ -136,7 +132,6 @@ function makeDefaults({
     category_id: schedule?.category_id ?? transaction?.category_id ?? null,
     source_account_id: schedule?.source_account_id ?? transaction?.source_account_id ?? defaultSourceId,
     destination_account_id: schedule?.destination_account_id ?? transaction?.destination_account_id ?? defaultDestId,
-    allocation_id: schedule?.allocation_id ?? transaction?.allocation_id ?? null,
     is_recurring: mode === "edit-schedule",
     recurrence_frequency: schedule?.frequency ?? "monthly",
     recurrence_until: schedule?.until_date ?? null,
@@ -146,12 +141,10 @@ function makeDefaults({
         : [
             {
               category_id: schedule?.category_id ?? transaction?.category_id ?? null,
-              allocation_id: schedule?.allocation_id ?? transaction?.allocation_id ?? null,
               amount: schedule?.amount ?? transaction?.amount ?? null,
               note: schedule?.note ?? transaction?.note ?? "",
             },
           ],
-    adjustment_target_balance: null,
   };
 }
 
@@ -167,7 +160,6 @@ export function TransactionFormProvider({
   initialDate,
   defaultSourceAccountId,
   accounts,
-  allocations,
   categories,
   transactions = [],
   onSubmit,
@@ -182,7 +174,6 @@ export function TransactionFormProvider({
   initialDate?: string | null;
   defaultSourceAccountId?: string | null;
   accounts: Account[];
-  allocations: Allocation[];
   categories: Category[];
   transactions?: Transaction[];
   onSubmit: (payload: TransactionFormSubmitPayload) => Promise<void> | void;
@@ -205,7 +196,6 @@ export function TransactionFormProvider({
             sourceRequired: t("validation.sourceRequired"),
             destinationRequired: t("validation.destinationRequired"),
             categoryRequired: t("validation.categoryRequired"),
-            goalRequired: t("validation.goalRequired"),
             differentDestination: t("validation.differentDestination"),
             debtBreakdownRequired: t("validation.debtBreakdownRequired"),
             debtBreakdownMismatch: t("validation.debtBreakdownMismatch"),
@@ -213,8 +203,6 @@ export function TransactionFormProvider({
             lineItemsRequired: t("validation.lineItemsRequired"),
             recurringMustBePlanned: t("validation.recurringMustBePlanned"),
             recurrenceUntilBeforeStart: t("validation.recurrenceUntilBeforeStart"),
-            adjustmentBalanceRequired: t("validation.adjustmentBalanceRequired"),
-            adjustmentNoDiff: t("validation.adjustmentNoDiff"),
           },
         },
         mode,
@@ -294,7 +282,7 @@ export function TransactionFormProvider({
   useEffect(() => {
     if (!open || mode !== "add") return;
     if (
-      ["expense", "transfer", "save_to_goal", "spend_from_goal", "debt_payment", "investment", "adjustment"].includes(kind) &&
+      ["expense", "transfer", "debt_payment"].includes(kind) &&
       !sourceAccountId
     ) {
       form.setValue("source_account_id", mostUsedSourceAccountId ?? accounts[0]?.id ?? null, {
@@ -302,7 +290,7 @@ export function TransactionFormProvider({
       });
     }
     if (
-      ["income", "transfer", "save_to_goal", "spend_from_goal", "debt_payment", "refund"].includes(kind) &&
+      ["income", "transfer", "debt_payment"].includes(kind) &&
       !destinationAccountId
     ) {
       form.setValue("destination_account_id", mostUsedDestinationAccountId ?? accounts[0]?.id ?? null, {
@@ -358,16 +346,10 @@ export function TransactionFormProvider({
   // derived
   const accountById = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
   const accountNameById = useMemo(() => new Map(accounts.map((a) => [a.id, a.name])), [accounts]);
-  const goalNameById = useMemo(() => new Map(allocations.map((a) => [a.id, a.name])), [allocations]);
   const sourceAccount = accountById.get(sourceAccountId ?? "");
   const destinationAccount = accountById.get(destinationAccountId ?? "");
   const selectedType: "income" | "expense" = kind === "income" ? "income" : "expense";
-  const categoryOptions = categories.filter((c) => c.type === selectedType);
-  const goalOptions = allocations.filter((a) => {
-    if (kind === "save_to_goal") return a.account_id === destinationAccountId;
-    if (kind === "spend_from_goal") return a.account_id === sourceAccountId;
-    return true;
-  });
+  const categoryOptions = categories.filter((c) => c.type === selectedType && !c.is_system);
   const primaryBatchAccount =
     kind === "income" ? accountById.get(destinationAccountId ?? "") : accountById.get(sourceAccountId ?? "");
   const primaryCurrencySymbol = getCurrencySymbol(primaryBatchAccount?.currency ?? "EUR");
@@ -384,7 +366,6 @@ export function TransactionFormProvider({
     mode,
     open,
     accounts,
-    allocations,
     categories,
     transactions,
     onSubmit,
@@ -403,10 +384,8 @@ export function TransactionFormProvider({
     destinationCurrencySymbol,
     primaryCurrencySymbol,
     categoryOptions,
-    goalOptions,
     accountById,
     accountNameById,
-    goalNameById,
     fields,
     append,
     insert,

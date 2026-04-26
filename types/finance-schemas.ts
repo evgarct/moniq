@@ -3,7 +3,6 @@ import { z } from "zod";
 import { SUPPORTED_CURRENCY_CODES } from "@/lib/currencies";
 import type {
   AccountType,
-  AllocationKind,
   CategoryType,
   DebtKind,
   TransactionKind,
@@ -43,27 +42,6 @@ export const walletInputSchema = z.object({
   credit_limit: values.type === "credit_card" ? values.credit_limit ?? null : null,
 }));
 
-export const allocationInputSchema = z
-  .object({
-    name: z.string().trim().min(1, "Name is required."),
-    amount: z.number().min(0, "Amount cannot go below 0."),
-    kind: z.enum(["goal_open", "goal_targeted"] satisfies [AllocationKind, ...AllocationKind[]]),
-    target_amount: z.number().positive("Target amount must be greater than 0.").nullable().optional(),
-  })
-  .superRefine((values, ctx) => {
-    if (values.kind === "goal_targeted" && (values.target_amount == null || values.target_amount <= 0)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["target_amount"],
-        message: "Target amount is required for a targeted goal.",
-      });
-    }
-  })
-  .transform((values) => ({
-    ...values,
-    target_amount: values.kind === "goal_targeted" ? values.target_amount ?? null : null,
-  }));
-
 export const categoryInputSchema = z.object({
   name: z.string().trim().min(1, "Category name is required."),
   icon: z.string().trim().max(48, "Use a short icon token.").nullable().optional(),
@@ -77,10 +55,7 @@ const transactionFieldShape = {
   occurred_at: z.string().trim().min(1, "Date is required."),
   status: z.enum(["planned", "paid"] satisfies ["planned", "paid"]),
   kind: z.enum(
-    ["income", "expense", "transfer", "save_to_goal", "spend_from_goal", "debt_payment", "investment", "refund", "adjustment"] satisfies [
-      TransactionKind,
-      ...TransactionKind[],
-    ],
+    ["income", "expense", "transfer", "debt_payment"] satisfies [TransactionKind, ...TransactionKind[]],
   ),
   amount: z.number().positive("Amount must be greater than 0."),
   destination_amount: z.number().positive("Destination amount must be greater than 0.").nullable().optional(),
@@ -91,7 +66,6 @@ const transactionFieldShape = {
   category_id: z.string().uuid().nullable().optional(),
   source_account_id: z.string().uuid().nullable().optional(),
   destination_account_id: z.string().uuid().nullable().optional(),
-  allocation_id: z.string().uuid().nullable().optional(),
 } as const;
 
 function addTransactionValidation<
@@ -105,14 +79,12 @@ function addTransactionValidation<
     category_id?: string | null;
     source_account_id?: string | null;
     destination_account_id?: string | null;
-    allocation_id?: string | null;
   }>
 >(schema: T) {
   return schema.superRefine((values, ctx) => {
-    const requireSource = values.kind === "expense" || values.kind === "transfer" || values.kind === "save_to_goal" || values.kind === "spend_from_goal" || values.kind === "debt_payment" || values.kind === "investment";
-    const requireDestination =
-      values.kind === "income" || values.kind === "transfer" || values.kind === "save_to_goal" || values.kind === "spend_from_goal" || values.kind === "debt_payment" || values.kind === "refund";
-    const requireCategory = values.kind === "income" || values.kind === "expense" || values.kind === "investment" || values.kind === "refund";
+    const requireSource = values.kind === "expense" || values.kind === "transfer" || values.kind === "debt_payment";
+    const requireDestination = values.kind === "income" || values.kind === "transfer" || values.kind === "debt_payment";
+    const requireCategory = values.kind === "income" || values.kind === "expense";
 
     if (requireSource && !values.source_account_id) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["source_account_id"], message: "Choose the source account." });
@@ -128,10 +100,6 @@ function addTransactionValidation<
 
     if (values.kind === "transfer" && values.category_id) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["category_id"], message: "Transfers do not use a category." });
-    }
-
-    if ((values.kind === "save_to_goal" || values.kind === "spend_from_goal") && !values.allocation_id) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["allocation_id"], message: "Choose the savings goal." });
     }
 
     if (values.source_account_id && values.destination_account_id && values.source_account_id === values.destination_account_id) {
@@ -157,9 +125,7 @@ function addTransactionValidation<
       }
     }
 
-    const requiresDestinationAmount = values.kind === "transfer" || values.kind === "save_to_goal" || values.kind === "spend_from_goal";
-
-    if (requiresDestinationAmount && !values.destination_amount) {
+    if (values.kind === "transfer" && !values.destination_amount) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["destination_amount"],
@@ -180,22 +146,17 @@ function normalizeTransactionValues<
     interest_amount?: number | null;
     extra_principal_amount?: number | null;
     category_id?: string | null;
-    allocation_id?: string | null;
   }
 >(values: T) {
   return {
     ...values,
     note: values.note?.trim() ? values.note.trim() : null,
-    destination_amount:
-      values.kind === "transfer" || values.kind === "save_to_goal" || values.kind === "spend_from_goal"
-        ? values.destination_amount ?? values.amount
-        : null,
+    destination_amount: values.kind === "transfer" ? values.destination_amount ?? values.amount : null,
     fx_rate: values.fx_rate ?? null,
     principal_amount: values.kind === "debt_payment" ? values.principal_amount ?? 0 : null,
     interest_amount: values.kind === "debt_payment" ? values.interest_amount ?? 0 : null,
     extra_principal_amount: values.kind === "debt_payment" ? values.extra_principal_amount ?? 0 : null,
-    category_id: values.kind === "transfer" || values.kind === "save_to_goal" || values.kind === "spend_from_goal" ? null : values.category_id ?? null,
-    allocation_id: values.kind === "save_to_goal" || values.kind === "spend_from_goal" ? values.allocation_id ?? null : null,
+    category_id: values.kind === "transfer" ? null : values.category_id ?? null,
   };
 }
 
@@ -245,8 +206,6 @@ export const transactionScheduleStateInputSchema = z.object({
 
 export type WalletInput = z.output<typeof walletInputSchema>;
 export type WalletInputValues = z.input<typeof walletInputSchema>;
-export type AllocationInput = z.output<typeof allocationInputSchema>;
-export type AllocationInputValues = z.input<typeof allocationInputSchema>;
 export type CategoryInput = z.output<typeof categoryInputSchema>;
 export type CategoryInputValues = z.input<typeof categoryInputSchema>;
 export type TransactionInput = z.output<typeof transactionInputSchema>;

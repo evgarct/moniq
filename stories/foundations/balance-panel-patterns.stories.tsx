@@ -10,7 +10,6 @@ import { makeFinanceSnapshot, StoryWorkspace, withPathname } from "@/stories/fix
 
 const snapshot = makeFinanceSnapshot();
 const creditCard = snapshot.accounts.find((account) => account.id === "travel-credit") ?? snapshot.accounts[0];
-const travelGoal = snapshot.allocations.find((allocation) => allocation.id === "travel") ?? snapshot.allocations[0];
 const creditRegister = snapshot.transactions.filter(
   (transaction) => transaction.source_account?.id === creditCard.id || transaction.destination_account?.id === creditCard.id,
 );
@@ -113,11 +112,8 @@ const meta = {
               </div>
               <AccountList
                 accounts={snapshot.accounts}
-                allocations={snapshot.allocations}
                 selectedAccountId="travel-credit"
-                selectedAllocationId="travel"
                 onSelect={() => undefined}
-                onSelectAllocation={() => undefined}
               />
             </div>
           </Surface>
@@ -125,7 +121,6 @@ const meta = {
           <Surface tone="panel" padding="none" className="overflow-hidden border border-black/5">
             <BalanceRegisterPanel
               selectedAccount={creditCard}
-              selectedAllocation={travelGoal}
               transactions={creditRegister}
             showMinorUnits={false}
             startDate={defaultStartDate}

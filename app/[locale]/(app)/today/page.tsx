@@ -32,7 +32,7 @@ export default function TodayPage() {
 
   return (
     <div className="h-full">
-      <TodayView snapshot={data ?? { accounts: [], allocations: [], categories: [], schedules: [], transactions: [] }} />
+      <TodayView snapshot={data ?? { accounts: [], categories: [], schedules: [], transactions: [] }} />
     </div>
   );
 }

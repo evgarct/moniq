@@ -61,8 +61,6 @@ function makeScrollableTransactions(baseTransactions: Transaction[], baseAccount
     destination_account: null,
     category_id: category?.id ?? null,
     category,
-    allocation_id: null,
-    allocation: null,
     status: "paid" as const,
   }));
 
@@ -82,7 +80,6 @@ const meta = {
       <div className="h-full">
         <AccountsView
           accounts={data.accounts}
-          allocations={data.allocations}
           categories={data.categories}
           transactions={data.transactions}
         />

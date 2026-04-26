@@ -12,13 +12,12 @@ import type { Category, Account, TransactionKind } from "@/types/finance";
 import type { McpBatch, McpBatchItem } from "@/features/inbox/hooks/use-mcp-batches";
 
 const ALL_KINDS: TransactionKind[] = [
-  "expense", "income", "transfer", "save_to_goal", "spend_from_goal",
-  "debt_payment", "investment", "refund", "adjustment",
+  "expense", "income", "transfer", "debt_payment",
 ];
 
 function categoryTypeForKind(kind: TransactionKind): "income" | "expense" | null {
   if (kind === "income") return "income";
-  if (kind === "expense" || kind === "investment" || kind === "refund" || kind === "debt_payment") return "expense";
+  if (kind === "expense" || kind === "debt_payment") return "expense";
   return null;
 }
 
