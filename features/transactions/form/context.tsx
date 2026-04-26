@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { isBefore, parseISO, startOfDay } from "date-fns";
+import { format, isBefore, parseISO, startOfDay } from "date-fns";
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { FormProvider, useFieldArray, useForm, useWatch, type UseFormReturn } from "react-hook-form";
 import { useTranslations } from "next-intl";
@@ -124,7 +124,7 @@ function makeDefaults({
   return {
     title: schedule?.title ?? transaction?.title ?? "",
     note: schedule?.note ?? transaction?.note ?? "",
-    occurred_at: schedule?.start_date ?? transaction?.occurred_at ?? initialDate ?? new Date().toISOString().slice(0, 10),
+    occurred_at: schedule?.start_date ?? transaction?.occurred_at ?? initialDate ?? format(new Date(), "yyyy-MM-dd"),
     status: mode === "edit-schedule" ? "planned" : transaction?.status === "paid" ? "paid" : "planned",
     kind: currentKind,
     amount: schedule?.amount ?? transaction?.amount ?? 0,
@@ -258,7 +258,7 @@ export function TransactionFormProvider({
   // auto-set status based on date (add mode only)
   useEffect(() => {
     if (mode !== "add") return;
-    const today = new Date().toISOString().slice(0, 10);
+    const today = format(new Date(), "yyyy-MM-dd");
     const nextStatus =
       isBefore(startOfDay(parseISO(occurredAt)), startOfDay(new Date())) || occurredAt === today
         ? "paid"
