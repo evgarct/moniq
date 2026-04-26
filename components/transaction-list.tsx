@@ -150,7 +150,7 @@ export function TransactionList({
     }, []);
 
     return (
-      <div className={variant === "board" ? "space-y-5" : "space-y-8"}>
+      <div className={variant === "board" ? "space-y-5" : "space-y-4"}>
         {groups.map((group) => (
           <section key={group.date} className="space-y-1">
             <p className={variant === "board" ? "px-1 text-[11px] leading-4 text-[#8fb0b1]" : "type-body-12 px-2 text-muted-foreground"}>

@@ -19,8 +19,6 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { Transaction } from "@/types/finance";
@@ -77,35 +75,22 @@ export function TransactionAddButton({
       </DropdownMenuTrigger>
 
       <DropdownMenuContent
-        align="start"
-        side="top"
-        sideOffset={10}
-        className="w-80 rounded-3xl p-2"
+        align="end"
+        side="bottom"
+        sideOffset={8}
+        className="w-52 rounded-[var(--radius-floating)] p-1"
       >
-        <DropdownMenuGroup>
-          <DropdownMenuLabel className="px-3 pt-2 pb-1 text-[11px] uppercase tracking-[0.16em]">
-            {t("fab.quickAdd")}
-          </DropdownMenuLabel>
-        </DropdownMenuGroup>
-
-        <DropdownMenuSeparator />
-
         <DropdownMenuGroup>
           {quickAddOptions.map((option) => {
             const Icon = option.icon;
             return (
               <DropdownMenuItem
                 key={option.kind}
-                className="items-start gap-3 rounded-2xl px-3 py-3"
+                className="gap-2.5 rounded-[var(--radius-control)] px-3 py-2"
                 onClick={() => onSelect(option.kind)}
               >
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-muted text-foreground">
-                  <Icon />
-                </span>
-                <span className="flex min-w-0 flex-col gap-0.5">
-                  <span className="truncate font-medium text-foreground">{t(`kinds.${option.kind}`)}</span>
-                  <span className="truncate text-xs text-muted-foreground">{t(`kindDescriptions.${option.kind}`)}</span>
-                </span>
+                <Icon className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.75} />
+                <span className="font-medium">{t(`kinds.${option.kind}`)}</span>
               </DropdownMenuItem>
             );
           })}

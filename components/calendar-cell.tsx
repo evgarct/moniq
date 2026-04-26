@@ -31,11 +31,11 @@ export function CalendarCell({
       type="button"
       onClick={() => onSelect(date)}
       className={cn(
-        "group flex flex-col items-start gap-1.5 rounded-lg px-2 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "group flex flex-col items-start gap-1.5 rounded-lg px-2 py-2 text-left transition-colors outline-none",
         selected && !today
           ? "bg-foreground/6 outline outline-1 outline-foreground/10"
           : selected && today
-            ? "outline outline-1 outline-[#f29a28]/40"
+            ? "bg-[#f29a28]/10 outline outline-1 outline-[#f29a28]/30"
             : "hover:bg-secondary/50",
         outsideMonth && "opacity-35",
       )}
@@ -57,13 +57,11 @@ export function CalendarCell({
           {format(date, "d")}
         </span>
 
-        {hasIndicators ? (
-          <div className="flex items-center gap-[3px]">
-            {overdueCount > 0 ? <span className="size-[5px] rounded-full bg-destructive" /> : null}
-            {plannedCount > 0 ? <span className="size-[5px] rounded-full bg-[#79dcc8]" /> : null}
-            {paidCount > 0 ? <span className="size-[5px] rounded-full bg-foreground/25" /> : null}
-          </div>
-        ) : null}
+        <div className="flex h-[5px] items-center gap-[3px]">
+          {overdueCount > 0 ? <span className="size-[5px] rounded-full bg-destructive" /> : null}
+          {plannedCount > 0 ? <span className="size-[5px] rounded-full bg-[#79dcc8]" /> : null}
+          {paidCount > 0 ? <span className="size-[5px] rounded-full bg-foreground/25" /> : null}
+        </div>
       </div>
     </button>
   );
