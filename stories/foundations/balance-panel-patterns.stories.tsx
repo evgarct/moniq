@@ -41,7 +41,7 @@ function IconReference({
   return (
     <div className="flex items-center gap-3 px-1">
       <Icon className="h-[18px] w-[18px] text-muted-foreground" strokeWidth={1.75} />
-      <span className="type-body-13 text-foreground">{label}</span>
+      <span className="type-body-14 text-foreground">{label}</span>
     </div>
   );
 }
