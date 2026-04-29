@@ -27,15 +27,20 @@ update public.finance_transaction_schedules
       fx_rate = null
   where kind = 'investment';
 
--- ── 4. refund → income (keep category for history) ────────────────────────────
+-- ── 4. refund → income ───────────────────────────────────────────────────────
+-- category_id is cleared: refund categories are expense-typed and invalid on
+-- income records; keeping them would exclude converted schedules from
+-- activeScheduleIds, silently stopping planned transaction generation.
 update public.finance_transactions
   set kind = 'income'::public.finance_transaction_kind,
-      source_account_id = null
+      source_account_id = null,
+      category_id = null
   where kind = 'refund';
 
 update public.finance_transaction_schedules
   set kind = 'income'::public.finance_transaction_kind,
-      source_account_id = null
+      source_account_id = null,
+      category_id = null
   where kind = 'refund';
 
 -- ── 5. adjustment → expense / income with a system category ──────────────────
@@ -104,9 +109,9 @@ alter table public.finance_transaction_schedules
 drop table if exists public.wallet_allocations cascade;
 
 -- ── 8. Tighten MCP batch items kind constraint ────────────────────────────────
-alter table public.transaction_import_batch_items
-  drop constraint if exists transaction_import_batch_items_kind_check;
+alter table public.mcp_batch_items
+  drop constraint if exists mcp_batch_items_kind_check;
 
-alter table public.transaction_import_batch_items
-  add constraint transaction_import_batch_items_kind_check
+alter table public.mcp_batch_items
+  add constraint mcp_batch_items_kind_check
   check (kind in ('income', 'expense', 'transfer', 'debt_payment'));
