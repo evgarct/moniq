@@ -2,7 +2,9 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, within } from "storybook/test";
 import {
   ArrowLeft,
+  ArrowLeftRight,
   BanknoteArrowDown,
+  BanknoteArrowUp,
   CreditCard,
   Landmark,
   PiggyBank,
@@ -591,7 +593,121 @@ const meta = {
           </div>
         </Surface>
 
-        {/* ── 11. What to avoid ─────────────────────────────────────────────── */}
+        {/* ── 11. Transaction kinds ─────────────────────────────────────────── */}
+        <Surface tone="panel" padding="lg" className="border border-black/5">
+          <div className="space-y-5">
+            <SectionHeader
+              eyebrow="Pattern · Transaction Kinds"
+              heading="Four kinds. One visual weight — except income."
+              sub="Moniq has exactly four transaction kinds: expense, income, transfer, debt_payment. Only income amounts render in emerald (positive). All others use foreground or muted. Kind is communicated by icon + sublabel text, never by a colored badge on every row."
+            />
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <p className="type-body-12 mb-2 px-1 text-muted-foreground">How kinds appear in a list</p>
+                <div className="rounded-[16px] border border-black/5 bg-background/60 p-2">
+                  {[
+                    { Icon: BanknoteArrowDown, label: "Grocery Store", sub: "Expense · Food", amount: 1240, positive: false },
+                    { Icon: BanknoteArrowUp,   label: "Monthly Salary", sub: "Income · Salary", amount: 52000, positive: true },
+                    { Icon: ArrowLeftRight,    label: "To Emergency Fund", sub: "Transfer", amount: 5000, positive: false },
+                    { Icon: Landmark,          label: "Mortgage payment", sub: "Debt payment", amount: 8500, positive: false },
+                  ].map(({ Icon, label, sub, amount, positive }) => (
+                    <div key={label} className="flex items-center gap-3 rounded-[10px] px-2 py-2.5 transition-colors hover:bg-secondary/50">
+                      <Icon className="h-[18px] w-[18px] shrink-0 text-muted-foreground" strokeWidth={1.75} />
+                      <div className="min-w-0 flex-1">
+                        <p className="type-h6 truncate">{label}</p>
+                        <p className="type-body-12 truncate text-muted-foreground">{sub}</p>
+                      </div>
+                      <MoneyAmount
+                        amount={amount}
+                        currency="CZK"
+                        display="absolute"
+                        tone={positive ? "positive" : "default"}
+                        className="shrink-0 text-sm font-medium tabular-nums"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <RuleCard
+                  label="Income = emerald. Others = neutral."
+                  body="Only income uses tone='positive' (text-emerald-600). Expense, transfer, and debt_payment use tone='default' or text-muted-foreground. Red is for errors — never for expense."
+                  variant="do"
+                />
+                <RuleCard
+                  label="Kind communicated by icon + sublabel"
+                  body="BanknoteArrowDown = expense, BanknoteArrowUp = income, ArrowLeftRight = transfer, Landmark = debt_payment. These icons + the category or account sublabel are sufficient — no colored chip needed."
+                  variant="do"
+                />
+                <RuleCard
+                  label="No colored kind badges in lists"
+                  body="The transaction form header may show a kind badge. But in transaction rows inside a register or list, the kind badge adds visual noise without information gain."
+                  variant="dont"
+                />
+              </div>
+            </div>
+          </div>
+        </Surface>
+
+        {/* ── 12. Forms as sheets ───────────────────────────────────────────── */}
+        <Surface tone="panel" padding="lg" className="border border-black/5">
+          <div className="space-y-5">
+            <SectionHeader
+              eyebrow="Pattern · Forms"
+              heading="Forms are sheets. Not dialogs, not center modals."
+              sub="Structured data entry (transactions, accounts, categories) slides in as a sheet — full-screen on mobile, side panel on desktop. Dialog is reserved for confirmations (yes/no). Never use a center modal for a form with more than two fields."
+            />
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-3">
+                <RuleCard
+                  label="<Sheet> for forms, <Dialog> for confirms"
+                  body="Sheet slides in from the side and feels spacious. Dialog forces a decision. Mixing them breaks the user's spatial model of the app."
+                  variant="do"
+                />
+                <RuleCard
+                  label="Kind selector at the top of the sheet"
+                  body="Transaction kind is a <Select> dropdown in the sheet header — not horizontal tabs. Tabs waste vertical space on mobile and create layout shift when switching."
+                  variant="do"
+                />
+                <RuleCard
+                  label="Reschedule overlay uses fixed, not relative"
+                  body="RescheduleConfirmOverlay uses fixed inset-0 z-50. Never add relative to SheetContent — it breaks the sheet's height layout and cuts off the overlay."
+                  variant="do"
+                />
+              </div>
+
+              {/* Sheet anatomy mock */}
+              <div className="overflow-hidden rounded-[var(--radius-floating)] border border-black/8 bg-background shadow-[0_10px_30px_rgba(15,23,42,0.08)]">
+                <div className="flex items-center justify-between border-b border-border/40 px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <BanknoteArrowDown className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} />
+                    <span className="type-h6">Add transaction</span>
+                  </div>
+                  <div className="flex h-7 items-center rounded-[var(--radius-control)] border border-border/40 px-2.5 type-body-12 text-muted-foreground">
+                    Expense ▾
+                  </div>
+                </div>
+                <div className="space-y-2.5 px-4 py-4">
+                  {["Amount", "Category", "Account", "Date", "Note"].map((field) => (
+                    <div key={field} className="flex flex-col gap-1">
+                      <span className="type-body-12 text-muted-foreground">{field}</span>
+                      <div className="h-9 rounded-[var(--radius-control)] border border-border/60 bg-background/60" />
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-2 border-t border-border/40 px-4 py-3">
+                  <Button size="sm" className="flex-1">Save</Button>
+                  <Button size="sm" variant="outline">Cancel</Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Surface>
+
+        {/* ── 14. What to avoid ─────────────────────────────────────────────── */}
         <Surface tone="panel" padding="lg" className="border border-black/5">
           <div className="space-y-5">
             <SectionHeader
@@ -653,5 +769,7 @@ export const Reference: Story = {
     await expect(canvas.getByText("UI Playbook")).toBeInTheDocument();
     await expect(canvas.getByText("Surface Stack")).toBeInTheDocument();
     await expect(canvas.getByText("Row Language")).toBeInTheDocument();
+    await expect(canvas.getByText("Transaction Kinds")).toBeInTheDocument();
+    await expect(canvas.getByText("Forms")).toBeInTheDocument();
   },
 };

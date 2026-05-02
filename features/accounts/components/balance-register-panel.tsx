@@ -11,7 +11,7 @@ import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import type { Account, Allocation, Transaction } from "@/types/finance";
+import type { Account, Transaction } from "@/types/finance";
 
 type BalanceRegisterHeaderProps = {
   title: string;
@@ -146,7 +146,6 @@ export function BalanceRegisterHeader({
 
 export function BalanceRegisterPanel({
   selectedAccount,
-  selectedAllocation,
   transactions,
   showMinorUnits,
   startDate,
@@ -164,7 +163,6 @@ export function BalanceRegisterPanel({
   className,
 }: {
   selectedAccount: Account | null;
-  selectedAllocation: Allocation | null;
   transactions: Transaction[];
   showMinorUnits: boolean;
   startDate: string;
@@ -184,12 +182,10 @@ export function BalanceRegisterPanel({
   const tr = useTranslations();
   const t = useTranslations("accounts");
   const [scrolled, setScrolled] = useState(false);
-  const registerTitle = selectedAllocation ? selectedAllocation.name : selectedAccount ? selectedAccount.name : t("view.activity");
-  const emptyMessage = selectedAllocation
-    ? t("messages.noTransactionsForGoal")
-    : selectedAccount
-      ? t("messages.noTransactionsForWallet")
-      : tr("common.empty.noTransactionsYet");
+  const registerTitle = selectedAccount ? selectedAccount.name : t("view.activity");
+  const emptyMessage = selectedAccount
+    ? t("messages.noTransactionsForWallet")
+    : tr("common.empty.noTransactionsYet");
 
   return (
     <section className={cn("hidden min-h-0 flex-col bg-background lg:flex", className)}>
@@ -205,7 +201,7 @@ export function BalanceRegisterPanel({
           onStartDateChange={onStartDateChange}
           onEndDateChange={onEndDateChange}
           onClearSelection={onClearSelection}
-          showClearSelection={Boolean(selectedAccount || selectedAllocation)}
+          showClearSelection={Boolean(selectedAccount)}
           onAddTransaction={onAddTransaction}
           scrolled={scrolled}
         />

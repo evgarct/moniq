@@ -1,13 +1,12 @@
 import { isSameDay, parseISO } from "date-fns";
 
 import { getAccountGroup, getNetWorthTotal } from "@/features/accounts/lib/account-utils";
-import { getAllocatedTotalForAccount } from "@/features/allocations/lib/allocation-utils";
 import { buildCategoryTree } from "@/features/categories/lib/category-tree";
 import { isVisibleTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
 import { getTransactionAnalyticsAmount, getTransactionPrimaryAccount, getTransactionSignedAmount } from "@/features/transactions/lib/transaction-utils";
 import { SUPPORTED_CURRENCY_CODES } from "@/lib/currencies";
 import type { CurrencyCode } from "@/types/currency";
-import type { Account, Allocation, CategoryTreeNode, FinanceSnapshot, Transaction } from "@/types/finance";
+import type { Account, CategoryTreeNode, FinanceSnapshot, Transaction } from "@/types/finance";
 
 export type CurrencyTotal = {
   currency: CurrencyCode;
@@ -99,12 +98,6 @@ export function getTransactionsForAccount(transactions: Transaction[], accountId
   );
 }
 
-export function getTransactionsForAllocation(transactions: Transaction[], allocationId: string) {
-  return transactions.filter(
-    (transaction) => isVisibleTransactionStatus(transaction.status) && transaction.allocation_id === allocationId,
-  );
-}
-
 export function getCashAccounts(accounts: Account[]) {
   return accounts.filter((account) => getAccountGroup(account.type) === "cash");
 }
@@ -119,15 +112,6 @@ export function getCreditCardAccounts(accounts: Account[]) {
 
 export function getDebtAccounts(accounts: Account[]) {
   return accounts.filter((account) => getAccountGroup(account.type) === "debt");
-}
-
-export function getAllocationCoverage(accounts: Account[], allocations: Allocation[]) {
-  return accounts
-    .filter((account) => account.type === "saving")
-    .map((account) => ({
-      accountId: account.id,
-      allocated: getAllocatedTotalForAccount(allocations, account.id),
-    }));
 }
 
 export function getCategoryTree(snapshot: FinanceSnapshot): CategoryTreeNode[] {

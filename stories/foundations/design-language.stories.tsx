@@ -27,18 +27,18 @@ const meta = {
               </div>
 
               <div className="grid gap-4 md:grid-cols-3">
-                <div className="rounded-[22px] border border-black/8 bg-white/80 p-4">
-                  <p className="text-sm font-semibold text-slate-950">Canvas</p>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">Warm ivory workspace with minimal contrast and generous spacing.</p>
-                </div>
-                <div className="rounded-[22px] border border-black/8 bg-[#f7f3ef] p-4">
-                  <p className="text-sm font-semibold text-slate-950">Panel</p>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">Rounded working regions with soft depth and clear content hierarchy.</p>
-                </div>
-                <div className="rounded-[22px] border border-black/10 bg-white p-4 shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
-                  <p className="text-sm font-semibold text-slate-950">Floating</p>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">Compact tool surfaces for menus, quick add, and contextual actions.</p>
-                </div>
+                <Surface tone="canvas" padding="md" className="border border-black/8">
+                  <p className="type-h6">Canvas</p>
+                  <p className="type-body-12 mt-2">Warm ivory workspace with minimal contrast and generous spacing.</p>
+                </Surface>
+                <Surface tone="panel" padding="md" className="border border-black/8">
+                  <p className="type-h6">Panel</p>
+                  <p className="type-body-12 mt-2">Rounded working regions with soft depth and clear content hierarchy.</p>
+                </Surface>
+                <Surface tone="floating" padding="md">
+                  <p className="type-h6">Floating</p>
+                  <p className="type-body-12 mt-2">Compact tool surfaces for menus, quick add, and contextual actions.</p>
+                </Surface>
               </div>
             </div>
           </Surface>
@@ -66,7 +66,6 @@ const meta = {
         <div className="min-h-0 flex-1 overflow-hidden rounded-[28px] border border-black/8 bg-[#f7f3ef] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
           <AccountsView
             accounts={snapshot.accounts}
-            allocations={snapshot.allocations}
             categories={snapshot.categories}
             transactions={snapshot.transactions}
           />

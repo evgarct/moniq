@@ -16,7 +16,6 @@ const curatedLedger = [
   snapshot.transactions.find((transaction) => transaction.title === "Coffee with Alex") ?? snapshot.transactions[0],
   snapshot.transactions.find((transaction) => transaction.title === "Groceries refill") ?? snapshot.transactions[0],
   byKind("transfer"),
-  byKind("save_to_goal"),
   byKind("debt_payment"),
   snapshot.transactions.find((transaction) => transaction.title === "Hotel booking") ?? snapshot.transactions[0],
 ];
@@ -41,11 +40,6 @@ const denseDayLedger = [
     ...byKind("transfer"),
     id: "story-dense-transfer",
     occurred_at: "2026-04-05T15:05:00.000Z",
-  },
-  {
-    ...byKind("save_to_goal"),
-    id: "story-dense-save",
-    occurred_at: "2026-04-05T19:35:00.000Z",
   },
   {
     ...byKind("debt_payment"),
@@ -80,10 +74,10 @@ const denseDayLedger = [
 ];
 
 const transferFocusedLedger = snapshot.transactions.filter((transaction) =>
-  ["transfer", "save_to_goal", "spend_from_goal", "debt_payment"].includes(transaction.kind),
+  ["transfer", "debt_payment"].includes(transaction.kind),
 );
 const positiveMovesLedger = [
-  snapshot.transactions.find((transaction) => transaction.kind === "save_to_goal") ?? snapshot.transactions[0],
+  snapshot.transactions.find((transaction) => transaction.kind === "transfer") ?? snapshot.transactions[0],
   {
     ...(snapshot.transactions.find((transaction) => transaction.kind === "expense") ?? snapshot.transactions[0]),
     id: "story-positive-move-investment",
@@ -96,6 +90,7 @@ const positiveMovesLedger = [
         icon: null,
         type: "expense" as const,
         parent_id: null,
+        is_system: false,
         created_at: new Date().toISOString(),
       }),
       name: "Investments",
@@ -220,7 +215,6 @@ const plannedMix = [
     status: "planned" as const,
     occurred_at: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) + "T00:00:00.000Z",
   },
-  byKind("save_to_goal"),
 ];
 
 export const WithContextMenu: Story = {

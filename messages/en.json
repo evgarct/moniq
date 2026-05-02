@@ -62,12 +62,6 @@
         "update": "Unable to update wallet.",
         "delete": "Unable to delete wallet."
       },
-      "allocation": {
-        "walletRequired": "Wallet is required.",
-        "create": "Unable to create goal.",
-        "update": "Unable to update goal.",
-        "delete": "Unable to delete goal."
-      },
       "category": {
         "create": "Unable to create category.",
         "update": "Unable to update category.",
@@ -91,12 +85,8 @@
         "sourceNotFound": "Source account not found.",
         "destinationNotFound": "Destination account not found.",
         "categoryNotFound": "Category not found.",
-        "goalNotFound": "Savings goal not found.",
         "categoryTypeMismatch": "Choose a category with the matching type.",
         "debtCategoryExpenseOnly": "Debt payment interest can only use an expense category.",
-        "goalWalletMismatch": "Selected savings goal must belong to the savings wallet used in the transaction.",
-        "saveToGoalNeedsSavings": "Save to goal must land in a savings wallet.",
-        "spendFromGoalNeedsSavings": "Spend from goal must start from a savings wallet.",
         "debtNeedsDebtAccount": "Debt payment must target a debt account.",
         "transferNoCategory": "Transfers do not use categories."
       }
@@ -292,7 +282,6 @@
       "activity": "Transactions",
       "registerEyebrow": "Transactions",
       "selectedActivityDescription": "Transactions for the selected wallet.",
-      "selectedGoalActivityDescription": "Transactions for the selected savings goal.",
       "allActivityDescription": "All transactions across your balance spaces.",
       "showAllWallets": "Show all wallets",
       "backToBalance": "Back to balance",
@@ -346,21 +335,16 @@
       "personal": "Personal debt"
     },
     "actions": {
-      "addGoal": "Add goal",
       "editWallet": "Edit wallet",
       "deleteWallet": "Delete wallet",
-      "editGoal": "Edit goal",
-      "deleteGoal": "Delete goal"
+      "adjustBalance": "Adjust balance",
+      "adjustBalancePrompt": "Enter new balance"
     },
     "messages": {
       "noTransactionsForWallet": "No transactions for this wallet yet. Transactions will appear here once they occur.",
-      "noTransactionsForGoal": "No transactions for this savings goal yet. Goal activity will appear here once it occurs.",
       "deleteWalletConfirm": "Delete wallet \"{name}\"?",
-      "deleteGoalConfirm": "Delete goal \"{name}\"?",
       "saveWalletError": "Unable to save wallet.",
-      "deleteWalletError": "Unable to delete wallet.",
-      "saveGoalError": "Unable to save goal.",
-      "deleteGoalError": "Unable to delete goal."
+      "deleteWalletError": "Unable to delete wallet."
     },
     "form": {
       "addTitle": "Add wallet",
@@ -384,33 +368,6 @@
         "creditLimitRequired": "Credit limit is required for a credit card.",
         "creditLimitPositive": "Credit limit must be greater than 0.",
         "creditLimitExceeded": "Current balance cannot exceed the credit limit."
-      }
-    },
-    "allocationForm": {
-      "addTitle": "Add goal",
-      "editTitle": "Edit goal",
-      "description": "Reserve savings for a flexible goal or a goal with a target amount.",
-      "projectedFreeMoney": "Projected free money",
-      "fields": {
-        "name": "Goal name",
-        "kind": "Goal type",
-        "amount": "Current amount",
-        "targetAmount": "Target amount"
-      },
-      "kinds": {
-        "open": "Flexible goal",
-        "targeted": "Targeted goal"
-      },
-      "submit": {
-        "add": "Save goal",
-        "edit": "Update goal"
-      },
-      "validation": {
-        "nameRequired": "Name is required.",
-        "amountMin": "Amount cannot go below 0.",
-        "targetPositive": "Target amount must be greater than 0.",
-        "targetRequired": "Target amount is required for a targeted goal.",
-        "exceedsSavings": "This allocation would exceed the available savings balance."
       }
     }
   },
@@ -517,27 +474,17 @@
       "income": "Income",
       "expense": "Expense",
       "transfer": "Transfer",
-      "save_to_goal": "Put on saving",
-      "spend_from_goal": "Spend from saving",
-      "debt_payment": "Debt payment",
-      "investment": "Investment",
-      "refund": "Refund",
-      "adjustment": "Balance adjustment"
+      "debt_payment": "Debt payment"
     },
     "kindDescriptions": {
-      "income": "Salary, freelance, refunds",
+      "income": "Salary, freelance, and other earnings",
       "expense": "Everyday spending and purchases",
       "transfer": "Move money between your accounts",
-      "save_to_goal": "Move money into a savings goal",
-      "spend_from_goal": "Use money from a savings goal",
-      "debt_payment": "Principal, interest, extra payment",
-      "investment": "Stocks, funds, crypto, and other assets",
-      "refund": "Return of a previous payment",
-      "adjustment": "Correct the actual wallet balance"
+      "debt_payment": "Principal, interest, extra payment"
     },
     "view": {
       "title": "Transactions",
-      "description": "Record expenses, income, transfers, savings moves, and debt payments in one register.",
+      "description": "Record expenses, income, transfers, and debt payments in one register.",
       "add": "Add transaction",
       "emptyAccountsTitle": "Add wallets first",
       "emptyAccountsDescription": "Transactions need existing accounts and savings wallets before they can be recorded.",
@@ -550,7 +497,7 @@
       "addTitle": "Add transaction",
       "editTitle": "Edit transaction",
       "editSeriesTitle": "Edit recurring series",
-      "description": "Use one form for income, expenses, transfers, savings moves, and debt payments.",
+      "description": "Use one form for income, expenses, transfers, and debt payments.",
       "batchDescription": "Keep the date and account fixed, then enter multiple rows in one pass.",
       "fields": {
         "title": "Title",
@@ -568,7 +515,6 @@
         "destinationAmount": "Destination amount",
         "fxRate": "FX rate",
         "category": "Category",
-        "savingsGoal": "Savings goal",
         "principal": "Principal",
         "interest": "Interest",
         "extraPrincipal": "Extra principal",
@@ -582,10 +528,7 @@
         "entries": "Entries",
         "row": "Row",
         "details": "Transaction details",
-        "additional": "Additional details",
-        "newBalance": "New balance",
-        "currentBalance": "Current balance",
-        "adjustmentDiff": "Difference"
+        "additional": "Additional details"
       },
       "entryTypes": {
         "oneOff": "One-time",
@@ -614,10 +557,8 @@
         "sourceAccount": "Choose source account",
         "destinationAccount": "Choose destination account",
         "category": "Choose category",
-        "goal": "Choose savings goal",
         "note": "Add notes",
-        "lineNote": "Optional note",
-        "adjustmentAccount": "Choose wallet to adjust"
+        "lineNote": "Optional note"
       },
       "actions": {
         "addOperation": "Add transaction",
@@ -657,18 +598,14 @@
         "destinationRequired": "Choose the destination account.",
         "categoryRequired": "Choose a category.",
         "transferNoCategory": "Transfers do not use a category.",
-        "goalRequired": "Choose the savings goal.",
         "differentDestination": "Choose a different destination account.",
         "debtBreakdownRequired": "Provide at least one debt payment amount.",
         "debtBreakdownMismatch": "Amount must equal principal + interest + extra principal.",
         "destinationAmountRequired": "Destination amount is required for account-to-account moves.",
         "lineItemsRequired": "Add at least one transaction row.",
         "recurringMustBePlanned": "Recurring transactions must start as planned.",
-        "recurrenceUntilBeforeStart": "End repeat must be on or after the start date.",
-        "adjustmentBalanceRequired": "Enter the new balance.",
-        "adjustmentNoDiff": "New balance matches the current balance."
-      },
-      "adjustmentTitle": "Balance adjustment"
+        "recurrenceUntilBeforeStart": "End repeat must be on or after the start date."
+      }
     },
     "actions": {
       "menu": "Transaction actions",

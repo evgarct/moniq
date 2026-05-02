@@ -11,7 +11,6 @@ const meta = {
   component: AccountList,
   args: {
     accounts: snapshot.accounts,
-    allocations: snapshot.allocations,
     selectedAccountId: "reserve",
     onSelect: () => undefined,
   },
@@ -31,7 +30,6 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText("Goals")).toBeInTheDocument();
     await expect(canvas.getByText("Euro Reserve")).toBeInTheDocument();
   },
 };

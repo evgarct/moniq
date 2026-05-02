@@ -14,8 +14,8 @@ function TokenSwatch({
   className: string;
 }) {
   return (
-    <div className="rounded-[20px] border border-black/6 bg-white/70 p-3">
-      <div className={`h-20 rounded-[16px] border border-black/6 ${className}`} />
+    <div className="radius-floating border border-black/6 bg-white/70 p-3">
+      <div className={`h-20 radius-surface border border-black/6 ${className}`} />
       <div className="mt-3 space-y-1">
         <p className="text-sm font-medium text-foreground">{name}</p>
         <p className="font-mono text-xs text-muted-foreground">{value}</p>

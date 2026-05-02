@@ -19,6 +19,7 @@ const investmentExpense: Transaction = {
       icon: null,
       type: "expense",
       parent_id: null,
+      is_system: false,
       created_at: new Date().toISOString(),
     }),
     name: "Investments",
@@ -56,11 +57,9 @@ const recurringPlanned: Transaction = {
     category_id: null,
     source_account_id: byKind("expense").source_account_id,
     destination_account_id: null,
-    allocation_id: null,
     category: byKind("expense").category,
     source_account: byKind("expense").source_account,
     destination_account: null,
-    allocation: null,
     validation_error: null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -192,13 +191,6 @@ export const Expense: Story = {
 export const Transfer: Story = {
   args: {
     transaction: byKind("transfer"),
-    showDate: false,
-  },
-};
-
-export const SaveToGoal: Story = {
-  args: {
-    transaction: byKind("save_to_goal"),
     showDate: false,
   },
 };

@@ -159,7 +159,6 @@ function mapImportedTransactionToRow(transaction: TransactionImport): Transactio
           : transaction.kind === "debt_payment"
             ? transaction.counterpart_wallet_id
           : transaction.wallet_id,
-    allocation_id: null,
     schedule_id: null,
     schedule_occurrence_date: null,
     is_schedule_override: false,
@@ -184,7 +183,6 @@ function mapImportedTransactionToRow(transaction: TransactionImport): Transactio
           : transaction.kind === "debt_payment"
             ? transaction.counterpart_wallet
           : transaction.wallet,
-    allocation: null,
     schedule: null,
   };
 }

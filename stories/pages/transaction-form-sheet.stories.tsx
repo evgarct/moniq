@@ -7,12 +7,9 @@ import type { Transaction, TransactionSchedule } from "@/types/finance";
 
 const snapshot = makeFinanceSnapshot();
 const defaultTransaction = snapshot.transactions.find((transaction) => transaction.kind === "expense") ?? snapshot.transactions[0];
-const savingsTransaction = snapshot.transactions.find((transaction) => transaction.kind === "save_to_goal") ?? snapshot.transactions[0];
 const incomeTransaction = snapshot.transactions.find((transaction) => transaction.kind === "income") ?? snapshot.transactions[0];
 const transferTransaction = snapshot.transactions.find((transaction) => transaction.kind === "transfer") ?? snapshot.transactions[0];
 const debtPaymentTransaction = snapshot.transactions.find((transaction) => transaction.kind === "debt_payment") ?? snapshot.transactions[0];
-const investmentTransaction = snapshot.transactions.find((transaction) => transaction.kind === "investment") ?? snapshot.transactions[0];
-const refundTransaction = snapshot.transactions.find((transaction) => transaction.kind === "refund") ?? snapshot.transactions[0];
 
 // A planned occurrence linked to recurringSchedule (used by reschedule stories)
 const recurringOccurrence: Transaction = {
@@ -33,14 +30,12 @@ const recurringOccurrence: Transaction = {
   category_id: snapshot.categories.find((c) => c.type === "expense")?.id ?? null,
   source_account_id: snapshot.accounts[0]?.id ?? null,
   destination_account_id: null,
-  allocation_id: null,
   schedule_id: "schedule-story-netflix",
   schedule_occurrence_date: "2026-05-01",
   is_schedule_override: false,
   category: snapshot.categories.find((c) => c.type === "expense") ?? null,
   source_account: snapshot.accounts[0] ?? null,
   destination_account: null,
-  allocation: null,
   schedule: null,
 };
 
@@ -63,11 +58,9 @@ const recurringSchedule: TransactionSchedule = {
   category_id: snapshot.categories.find((category) => category.type === "expense")?.id ?? null,
   source_account_id: snapshot.accounts[0]?.id ?? null,
   destination_account_id: null,
-  allocation_id: null,
   category: snapshot.categories.find((category) => category.type === "expense") ?? null,
   source_account: snapshot.accounts[0] ?? null,
   destination_account: null,
-  allocation: null,
   validation_error: null,
   created_at: "2026-03-01T08:00:00.000Z",
   updated_at: "2026-03-31T08:00:00.000Z",
@@ -109,7 +102,7 @@ export const BatchExpense: Story = {
         mode="add"
         initialKind="expense"
         accounts={snapshot.accounts}
-        allocations={snapshot.allocations}
+
         categories={snapshot.categories}
         transactions={snapshot.transactions}
         onOpenChange={() => {}}
@@ -119,15 +112,15 @@ export const BatchExpense: Story = {
   ),
 };
 
-export const BatchSavings: Story = {
+export const BatchTransfer: Story = {
   render: () => (
     <StorySurface>
       <TransactionFormSheet
         open
         mode="add"
-        initialKind="save_to_goal"
+        initialKind="transfer"
         accounts={snapshot.accounts}
-        allocations={snapshot.allocations}
+
         categories={snapshot.categories}
         transactions={snapshot.transactions}
         onOpenChange={() => {}}
@@ -145,7 +138,7 @@ export const EditOccurrence: Story = {
         mode="edit-transaction"
         transaction={defaultTransaction}
         accounts={snapshot.accounts}
-        allocations={snapshot.allocations}
+
         categories={snapshot.categories}
         transactions={snapshot.transactions}
         onOpenChange={() => {}}
@@ -163,7 +156,7 @@ export const EditSeries: Story = {
         mode="edit-schedule"
         schedule={recurringSchedule}
         accounts={snapshot.accounts}
-        allocations={snapshot.allocations}
+
         categories={snapshot.categories}
         transactions={snapshot.transactions}
         onOpenChange={() => {}}
@@ -186,25 +179,7 @@ export const MobileBatchExpense: Story = {
         mode="add"
         initialKind="expense"
         accounts={snapshot.accounts}
-        allocations={snapshot.allocations}
-        categories={snapshot.categories}
-        transactions={snapshot.transactions}
-        onOpenChange={() => {}}
-        onSubmit={async () => {}}
-      />
-    </StorySurface>
-  ),
-};
 
-export const SavingsMove: Story = {
-  render: () => (
-    <StorySurface>
-      <TransactionFormSheet
-        open
-        mode="edit-transaction"
-        transaction={savingsTransaction}
-        accounts={snapshot.accounts}
-        allocations={snapshot.allocations}
         categories={snapshot.categories}
         transactions={snapshot.transactions}
         onOpenChange={() => {}}
@@ -222,7 +197,7 @@ export const IncomeEdit: Story = {
         mode="edit-transaction"
         transaction={incomeTransaction}
         accounts={snapshot.accounts}
-        allocations={snapshot.allocations}
+
         categories={snapshot.categories}
         transactions={snapshot.transactions}
         onOpenChange={() => {}}
@@ -240,7 +215,7 @@ export const TransferEdit: Story = {
         mode="edit-transaction"
         transaction={transferTransaction}
         accounts={snapshot.accounts}
-        allocations={snapshot.allocations}
+
         categories={snapshot.categories}
         transactions={snapshot.transactions}
         onOpenChange={() => {}}
@@ -258,7 +233,7 @@ export const DebtPaymentEdit: Story = {
         mode="edit-transaction"
         transaction={debtPaymentTransaction}
         accounts={snapshot.accounts}
-        allocations={snapshot.allocations}
+
         categories={snapshot.categories}
         transactions={snapshot.transactions}
         onOpenChange={() => {}}
@@ -268,87 +243,15 @@ export const DebtPaymentEdit: Story = {
   ),
 };
 
-export const AddInvestment: Story = {
+export const AddDebtPayment: Story = {
   render: () => (
     <StorySurface>
       <TransactionFormSheet
         open
         mode="add"
-        initialKind="investment"
+        initialKind="debt_payment"
         accounts={snapshot.accounts}
-        allocations={snapshot.allocations}
-        categories={snapshot.categories}
-        transactions={snapshot.transactions}
-        onOpenChange={() => {}}
-        onSubmit={async () => {}}
-      />
-    </StorySurface>
-  ),
-};
 
-export const InvestmentEdit: Story = {
-  render: () => (
-    <StorySurface>
-      <TransactionFormSheet
-        open
-        mode="edit-transaction"
-        transaction={investmentTransaction}
-        accounts={snapshot.accounts}
-        allocations={snapshot.allocations}
-        categories={snapshot.categories}
-        transactions={snapshot.transactions}
-        onOpenChange={() => {}}
-        onSubmit={async () => {}}
-      />
-    </StorySurface>
-  ),
-};
-
-export const AddRefund: Story = {
-  render: () => (
-    <StorySurface>
-      <TransactionFormSheet
-        open
-        mode="add"
-        initialKind="refund"
-        accounts={snapshot.accounts}
-        allocations={snapshot.allocations}
-        categories={snapshot.categories}
-        transactions={snapshot.transactions}
-        onOpenChange={() => {}}
-        onSubmit={async () => {}}
-      />
-    </StorySurface>
-  ),
-};
-
-export const RefundEdit: Story = {
-  render: () => (
-    <StorySurface>
-      <TransactionFormSheet
-        open
-        mode="edit-transaction"
-        transaction={refundTransaction}
-        accounts={snapshot.accounts}
-        allocations={snapshot.allocations}
-        categories={snapshot.categories}
-        transactions={snapshot.transactions}
-        onOpenChange={() => {}}
-        onSubmit={async () => {}}
-      />
-    </StorySurface>
-  ),
-};
-
-export const AddAdjustment: Story = {
-  render: () => (
-    <StorySurface>
-      <TransactionFormSheet
-        open
-        mode="add"
-        initialKind="adjustment"
-        accounts={snapshot.accounts}
-        allocations={snapshot.allocations}
         categories={snapshot.categories}
         transactions={snapshot.transactions}
         onOpenChange={() => {}}
@@ -368,7 +271,7 @@ export const EditRecurringOccurrence: Story = {
         mode="edit-transaction"
         transaction={recurringOccurrence}
         accounts={snapshot.accounts}
-        allocations={snapshot.allocations}
+
         categories={snapshot.categories}
         transactions={snapshot.transactions}
         onOpenChange={() => {}}
@@ -390,7 +293,7 @@ export const RescheduleDialog: Story = {
         mode="edit-transaction"
         transaction={recurringOccurrence}
         accounts={snapshot.accounts}
-        allocations={snapshot.allocations}
+
         categories={snapshot.categories}
         transactions={snapshot.transactions}
         onOpenChange={() => {}}
@@ -415,7 +318,7 @@ export const MobileRescheduleDialog: Story = {
         mode="edit-transaction"
         transaction={recurringOccurrence}
         accounts={snapshot.accounts}
-        allocations={snapshot.allocations}
+
         categories={snapshot.categories}
         transactions={snapshot.transactions}
         onOpenChange={() => {}}

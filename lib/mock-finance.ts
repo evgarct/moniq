@@ -1,34 +1,34 @@
 import { addDays, formatISO, subMonths } from "date-fns";
 
-import type { Account, Allocation, Category, FinanceSnapshot, Transaction } from "@/types/finance";
+import type { Account, Category, FinanceSnapshot, Transaction } from "@/types/finance";
 
 const userId = "user-demo";
 const today = new Date();
 
 export const mockCategories: Category[] = [
-  { id: "income-root", user_id: userId, name: "Income", icon: "banknote-arrow-up", type: "income", parent_id: null, created_at: formatISO(subMonths(today, 12)) },
-  { id: "salary", user_id: userId, name: "Salary", icon: "briefcase-business", type: "income", parent_id: "income-root", created_at: formatISO(subMonths(today, 11)) },
-  { id: "business-income", user_id: userId, name: "Business income", icon: "building-2", type: "income", parent_id: "income-root", created_at: formatISO(subMonths(today, 10)) },
-  { id: "money-back", user_id: userId, name: "Money Back", icon: "rotate-ccw", type: "income", parent_id: "income-root", created_at: formatISO(subMonths(today, 9)) },
-  { id: "gifts-income", user_id: userId, name: "Gifts", icon: "gift", type: "income", parent_id: "income-root", created_at: formatISO(subMonths(today, 9)) },
-  { id: "interest-income", user_id: userId, name: "Interest income", icon: "landmark", type: "income", parent_id: "income-root", created_at: formatISO(subMonths(today, 8)) },
-  { id: "income-other", user_id: userId, name: "Other", icon: "ellipsis", type: "income", parent_id: "income-root", created_at: formatISO(subMonths(today, 8)) },
-  { id: "core-bills", user_id: userId, name: "Core Bills", icon: "receipt", type: "expense", parent_id: null, created_at: formatISO(subMonths(today, 12)) },
-  { id: "rent", user_id: userId, name: "Rent", icon: "house", type: "expense", parent_id: "core-bills", created_at: formatISO(subMonths(today, 11)) },
-  { id: "loans", user_id: userId, name: "Loans", icon: "circle-dollar-sign", type: "expense", parent_id: "core-bills", created_at: formatISO(subMonths(today, 11)) },
-  { id: "living-costs", user_id: userId, name: "Living Costs", icon: "wallet", type: "expense", parent_id: null, created_at: formatISO(subMonths(today, 10)) },
-  { id: "food-home", user_id: userId, name: "Food & Home", icon: "shopping-cart", type: "expense", parent_id: "living-costs", created_at: formatISO(subMonths(today, 10)) },
-  { id: "transport", user_id: userId, name: "Transport", icon: "bus-front", type: "expense", parent_id: "living-costs", created_at: formatISO(subMonths(today, 9)) },
-  { id: "enjoy-life", user_id: userId, name: "Enjoy Life", icon: "party-popper", type: "expense", parent_id: null, created_at: formatISO(subMonths(today, 9)) },
-  { id: "eat-out-chill", user_id: userId, name: "Eat Out & Chill", icon: "utensils-crossed", type: "expense", parent_id: "enjoy-life", created_at: formatISO(subMonths(today, 8)) },
-  { id: "subscriptions", user_id: userId, name: "Subscriptions", icon: "repeat", type: "expense", parent_id: "enjoy-life", created_at: formatISO(subMonths(today, 8)) },
-  { id: "music", user_id: userId, name: "Music", icon: "music-4", type: "expense", parent_id: "enjoy-life", created_at: formatISO(subMonths(today, 8)) },
-  { id: "travel-prep", user_id: userId, name: "Travel Prep", icon: "luggage", type: "expense", parent_id: "enjoy-life", created_at: formatISO(subMonths(today, 8)) },
-  { id: "travel-stay", user_id: userId, name: "Travel Stay", icon: "bed", type: "expense", parent_id: "enjoy-life", created_at: formatISO(subMonths(today, 8)) },
-  { id: "next-safe", user_id: userId, name: "Next & Safe", icon: "shield", type: "expense", parent_id: null, created_at: formatISO(subMonths(today, 7)) },
-  { id: "cushion", user_id: userId, name: "Cushion", icon: "shield", type: "expense", parent_id: "next-safe", created_at: formatISO(subMonths(today, 7)) },
-  { id: "wealth", user_id: userId, name: "Wealth", icon: "trending-up", type: "expense", parent_id: null, created_at: formatISO(subMonths(today, 7)) },
-  { id: "investments", user_id: userId, name: "Investments", icon: "trending-up", type: "expense", parent_id: "wealth", created_at: formatISO(subMonths(today, 7)) },
+  { id: "income-root", user_id: userId, name: "Income", icon: "banknote-arrow-up", type: "income", parent_id: null, is_system: false, created_at: formatISO(subMonths(today, 12)) },
+  { id: "salary", user_id: userId, name: "Salary", icon: "briefcase-business", type: "income", parent_id: "income-root", is_system: false, created_at: formatISO(subMonths(today, 11)) },
+  { id: "business-income", user_id: userId, name: "Business income", icon: "building-2", type: "income", parent_id: "income-root", is_system: false, created_at: formatISO(subMonths(today, 10)) },
+  { id: "money-back", user_id: userId, name: "Money Back", icon: "rotate-ccw", type: "income", parent_id: "income-root", is_system: false, created_at: formatISO(subMonths(today, 9)) },
+  { id: "gifts-income", user_id: userId, name: "Gifts", icon: "gift", type: "income", parent_id: "income-root", is_system: false, created_at: formatISO(subMonths(today, 9)) },
+  { id: "interest-income", user_id: userId, name: "Interest income", icon: "landmark", type: "income", parent_id: "income-root", is_system: false, created_at: formatISO(subMonths(today, 8)) },
+  { id: "income-other", user_id: userId, name: "Other", icon: "ellipsis", type: "income", parent_id: "income-root", is_system: false, created_at: formatISO(subMonths(today, 8)) },
+  { id: "core-bills", user_id: userId, name: "Core Bills", icon: "receipt", type: "expense", parent_id: null, is_system: false, created_at: formatISO(subMonths(today, 12)) },
+  { id: "rent", user_id: userId, name: "Rent", icon: "house", type: "expense", parent_id: "core-bills", is_system: false, created_at: formatISO(subMonths(today, 11)) },
+  { id: "loans", user_id: userId, name: "Loans", icon: "circle-dollar-sign", type: "expense", parent_id: "core-bills", is_system: false, created_at: formatISO(subMonths(today, 11)) },
+  { id: "living-costs", user_id: userId, name: "Living Costs", icon: "wallet", type: "expense", parent_id: null, is_system: false, created_at: formatISO(subMonths(today, 10)) },
+  { id: "food-home", user_id: userId, name: "Food & Home", icon: "shopping-cart", type: "expense", parent_id: "living-costs", is_system: false, created_at: formatISO(subMonths(today, 10)) },
+  { id: "transport", user_id: userId, name: "Transport", icon: "bus-front", type: "expense", parent_id: "living-costs", is_system: false, created_at: formatISO(subMonths(today, 9)) },
+  { id: "enjoy-life", user_id: userId, name: "Enjoy Life", icon: "party-popper", type: "expense", parent_id: null, is_system: false, created_at: formatISO(subMonths(today, 9)) },
+  { id: "eat-out-chill", user_id: userId, name: "Eat Out & Chill", icon: "utensils-crossed", type: "expense", parent_id: "enjoy-life", is_system: false, created_at: formatISO(subMonths(today, 8)) },
+  { id: "subscriptions", user_id: userId, name: "Subscriptions", icon: "repeat", type: "expense", parent_id: "enjoy-life", is_system: false, created_at: formatISO(subMonths(today, 8)) },
+  { id: "music", user_id: userId, name: "Music", icon: "music-4", type: "expense", parent_id: "enjoy-life", is_system: false, created_at: formatISO(subMonths(today, 8)) },
+  { id: "travel-prep", user_id: userId, name: "Travel Prep", icon: "luggage", type: "expense", parent_id: "enjoy-life", is_system: false, created_at: formatISO(subMonths(today, 8)) },
+  { id: "travel-stay", user_id: userId, name: "Travel Stay", icon: "bed", type: "expense", parent_id: "enjoy-life", is_system: false, created_at: formatISO(subMonths(today, 8)) },
+  { id: "next-safe", user_id: userId, name: "Next & Safe", icon: "shield", type: "expense", parent_id: null, is_system: false, created_at: formatISO(subMonths(today, 7)) },
+  { id: "cushion", user_id: userId, name: "Cushion", icon: "shield", type: "expense", parent_id: "next-safe", is_system: false, created_at: formatISO(subMonths(today, 7)) },
+  { id: "wealth", user_id: userId, name: "Wealth", icon: "trending-up", type: "expense", parent_id: null, is_system: false, created_at: formatISO(subMonths(today, 7)) },
+  { id: "investments", user_id: userId, name: "Investments", icon: "trending-up", type: "expense", parent_id: "wealth", is_system: false, created_at: formatISO(subMonths(today, 7)) },
 ];
 
 export const mockAccounts: Account[] = [
@@ -92,13 +92,6 @@ export const mockAccounts: Account[] = [
   },
 ];
 
-export const mockAllocations: Allocation[] = [
-  makeAllocation("rent-buffer", "reserve", "Rent buffer", 4000, "goal_open"),
-  makeAllocation("travel-goal", "reserve", "Travel", 3000, "goal_targeted", 5000),
-  makeAllocation("emergency-fund", "reserve", "Emergency fund", 3000, "goal_targeted", 10000),
-  makeAllocation("summer-trip", "travel", "Summer trip", 2500, "goal_targeted", 4000),
-];
-
 export const mockTransactions: Transaction[] = [
   makeTransaction({
     id: "salary-1",
@@ -153,15 +146,14 @@ export const mockTransactions: Transaction[] = [
     status: "planned",
   }),
   makeTransaction({
-    id: "save-goal",
-    title: "Top up summer trip",
-    kind: "save_to_goal",
+    id: "save-travel",
+    title: "Top up travel savings",
+    kind: "transfer",
     amount: 180,
     destinationAmount: 180,
     dayOffset: -4,
     sourceAccountId: "everyday",
     destinationAccountId: "travel",
-    allocationId: "summer-trip",
     status: "paid",
   }),
   makeTransaction({
@@ -232,39 +224,17 @@ export const mockTransactions: Transaction[] = [
   makeTransaction({ id: "rent-m6", title: "Apartment rent", kind: "expense", amount: 28500, dayOffset: -182, categoryId: "rent", sourceAccountId: "everyday", status: "paid" }),
   makeTransaction({ id: "vacation-m6", title: "Japan vacation", kind: "expense", amount: 78000, dayOffset: -183, categoryId: "travel-stay", sourceAccountId: "travel-credit", status: "paid" }),
 
-  // ── New kinds ─────────────────────────────────────────────────────────────
-  makeTransaction({ id: "etf-purchase", title: "S&P 500 ETF", kind: "investment", amount: 15000, dayOffset: -5, categoryId: "investments", sourceAccountId: "everyday", status: "paid" }),
-  makeTransaction({ id: "store-refund", title: "ASOS return", kind: "refund", amount: 3200, dayOffset: -8, categoryId: "subscriptions", destinationAccountId: "travel-credit", status: "paid" }),
-  makeTransaction({ id: "balance-adj", title: "Balance adjustment", kind: "adjustment", amount: 1250, dayOffset: -12, destinationAccountId: "everyday", status: "paid" }),
+  // ── Additional ────────────────────────────────────────────────────────────
+  makeTransaction({ id: "etf-purchase", title: "S&P 500 ETF", kind: "expense", amount: 15000, dayOffset: -5, categoryId: "investments", sourceAccountId: "everyday", status: "paid" }),
+  makeTransaction({ id: "store-refund", title: "ASOS return", kind: "income", amount: 3200, dayOffset: -8, categoryId: "money-back", destinationAccountId: "travel-credit", status: "paid" }),
 ];
 
 export const mockFinanceSnapshot: FinanceSnapshot = {
   accounts: mockAccounts,
-  allocations: mockAllocations,
   categories: mockCategories,
   schedules: [],
   transactions: mockTransactions.sort((a, b) => a.occurred_at.localeCompare(b.occurred_at)).reverse(),
 };
-
-function makeAllocation(
-  id: string,
-  accountId: string,
-  name: string,
-  amount: number,
-  kind: Allocation["kind"],
-  targetAmount: number | null = null,
-): Allocation {
-  return {
-    id,
-    user_id: userId,
-    account_id: accountId,
-    name,
-    kind,
-    amount,
-    target_amount: kind === "goal_targeted" ? targetAmount : null,
-    created_at: formatISO(subMonths(today, 3)),
-  };
-}
 
 function makeTransaction(values: {
   id: string;
@@ -275,7 +245,6 @@ function makeTransaction(values: {
   categoryId?: string;
   sourceAccountId?: string;
   destinationAccountId?: string;
-  allocationId?: string;
   destinationAmount?: number;
   fxRate?: number;
   principalAmount?: number;
@@ -286,7 +255,6 @@ function makeTransaction(values: {
   const category = values.categoryId ? mockCategories.find((item) => item.id === values.categoryId) ?? null : null;
   const sourceAccount = values.sourceAccountId ? mockAccounts.find((item) => item.id === values.sourceAccountId) ?? null : null;
   const destinationAccount = values.destinationAccountId ? mockAccounts.find((item) => item.id === values.destinationAccountId) ?? null : null;
-  const allocation = values.allocationId ? mockAllocations.find((item) => item.id === values.allocationId) ?? null : null;
 
   return {
     id: values.id,
@@ -306,14 +274,12 @@ function makeTransaction(values: {
     category_id: category?.id ?? null,
     source_account_id: sourceAccount?.id ?? null,
     destination_account_id: destinationAccount?.id ?? null,
-    allocation_id: allocation?.id ?? null,
     schedule_id: null,
     schedule_occurrence_date: null,
     is_schedule_override: false,
     category,
     source_account: sourceAccount,
     destination_account: destinationAccount,
-    allocation,
     schedule: null,
   };
 }

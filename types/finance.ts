@@ -9,6 +9,7 @@ export type Category = {
   icon: string | null;
   type: CategoryType;
   parent_id: string | null;
+  is_system: boolean;
   created_at: string;
 };
 
@@ -28,7 +29,6 @@ export type AccountType = "cash" | "saving" | "credit_card" | "debt";
 export type DebtKind = "loan" | "mortgage" | "personal";
 export type CashKind = "debit_card" | "cash_wallet";
 export type AccountGroupType = "cash" | "saving" | "credit_card" | "debt";
-export type AllocationKind = "goal_open" | "goal_targeted";
 
 export type Account = {
   id: string;
@@ -43,19 +43,8 @@ export type Account = {
   created_at: string;
 };
 
-export type Allocation = {
-  id: string;
-  user_id: string;
-  account_id: string;
-  name: string;
-  kind: AllocationKind;
-  amount: number;
-  target_amount: number | null;
-  created_at: string;
-};
-
 export type TransactionStatus = "planned" | "paid" | "skipped";
-export type TransactionKind = "income" | "expense" | "transfer" | "save_to_goal" | "spend_from_goal" | "debt_payment" | "investment" | "refund" | "adjustment";
+export type TransactionKind = "income" | "expense" | "transfer" | "debt_payment";
 export type TransactionScheduleFrequency = "daily" | "weekly" | "monthly";
 export type TransactionScheduleState = "active" | "paused";
 
@@ -78,11 +67,9 @@ export type TransactionSchedule = {
   category_id: string | null;
   source_account_id: string | null;
   destination_account_id: string | null;
-  allocation_id: string | null;
   category: Category | null;
   source_account: Account | null;
   destination_account: Account | null;
-  allocation: Allocation | null;
   validation_error: string | null;
   created_at: string;
   updated_at: string;
@@ -106,20 +93,17 @@ export type Transaction = {
   category_id: string | null;
   source_account_id: string | null;
   destination_account_id: string | null;
-  allocation_id: string | null;
   schedule_id: string | null;
   schedule_occurrence_date: string | null;
   is_schedule_override: boolean;
   category: Category | null;
   source_account: Account | null;
   destination_account: Account | null;
-  allocation: Allocation | null;
   schedule: TransactionSchedule | null;
 };
 
 export type FinanceSnapshot = {
   accounts: Account[];
-  allocations: Allocation[];
   categories: Category[];
   schedules: TransactionSchedule[];
   transactions: Transaction[];

@@ -4,7 +4,6 @@ import { createTranslator } from "next-intl";
 import { hasLocale } from "next-intl";
 
 import type {
-  AllocationInput,
   CategoryInput,
   TransactionEntryBatchInput,
   TransactionEntryInput,
@@ -141,39 +140,12 @@ export async function deleteWalletRequest(walletId: string): Promise<FinanceSnap
   return parseJsonResponse<FinanceSnapshot>(response);
 }
 
-export async function createAllocationRequest(walletId: string, values: AllocationInput): Promise<FinanceSnapshot> {
-  const response = await fetchWithTimeout("/api/wallet-allocations", {
+export async function adjustWalletBalanceRequest(walletId: string, newBalance: number, note: string | null): Promise<FinanceSnapshot> {
+  const response = await fetchWithTimeout(`/api/wallets/${walletId}/adjust`, {
     method: "POST",
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      walletId,
-      ...values,
-    }),
-  });
-
-  return parseJsonResponse<FinanceSnapshot>(response);
-}
-
-export async function updateAllocationRequest(allocationId: string, values: AllocationInput): Promise<FinanceSnapshot> {
-  const response = await fetchWithTimeout(`/api/wallet-allocations/${allocationId}`, {
-    method: "PATCH",
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(values),
-  });
-
-  return parseJsonResponse<FinanceSnapshot>(response);
-}
-
-export async function deleteAllocationRequest(allocationId: string): Promise<FinanceSnapshot> {
-  const response = await fetchWithTimeout(`/api/wallet-allocations/${allocationId}`, {
-    method: "DELETE",
-    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ newBalance, note }),
   });
 
   return parseJsonResponse<FinanceSnapshot>(response);

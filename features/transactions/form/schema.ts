@@ -16,7 +16,6 @@ export type SchemaMessages = {
     sourceRequired: string;
     destinationRequired: string;
     categoryRequired: string;
-    goalRequired: string;
     differentDestination: string;
     debtBreakdownRequired: string;
     debtBreakdownMismatch: string;
@@ -24,8 +23,6 @@ export type SchemaMessages = {
     lineItemsRequired: string;
     recurringMustBePlanned: string;
     recurrenceUntilBeforeStart: string;
-    adjustmentBalanceRequired: string;
-    adjustmentNoDiff: string;
   };
 };
 
@@ -34,7 +31,6 @@ export function buildSchema(msgs: SchemaMessages, mode: TransactionFormMode) {
   const opaqueId = z.string().trim().min(1).nullable();
   const lineItemSchema = z.object({
     category_id: opaqueId,
-    allocation_id: opaqueId,
     amount: z.number().positive(v.amountPositive).nullable(),
     note: z.string().trim().max(500, v.noteMax),
   });
@@ -45,10 +41,7 @@ export function buildSchema(msgs: SchemaMessages, mode: TransactionFormMode) {
       note: z.string().trim().max(500, v.noteMax),
       occurred_at: z.string().trim().min(1, v.dateRequired),
       status: z.enum(["planned", "paid"]),
-      kind: z.enum([
-        "income", "expense", "transfer", "save_to_goal", "spend_from_goal",
-        "debt_payment", "investment", "refund", "adjustment",
-      ]),
+      kind: z.enum(["income", "expense", "transfer", "debt_payment"]),
       amount: z.number().min(0),
       destination_amount: z.number().positive(v.destinationAmountPositive).nullable(),
       fx_rate: z.number().positive(v.fxRatePositive).nullable(),
@@ -58,27 +51,20 @@ export function buildSchema(msgs: SchemaMessages, mode: TransactionFormMode) {
       category_id: opaqueId,
       source_account_id: opaqueId,
       destination_account_id: opaqueId,
-      allocation_id: opaqueId,
       is_recurring: z.boolean(),
       recurrence_frequency: z.enum(["daily", "weekly", "monthly"]),
       recurrence_until: z.string().trim().nullable(),
       line_items: z.array(lineItemSchema),
-      adjustment_target_balance: z.number().positive(v.adjustmentBalanceRequired).nullable(),
     })
     .superRefine((values, ctx) => {
       const batchMode = mode === "add" && supportsBatchItems(values.kind);
 
-      // amount must be positive for non-batch, non-adjustment kinds
-      if (!batchMode && values.kind !== "adjustment" && values.amount <= 0) {
+      if (!batchMode && values.amount <= 0) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["amount"], message: v.amountPositive });
       }
 
-      const requireSource = [
-        "expense", "transfer", "save_to_goal", "spend_from_goal", "debt_payment", "investment",
-      ].includes(values.kind);
-      const requireDestination = [
-        "income", "transfer", "save_to_goal", "spend_from_goal", "debt_payment", "refund",
-      ].includes(values.kind);
+      const requireSource = ["expense", "transfer", "debt_payment"].includes(values.kind);
+      const requireDestination = ["income", "transfer", "debt_payment"].includes(values.kind);
 
       if (requireSource && !values.source_account_id) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["source_account_id"], message: v.sourceRequired });
@@ -94,26 +80,11 @@ export function buildSchema(msgs: SchemaMessages, mode: TransactionFormMode) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["destination_account_id"], message: v.differentDestination });
       }
       if (
-        (values.kind === "save_to_goal" || values.kind === "spend_from_goal") &&
-        !values.allocation_id &&
-        !batchMode
-      ) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["allocation_id"], message: v.goalRequired });
-      }
-      if (
-        (values.kind === "income" || values.kind === "expense" || values.kind === "investment" || values.kind === "refund") &&
+        (values.kind === "income" || values.kind === "expense") &&
         !values.category_id &&
         !batchMode
       ) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["category_id"], message: v.categoryRequired });
-      }
-      if (values.kind === "adjustment") {
-        if (!values.source_account_id) {
-          ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["source_account_id"], message: v.sourceRequired });
-        }
-        if (values.adjustment_target_balance == null) {
-          ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["adjustment_target_balance"], message: v.adjustmentBalanceRequired });
-        }
       }
       if (batchMode) {
         if (!values.line_items.length) {
@@ -123,11 +94,8 @@ export function buildSchema(msgs: SchemaMessages, mode: TransactionFormMode) {
           if (!item.amount) {
             ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["line_items", index, "amount"], message: v.amountPositive });
           }
-          if ((values.kind === "income" || values.kind === "expense") && !item.category_id) {
+          if (!item.category_id) {
             ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["line_items", index, "category_id"], message: v.categoryRequired });
-          }
-          if ((values.kind === "save_to_goal" || values.kind === "spend_from_goal") && !item.allocation_id) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["line_items", index, "allocation_id"], message: v.goalRequired });
           }
         });
       }

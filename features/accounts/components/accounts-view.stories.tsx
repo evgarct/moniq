@@ -11,7 +11,6 @@ const meta = {
   component: AccountsView,
   args: {
     accounts: snapshot.accounts,
-    allocations: snapshot.allocations,
     categories: snapshot.categories,
     transactions: snapshot.transactions,
   },
@@ -34,7 +33,6 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   args: {
     accounts: snapshot.accounts,
-    allocations: snapshot.allocations,
     categories: snapshot.categories,
     transactions: snapshot.transactions,
   },

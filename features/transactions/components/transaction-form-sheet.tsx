@@ -2,12 +2,7 @@
 
 import {
   ArrowLeftRight,
-  BanknoteArrowDown,
-  Landmark,
-  PiggyBank,
   ReceiptText,
-  RotateCcw,
-  SlidersHorizontal,
   TrendingUp,
   WalletCards,
   X,
@@ -20,20 +15,15 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { Sheet, SheetClose, SheetContent, SheetHeader } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import type { Account, Allocation, Category, Transaction, TransactionSchedule } from "@/types/finance";
+import type { Account, Category, Transaction, TransactionSchedule } from "@/types/finance";
 
 import { RescheduleConfirmOverlay } from "./reschedule-confirm-overlay";
 import { TransactionFormProvider, useTransactionFormContext } from "../form/context";
 import { buildSubmitPayload } from "../form/submit";
 import {
-  AdjustmentSection,
   DebtPaymentSection,
   ExpenseSection,
   IncomeSection,
-  InvestmentSection,
-  RefundSection,
-  SaveToGoalSection,
-  SpendFromGoalSection,
   TransferSection,
 } from "../form/sections";
 import type { TransactionFormInputs, TransactionFormMode, TransactionFormSubmitPayload } from "../form/types";
@@ -47,12 +37,7 @@ function getKindIcon(kind: Transaction["kind"]) {
   switch (kind) {
     case "income": return TrendingUp;
     case "transfer": return ArrowLeftRight;
-    case "save_to_goal":
-    case "spend_from_goal": return PiggyBank;
     case "debt_payment": return WalletCards;
-    case "investment": return TrendingUp;
-    case "refund": return RotateCcw;
-    case "adjustment": return SlidersHorizontal;
     case "expense":
     default: return ReceiptText;
   }
@@ -64,12 +49,7 @@ const KIND_SECTIONS: Record<Transaction["kind"], React.ComponentType> = {
   expense: ExpenseSection,
   income: IncomeSection,
   transfer: TransferSection,
-  save_to_goal: SaveToGoalSection,
-  spend_from_goal: SpendFromGoalSection,
   debt_payment: DebtPaymentSection,
-  investment: InvestmentSection,
-  refund: RefundSection,
-  adjustment: AdjustmentSection,
 };
 
 // ─── Inner form (has access to context) ──────────────────────────────────────
@@ -82,39 +62,20 @@ function TransactionFormInner() {
     mode,
     kind,
     accounts,
-    allocations,
     categories,
     transactions,
     onSubmit,
     onOpenChange,
   } = useTransactionFormContext();
 
-  const { control } = useFormContext<TransactionFormInputs>();
+  const { control: _control } = useFormContext<TransactionFormInputs>();
+  void _control;
   const Section = KIND_SECTIONS[kind];
   const formId = "transaction-form-sheet";
   const KindIcon = getKindIcon(kind);
 
   const handleSubmit = form.handleSubmit(async (values) => {
-    const adjustmentMsg = t("validation.adjustmentNoDiff");
-
-    if (values.kind === "adjustment" && mode === "add") {
-      const account = accounts.find((a) => a.id === values.source_account_id);
-      if (!account || values.adjustment_target_balance == null) return;
-      const diff = values.adjustment_target_balance - account.balance;
-      if (Math.abs(diff) < 0.001) {
-        form.setError("adjustment_target_balance", { message: adjustmentMsg });
-        return;
-      }
-    }
-
-    const payload = buildSubmitPayload(
-      values,
-      mode,
-      accounts,
-      categories,
-      allocations,
-      t("adjustmentTitle"),
-    );
+    const payload = buildSubmitPayload(values, mode, accounts, categories);
     if (!payload) return;
     try {
       await onSubmit(payload);
@@ -152,23 +113,8 @@ function TransactionFormInner() {
               <SelectItem value="transfer">
                 <span className="inline-flex items-center gap-2"><ArrowLeftRight className="size-4 opacity-70" />{kindsT("transfer")}</span>
               </SelectItem>
-              <SelectItem value="save_to_goal">
-                <span className="inline-flex items-center gap-2"><PiggyBank className="size-4 opacity-70" />{kindsT("save_to_goal")}</span>
-              </SelectItem>
-              <SelectItem value="spend_from_goal">
-                <span className="inline-flex items-center gap-2"><PiggyBank className="size-4 opacity-70" />{kindsT("spend_from_goal")}</span>
-              </SelectItem>
               <SelectItem value="debt_payment">
                 <span className="inline-flex items-center gap-2"><WalletCards className="size-4 opacity-70" />{kindsT("debt_payment")}</span>
-              </SelectItem>
-              <SelectItem value="investment">
-                <span className="inline-flex items-center gap-2"><TrendingUp className="size-4 opacity-70" />{kindsT("investment")}</span>
-              </SelectItem>
-              <SelectItem value="refund">
-                <span className="inline-flex items-center gap-2"><RotateCcw className="size-4 opacity-70" />{kindsT("refund")}</span>
-              </SelectItem>
-              <SelectItem value="adjustment">
-                <span className="inline-flex items-center gap-2"><SlidersHorizontal className="size-4 opacity-70" />{kindsT("adjustment")}</span>
               </SelectItem>
             </SelectContent>
           </Select>
@@ -226,7 +172,6 @@ export function TransactionFormSheet({
   initialDate,
   defaultSourceAccountId,
   accounts,
-  allocations,
   categories,
   transactions = [],
   onOpenChange,
@@ -240,7 +185,6 @@ export function TransactionFormSheet({
   initialDate?: string | null;
   defaultSourceAccountId?: string | null;
   accounts: Account[];
-  allocations: Allocation[];
   categories: Category[];
   transactions?: Transaction[];
   onOpenChange: (open: boolean) => void;
@@ -301,7 +245,6 @@ export function TransactionFormSheet({
           initialDate={initialDate}
           defaultSourceAccountId={defaultSourceAccountId}
           accounts={accounts}
-          allocations={allocations}
           categories={categories}
           transactions={transactions}
           onSubmit={wrappedOnSubmit}

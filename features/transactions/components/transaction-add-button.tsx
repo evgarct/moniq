@@ -1,16 +1,6 @@
 "use client";
 
-import {
-  ArrowLeftRight,
-  BanknoteArrowDown,
-  BanknoteArrowUp,
-  Landmark,
-  PiggyBank,
-  Plus,
-  RotateCcw,
-  SlidersHorizontal,
-  TrendingUp,
-} from "lucide-react";
+import { ArrowLeftRight, BanknoteArrowDown, BanknoteArrowUp, Landmark, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
@@ -30,12 +20,7 @@ const quickAddOptions: Array<{
   { kind: "expense", icon: BanknoteArrowDown },
   { kind: "income", icon: BanknoteArrowUp },
   { kind: "transfer", icon: ArrowLeftRight },
-  { kind: "save_to_goal", icon: PiggyBank },
-  { kind: "spend_from_goal", icon: PiggyBank },
   { kind: "debt_payment", icon: Landmark },
-  { kind: "investment", icon: TrendingUp },
-  { kind: "refund", icon: RotateCcw },
-  { kind: "adjustment", icon: SlidersHorizontal },
 ];
 
 export function TransactionAddButton({
