@@ -31,3 +31,4 @@ export const AccountsActive: Story = {
     await expect(canvas.getByLabelText(/open profile menu/i)).toBeInTheDocument();
   },
 };
+

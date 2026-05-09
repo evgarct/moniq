@@ -33,7 +33,7 @@ export function StoryWorkspace({
       <div className="min-h-screen w-full lg:grid lg:grid-cols-[76px_minmax(0,1fr)]">
         <AppSidebar user={storyUser} onSignOut={noopAsyncAction} />
         <div className="min-w-0 bg-[#fbf8f4]">
-          <main className="min-h-screen overflow-x-hidden pb-[64px] lg:pb-0">
+          <main className="min-h-screen overflow-x-hidden pb-[calc(56px+env(safe-area-inset-bottom))] lg:pb-0">
             <div data-pathname={pathname} className="min-h-screen">
               {children}
             </div>
