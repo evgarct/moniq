@@ -68,6 +68,7 @@ const meta = {
             accounts={snapshot.accounts}
             categories={snapshot.categories}
             transactions={snapshot.transactions}
+            allocations={snapshot.allocations}
           />
         </div>
       </div>

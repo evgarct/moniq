@@ -32,6 +32,7 @@ const emptySnapshot: FinanceSnapshot = {
   categories: [],
   schedules: [],
   transactions: [],
+  allocations: [],
 };
 
 export function TransactionsView({
@@ -194,14 +195,11 @@ export function TransactionsView({
             onDeleteTransaction={(selectedTransaction) => {
               transactionActions.deleteTransactionOptimistic(selectedTransaction.id);
             }}
-            onDeleteSeries={async (selectedTransaction) => {
+            onDeleteSeries={(selectedTransaction) => {
               if (!selectedTransaction.schedule_id) return;
-              try {
-                await transactionActions.deleteSchedule(selectedTransaction.schedule_id);
-                setActionError(null);
-              } catch (error) {
+              transactionActions.deleteScheduleOptimistic(selectedTransaction.schedule_id, (error) => {
                 setActionError(error instanceof Error ? error.message : t("view.deleteError"));
-              }
+              });
             }}
             onMarkPaid={(selectedTransaction) => {
               transactionActions.markPaidOptimistic(selectedTransaction.id);
@@ -291,40 +289,36 @@ export function TransactionsView({
           }
         }}
         onSubmit={async (payload: TransactionFormSubmitPayload) => {
-          try {
-            if (payload.kind === "entry") {
-              await transactionActions.createEntry(payload.values);
-            } else if (payload.kind === "entry-batch") {
-              await transactionActions.createEntry(payload.values);
-            } else if (payload.kind === "transaction") {
-              if (!editingTransaction) {
-                throw new Error(t("view.saveError"));
-              }
-
-              await transactionActions.updateTransaction(editingTransaction.id, payload.values);
-              if (payload.rescheduleFrom) {
+          if (payload.kind === "entry" || payload.kind === "entry-batch") {
+            transactionActions.createEntry(payload.values).catch((error) => {
+              setActionError(error instanceof Error ? error.message : t("view.saveError"));
+            });
+          } else if (payload.kind === "transaction") {
+            if (!editingTransaction) throw new Error(t("view.saveError"));
+            transactionActions.updateTransactionOptimistic(editingTransaction.id, payload.values);
+            if (payload.rescheduleFrom) {
+              try {
                 await transactionActions.rescheduleFromDate(
                   payload.rescheduleFrom.scheduleId,
                   payload.rescheduleFrom.originalDate,
                   payload.rescheduleFrom.newDate,
                 );
+              } catch (error) {
+                setActionError(error instanceof Error ? error.message : t("view.saveError"));
+                throw error;
               }
-            } else {
-              if (!editingSchedule) {
-                throw new Error(t("view.saveError"));
-              }
-
-              await transactionActions.updateSchedule(editingSchedule.id, payload.values);
             }
-            setActionError(null);
-          } catch (error) {
-            setActionError(error instanceof Error ? error.message : t("view.saveError"));
-            throw error;
+          } else {
+            if (!editingSchedule) throw new Error(t("view.saveError"));
+            try {
+              await transactionActions.updateSchedule(editingSchedule.id, payload.values);
+            } catch (error) {
+              setActionError(error instanceof Error ? error.message : t("view.saveError"));
+              throw error;
+            }
           }
-
-          if (shouldOpenNewTransaction) {
-            router.replace(basePath);
-          }
+          setActionError(null);
+          if (shouldOpenNewTransaction) router.replace(basePath);
         }}
       />
     </>

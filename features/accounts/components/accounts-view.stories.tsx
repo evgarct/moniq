@@ -13,6 +13,7 @@ const meta = {
     accounts: snapshot.accounts,
     categories: snapshot.categories,
     transactions: snapshot.transactions,
+    allocations: snapshot.allocations,
   },
   parameters: {
     layout: "fullscreen",
@@ -35,6 +36,7 @@ export const Default: Story = {
     accounts: snapshot.accounts,
     categories: snapshot.categories,
     transactions: snapshot.transactions,
+    allocations: snapshot.allocations,
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);

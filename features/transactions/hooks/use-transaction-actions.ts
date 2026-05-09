@@ -1,5 +1,6 @@
 "use client";
 
+import { format, startOfToday } from "date-fns";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import {
@@ -127,6 +128,54 @@ export function useTransactionActions() {
           ),
         }),
         () => skipTransactionOccurrenceRequest(transactionId),
+      ),
+    deleteScheduleOptimistic: (scheduleId: string, onError?: (error: unknown) => void) => {
+      const todayStr = format(startOfToday(), "yyyy-MM-dd");
+      const previous = queryClient.getQueryData<FinanceSnapshot>(financeSnapshotQueryKey);
+      if (previous) {
+        queryClient.setQueryData(financeSnapshotQueryKey, {
+          ...previous,
+          schedules: previous.schedules.filter((s) => s.id !== scheduleId),
+          // Server deletes: non-paid AND schedule_occurrence_date >= today. Match exactly.
+          transactions: previous.transactions.filter(
+            (t) =>
+              t.schedule_id !== scheduleId ||
+              t.status === "paid" ||
+              !t.schedule_occurrence_date ||
+              t.schedule_occurrence_date < todayStr,
+          ),
+        });
+      }
+      deleteTransactionScheduleRequest(scheduleId)
+        .then(setSnapshot)
+        .catch((error) => {
+          if (previous) queryClient.setQueryData(financeSnapshotQueryKey, previous);
+          onError?.(error);
+        });
+    },
+    updateTransactionOptimistic: (transactionId: string, values: TransactionInput) =>
+      optimistic(
+        (snap) => ({
+          ...snap,
+          transactions: snap.transactions.map((t) =>
+            t.id === transactionId
+              ? {
+                  ...t,
+                  ...values,
+                  category: values.category_id
+                    ? (snap.categories.find((c) => c.id === values.category_id) ?? t.category)
+                    : null,
+                  source_account: values.source_account_id
+                    ? (snap.accounts.find((a) => a.id === values.source_account_id) ?? t.source_account)
+                    : t.source_account,
+                  destination_account: values.destination_account_id
+                    ? (snap.accounts.find((a) => a.id === values.destination_account_id) ?? t.destination_account)
+                    : null,
+                }
+              : t,
+          ),
+        }),
+        () => updateTransactionRequest(transactionId, values),
       ),
 
     updateSchedule: (scheduleId: string, values: TransactionScheduleInput) =>

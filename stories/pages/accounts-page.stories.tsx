@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { addDays, formatISO } from "date-fns";
+import { addDays, format, formatISO, subDays, subMonths } from "date-fns";
 import { expect, userEvent, within } from "storybook/test";
 
 import { AccountsView } from "@/features/accounts/components/accounts-view";
 import { makeFinanceSnapshot, StoryWorkspace, withPathname } from "@/stories/fixtures/story-data";
-import type { Account, Transaction } from "@/types/finance";
+import type { Account, Transaction, WalletAllocation } from "@/types/finance";
 
 const snapshot = makeFinanceSnapshot();
 
@@ -82,6 +82,7 @@ const meta = {
           accounts={data.accounts}
           categories={data.categories}
           transactions={data.transactions}
+          allocations={data.allocations ?? []}
         />
       </div>
     </StoryWorkspace>
@@ -167,5 +168,112 @@ export const MobileLeftPanelScroll: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole("heading", { name: "Balance", level: 1 })).toBeInTheDocument();
     await expect(canvas.getByText("Cash 1")).toBeInTheDocument();
+  },
+};
+
+function makeOpeningBalanceData() {
+  const snap = makeFinanceSnapshot();
+  const wallet = snap.accounts[0];
+  const adjustmentCategory = snap.categories.find((c) => c.type === "income") ?? snap.categories[0];
+
+  const baseBalanceTx = {
+    user_id: wallet.user_id,
+    note: null,
+    kind: "income" as const,
+    destination_amount: null,
+    fx_rate: null,
+    principal_amount: null,
+    interest_amount: null,
+    extra_principal_amount: null,
+    status: "paid" as const,
+    category_id: adjustmentCategory.id,
+    category: adjustmentCategory,
+    source_account_id: null,
+    source_account: null,
+    destination_account_id: wallet.id,
+    destination_account: wallet,
+    schedule_id: null,
+    schedule: null,
+    schedule_occurrence_date: null,
+    is_schedule_override: false,
+  };
+
+  const openingTx: Transaction = {
+    ...baseBalanceTx,
+    id: "opening-balance-1",
+    title: "Opening balance",
+    amount: wallet.balance,
+    occurred_at: format(subMonths(new Date(), 18), "yyyy-MM-dd"),
+    created_at: formatISO(subMonths(new Date(), 18)),
+  };
+
+  const adjustTx: Transaction = {
+    ...baseBalanceTx,
+    id: "balance-adjustment-1",
+    title: "Balance adjustment",
+    amount: 5000,
+    occurred_at: format(subDays(new Date(), 3), "yyyy-MM-dd"),
+    created_at: formatISO(subDays(new Date(), 3)),
+  };
+
+  return { ...snap, transactions: [openingTx, adjustTx, ...snap.transactions] };
+}
+
+export const WithOpeningBalance: Story = {
+  args: {
+    data: makeOpeningBalanceData(),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const walletButton = canvas.getAllByRole("button").find((b) => b.textContent?.includes("Prague Everyday Card"));
+    if (walletButton) await userEvent.click(walletButton);
+    await expect(canvas.getByText("Opening balance")).toBeInTheDocument();
+    await expect(canvas.getByText("Balance adjustment")).toBeInTheDocument();
+  },
+};
+
+function makeGoalsData() {
+  const snap = makeFinanceSnapshot();
+  const savingsWallet = snap.accounts.find((a) => a.type === "saving")!;
+
+  const allocations: WalletAllocation[] = [
+    {
+      id: "goal-rent",
+      user_id: savingsWallet.user_id,
+      wallet_id: savingsWallet.id,
+      name: "Rent next month",
+      kind: "goal_open",
+      amount: 28500,
+      target_amount: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      id: "goal-vacation",
+      user_id: savingsWallet.user_id,
+      wallet_id: savingsWallet.id,
+      name: "Summer vacation",
+      kind: "goal_targeted",
+      amount: 45000,
+      target_amount: 120000,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+  ];
+
+  return { ...snap, allocations };
+}
+
+export const WithGoals: Story = {
+  args: {
+    data: makeGoalsData(),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const savingsBtn = canvas.getAllByRole("button").find((b) => b.textContent?.includes("Euro Reserve"));
+    if (savingsBtn) await userEvent.click(savingsBtn);
+    await expect(canvas.getByText("Rent next month")).toBeInTheDocument();
+    await expect(canvas.getByText("Summer vacation")).toBeInTheDocument();
+    await expect(canvas.getByText("Free")).toBeInTheDocument();
   },
 };

@@ -36,6 +36,7 @@ export default function AccountsPage() {
         accounts={data?.accounts ?? []}
         categories={data?.categories ?? []}
         transactions={data?.transactions ?? []}
+        allocations={data?.allocations ?? []}
       />
     </PageContainer>
   );

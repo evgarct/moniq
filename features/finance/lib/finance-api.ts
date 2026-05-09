@@ -9,13 +9,14 @@ import type {
   TransactionEntryInput,
   TransactionInput,
   TransactionScheduleInput,
+  WalletAllocationInput,
   WalletInput,
 } from "@/types/finance-schemas";
 import type { FinanceSnapshot } from "@/types/finance";
 import { loadMessages } from "@/i18n/messages";
 import { routing, type AppLocale } from "@/i18n/routing";
 
-export const financeSnapshotQueryKey = ["finance-snapshot"] as const;
+export { financeSnapshotQueryKey } from "@/features/finance/lib/finance-keys";
 const REQUEST_TIMEOUT_MS = 10_000;
 
 function getDocumentLocale(): AppLocale {
@@ -295,6 +296,37 @@ export async function rescheduleTransactionSeriesRequest(
 
 export async function deleteTransactionScheduleRequest(scheduleId: string): Promise<FinanceSnapshot> {
   const response = await fetchWithTimeout(`/api/transaction-schedules/${scheduleId}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+
+  return parseJsonResponse<FinanceSnapshot>(response);
+}
+
+export async function createWalletAllocationRequest(walletId: string, values: WalletAllocationInput): Promise<FinanceSnapshot> {
+  const response = await fetchWithTimeout(`/api/wallets/${walletId}/allocations`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(values),
+  });
+
+  return parseJsonResponse<FinanceSnapshot>(response);
+}
+
+export async function updateWalletAllocationRequest(allocationId: string, values: WalletAllocationInput): Promise<FinanceSnapshot> {
+  const response = await fetchWithTimeout(`/api/allocations/${allocationId}`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(values),
+  });
+
+  return parseJsonResponse<FinanceSnapshot>(response);
+}
+
+export async function deleteWalletAllocationRequest(allocationId: string): Promise<FinanceSnapshot> {
+  const response = await fetchWithTimeout(`/api/allocations/${allocationId}`, {
     method: "DELETE",
     credentials: "include",
   });
