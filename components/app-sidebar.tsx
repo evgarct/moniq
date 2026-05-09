@@ -107,10 +107,11 @@ export function MobileBottomNav({
         className="relative flex items-start justify-around px-1 pt-2 text-[10px]"
         style={{
           paddingBottom: "6px",
-          background: "rgba(250, 250, 247, 0.72)",
-          backdropFilter: "saturate(180%) blur(20px)",
-          WebkitBackdropFilter: "saturate(180%) blur(20px)",
-          borderTop: "0.5px solid rgba(0, 0, 0, 0.12)",
+          background: "rgba(255, 255, 255, 0.25)",
+          backdropFilter: "saturate(200%) blur(28px)",
+          WebkitBackdropFilter: "saturate(200%) blur(28px)",
+          borderTop: "0.5px solid rgba(255, 255, 255, 0.6)",
+          boxShadow: "0 -1px 0 0 rgba(255,255,255,0.4) inset",
         }}
       >
         {navigation.map((item) => {
