@@ -7,8 +7,8 @@ import {
   UserRound,
 } from "lucide-react";
 import {
-  IconListCheck,
-  IconListCheckFilled,
+  IconCalendar,
+  IconCalendarFilled,
   IconMail,
   IconMailFilled,
   IconScale,
@@ -31,7 +31,7 @@ import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 
 const navigation = [
-  { href: "/today",    labelKey: "today",    icon: IconListCheck,   iconFilled: IconListCheckFilled },
+  { href: "/today",    labelKey: "today",    icon: IconCalendar,   iconFilled: IconCalendarFilled },
   { href: "/inbox",    labelKey: "inboxPage", icon: IconMail,        iconFilled: IconMailFilled },
   { href: "/accounts", labelKey: "balance",   icon: IconScale,       iconFilled: IconScaleFilled },
   { href: "/budget",   labelKey: "budget",    icon: IconCreditCard,  iconFilled: IconCreditCardFilled },
