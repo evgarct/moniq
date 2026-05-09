@@ -38,10 +38,10 @@ export default async function AuthenticatedLayout({
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-background">
-      <div className="grid h-full w-full lg:grid-cols-[76px_minmax(0,1fr)] pb-[calc(84px+env(safe-area-inset-bottom))] lg:pb-0">
+      <div className="grid h-full w-full lg:grid-cols-[76px_minmax(0,1fr)] pb-[calc(49px+env(safe-area-inset-bottom))] lg:pb-0">
         <AppSidebar user={user} onSignOut={signOut} />
         <div className="min-w-0 overflow-hidden bg-background">
-          <main className="h-[calc(100vh-84px-env(safe-area-inset-bottom))] lg:h-screen overflow-hidden">
+          <main className="h-[calc(100vh-49px-env(safe-area-inset-bottom))] lg:h-screen overflow-hidden">
             <HydrationBoundary state={dehydrate(queryClient)}>
               {children}
             </HydrationBoundary>
