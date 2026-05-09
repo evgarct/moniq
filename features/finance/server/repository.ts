@@ -13,9 +13,10 @@ import type {
   TransactionEntryInput,
   TransactionInput,
   TransactionScheduleInput,
+  WalletAllocationInput,
   WalletInput,
 } from "@/types/finance-schemas";
-import type { Account, Category, FinanceSnapshot, Transaction, TransactionSchedule } from "@/types/finance";
+import type { Account, Category, FinanceSnapshot, Transaction, TransactionSchedule, WalletAllocation, WalletAllocationKind } from "@/types/finance";
 
 type WalletRow = {
   id: string;
@@ -448,17 +449,28 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
     }
   }
 
-  const { data: transactions, error: transactionError } = await supabase
-    .from("finance_transactions")
-    .select(
-      "id, user_id, title, note, occurred_at, created_at, status, kind, amount, destination_amount, fx_rate, principal_amount, interest_amount, extra_principal_amount, category_id, source_account_id, destination_account_id, schedule_id, schedule_occurrence_date, is_schedule_override",
-    )
-    .eq("user_id", user.id)
-    .order("occurred_at", { ascending: false })
-    .order("created_at", { ascending: false });
+  const [{ data: transactions, error: transactionError }, { data: allocationsData, error: allocationError }] = await Promise.all([
+    supabase
+      .from("finance_transactions")
+      .select(
+        "id, user_id, title, note, occurred_at, created_at, status, kind, amount, destination_amount, fx_rate, principal_amount, interest_amount, extra_principal_amount, category_id, source_account_id, destination_account_id, schedule_id, schedule_occurrence_date, is_schedule_override",
+      )
+      .eq("user_id", user.id)
+      .order("occurred_at", { ascending: false })
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("wallet_allocations")
+      .select("id, user_id, wallet_id, name, kind, amount, target_amount, created_at, updated_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: true }),
+  ]);
 
   if (transactionError) {
     throw new Error(normalizeFinanceRepositoryError(transactionError));
+  }
+
+  if (allocationError) {
+    throw new Error(normalizeFinanceRepositoryError(allocationError));
   }
 
   const schedulesById = new Map(validatedSchedules.map((schedule) => [schedule.id, schedule]));
@@ -493,21 +505,34 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
     };
   });
 
+  const mappedAllocations: WalletAllocation[] = (allocationsData ?? []).map((a) => ({
+    id: a.id as string,
+    user_id: a.user_id as string,
+    wallet_id: a.wallet_id as string,
+    name: a.name as string,
+    kind: a.kind as WalletAllocationKind,
+    amount: Number(a.amount),
+    target_amount: a.target_amount != null ? Number(a.target_amount) : null,
+    created_at: a.created_at as string,
+    updated_at: a.updated_at as string,
+  }));
+
   return {
     accounts: mappedAccounts,
     categories: mappedCategories,
     schedules: validatedSchedules,
     transactions: mappedTransactions,
+    allocations: mappedAllocations,
   };
 }
 
 export async function createWallet(values: WalletInput) {
-  const { supabase } = await getAuthenticatedSupabase();
+  const { supabase, user } = await getAuthenticatedSupabase();
   validateAccountValues(values);
   const { error } = await supabase.rpc("create_wallet", {
     _name: values.name,
     _type: values.type,
-    _balance: values.balance,
+    _balance: 0,
     _credit_limit: values.type === "credit_card" ? values.credit_limit ?? null : null,
     _currency: values.currency,
     _debt_kind: values.type === "debt" ? values.debt_kind ?? "personal" : null,
@@ -515,6 +540,20 @@ export async function createWallet(values: WalletInput) {
 
   if (error) {
     throw new Error(normalizeFinanceRepositoryError(error));
+  }
+
+  if (Math.abs(values.balance) >= 0.001) {
+    const { data: newWallet } = await supabase
+      .from("wallets")
+      .select("id")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (newWallet?.id) {
+      await insertBalanceTransaction(supabase, user.id, newWallet.id, values.balance, "Opening balance", null);
+    }
   }
 }
 
@@ -547,6 +586,53 @@ export async function deleteWallet(walletId: string) {
   }
 }
 
+export async function createWalletAllocation(walletId: string, values: WalletAllocationInput): Promise<FinanceSnapshot> {
+  const { supabase } = await getAuthenticatedSupabase();
+  const { error } = await supabase.rpc("create_wallet_allocation", {
+    _wallet_id: walletId,
+    _name: values.name,
+    _kind: values.kind,
+    _amount: values.amount,
+    _target_amount: values.target_amount ?? null,
+  });
+
+  if (error) {
+    throw new Error(normalizeFinanceRepositoryError(error));
+  }
+
+  return getFinanceSnapshot();
+}
+
+export async function updateWalletAllocation(allocationId: string, values: WalletAllocationInput): Promise<FinanceSnapshot> {
+  const { supabase } = await getAuthenticatedSupabase();
+  const { error } = await supabase.rpc("update_wallet_allocation", {
+    _allocation_id: allocationId,
+    _name: values.name,
+    _kind: values.kind,
+    _amount: values.amount,
+    _target_amount: values.target_amount ?? null,
+  });
+
+  if (error) {
+    throw new Error(normalizeFinanceRepositoryError(error));
+  }
+
+  return getFinanceSnapshot();
+}
+
+export async function deleteWalletAllocation(allocationId: string): Promise<FinanceSnapshot> {
+  const { supabase } = await getAuthenticatedSupabase();
+  const { error } = await supabase.rpc("delete_wallet_allocation", {
+    _allocation_id: allocationId,
+  });
+
+  if (error) {
+    throw new Error(normalizeFinanceRepositoryError(error));
+  }
+
+  return getFinanceSnapshot();
+}
+
 export async function getOrCreateAdjustmentCategory(userId: string, type: "income" | "expense"): Promise<string> {
   const { supabase } = await getAuthenticatedSupabase();
   const { data: existing } = await supabase
@@ -575,26 +661,19 @@ export async function getOrCreateAdjustmentCategory(userId: string, type: "incom
   return created.id;
 }
 
-export async function adjustWalletBalance(walletId: string, newBalance: number, note: string | null) {
-  const { supabase, user } = await getAuthenticatedSupabase();
-  const snapshot = await getFinanceSnapshot();
-  const wallet = snapshot.accounts.find((a) => a.id === walletId);
-
-  if (!wallet) {
-    throw new Error("Wallet not found.");
-  }
-
-  const diff = newBalance - wallet.balance;
-  if (Math.abs(diff) < 0.001) {
-    return;
-  }
-
+async function insertBalanceTransaction(
+  supabase: Awaited<ReturnType<typeof getAuthenticatedSupabase>>["supabase"],
+  userId: string,
+  walletId: string,
+  diff: number,
+  title: string,
+  note: string | null,
+) {
   const kind = diff > 0 ? "income" : "expense";
-  const categoryId = await getOrCreateAdjustmentCategory(user.id, kind);
-
+  const categoryId = await getOrCreateAdjustmentCategory(userId, kind);
   const { error } = await supabase.from("finance_transactions").insert({
-    user_id: user.id,
-    title: "Balance adjustment",
+    user_id: userId,
+    title,
     note,
     occurred_at: new Date().toISOString().slice(0, 10),
     status: "paid",
@@ -609,10 +688,24 @@ export async function adjustWalletBalance(walletId: string, newBalance: number, 
     source_account_id: kind === "expense" ? walletId : null,
     destination_account_id: kind === "income" ? walletId : null,
   });
+  if (error) throw new Error(normalizeFinanceRepositoryError(error));
+}
 
-  if (error) {
-    throw new Error(normalizeFinanceRepositoryError(error));
+export async function adjustWalletBalance(walletId: string, newBalance: number, note: string | null) {
+  const { supabase, user } = await getAuthenticatedSupabase();
+  const snapshot = await getFinanceSnapshot();
+  const wallet = snapshot.accounts.find((a) => a.id === walletId);
+
+  if (!wallet) {
+    throw new Error("Wallet not found.");
   }
+
+  const diff = newBalance - wallet.balance;
+  if (Math.abs(diff) < 0.001) {
+    return;
+  }
+
+  await insertBalanceTransaction(supabase, user.id, walletId, diff, "Balance adjustment", note);
 }
 
 export async function createCategory(values: CategoryInput) {

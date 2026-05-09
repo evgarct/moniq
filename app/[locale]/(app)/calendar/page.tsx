@@ -32,7 +32,7 @@ export default function CalendarPage() {
 
   return (
     <PageContainer>
-      <CalendarView snapshot={data ?? { accounts: [], categories: [], schedules: [], transactions: [] }} />
+      <CalendarView snapshot={data ?? { accounts: [], categories: [], schedules: [], transactions: [], allocations: [] }} />
     </PageContainer>
   );
 }

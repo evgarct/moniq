@@ -7,7 +7,7 @@ import {
   getDebtAccounts,
   getSavingAccounts,
 } from "@/lib/finance-selectors";
-import type { Account } from "@/types/finance";
+import type { Account, WalletAllocation } from "@/types/finance";
 
 export function AccountList({
   accounts,
@@ -19,6 +19,10 @@ export function AccountList({
   onEditAccount,
   onDeleteAccount,
   onAdjustBalance,
+  allocations,
+  onAddGoal,
+  onEditGoal,
+  onDeleteGoal,
 }: {
   accounts: Account[];
   selectedAccountId: string | null;
@@ -29,6 +33,10 @@ export function AccountList({
   onEditAccount?: (account: Account) => void;
   onDeleteAccount?: (account: Account) => void;
   onAdjustBalance?: (account: Account, newBalance: number) => void;
+  allocations?: WalletAllocation[];
+  onAddGoal?: (walletId: string) => void;
+  onEditGoal?: (allocation: WalletAllocation) => void;
+  onDeleteGoal?: (allocation: WalletAllocation) => void;
 }) {
   const t = useTranslations("accounts.groups");
   const cashAccounts = getCashAccounts(accounts);
@@ -61,6 +69,10 @@ export function AccountList({
         onEditAccount={onEditAccount}
         onDeleteAccount={onDeleteAccount}
         onAdjustBalance={onAdjustBalance}
+        allocations={allocations}
+        onAddGoal={onAddGoal}
+        onEditGoal={onEditGoal}
+        onDeleteGoal={onDeleteGoal}
       />
       <AccountGroup
         title={t("creditCards")}

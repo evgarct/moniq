@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { AccountCard } from "@/components/account-card";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import type { Account } from "@/types/finance";
+import type { Account, WalletAllocation } from "@/types/finance";
 
 export function AccountGroup({
   title,
@@ -18,6 +18,10 @@ export function AccountGroup({
   onEditAccount,
   onDeleteAccount,
   onAdjustBalance,
+  allocations,
+  onAddGoal,
+  onEditGoal,
+  onDeleteGoal,
 }: {
   title: string;
   accounts: Account[];
@@ -29,6 +33,10 @@ export function AccountGroup({
   onEditAccount?: (account: Account) => void;
   onDeleteAccount?: (account: Account) => void;
   onAdjustBalance?: (account: Account, newBalance: number) => void;
+  allocations?: WalletAllocation[];
+  onAddGoal?: (walletId: string) => void;
+  onEditGoal?: (allocation: WalletAllocation) => void;
+  onDeleteGoal?: (allocation: WalletAllocation) => void;
 }) {
   const tr = useTranslations();
   const t = useTranslations("accounts");
@@ -73,6 +81,10 @@ export function AccountGroup({
               onEdit={onEditAccount}
               onDelete={onDeleteAccount}
               onAdjustBalance={onAdjustBalance}
+              allocations={allocations?.filter((a) => a.wallet_id === account.id)}
+              onAddGoal={onAddGoal ? () => onAddGoal(account.id) : undefined}
+              onEditGoal={onEditGoal}
+              onDeleteGoal={onDeleteGoal}
             />
           ))}
         </div>
@@ -84,4 +96,3 @@ export function AccountGroup({
     </section>
   );
 }
-

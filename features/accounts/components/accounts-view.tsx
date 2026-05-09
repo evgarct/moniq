@@ -15,28 +15,34 @@ import { AccountFormSheet } from "@/features/accounts/components/account-form-sh
 import { BalanceRegisterHeader, BalanceRegisterPanel } from "@/features/accounts/components/balance-register-panel";
 import {
   adjustWalletBalanceRequest,
+  createWalletAllocationRequest,
   createWalletRequest,
+  deleteWalletAllocationRequest,
   deleteWalletRequest,
   financeSnapshotQueryKey,
+  updateWalletAllocationRequest,
   updateWalletRequest,
 } from "@/features/finance/lib/finance-api";
+import { GoalFormSheet } from "@/features/goals/components/goal-form-sheet";
 import { TransactionFormSheet, type TransactionFormSubmitPayload } from "@/features/transactions/components/transaction-form-sheet";
 import { useTransactionActions } from "@/features/transactions/hooks/use-transaction-actions";
 import { isSettledTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
 import { getTransactionsForAccount } from "@/lib/finance-selectors";
 import { cn } from "@/lib/utils";
 import type { CurrencyCode } from "@/types/currency";
-import type { Account, Category, FinanceSnapshot, Transaction } from "@/types/finance";
-import type { WalletInput } from "@/types/finance-schemas";
+import type { Account, Category, FinanceSnapshot, Transaction, WalletAllocation } from "@/types/finance";
+import type { WalletAllocationInput, WalletInput } from "@/types/finance-schemas";
 
 export function AccountsView({
   accounts,
   categories,
   transactions,
+  allocations,
 }: {
   accounts: Account[];
   categories: Category[];
   transactions: Transaction[];
+  allocations: WalletAllocation[];
 }) {
   const tr = useTranslations();
   const t = useTranslations("accounts");
@@ -61,6 +67,10 @@ export function AccountsView({
   const [leftPanelScrolled, setLeftPanelScrolled] = useState(false);
   const [mobileRegisterScrolled, setMobileRegisterScrolled] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [goalSheetOpen, setGoalSheetOpen] = useState(false);
+  const [goalSheetMode, setGoalSheetMode] = useState<"add" | "edit">("add");
+  const [editingAllocation, setEditingAllocation] = useState<WalletAllocation | null>(null);
+  const [goalWalletId, setGoalWalletId] = useState<string | null>(null);
 
   const setSnapshot = (snapshot: FinanceSnapshot) => {
     queryClient.setQueryData(financeSnapshotQueryKey, snapshot);
@@ -69,9 +79,15 @@ export function AccountsView({
   const walletMutation = useMutation({
     mutationFn: async ({ mode, walletId, values }: { mode: "add" | "edit"; walletId?: string; values: WalletInput }) =>
       mode === "add" ? createWalletRequest(values) : updateWalletRequest(walletId!, values),
-    onSuccess: (snapshot) => {
+    onSuccess: (snapshot, variables) => {
       setSnapshot(snapshot);
       setActionError(null);
+      if (variables.mode === "add") {
+        setSelectedAccountId(snapshot.accounts.at(-1)?.id ?? null);
+      }
+    },
+    onError: (error) => {
+      setActionError(error instanceof Error ? error.message : t("messages.saveWalletError"));
     },
   });
 
@@ -91,6 +107,36 @@ export function AccountsView({
       setActionError(null);
     },
   });
+
+  const goalMutation = useMutation({
+    mutationFn: async ({ mode, allocationId, walletId, values }: { mode: "add" | "edit"; allocationId?: string; walletId?: string; values: WalletAllocationInput }) =>
+      mode === "add"
+        ? createWalletAllocationRequest(walletId!, values)
+        : updateWalletAllocationRequest(allocationId!, values),
+    onSuccess: (snapshot) => {
+      setSnapshot(snapshot);
+      setActionError(null);
+    },
+    onError: (error) => {
+      setActionError(error instanceof Error ? error.message : t("messages.saveWalletError"));
+    },
+  });
+
+  function deleteGoalOptimistic(allocationId: string) {
+    const previous = queryClient.getQueryData<FinanceSnapshot>(financeSnapshotQueryKey);
+    if (previous) {
+      queryClient.setQueryData(financeSnapshotQueryKey, {
+        ...previous,
+        allocations: previous.allocations.filter((a) => a.id !== allocationId),
+      });
+    }
+    deleteWalletAllocationRequest(allocationId)
+      .then(setSnapshot)
+      .catch(() => {
+        if (previous) queryClient.setQueryData(financeSnapshotQueryKey, previous);
+        setActionError(t("messages.saveWalletError"));
+      });
+  }
 
   const selectedAccount = selectedAccountId ? accounts.find((account) => account.id === selectedAccountId) ?? null : null;
   const settledTransactions = useMemo(
@@ -153,7 +199,7 @@ export function AccountsView({
     setWalletSheetOpen(true);
   }
 
-  async function handleSaveWallet(values: {
+  function handleSaveWallet(values: {
     name: string;
     type: Account["type"];
     balance: number;
@@ -161,24 +207,10 @@ export function AccountsView({
     currency: CurrencyCode;
     debt_kind?: Account["debt_kind"];
   }) {
-    try {
-      const snapshot = await walletMutation.mutateAsync({
-        mode: walletSheetMode,
-        walletId: editingAccount?.id,
-        values,
-      });
-
-      const nextSelectedId =
-        walletSheetMode === "edit"
-          ? editingAccount?.id ?? null
-          : snapshot.accounts[snapshot.accounts.length - 1]?.id ?? null;
-
-      setSelectedAccountId(nextSelectedId);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : t("messages.saveWalletError");
-      setActionError(message);
-      throw error;
+    if (walletSheetMode === "edit" && editingAccount) {
+      setSelectedAccountId(editingAccount.id);
     }
+    walletMutation.mutate({ mode: walletSheetMode, walletId: editingAccount?.id, values });
   }
 
   async function handleDeleteWallet(account: Account) {
@@ -333,6 +365,20 @@ export function AccountsView({
               onEditAccount={openEditWallet}
               onDeleteAccount={handleDeleteWallet}
               onAdjustBalance={handleAdjustBalance}
+              allocations={allocations}
+              onAddGoal={(walletId) => {
+                setGoalWalletId(walletId);
+                setGoalSheetMode("add");
+                setEditingAllocation(null);
+                setGoalSheetOpen(true);
+              }}
+              onEditGoal={(allocation) => {
+                setGoalWalletId(allocation.wallet_id);
+                setGoalSheetMode("edit");
+                setEditingAllocation(allocation);
+                setGoalSheetOpen(true);
+              }}
+              onDeleteGoal={(allocation) => deleteGoalOptimistic(allocation.id)}
             />
           </div>
         </section>
@@ -421,26 +467,26 @@ export function AccountsView({
         categories={categories}
         onOpenChange={setTransactionSheetOpen}
         onSubmit={async (payload: TransactionFormSubmitPayload) => {
-          try {
-            if (payload.kind === "entry" || payload.kind === "entry-batch") {
-              await transactionActions.createEntry(payload.values);
-              setActionError(null);
-            } else if (payload.kind === "transaction" && editingTransaction) {
-              await transactionActions.updateTransaction(editingTransaction.id, payload.values);
-              if (payload.rescheduleFrom) {
+          if (payload.kind === "entry" || payload.kind === "entry-batch") {
+            transactionActions.createEntry(payload.values).catch((error) => {
+              setActionError(error instanceof Error ? error.message : tr("transactions.view.saveError"));
+            });
+          } else if (payload.kind === "transaction" && editingTransaction) {
+            transactionActions.updateTransactionOptimistic(editingTransaction.id, payload.values);
+            if (payload.rescheduleFrom) {
+              try {
                 await transactionActions.rescheduleFromDate(
                   payload.rescheduleFrom.scheduleId,
                   payload.rescheduleFrom.originalDate,
                   payload.rescheduleFrom.newDate,
                 );
+              } catch (error) {
+                setActionError(error instanceof Error ? error.message : tr("transactions.view.saveError"));
+                throw error;
               }
-              setActionError(null);
             }
-          } catch (error) {
-            const message = error instanceof Error ? error.message : tr("transactions.view.saveError");
-            setActionError(message);
-            throw error;
           }
+          setActionError(null);
         }}
       />
 
@@ -451,6 +497,21 @@ export function AccountsView({
         initialType={draftWalletType}
         onOpenChange={setWalletSheetOpen}
         onSubmit={handleSaveWallet}
+      />
+
+      <GoalFormSheet
+        open={goalSheetOpen}
+        mode={goalSheetMode}
+        allocation={editingAllocation}
+        onOpenChange={setGoalSheetOpen}
+        onSubmit={async (values) => {
+          goalMutation.mutate({
+            mode: goalSheetMode,
+            allocationId: editingAllocation?.id,
+            walletId: goalWalletId ?? undefined,
+            values,
+          });
+        }}
       />
     </>
   );

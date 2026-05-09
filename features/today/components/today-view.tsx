@@ -103,26 +103,33 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
   }
 
   async function handleSubmit(payload: TransactionFormSubmitPayload) {
-    try {
-      if (payload.kind === "entry" || payload.kind === "entry-batch") {
-        await transactionActions.createEntry(payload.values);
-      } else if (payload.kind === "transaction" && editingTransaction) {
-        await transactionActions.updateTransaction(editingTransaction.id, payload.values);
-        if (payload.rescheduleFrom) {
+    if (payload.kind === "entry" || payload.kind === "entry-batch") {
+      transactionActions.createEntry(payload.values).catch((error) => {
+        setActionError(error instanceof Error ? error.message : transactionViewT("saveError"));
+      });
+    } else if (payload.kind === "transaction" && editingTransaction) {
+      transactionActions.updateTransactionOptimistic(editingTransaction.id, payload.values);
+      if (payload.rescheduleFrom) {
+        try {
           await transactionActions.rescheduleFromDate(
             payload.rescheduleFrom.scheduleId,
             payload.rescheduleFrom.originalDate,
             payload.rescheduleFrom.newDate,
           );
+        } catch (error) {
+          setActionError(error instanceof Error ? error.message : transactionViewT("saveError"));
+          throw error;
         }
-      } else if (payload.kind === "schedule" && editingSeries) {
-        await transactionActions.updateSchedule(editingSeries.id, payload.values);
       }
-      setActionError(null);
-    } catch (error) {
-      setActionError(error instanceof Error ? error.message : transactionViewT("saveError"));
-      throw error;
+    } else if (payload.kind === "schedule" && editingSeries) {
+      try {
+        await transactionActions.updateSchedule(editingSeries.id, payload.values);
+      } catch (error) {
+        setActionError(error instanceof Error ? error.message : transactionViewT("saveError"));
+        throw error;
+      }
     }
+    setActionError(null);
   }
 
   const sharedListProps = {
@@ -148,14 +155,11 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
     onDeleteTransaction(tx: Transaction) {
       transactionActions.deleteTransactionOptimistic(tx.id);
     },
-    async onDeleteSeries(tx: Transaction) {
+    onDeleteSeries(tx: Transaction) {
       if (!tx.schedule_id) return;
-      try {
-        await transactionActions.deleteSchedule(tx.schedule_id);
-        setActionError(null);
-      } catch (error) {
+      transactionActions.deleteScheduleOptimistic(tx.schedule_id, (error) => {
         setActionError(error instanceof Error ? error.message : transactionViewT("deleteError"));
-      }
+      });
     },
     onMarkPaid(tx: Transaction) {
       transactionActions.markPaidOptimistic(tx.id);

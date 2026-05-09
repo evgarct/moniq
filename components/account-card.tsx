@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BanknoteArrowDown, CreditCard, Landmark, PencilLine, PiggyBank, SlidersHorizontal, Trash2 } from "lucide-react";
+import { BanknoteArrowDown, CreditCard, Landmark, Pencil, PencilLine, PiggyBank, Plus, SlidersHorizontal, Target, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { MoneyAmount } from "@/components/money-amount";
@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { getCreditCardMetrics, isCreditCardAccount, isDebtAccount } from "@/features/accounts/lib/account-utils";
 import { cn } from "@/lib/utils";
-import type { Account } from "@/types/finance";
+import type { Account, WalletAllocation } from "@/types/finance";
 
 export function AccountCard({
   account,
@@ -24,6 +24,10 @@ export function AccountCard({
   onEdit,
   onDelete,
   onAdjustBalance,
+  allocations,
+  onAddGoal,
+  onEditGoal,
+  onDeleteGoal,
 }: {
   account: Account;
   selected?: boolean;
@@ -32,6 +36,10 @@ export function AccountCard({
   onEdit?: (account: Account) => void;
   onDelete?: (account: Account) => void;
   onAdjustBalance?: (account: Account, newBalance: number) => void;
+  allocations?: WalletAllocation[];
+  onAddGoal?: () => void;
+  onEditGoal?: (allocation: WalletAllocation) => void;
+  onDeleteGoal?: (allocation: WalletAllocation) => void;
 }) {
   const tr = useTranslations();
   const t = useTranslations("accounts");
@@ -52,6 +60,10 @@ export function AccountCard({
           : BanknoteArrowDown;
   const hasActions = Boolean(onEdit || onDelete || onAdjustBalance);
   const [contextAnchor, setContextAnchor] = useState<{ x: number; y: number } | null>(null);
+  const showGoals = account.type === "saving" && allocations !== undefined;
+  const totalAllocated = showGoals ? (allocations ?? []).reduce((sum, a) => sum + a.amount, 0) : 0;
+  const free = account.balance - totalAllocated;
+  const isOverfunded = free < -0.001;
 
   function handleContextMenu(event: React.MouseEvent<HTMLDivElement>) {
     if (!hasActions) {
@@ -144,6 +156,125 @@ export function AccountCard({
           )}
         </button>
       </div>
+      {showGoals ? (
+        <div className="pb-1.5 sm:pb-2">
+          <div className="mx-1.5 mb-1 h-px bg-foreground/6 sm:mx-2.5 sm:mb-1.5" />
+
+          <div className="grid grid-cols-[minmax(0,1fr)_minmax(96px,auto)] items-center gap-2 px-1.5 pb-0.5 sm:gap-3 sm:px-2.5">
+            <span className="pl-6 text-[12px] leading-[18px] text-muted-foreground/70 sm:pl-[28px] sm:text-[13px]">
+              Free
+            </span>
+            <MoneyAmount
+              amount={free}
+              currency={account.currency}
+              display="absolute"
+              showMinorUnits
+              tone={isOverfunded ? "negative" : "muted"}
+              className="text-[12px] leading-[18px] font-medium sm:text-[13px]"
+            />
+          </div>
+
+          {(allocations ?? []).map((allocation) => {
+            const progressPercent =
+              allocation.kind === "goal_targeted" && allocation.target_amount
+                ? Math.min(100, Math.round((allocation.amount / allocation.target_amount) * 100))
+                : null;
+
+            return (
+              <div key={allocation.id} className="group px-1.5 sm:px-2.5">
+                <div className="grid grid-cols-[minmax(0,1fr)_minmax(96px,auto)] items-center gap-2 py-0.5 sm:gap-3">
+                  <div className="flex min-w-0 items-center gap-1.5 pl-6 sm:pl-[28px]">
+                    {allocation.kind === "goal_targeted" ? (
+                      <Target className="size-3 shrink-0 text-muted-foreground/50" />
+                    ) : (
+                      <span className="size-3 shrink-0" />
+                    )}
+                    <span className="truncate text-[12px] leading-[18px] font-medium text-foreground sm:text-[13px]">
+                      {allocation.name}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-0.5">
+                    <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+                      {onEditGoal ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          className="size-5 shrink-0 rounded-md bg-transparent text-muted-foreground/60 hover:bg-foreground/8 hover:text-foreground"
+                          aria-label={`Edit ${allocation.name}`}
+                          onClick={(e) => { e.stopPropagation(); onEditGoal(allocation); }}
+                        >
+                          <Pencil className="size-2.5" />
+                        </Button>
+                      ) : null}
+                      {onDeleteGoal ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          className="size-5 shrink-0 rounded-md bg-transparent text-muted-foreground/60 hover:bg-foreground/8 hover:text-destructive"
+                          aria-label={`Delete ${allocation.name}`}
+                          onClick={(e) => { e.stopPropagation(); onDeleteGoal(allocation); }}
+                        >
+                          <Trash2 className="size-2.5" />
+                        </Button>
+                      ) : null}
+                    </div>
+                    <MoneyAmount
+                      amount={allocation.amount}
+                      currency={account.currency}
+                      display="absolute"
+                      showMinorUnits
+                      className="text-[12px] leading-[18px] font-medium sm:text-[13px]"
+                    />
+                  </div>
+                </div>
+
+                {allocation.kind === "goal_targeted" && allocation.target_amount ? (
+                  <div className="mt-0.5 space-y-0.5 pl-[36px] pb-0.5 sm:pl-[40px]">
+                    <div className="h-0.5 w-full overflow-hidden rounded-full bg-foreground/8">
+                      <div
+                        className={cn(
+                          "h-full rounded-full transition-all",
+                          progressPercent! >= 100 ? "bg-emerald-500" : "bg-foreground/30",
+                        )}
+                        style={{ width: `${progressPercent}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between text-[10px] leading-none text-muted-foreground/60">
+                      <span>{progressPercent}%</span>
+                      <MoneyAmount
+                        amount={allocation.target_amount}
+                        currency={account.currency}
+                        display="absolute"
+                        showMinorUnits={false}
+                        tone="muted"
+                        className="text-[10px] leading-none"
+                      />
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
+
+          {onAddGoal ? (
+            <div className="px-1.5 pt-0.5 sm:px-2.5">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-6 gap-1 rounded-md px-2 text-[11px] leading-none text-muted-foreground/60 hover:bg-foreground/6 hover:text-muted-foreground"
+                onClick={(e) => { e.stopPropagation(); onAddGoal(); }}
+              >
+                <Plus className="size-3" />
+                Add goal
+              </Button>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
       {hasActions && contextAnchor ? (
         <DropdownMenu open onOpenChange={(open) => (!open ? setContextAnchor(null) : null)}>
           <DropdownMenuTrigger

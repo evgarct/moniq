@@ -234,6 +234,7 @@ export const mockFinanceSnapshot: FinanceSnapshot = {
   categories: mockCategories,
   schedules: [],
   transactions: mockTransactions.sort((a, b) => a.occurred_at.localeCompare(b.occurred_at)).reverse(),
+  allocations: [],
 };
 
 function makeTransaction(values: {

@@ -8,6 +8,7 @@ import type {
   TransactionKind,
   TransactionScheduleFrequency,
   TransactionScheduleState,
+  WalletAllocationKind,
 } from "@/types/finance";
 
 export const walletInputSchema = z.object({
@@ -204,6 +205,20 @@ export const transactionScheduleStateInputSchema = z.object({
   state: z.enum(["active", "paused"] satisfies [TransactionScheduleState, ...TransactionScheduleState[]]),
 });
 
+export const walletAllocationInputSchema = z.object({
+  name: z.string().trim().min(1, "Goal name is required."),
+  kind: z.enum(["goal_open", "goal_targeted"] satisfies [WalletAllocationKind, ...WalletAllocationKind[]]),
+  amount: z.number().min(0, "Amount cannot be negative."),
+  target_amount: z.number().positive("Target must be greater than 0.").nullable().optional(),
+}).superRefine((data, ctx) => {
+  if (data.kind === "goal_targeted" && !data.target_amount) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["target_amount"], message: "Target amount is required for targeted goals." });
+  }
+}).transform((data) => ({
+  ...data,
+  target_amount: data.kind === "goal_targeted" ? (data.target_amount ?? null) : null,
+}));
+
 export type WalletInput = z.output<typeof walletInputSchema>;
 export type WalletInputValues = z.input<typeof walletInputSchema>;
 export type CategoryInput = z.output<typeof categoryInputSchema>;
@@ -217,3 +232,5 @@ export type TransactionEntryBatchInputValues = z.input<typeof transactionEntryBa
 export type TransactionScheduleInput = z.output<typeof transactionScheduleInputSchema>;
 export type TransactionScheduleInputValues = z.input<typeof transactionScheduleInputSchema>;
 export type TransactionScheduleStateInput = z.output<typeof transactionScheduleStateInputSchema>;
+export type WalletAllocationInput = z.output<typeof walletAllocationInputSchema>;
+export type WalletAllocationInputValues = z.input<typeof walletAllocationInputSchema>;

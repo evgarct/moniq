@@ -102,9 +102,24 @@ export type Transaction = {
   schedule: TransactionSchedule | null;
 };
 
+export type WalletAllocationKind = "goal_open" | "goal_targeted";
+
+export type WalletAllocation = {
+  id: string;
+  user_id: string;
+  wallet_id: string;
+  name: string;
+  kind: WalletAllocationKind;
+  amount: number;
+  target_amount: number | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type FinanceSnapshot = {
   accounts: Account[];
   categories: Category[];
   schedules: TransactionSchedule[];
   transactions: Transaction[];
+  allocations: WalletAllocation[];
 };
