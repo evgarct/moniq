@@ -3,13 +3,20 @@
 import type { ComponentType } from "react";
 import { useTranslations } from "next-intl";
 import {
-  ListChecks,
-  Inbox,
-  Scale,
   Settings2,
   UserRound,
-  WalletCards,
 } from "lucide-react";
+import {
+  IconCalendar,
+  IconCalendarFilled,
+  IconMail,
+  IconMailFilled,
+  IconScale,
+  IconScaleFilled,
+  IconCreditCard,
+  IconCreditCardFilled,
+} from "@tabler/icons-react";
+import { motion } from "framer-motion";
 
 import type { AuthUser } from "@/types/auth";
 import { LocaleSwitcher } from "@/components/locale-switcher";
@@ -25,10 +32,10 @@ import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 
 const navigation = [
-  { href: "/today", labelKey: "today", icon: ListChecks },
-  { href: "/inbox", labelKey: "inboxPage", icon: Inbox },
-  { href: "/accounts", labelKey: "balance", icon: Scale },
-  { href: "/budget", labelKey: "budget", icon: WalletCards },
+  { href: "/today",    labelKey: "today",    icon: IconCalendar,   iconFilled: IconCalendarFilled },
+  { href: "/inbox",    labelKey: "inboxPage", icon: IconMail,        iconFilled: IconMailFilled },
+  { href: "/accounts", labelKey: "balance",   icon: IconScale,       iconFilled: IconScaleFilled },
+  { href: "/budget",   labelKey: "budget",    icon: IconCreditCard,  iconFilled: IconCreditCardFilled },
 ] as const;
 
 export function AppSidebar({
@@ -79,30 +86,65 @@ export function MobileBottomNav({
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-[64px] items-center justify-around border-t border-border bg-card px-2 lg:hidden text-[11px]">
-      {navigation.map((item) => {
-        const Icon = item.icon;
-        const active = pathname === item.href;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const label = navT(item.labelKey as any);
+    <div
+      data-mobile-nav
+      className="fixed bottom-0 left-0 right-0 z-50 lg:hidden"
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+    >
+      {/* Ein UI–style animated glow */}
+      <motion.div
+        className="absolute -inset-x-4 -top-3 h-16 rounded-t-3xl"
+        style={{
+          background: "linear-gradient(to right, rgba(99,179,237,0.15), rgba(99,102,241,0.15), rgba(167,139,250,0.15))",
+          filter: "blur(16px)",
+        }}
+        animate={{ opacity: [0.4, 0.7, 0.4] }}
+        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+        aria-hidden="true"
+      />
 
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              "flex w-16 flex-col items-center justify-center gap-1",
-              active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <Icon className="h-[22px] w-[22px]" />
-            <span>{label}</span>
-          </Link>
-        );
-      })}
+      <nav
+        className="relative flex items-start justify-around px-1 pt-2 text-[10px]"
+        style={{
+          paddingBottom: "6px",
+          background: "rgba(255, 255, 255, 0.25)",
+          backdropFilter: "saturate(200%) blur(28px)",
+          WebkitBackdropFilter: "saturate(200%) blur(28px)",
+          borderTop: "0.5px solid rgba(255, 255, 255, 0.6)",
+          boxShadow: "0 -1px 0 0 rgba(255,255,255,0.4) inset",
+        }}
+      >
+        {navigation.map((item) => {
+          const active = pathname === item.href;
+          const Icon = active ? item.iconFilled : item.icon;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const label = navT(item.labelKey as any);
 
-      <UserNavMenu user={user} onSignOut={onSignOut} mobile />
-    </nav>
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "relative flex flex-col items-center gap-1 px-4 py-0.5 transition-colors duration-200",
+                active ? "text-[#4f8ef7]" : "text-foreground/35",
+              )}
+            >
+              {active && (
+                <motion.div
+                  layoutId="tab-active-bg"
+                  className="absolute -inset-x-2 -inset-y-0.5 rounded-xl bg-[#4f8ef7]/10"
+                  transition={{ type: "spring", visualDuration: 0.3, bounce: 0.2 }}
+                />
+              )}
+              <Icon size={24} className="relative" />
+              <span className={cn("relative leading-none tracking-tight", active && "font-semibold")}>{label}</span>
+            </Link>
+          );
+        })}
+
+        <UserNavMenu user={user} onSignOut={onSignOut} mobile />
+      </nav>
+    </div>
   );
 }
 
@@ -125,7 +167,7 @@ function UserNavMenu({
           mobile ? (
             <button
               type="button"
-              className="flex w-16 flex-col items-center justify-center gap-1 text-muted-foreground transition-colors hover:text-foreground"
+              className="flex flex-col items-center gap-1 px-4 py-0.5 text-[10px] text-foreground/35 transition-colors hover:text-foreground/60"
               aria-label={t("navigation.openProfileMenu")}
             />
           ) : (
@@ -139,8 +181,8 @@ function UserNavMenu({
       >
         {mobile ? (
           <>
-            <UserRound className="h-[22px] w-[22px]" />
-            <span>{navT("profile")}</span>
+            <UserRound className="h-[24px] w-[24px]" />
+            <span className="leading-none tracking-tight">{navT("profile")}</span>
           </>
         ) : (
           <>
