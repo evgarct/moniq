@@ -16,6 +16,7 @@ import {
   IconCreditCard,
   IconCreditCardFilled,
 } from "@tabler/icons-react";
+import { motion } from "framer-motion";
 
 import type { AuthUser } from "@/types/auth";
 import { LocaleSwitcher } from "@/components/locale-switcher";
@@ -85,40 +86,64 @@ export function MobileBottomNav({
   const pathname = usePathname();
 
   return (
-    <nav
+    <div
       data-mobile-nav
-      className="fixed bottom-0 left-0 right-0 z-50 flex items-start justify-around px-1 pt-2 text-[10px] lg:hidden"
-      style={{
-        paddingBottom: "calc(env(safe-area-inset-bottom) + 6px)",
-        background: "rgba(250, 250, 247, 0.72)",
-        backdropFilter: "saturate(180%) blur(20px)",
-        WebkitBackdropFilter: "saturate(180%) blur(20px)",
-        borderTop: "0.5px solid rgba(0, 0, 0, 0.18)",
-      }}
+      className="fixed bottom-0 left-0 right-0 z-50 lg:hidden"
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      {navigation.map((item) => {
-        const active = pathname === item.href;
-        const Icon = active ? item.iconFilled : item.icon;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const label = navT(item.labelKey as any);
+      {/* Ein UI–style animated glow */}
+      <motion.div
+        className="absolute -inset-x-4 -top-3 h-16 rounded-t-3xl"
+        style={{
+          background: "linear-gradient(to right, rgba(99,179,237,0.15), rgba(99,102,241,0.15), rgba(167,139,250,0.15))",
+          filter: "blur(16px)",
+        }}
+        animate={{ opacity: [0.4, 0.7, 0.4] }}
+        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+        aria-hidden="true"
+      />
 
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              "flex flex-col items-center gap-1 px-4 py-0.5 transition-colors",
-              active ? "text-[#4f8ef7]" : "text-foreground/35",
-            )}
-          >
-            <Icon size={24} />
-            <span className={cn("leading-none tracking-tight", active && "font-semibold")}>{label}</span>
-          </Link>
-        );
-      })}
+      <nav
+        className="relative flex items-start justify-around px-1 pt-2 text-[10px]"
+        style={{
+          paddingBottom: "6px",
+          background: "rgba(250, 250, 247, 0.72)",
+          backdropFilter: "saturate(180%) blur(20px)",
+          WebkitBackdropFilter: "saturate(180%) blur(20px)",
+          borderTop: "0.5px solid rgba(0, 0, 0, 0.12)",
+        }}
+      >
+        {navigation.map((item) => {
+          const active = pathname === item.href;
+          const Icon = active ? item.iconFilled : item.icon;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const label = navT(item.labelKey as any);
 
-      <UserNavMenu user={user} onSignOut={onSignOut} mobile />
-    </nav>
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "relative flex flex-col items-center gap-1 px-4 py-0.5 transition-colors duration-200",
+                active ? "text-[#4f8ef7]" : "text-foreground/35",
+              )}
+            >
+              {active && (
+                <motion.div
+                  layoutId="tab-active-bg"
+                  className="absolute -inset-x-2 -inset-y-0.5 rounded-xl bg-[#4f8ef7]/10"
+                  transition={{ type: "spring", visualDuration: 0.3, bounce: 0.2 }}
+                />
+              )}
+              <Icon size={24} className="relative" />
+              <span className={cn("relative leading-none tracking-tight", active && "font-semibold")}>{label}</span>
+            </Link>
+          );
+        })}
+
+        <UserNavMenu user={user} onSignOut={onSignOut} mobile />
+      </nav>
+    </div>
   );
 }
 
