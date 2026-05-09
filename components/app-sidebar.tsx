@@ -3,13 +3,19 @@
 import type { ComponentType } from "react";
 import { useTranslations } from "next-intl";
 import {
-  ListChecks,
-  Inbox,
-  Scale,
   Settings2,
   UserRound,
-  WalletCards,
 } from "lucide-react";
+import {
+  IconListCheck,
+  IconListCheckFilled,
+  IconMail,
+  IconMailFilled,
+  IconScale,
+  IconScaleFilled,
+  IconCreditCard,
+  IconCreditCardFilled,
+} from "@tabler/icons-react";
 
 import type { AuthUser } from "@/types/auth";
 import { LocaleSwitcher } from "@/components/locale-switcher";
@@ -25,10 +31,10 @@ import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 
 const navigation = [
-  { href: "/today", labelKey: "today", icon: ListChecks },
-  { href: "/inbox", labelKey: "inboxPage", icon: Inbox },
-  { href: "/accounts", labelKey: "balance", icon: Scale },
-  { href: "/budget", labelKey: "budget", icon: WalletCards },
+  { href: "/today",    labelKey: "today",    icon: IconListCheck,   iconFilled: IconListCheckFilled },
+  { href: "/inbox",    labelKey: "inboxPage", icon: IconMail,        iconFilled: IconMailFilled },
+  { href: "/accounts", labelKey: "balance",   icon: IconScale,       iconFilled: IconScaleFilled },
+  { href: "/budget",   labelKey: "budget",    icon: IconCreditCard,  iconFilled: IconCreditCardFilled },
 ] as const;
 
 export function AppSidebar({
@@ -91,8 +97,8 @@ export function MobileBottomNav({
       }}
     >
       {navigation.map((item) => {
-        const Icon = item.icon;
         const active = pathname === item.href;
+        const Icon = active ? item.iconFilled : item.icon;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const label = navT(item.labelKey as any);
 
@@ -102,10 +108,10 @@ export function MobileBottomNav({
             href={item.href}
             className={cn(
               "flex flex-col items-center gap-1 px-4 py-0.5 transition-colors",
-              active ? "text-foreground" : "text-foreground/35",
+              active ? "text-[#4f8ef7]" : "text-foreground/35",
             )}
           >
-            <Icon className={cn("h-[24px] w-[24px]", active && "stroke-[2.2]")} />
+            <Icon size={24} />
             <span className={cn("leading-none tracking-tight", active && "font-semibold")}>{label}</span>
           </Link>
         );
