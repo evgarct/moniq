@@ -106,21 +106,21 @@ export function MobileBottomNav({
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-col items-center gap-0.5 px-3 py-1.5 text-[10px] transition-all",
-                active ? "text-foreground" : "text-foreground/40",
+                "flex flex-col items-center gap-0.5 text-[10px] transition-colors",
+                active ? "text-foreground" : "text-foreground/45",
               )}
             >
               <span
-                className={cn("relative flex items-center justify-center rounded-2xl transition-all", active ? "px-4 py-1.5" : "px-2 py-1.5")}
+                className="flex items-center justify-center rounded-2xl transition-all"
                 style={
                   active
                     ? {
+                        padding: "6px 16px",
                         background: "rgba(255,255,255,0.75)",
-                        boxShadow:
-                          "0 2px 8px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.90)",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.90)",
                         border: "1px solid rgba(255,255,255,0.60)",
                       }
-                    : undefined
+                    : { padding: "6px 10px" }
                 }
               >
                 <Icon className="h-[20px] w-[20px]" />
