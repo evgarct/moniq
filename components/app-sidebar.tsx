@@ -79,39 +79,60 @@ export function MobileBottomNav({
   const pathname = usePathname();
 
   return (
-    <nav
+    <div
       data-mobile-nav
-      className="fixed bottom-0 left-0 right-0 z-50 flex items-start justify-around border-t border-border/30 bg-background/80 px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] backdrop-blur-xl backdrop-saturate-150 lg:hidden"
-      style={{ minHeight: "calc(56px + env(safe-area-inset-bottom))" }}
+      className="fixed bottom-0 left-0 right-0 z-50 lg:hidden"
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      {navigation.map((item) => {
-        const Icon = item.icon;
-        const active = pathname === item.href;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const label = navT(item.labelKey as any);
+      <nav
+        className="mx-3 mb-2 flex items-center justify-around rounded-[26px] px-1 py-1.5"
+        style={{
+          background: "rgba(255,255,255,0.45)",
+          backdropFilter: "blur(28px) saturate(200%)",
+          WebkitBackdropFilter: "blur(28px) saturate(200%)",
+          border: "1px solid rgba(255,255,255,0.55)",
+          boxShadow:
+            "0 8px 32px rgba(0,0,0,0.10), 0 1px 0 rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.80)",
+        }}
+      >
+        {navigation.map((item) => {
+          const Icon = item.icon;
+          const active = pathname === item.href;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const label = navT(item.labelKey as any);
 
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              "flex w-16 flex-col items-center gap-1 text-[11px] transition-colors",
-              active ? "text-foreground" : "text-muted-foreground",
-            )}
-          >
-            <span className="relative flex h-8 w-8 items-center justify-center">
-              {active && (
-                <span className="absolute inset-0 rounded-full bg-foreground/8" />
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "flex flex-col items-center gap-0.5 px-3 py-1.5 text-[10px] transition-all",
+                active ? "text-foreground" : "text-foreground/40",
               )}
-              <Icon className={cn("h-[22px] w-[22px] relative", active && "stroke-[2]")} />
-            </span>
-            <span className={cn("leading-none", active && "font-medium")}>{label}</span>
-          </Link>
-        );
-      })}
+            >
+              <span
+                className={cn("relative flex items-center justify-center rounded-2xl transition-all", active ? "px-4 py-1.5" : "px-2 py-1.5")}
+                style={
+                  active
+                    ? {
+                        background: "rgba(255,255,255,0.75)",
+                        boxShadow:
+                          "0 2px 8px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.90)",
+                        border: "1px solid rgba(255,255,255,0.60)",
+                      }
+                    : undefined
+                }
+              >
+                <Icon className="h-[20px] w-[20px]" />
+              </span>
+              <span className={cn("leading-none tracking-tight", active && "font-medium")}>{label}</span>
+            </Link>
+          );
+        })}
 
-      <UserNavMenu user={user} onSignOut={onSignOut} mobile />
-    </nav>
+        <UserNavMenu user={user} onSignOut={onSignOut} mobile />
+      </nav>
+    </div>
   );
 }
 
@@ -134,7 +155,7 @@ function UserNavMenu({
           mobile ? (
             <button
               type="button"
-              className="flex w-16 flex-col items-center gap-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+              className="flex flex-col items-center gap-0.5 px-3 py-1.5 text-[10px] text-foreground/40 transition-colors hover:text-foreground/70"
               aria-label={t("navigation.openProfileMenu")}
             />
           ) : (
@@ -148,10 +169,10 @@ function UserNavMenu({
       >
         {mobile ? (
           <>
-            <span className="flex h-8 w-8 items-center justify-center">
-              <UserRound className="h-[22px] w-[22px]" />
+            <span className="flex items-center justify-center px-2 py-1.5">
+              <UserRound className="h-[20px] w-[20px]" />
             </span>
-            <span className="leading-none">{navT("profile")}</span>
+            <span className="leading-none tracking-tight">{navT("profile")}</span>
           </>
         ) : (
           <>
