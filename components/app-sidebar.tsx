@@ -80,6 +80,7 @@ export function MobileBottomNav({
 
   return (
     <nav
+      data-mobile-nav
       className="fixed bottom-0 left-0 right-0 z-50 flex items-start justify-around border-t border-border/30 bg-background/80 px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] backdrop-blur-xl backdrop-saturate-150 lg:hidden"
       style={{ minHeight: "calc(56px + env(safe-area-inset-bottom))" }}
     >

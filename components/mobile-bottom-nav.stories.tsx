@@ -5,7 +5,17 @@ import { MobileBottomNav } from "@/components/app-sidebar";
 import { noopAsyncAction, storyUser, withPathname } from "@/stories/fixtures/story-data";
 
 const PhoneFrame = ({ Story }: { Story: React.ComponentType }) => (
-  <div className="relative mx-auto h-[720px] w-[390px] overflow-hidden bg-[#fafaf7]">
+  /*
+   * translate(0) → new containing block so position:fixed is scoped here.
+   * The <style> tag forces the nav visible because Tailwind's lg:hidden would
+   * hide it at the Storybook iframe width (>1024px).
+   */
+  <div
+    className="relative mx-auto h-[720px] w-[390px] overflow-hidden bg-[#fafaf7]"
+    style={{ transform: "translate(0)" }}
+  >
+    {/* eslint-disable-next-line react/no-unknown-property */}
+    <style>{`[data-mobile-nav] { display: flex !important; }`}</style>
     <div className="absolute inset-0 overflow-y-auto px-4 pt-6 pb-32">
       <div className="mb-3 h-[200px] rounded-2xl bg-[#f0f0eb]" />
       <div className="mb-3 h-[120px] rounded-2xl bg-[#e5e4df]" />
@@ -26,6 +36,7 @@ const meta = {
   },
   parameters: {
     layout: "fullscreen",
+    viewport: { defaultViewport: "mobile1" },
   },
   decorators: [
     (Story) => <PhoneFrame Story={Story} />,
