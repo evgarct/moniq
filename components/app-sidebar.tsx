@@ -79,7 +79,10 @@ export function MobileBottomNav({
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-[64px] items-center justify-around border-t border-border bg-card px-2 lg:hidden text-[11px]">
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-50 flex items-start justify-around border-t border-border/30 bg-background/80 px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] backdrop-blur-xl backdrop-saturate-150 lg:hidden"
+      style={{ minHeight: "calc(56px + env(safe-area-inset-bottom))" }}
+    >
       {navigation.map((item) => {
         const Icon = item.icon;
         const active = pathname === item.href;
@@ -91,12 +94,17 @@ export function MobileBottomNav({
             key={item.href}
             href={item.href}
             className={cn(
-              "flex w-16 flex-col items-center justify-center gap-1",
-              active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+              "flex w-16 flex-col items-center gap-1 text-[11px] transition-colors",
+              active ? "text-foreground" : "text-muted-foreground",
             )}
           >
-            <Icon className="h-[22px] w-[22px]" />
-            <span>{label}</span>
+            <span className="relative flex h-8 w-8 items-center justify-center">
+              {active && (
+                <span className="absolute inset-0 rounded-full bg-foreground/8" />
+              )}
+              <Icon className={cn("h-[22px] w-[22px] relative", active && "stroke-[2]")} />
+            </span>
+            <span className={cn("leading-none", active && "font-medium")}>{label}</span>
           </Link>
         );
       })}
@@ -125,7 +133,7 @@ function UserNavMenu({
           mobile ? (
             <button
               type="button"
-              className="flex w-16 flex-col items-center justify-center gap-1 text-muted-foreground transition-colors hover:text-foreground"
+              className="flex w-16 flex-col items-center gap-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
               aria-label={t("navigation.openProfileMenu")}
             />
           ) : (
@@ -139,8 +147,10 @@ function UserNavMenu({
       >
         {mobile ? (
           <>
-            <UserRound className="h-[22px] w-[22px]" />
-            <span>{navT("profile")}</span>
+            <span className="flex h-8 w-8 items-center justify-center">
+              <UserRound className="h-[22px] w-[22px]" />
+            </span>
+            <span className="leading-none">{navT("profile")}</span>
           </>
         ) : (
           <>

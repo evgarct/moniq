@@ -3,6 +3,13 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* iOS safe area support */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  :root {
+    --safe-area-inset-bottom: env(safe-area-inset-bottom);
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

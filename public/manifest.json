@@ -1,0 +1,11 @@
+{
+  "name": "Moniq",
+  "short_name": "Moniq",
+  "description": "Personal finance management",
+  "display": "standalone",
+  "orientation": "portrait",
+  "start_url": "/",
+  "scope": "/",
+  "background_color": "#fafaf7",
+  "theme_color": "#fafaf7"
+}

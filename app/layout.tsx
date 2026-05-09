@@ -26,6 +26,12 @@ const ptSerif = PT_Serif({
 export const metadata: Metadata = {
   title: "Moniq",
   description: "Personal finance management app built with Next.js and Supabase.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Moniq",
+  },
 };
 
 export default async function RootLayout({
@@ -41,6 +47,9 @@ export default async function RootLayout({
       data-scroll-behavior="smooth"
       className={`${inter.variable} ${jetBrainsMono.variable} ${ptSerif.variable} h-full antialiased`}
     >
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+      </head>
       <body className="min-h-full bg-background font-sans text-foreground">
         <TooltipProvider>
           <AppProviders>{children}</AppProviders>
