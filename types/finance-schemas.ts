@@ -67,6 +67,7 @@ const transactionFieldShape = {
   category_id: z.string().uuid().nullable().optional(),
   source_account_id: z.string().uuid().nullable().optional(),
   destination_account_id: z.string().uuid().nullable().optional(),
+  allocation_id: z.string().uuid().nullable().optional(),
 } as const;
 
 function addTransactionValidation<
@@ -147,6 +148,7 @@ function normalizeTransactionValues<
     interest_amount?: number | null;
     extra_principal_amount?: number | null;
     category_id?: string | null;
+    allocation_id?: string | null;
   }
 >(values: T) {
   return {
@@ -158,6 +160,7 @@ function normalizeTransactionValues<
     interest_amount: values.kind === "debt_payment" ? values.interest_amount ?? 0 : null,
     extra_principal_amount: values.kind === "debt_payment" ? values.extra_principal_amount ?? 0 : null,
     category_id: values.kind === "transfer" ? null : values.category_id ?? null,
+    allocation_id: values.kind === "expense" ? (values.allocation_id ?? null) : null,
   };
 }
 

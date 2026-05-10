@@ -465,6 +465,7 @@ export function AccountsView({
         defaultSourceAccountId={transactionSheetMode === "add" ? selectedAccountId : null}
         accounts={accounts}
         categories={categories}
+        allocations={allocations}
         onOpenChange={setTransactionSheetOpen}
         onSubmit={async (payload: TransactionFormSubmitPayload) => {
           if (payload.kind === "entry" || payload.kind === "entry-batch") {

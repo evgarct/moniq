@@ -57,6 +57,8 @@ const recurringPlanned: Transaction = {
     category_id: null,
     source_account_id: byKind("expense").source_account_id,
     destination_account_id: null,
+    allocation_id: null,
+    allocation: null,
     category: byKind("expense").category,
     source_account: byKind("expense").source_account,
     destination_account: null,

@@ -275,12 +275,14 @@ function makeTransaction(values: {
     category_id: category?.id ?? null,
     source_account_id: sourceAccount?.id ?? null,
     destination_account_id: destinationAccount?.id ?? null,
+    allocation_id: null,
     schedule_id: null,
     schedule_occurrence_date: null,
     is_schedule_override: false,
     category,
     source_account: sourceAccount,
     destination_account: destinationAccount,
+    allocation: null,
     schedule: null,
   };
 }

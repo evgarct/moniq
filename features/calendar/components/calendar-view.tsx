@@ -169,6 +169,7 @@ export function CalendarView({ snapshot }: { snapshot: FinanceSnapshot }) {
         schedule={editingSchedule}
         accounts={snapshot.accounts}
         categories={snapshot.categories}
+        allocations={snapshot.allocations}
         onOpenChange={setSheetOpen}
         onSubmit={async (payload: TransactionFormSubmitPayload) => {
           try {

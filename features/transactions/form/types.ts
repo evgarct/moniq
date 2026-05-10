@@ -27,6 +27,7 @@ export type TransactionFormInputs = {
   category_id: string | null;
   source_account_id: string | null;
   destination_account_id: string | null;
+  allocation_id: string | null;
   is_recurring: boolean;
   recurrence_frequency: TransactionSchedule["frequency"];
   recurrence_until: string | null;

@@ -70,6 +70,8 @@ export type TransactionSchedule = {
   category: Category | null;
   source_account: Account | null;
   destination_account: Account | null;
+  allocation_id: string | null;
+  allocation: WalletAllocation | null;
   validation_error: string | null;
   created_at: string;
   updated_at: string;
@@ -100,6 +102,8 @@ export type Transaction = {
   source_account: Account | null;
   destination_account: Account | null;
   schedule: TransactionSchedule | null;
+  allocation_id: string | null;
+  allocation: WalletAllocation | null;
 };
 
 export type WalletAllocationKind = "goal_open" | "goal_targeted";

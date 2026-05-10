@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { Sheet, SheetClose, SheetContent, SheetHeader } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import type { Account, Category, Transaction, TransactionSchedule } from "@/types/finance";
+import type { Account, Category, Transaction, TransactionSchedule, WalletAllocation } from "@/types/finance";
 
 import { RescheduleConfirmOverlay } from "./reschedule-confirm-overlay";
 import { TransactionFormProvider, useTransactionFormContext } from "../form/context";
@@ -174,6 +174,7 @@ export function TransactionFormSheet({
   accounts,
   categories,
   transactions = [],
+  allocations = [],
   onOpenChange,
   onSubmit,
 }: {
@@ -187,6 +188,7 @@ export function TransactionFormSheet({
   accounts: Account[];
   categories: Category[];
   transactions?: Transaction[];
+  allocations?: WalletAllocation[];
   onOpenChange: (open: boolean) => void;
   onSubmit: (payload: TransactionFormSubmitPayload) => Promise<void> | void;
 }) {
@@ -247,6 +249,7 @@ export function TransactionFormSheet({
           accounts={accounts}
           categories={categories}
           transactions={transactions}
+          allocations={allocations}
           onSubmit={wrappedOnSubmit}
           onOpenChange={onOpenChange}
         >
