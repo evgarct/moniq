@@ -17,7 +17,7 @@ import { loadMessages } from "@/i18n/messages";
 import { routing, type AppLocale } from "@/i18n/routing";
 
 export { financeSnapshotQueryKey } from "@/features/finance/lib/finance-keys";
-const REQUEST_TIMEOUT_MS = 10_000;
+const REQUEST_TIMEOUT_MS = 30_000;
 
 function getDocumentLocale(): AppLocale {
   if (typeof document === "undefined") {
