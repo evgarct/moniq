@@ -160,7 +160,7 @@ function normalizeTransactionValues<
     interest_amount: values.kind === "debt_payment" ? values.interest_amount ?? 0 : null,
     extra_principal_amount: values.kind === "debt_payment" ? values.extra_principal_amount ?? 0 : null,
     category_id: values.kind === "transfer" ? null : values.category_id ?? null,
-    allocation_id: values.allocation_id ?? null,
+    allocation_id: values.kind === "expense" ? (values.allocation_id ?? null) : null,
   };
 }
 
