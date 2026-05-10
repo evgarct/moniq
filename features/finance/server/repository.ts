@@ -357,7 +357,13 @@ async function reconcileTransactionSchedule(
 }
 
 export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
+  const t0 = Date.now();
+  const snap = (phase: string, extra?: Record<string, unknown>) =>
+    console.log(JSON.stringify({ snapshot: phase, ms: Date.now() - t0, ...extra }));
+
   const { supabase, user } = await getAuthenticatedSupabase();
+  snap("auth_done");
+
   const [
     { data: wallets, error: walletError },
     { data: categories, error: categoryError },
@@ -403,6 +409,13 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
   if (allocationFirstError) {
     throw new Error(normalizeFinanceRepositoryError(allocationFirstError));
   }
+
+  snap("base_reads_done", {
+    wallets: wallets?.length ?? 0,
+    categories: categories?.length ?? 0,
+    schedules: scheduleRows?.length ?? 0,
+    allocations: allocationsFirst?.length ?? 0,
+  });
 
   const mappedAccounts = (wallets ?? []).map((wallet) => mapWallet(wallet as WalletRow));
   const mappedCategories = (categories ?? []).map((category) => mapCategory(category as CategoryRow));
@@ -466,6 +479,7 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
     }
 
     existingScheduleTransactions = (data ?? []) as TransactionRow[];
+    snap("schedule_tx_read_done", { existing_schedule_rows: existingScheduleTransactions.length });
 
     await Promise.all(
       validatedSchedules
@@ -481,6 +495,7 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
           ),
         ),
     );
+    snap("reconcile_done", { active_schedules: activeScheduleIds.length });
   }
 
   const transactionCutoff = format(subMonths(startOfToday(), 12), "yyyy-MM-dd");
@@ -498,6 +513,8 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
   if (transactionError) {
     throw new Error(normalizeFinanceRepositoryError(transactionError));
   }
+
+  snap("transactions_read_done", { transactions: transactions?.length ?? 0 });
 
   const schedulesById = new Map(validatedSchedules.map((schedule) => [schedule.id, schedule]));
   const mappedTransactions: Transaction[] = (transactions ?? []).map((transaction) => {
@@ -532,6 +549,8 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
       schedule: row.schedule_id ? schedulesById.get(row.schedule_id) ?? null : null,
     };
   });
+
+  snap("done");
 
   return {
     accounts: mappedAccounts,
