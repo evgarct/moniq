@@ -1,6 +1,6 @@
 import "server-only";
 
-import { addDays, addMonths, differenceInCalendarDays, format, parseISO, startOfToday } from "date-fns";
+import { addDays, addMonths, differenceInCalendarDays, format, parseISO, startOfToday, subMonths } from "date-fns";
 
 import { validateAccountValues } from "@/features/accounts/lib/account-state";
 import { validateCategoryHierarchy } from "@/features/categories/lib/category-tree";
@@ -261,6 +261,7 @@ async function reconcileTransactionSchedule(
       .map((row) => [row.schedule_occurrence_date!, row]),
   );
   const inserts: Record<string, unknown>[] = [];
+  const refreshIds: string[] = [];
 
   for (const occurrenceDate of expectedDates) {
     const existing = rowsByOccurrenceDate.get(occurrenceDate);
@@ -289,34 +290,34 @@ async function reconcileTransactionSchedule(
       continue;
     }
 
-    const shouldRefreshPlannedOccurrence =
-      existing.status === "planned" && !existing.is_schedule_override;
+    if (existing.status === "planned" && !existing.is_schedule_override) {
+      refreshIds.push(existing.id);
+    }
+  }
 
-    if (shouldRefreshPlannedOccurrence) {
-      const { error } = await supabase
-        .from("finance_transactions")
-        .update({
-          title: schedule.title.trim(),
-          note: schedule.note,
-          occurred_at: occurrenceDate,
-          kind: schedule.kind,
-          amount: schedule.amount,
-          destination_amount: schedule.destination_amount,
-          fx_rate: schedule.fx_rate,
-          principal_amount: schedule.principal_amount,
-          interest_amount: schedule.interest_amount,
-          extra_principal_amount: schedule.extra_principal_amount,
-          category_id: schedule.category_id,
-          source_account_id: schedule.source_account_id,
-          destination_account_id: schedule.destination_account_id,
-          allocation_id: schedule.allocation_id ?? null,
-        })
-        .eq("id", existing.id)
-        .eq("user_id", userId);
+  if (refreshIds.length) {
+    const { error } = await supabase
+      .from("finance_transactions")
+      .update({
+        title: schedule.title.trim(),
+        note: schedule.note,
+        kind: schedule.kind,
+        amount: schedule.amount,
+        destination_amount: schedule.destination_amount,
+        fx_rate: schedule.fx_rate,
+        principal_amount: schedule.principal_amount,
+        interest_amount: schedule.interest_amount,
+        extra_principal_amount: schedule.extra_principal_amount,
+        category_id: schedule.category_id,
+        source_account_id: schedule.source_account_id,
+        destination_account_id: schedule.destination_account_id,
+        allocation_id: schedule.allocation_id ?? null,
+      })
+      .in("id", refreshIds)
+      .eq("user_id", userId);
 
-      if (error) {
-        throw new Error(normalizeFinanceRepositoryError(error));
-      }
+    if (error) {
+      throw new Error(normalizeFinanceRepositoryError(error));
     }
   }
 
@@ -466,21 +467,23 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
 
     existingScheduleTransactions = (data ?? []) as TransactionRow[];
 
-    for (const schedule of validatedSchedules) {
-      if (schedule.state !== "active" || schedule.validation_error) {
-        continue;
-      }
-
-      await reconcileTransactionSchedule(
-        supabase,
-        user.id,
-        schedule,
-        existingScheduleTransactions.filter((row) => row.schedule_id === schedule.id),
-        horizonStart,
-        horizonEnd,
-      );
-    }
+    await Promise.all(
+      validatedSchedules
+        .filter((s) => s.state === "active" && !s.validation_error)
+        .map((s) =>
+          reconcileTransactionSchedule(
+            supabase,
+            user.id,
+            s,
+            existingScheduleTransactions.filter((row) => row.schedule_id === s.id),
+            horizonStart,
+            horizonEnd,
+          ),
+        ),
+    );
   }
+
+  const transactionCutoff = format(subMonths(startOfToday(), 12), "yyyy-MM-dd");
 
   const { data: transactions, error: transactionError } = await supabase
     .from("finance_transactions")
@@ -488,6 +491,7 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
       "id, user_id, title, note, occurred_at, created_at, status, kind, amount, destination_amount, fx_rate, principal_amount, interest_amount, extra_principal_amount, category_id, source_account_id, destination_account_id, schedule_id, schedule_occurrence_date, is_schedule_override, allocation_id",
     )
     .eq("user_id", user.id)
+    .or(`occurred_at.gte.${transactionCutoff},status.eq.planned`)
     .order("occurred_at", { ascending: false })
     .order("created_at", { ascending: false });
 
@@ -863,7 +867,47 @@ export async function createTransactionEntry(values: TransactionEntryInput) {
 }
 
 export async function createTransactionEntryBatch(entries: TransactionEntryInput[]) {
-  for (const entry of entries) {
+  if (entries.length === 0) return;
+  if (entries.length === 1) {
+    await createTransactionEntry(entries[0]);
+    return;
+  }
+
+  const { supabase, user } = await getAuthenticatedSupabase();
+  const snapshot = await getFinanceSnapshot();
+
+  const simpleEntries = entries.filter((e) => !e.recurrence);
+  const recurringEntries = entries.filter((e) => e.recurrence);
+
+  for (const entry of simpleEntries) {
+    validateTransactionRelationships(entry, snapshot);
+  }
+
+  if (simpleEntries.length > 0) {
+    const { error } = await supabase.from("finance_transactions").insert(
+      simpleEntries.map((e) => ({
+        user_id: user.id,
+        title: e.title.trim(),
+        note: e.note,
+        occurred_at: e.occurred_at,
+        status: e.status,
+        kind: e.kind,
+        amount: e.amount,
+        destination_amount: e.destination_amount,
+        fx_rate: e.fx_rate,
+        principal_amount: e.principal_amount,
+        interest_amount: e.interest_amount,
+        extra_principal_amount: e.extra_principal_amount,
+        category_id: e.category_id,
+        source_account_id: e.source_account_id,
+        destination_account_id: e.destination_account_id,
+        allocation_id: e.allocation_id ?? null,
+      })),
+    );
+    if (error) throw new Error(normalizeFinanceRepositoryError(error));
+  }
+
+  for (const entry of recurringEntries) {
     await createTransactionEntry(entry);
   }
 }
