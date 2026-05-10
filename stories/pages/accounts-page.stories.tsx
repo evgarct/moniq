@@ -192,6 +192,8 @@ function makeOpeningBalanceData() {
     source_account: null,
     destination_account_id: wallet.id,
     destination_account: wallet,
+    allocation_id: null,
+    allocation: null,
     schedule_id: null,
     schedule: null,
     schedule_occurrence_date: null,

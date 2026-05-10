@@ -63,6 +63,7 @@ type TransactionRow = {
   schedule_id: string | null;
   schedule_occurrence_date: string | null;
   is_schedule_override: boolean | null;
+  allocation_id: string | null;
 };
 
 type TransactionScheduleRow = {
@@ -84,6 +85,7 @@ type TransactionScheduleRow = {
   category_id: string | null;
   source_account_id: string | null;
   destination_account_id: string | null;
+  allocation_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -121,6 +123,7 @@ function mapSchedule(
   options: {
     accountsById: Map<string, Account>;
     categoriesById: Map<string, Category>;
+    allocationsById: Map<string, WalletAllocation>;
     validationError: string | null;
   },
 ): TransactionSchedule {
@@ -143,9 +146,11 @@ function mapSchedule(
     category_id: row.category_id,
     source_account_id: row.source_account_id,
     destination_account_id: row.destination_account_id,
+    allocation_id: row.allocation_id ?? null,
     category: row.category_id ? options.categoriesById.get(row.category_id) ?? null : null,
     source_account: row.source_account_id ? options.accountsById.get(row.source_account_id) ?? null : null,
     destination_account: row.destination_account_id ? options.accountsById.get(row.destination_account_id) ?? null : null,
+    allocation: row.allocation_id ? options.allocationsById.get(row.allocation_id) ?? null : null,
     validation_error: options.validationError,
     created_at: row.created_at,
     updated_at: row.updated_at,
@@ -167,6 +172,7 @@ function buildTransactionInputFromSchedule(
     | "category_id"
     | "source_account_id"
     | "destination_account_id"
+    | "allocation_id"
   > & { occurred_at: string; status?: Transaction["status"] },
 ): TransactionInput {
   return {
@@ -184,6 +190,7 @@ function buildTransactionInputFromSchedule(
     category_id: schedule.category_id,
     source_account_id: schedule.source_account_id,
     destination_account_id: schedule.destination_account_id,
+    allocation_id: schedule.allocation_id,
   };
 }
 
@@ -274,6 +281,7 @@ async function reconcileTransactionSchedule(
         category_id: schedule.category_id,
         source_account_id: schedule.source_account_id,
         destination_account_id: schedule.destination_account_id,
+        allocation_id: schedule.allocation_id ?? null,
         schedule_id: schedule.id,
         schedule_occurrence_date: occurrenceDate,
         is_schedule_override: false,
@@ -301,6 +309,7 @@ async function reconcileTransactionSchedule(
           category_id: schedule.category_id,
           source_account_id: schedule.source_account_id,
           destination_account_id: schedule.destination_account_id,
+          allocation_id: schedule.allocation_id ?? null,
         })
         .eq("id", existing.id)
         .eq("user_id", userId);
@@ -352,6 +361,7 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
     { data: wallets, error: walletError },
     { data: categories, error: categoryError },
     { data: scheduleRows, error: scheduleError },
+    { data: allocationsFirst, error: allocationFirstError },
   ] = await Promise.all([
     supabase
       .from("wallets")
@@ -366,10 +376,15 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
     supabase
       .from("finance_transaction_schedules")
       .select(
-        "id, user_id, title, note, start_date, frequency, until_date, state, kind, amount, destination_amount, fx_rate, principal_amount, interest_amount, extra_principal_amount, category_id, source_account_id, destination_account_id, created_at, updated_at",
+        "id, user_id, title, note, start_date, frequency, until_date, state, kind, amount, destination_amount, fx_rate, principal_amount, interest_amount, extra_principal_amount, category_id, source_account_id, destination_account_id, allocation_id, created_at, updated_at",
       )
       .eq("user_id", user.id)
       .order("created_at", { ascending: false }),
+    supabase
+      .from("wallet_allocations")
+      .select("id, user_id, wallet_id, name, kind, amount, target_amount, created_at, updated_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: true }),
   ]);
 
   if (walletError) {
@@ -384,17 +399,35 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
     throw new Error(normalizeFinanceRepositoryError(scheduleError));
   }
 
+  if (allocationFirstError) {
+    throw new Error(normalizeFinanceRepositoryError(allocationFirstError));
+  }
+
   const mappedAccounts = (wallets ?? []).map((wallet) => mapWallet(wallet as WalletRow));
   const mappedCategories = (categories ?? []).map((category) => mapCategory(category as CategoryRow));
 
+  const earlyMappedAllocations: WalletAllocation[] = (allocationsFirst ?? []).map((a) => ({
+    id: a.id as string,
+    user_id: a.user_id as string,
+    wallet_id: a.wallet_id as string,
+    name: a.name as string,
+    kind: a.kind as WalletAllocationKind,
+    amount: Number(a.amount),
+    target_amount: a.target_amount != null ? Number(a.target_amount) : null,
+    created_at: a.created_at as string,
+    updated_at: a.updated_at as string,
+  }));
+
   const accountsById = new Map(mappedAccounts.map((account) => [account.id, account]));
   const categoriesById = new Map(mappedCategories.map((category) => [category.id, category]));
+  const allocationsById = new Map(earlyMappedAllocations.map((a) => [a.id, a]));
 
   const rawSchedules = (scheduleRows ?? []) as TransactionScheduleRow[];
   const mappedSchedules = rawSchedules.map((row) =>
     mapSchedule(row, {
       accountsById,
       categoriesById,
+      allocationsById,
       validationError: null,
     }),
   );
@@ -420,7 +453,7 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
     const { data, error } = await supabase
       .from("finance_transactions")
       .select(
-        "id, user_id, title, note, occurred_at, created_at, status, kind, amount, destination_amount, fx_rate, principal_amount, interest_amount, extra_principal_amount, category_id, source_account_id, destination_account_id, schedule_id, schedule_occurrence_date, is_schedule_override",
+        "id, user_id, title, note, occurred_at, created_at, status, kind, amount, destination_amount, fx_rate, principal_amount, interest_amount, extra_principal_amount, category_id, source_account_id, destination_account_id, schedule_id, schedule_occurrence_date, is_schedule_override, allocation_id",
       )
       .eq("user_id", user.id)
       .in("schedule_id", activeScheduleIds)
@@ -449,28 +482,17 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
     }
   }
 
-  const [{ data: transactions, error: transactionError }, { data: allocationsData, error: allocationError }] = await Promise.all([
-    supabase
-      .from("finance_transactions")
-      .select(
-        "id, user_id, title, note, occurred_at, created_at, status, kind, amount, destination_amount, fx_rate, principal_amount, interest_amount, extra_principal_amount, category_id, source_account_id, destination_account_id, schedule_id, schedule_occurrence_date, is_schedule_override",
-      )
-      .eq("user_id", user.id)
-      .order("occurred_at", { ascending: false })
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("wallet_allocations")
-      .select("id, user_id, wallet_id, name, kind, amount, target_amount, created_at, updated_at")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: true }),
-  ]);
+  const { data: transactions, error: transactionError } = await supabase
+    .from("finance_transactions")
+    .select(
+      "id, user_id, title, note, occurred_at, created_at, status, kind, amount, destination_amount, fx_rate, principal_amount, interest_amount, extra_principal_amount, category_id, source_account_id, destination_account_id, schedule_id, schedule_occurrence_date, is_schedule_override, allocation_id",
+    )
+    .eq("user_id", user.id)
+    .order("occurred_at", { ascending: false })
+    .order("created_at", { ascending: false });
 
   if (transactionError) {
     throw new Error(normalizeFinanceRepositoryError(transactionError));
-  }
-
-  if (allocationError) {
-    throw new Error(normalizeFinanceRepositoryError(allocationError));
   }
 
   const schedulesById = new Map(validatedSchedules.map((schedule) => [schedule.id, schedule]));
@@ -495,34 +517,24 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
       category_id: row.category_id,
       source_account_id: row.source_account_id,
       destination_account_id: row.destination_account_id,
+      allocation_id: row.allocation_id ?? null,
       schedule_id: row.schedule_id,
       schedule_occurrence_date: row.schedule_occurrence_date,
       is_schedule_override: row.is_schedule_override ?? false,
       category: row.category_id ? categoriesById.get(row.category_id) ?? null : null,
       source_account: row.source_account_id ? accountsById.get(row.source_account_id) ?? null : null,
       destination_account: row.destination_account_id ? accountsById.get(row.destination_account_id) ?? null : null,
+      allocation: row.allocation_id ? allocationsById.get(row.allocation_id) ?? null : null,
       schedule: row.schedule_id ? schedulesById.get(row.schedule_id) ?? null : null,
     };
   });
-
-  const mappedAllocations: WalletAllocation[] = (allocationsData ?? []).map((a) => ({
-    id: a.id as string,
-    user_id: a.user_id as string,
-    wallet_id: a.wallet_id as string,
-    name: a.name as string,
-    kind: a.kind as WalletAllocationKind,
-    amount: Number(a.amount),
-    target_amount: a.target_amount != null ? Number(a.target_amount) : null,
-    created_at: a.created_at as string,
-    updated_at: a.updated_at as string,
-  }));
 
   return {
     accounts: mappedAccounts,
     categories: mappedCategories,
     schedules: validatedSchedules,
     transactions: mappedTransactions,
-    allocations: mappedAllocations,
+    allocations: earlyMappedAllocations,
   };
 }
 
@@ -839,6 +851,7 @@ export async function createTransactionEntry(values: TransactionEntryInput) {
       category_id: values.category_id,
       source_account_id: values.source_account_id,
       destination_account_id: values.destination_account_id,
+      allocation_id: values.allocation_id ?? null,
       recurrence: values.recurrence,
     };
 
@@ -877,6 +890,7 @@ export async function createTransaction(values: TransactionInput) {
     category_id: values.category_id,
     source_account_id: values.source_account_id,
     destination_account_id: values.destination_account_id,
+    allocation_id: values.allocation_id ?? null,
   });
 
   if (error) {
@@ -900,6 +914,7 @@ export async function createTransactionSchedule(values: TransactionScheduleInput
     category_id: values.category_id ?? null,
     source_account_id: values.source_account_id ?? null,
     destination_account_id: values.destination_account_id ?? null,
+    allocation_id: values.allocation_id ?? null,
     occurred_at: values.occurred_at,
   });
 
@@ -923,6 +938,7 @@ export async function createTransactionSchedule(values: TransactionScheduleInput
     category_id: values.category_id,
     source_account_id: values.source_account_id,
     destination_account_id: values.destination_account_id,
+    allocation_id: values.allocation_id ?? null,
   });
 
   if (error) {
@@ -956,6 +972,7 @@ export async function updateTransaction(transactionId: string, values: Transacti
     category_id: values.category_id,
     source_account_id: values.source_account_id,
     destination_account_id: values.destination_account_id,
+    allocation_id: values.allocation_id ?? null,
   };
 
   // Mark as overridden so the reconciler doesn't overwrite manual edits
@@ -997,6 +1014,7 @@ export async function updateTransactionSchedule(scheduleId: string, values: Tran
       category_id: values.category_id ?? null,
       source_account_id: values.source_account_id ?? null,
       destination_account_id: values.destination_account_id ?? null,
+      allocation_id: values.allocation_id ?? null,
       occurred_at: values.occurred_at,
     }),
     snapshot,
@@ -1020,6 +1038,7 @@ export async function updateTransactionSchedule(scheduleId: string, values: Tran
       category_id: values.category_id,
       source_account_id: values.source_account_id,
       destination_account_id: values.destination_account_id,
+      allocation_id: values.allocation_id ?? null,
     })
     .eq("id", scheduleId)
     .eq("user_id", user.id);

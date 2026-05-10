@@ -441,6 +441,7 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
         initialKind={initialKind}
         accounts={snapshot.accounts}
         categories={snapshot.categories}
+        allocations={snapshot.allocations}
         onOpenChange={setSheetOpen}
         onSubmit={handleSubmit}
       />

@@ -33,9 +33,11 @@ const recurringOccurrence: Transaction = {
   schedule_id: "schedule-story-netflix",
   schedule_occurrence_date: "2026-05-01",
   is_schedule_override: false,
+  allocation_id: null,
   category: snapshot.categories.find((c) => c.type === "expense") ?? null,
   source_account: snapshot.accounts[0] ?? null,
   destination_account: null,
+  allocation: null,
   schedule: null,
 };
 
@@ -58,9 +60,11 @@ const recurringSchedule: TransactionSchedule = {
   category_id: snapshot.categories.find((category) => category.type === "expense")?.id ?? null,
   source_account_id: snapshot.accounts[0]?.id ?? null,
   destination_account_id: null,
+  allocation_id: null,
   category: snapshot.categories.find((category) => category.type === "expense") ?? null,
   source_account: snapshot.accounts[0] ?? null,
   destination_account: null,
+  allocation: null,
   validation_error: null,
   created_at: "2026-03-01T08:00:00.000Z",
   updated_at: "2026-03-31T08:00:00.000Z",

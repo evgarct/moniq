@@ -19,6 +19,7 @@ function base(overrides: Partial<TransactionFormInputs> = {}): TransactionFormIn
     category_id: "cat-1",
     source_account_id: "acc-1",
     destination_account_id: null,
+    allocation_id: null,
     is_recurring: false,
     recurrence_frequency: "monthly",
     recurrence_until: null,

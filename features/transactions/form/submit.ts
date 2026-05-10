@@ -19,6 +19,7 @@ export function normalizePayload(values: TransactionFormInputs): TransactionInpu
     category_id: isMoveKind(values.kind) ? null : (values.category_id ?? null),
     source_account_id: values.source_account_id ?? null,
     destination_account_id: values.destination_account_id ?? null,
+    allocation_id: values.kind === "expense" ? (values.allocation_id ?? null) : null,
   };
 }
 

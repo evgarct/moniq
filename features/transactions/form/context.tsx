@@ -7,7 +7,7 @@ import { FormProvider, useFieldArray, useForm, useWatch, type UseFormReturn } fr
 import { useTranslations } from "next-intl";
 
 import { getCurrencySymbol } from "@/lib/formatters";
-import type { Account, Category, Transaction, TransactionSchedule } from "@/types/finance";
+import type { Account, Category, Transaction, TransactionSchedule, WalletAllocation } from "@/types/finance";
 
 import { buildSchema } from "./schema";
 import { supportsBatchItems, isMoveKind, createEmptyLineItem } from "./helpers";
@@ -27,6 +27,7 @@ export type TransactionFormContextValue = {
   accounts: Account[];
   categories: Category[];
   transactions: Transaction[];
+  allocations: WalletAllocation[];
   // callbacks
   onSubmit: (payload: TransactionFormSubmitPayload) => Promise<void> | void;
   onOpenChange: (open: boolean) => void;
@@ -132,6 +133,7 @@ function makeDefaults({
     category_id: schedule?.category_id ?? transaction?.category_id ?? null,
     source_account_id: schedule?.source_account_id ?? transaction?.source_account_id ?? defaultSourceId,
     destination_account_id: schedule?.destination_account_id ?? transaction?.destination_account_id ?? defaultDestId,
+    allocation_id: schedule?.allocation_id ?? transaction?.allocation_id ?? null,
     is_recurring: mode === "edit-schedule",
     recurrence_frequency: schedule?.frequency ?? "monthly",
     recurrence_until: schedule?.until_date ?? null,
@@ -162,6 +164,7 @@ export function TransactionFormProvider({
   accounts,
   categories,
   transactions = [],
+  allocations = [],
   onSubmit,
   onOpenChange,
 }: {
@@ -176,6 +179,7 @@ export function TransactionFormProvider({
   accounts: Account[];
   categories: Category[];
   transactions?: Transaction[];
+  allocations?: WalletAllocation[];
   onSubmit: (payload: TransactionFormSubmitPayload) => Promise<void> | void;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -368,6 +372,7 @@ export function TransactionFormProvider({
     accounts,
     categories,
     transactions,
+    allocations,
     onSubmit,
     onOpenChange,
     kind,

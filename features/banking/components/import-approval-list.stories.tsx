@@ -183,6 +183,8 @@ function mapImportedTransactionToRow(transaction: TransactionImport): Transactio
           : transaction.kind === "debt_payment"
             ? transaction.counterpart_wallet
           : transaction.wallet,
+    allocation_id: null,
+    allocation: null,
     schedule: null,
   };
 }

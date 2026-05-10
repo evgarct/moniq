@@ -557,6 +557,8 @@
         "sourceAccount": "Choose source account",
         "destinationAccount": "Choose destination account",
         "category": "Choose category",
+        "goal": "Link to goal",
+        "noGoal": "No goal",
         "note": "Add notes",
         "lineNote": "Optional note"
       },
