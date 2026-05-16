@@ -4,7 +4,6 @@ import { useFormatter } from "next-intl";
 import { TransactionRow } from "@/components/transaction-row";
 import { isVisibleTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
 import { calDate } from "@/lib/formatters";
-import { cn } from "@/lib/utils";
 import type { Transaction } from "@/types/finance";
 
 type ActionCallbacks = {

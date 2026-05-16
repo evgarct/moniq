@@ -157,7 +157,6 @@ export function PendingTransactionRow({
   occurredAt,
   categories,
   resolvedCategoryId,
-  suggestedCategoryName,
   onCategoryChange,
   accounts = [],
   resolvedAccountId = null,

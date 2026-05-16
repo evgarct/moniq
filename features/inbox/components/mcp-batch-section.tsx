@@ -131,9 +131,7 @@ export function McpBatchSection({
       <Surface tone="panel" padding="none" className="flex h-full min-h-0 flex-col">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3.5 sm:px-5 sm:py-4">
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-violet-100 dark:bg-violet-900/40">
-          <Bot className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" strokeWidth={1.75} />
-        </div>
+        <Bot className="h-[18px] w-[18px] shrink-0 text-muted-foreground" strokeWidth={1.75} />
         <div className="flex-1 min-w-0">
           <p className="type-body-14 font-medium text-foreground truncate">
             {batch.source_description ?? t("batch.defaultTitle")}
@@ -155,7 +153,7 @@ export function McpBatchSection({
             <button
               type="button"
               onClick={rejectBatch}
-              className="flex h-8 w-8 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-secondary hover:text-destructive"
+              className="flex size-10 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-secondary hover:text-destructive"
               aria-label={t("batch.reject")}
             >
               <X className="h-3.5 w-3.5" />
@@ -232,7 +230,7 @@ export function McpBatchSection({
                             type="button"
                             onClick={() => void patchItem(item.id, { status: "approved" })}
                             disabled={savingItemId === item.id}
-                            className="flex h-8 w-8 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-secondary hover:text-emerald-700 disabled:opacity-50"
+                            className="flex size-10 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-secondary hover:text-emerald-700 disabled:opacity-50"
                             aria-label={t("item.approve")}
                           >
                             <Check className="h-3.5 w-3.5" />
@@ -241,7 +239,7 @@ export function McpBatchSection({
                             type="button"
                             onClick={() => void patchItem(item.id, { status: "rejected" })}
                             disabled={savingItemId === item.id}
-                            className="flex h-8 w-8 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-secondary hover:text-destructive disabled:opacity-50"
+                            className="flex size-10 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-secondary hover:text-destructive disabled:opacity-50"
                             aria-label={t("item.reject")}
                           >
                             <X className="h-3.5 w-3.5" />

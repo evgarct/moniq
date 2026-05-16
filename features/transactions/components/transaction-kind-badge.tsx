@@ -2,46 +2,36 @@ import { ArrowLeftRight, BanknoteArrowDown, BanknoteArrowUp, Landmark } from "lu
 import { useTranslations } from "next-intl";
 
 import { InlineIcon } from "@/components/ui/inline-icon";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import type { LucideIcon } from "lucide-react";
 import type { Transaction } from "@/types/finance";
 
 const kindConfig: Record<
   Transaction["kind"],
   {
     labelKey: Transaction["kind"];
-    icon: React.ComponentType<{ className?: string }>;
-    className: string;
-    indicatorClassName: string;
+    icon: LucideIcon;
     amountTone: "default" | "positive" | "negative";
   }
 > = {
   income: {
     labelKey: "income",
     icon: BanknoteArrowUp,
-    className: "bg-secondary text-foreground",
-    indicatorClassName: "bg-secondary text-foreground",
     amountTone: "positive",
   },
   expense: {
     labelKey: "expense",
     icon: BanknoteArrowDown,
-    className: "bg-secondary text-foreground",
-    indicatorClassName: "bg-secondary text-foreground",
     amountTone: "default",
   },
   transfer: {
     labelKey: "transfer",
     icon: ArrowLeftRight,
-    className: "bg-secondary text-foreground",
-    indicatorClassName: "bg-secondary text-foreground",
     amountTone: "default",
   },
   debt_payment: {
     labelKey: "debt_payment",
     icon: Landmark,
-    className: "bg-secondary text-foreground",
-    indicatorClassName: "bg-secondary text-foreground",
     amountTone: "default",
   },
 };
@@ -56,10 +46,10 @@ export function TransactionKindBadge({ kind, className }: { kind: Transaction["k
   const Icon = config.icon;
 
   return (
-    <Badge variant="secondary" className={cn("gap-1 rounded-full border-0 px-2.5 py-1 type-body-12", config.className, className)}>
-      <Icon className="h-3.5 w-3.5" />
+    <span className={cn("inline-flex items-center gap-1 type-body-12 text-muted-foreground", className)}>
+      <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
       {t(config.labelKey)}
-    </Badge>
+    </span>
   );
 }
 

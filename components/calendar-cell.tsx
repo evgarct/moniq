@@ -24,8 +24,6 @@ export function CalendarCell({
   const outsideMonth = !isSameMonth(date, currentMonth);
   const selected = selectedDate ? isSameDay(date, selectedDate) : false;
   const today = isToday(date);
-  const hasIndicators = paidCount > 0 || plannedCount > 0 || overdueCount > 0;
-
   return (
     <button
       type="button"

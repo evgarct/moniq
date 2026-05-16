@@ -31,7 +31,6 @@ export function BatchItemsSection() {
     setLineMenu,
     lineMenuRef,
     amountInputRefs,
-    lineTriggerRefs,
   } = useTransactionFormContext();
 
   const { control, formState: { errors } } = useFormContext<TransactionFormInputs>();

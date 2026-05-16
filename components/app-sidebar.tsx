@@ -133,7 +133,7 @@ export function MobileBottomNav({
                 <motion.div
                   layoutId="tab-active-bg"
                   className="absolute -inset-x-2 -inset-y-0.5 rounded-xl bg-[#4f8ef7]/10"
-                  transition={{ type: "spring", visualDuration: 0.3, bounce: 0.2 }}
+                  transition={{ type: "spring", visualDuration: 0.3, bounce: 0 }}
                 />
               )}
               <Icon size={24} className="relative" />
@@ -173,7 +173,7 @@ function UserNavMenu({
           ) : (
             <button
               type="button"
-              className="group relative flex h-11 w-11 items-center justify-center rounded-2xl text-sidebar-foreground/55 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+              className="group relative flex h-11 w-11 items-center justify-center rounded-[var(--radius-floating)] text-sidebar-foreground/55 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
               aria-label={t("navigation.openProfileMenu")}
             />
           )
@@ -187,14 +187,14 @@ function UserNavMenu({
         ) : (
           <>
             <UserRound className="h-5 w-5" />
-            <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 -translate-y-1/2 rounded-2xl border border-border/70 bg-[#ece8e1] px-4 py-2 text-[13px] font-medium text-foreground opacity-0 shadow-md transition-opacity group-hover:opacity-100">
+            <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 -translate-y-1/2 rounded-[var(--radius-floating)] border border-border/70 bg-[#ece8e1] px-4 py-2 text-[13px] font-medium text-foreground opacity-0 shadow-md transition-opacity group-hover:opacity-100">
               {navT("profile")}
             </span>
           </>
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent
-        className="w-56 rounded-2xl p-2"
+        className="w-56 rounded-[var(--radius-floating)] p-2"
         side={mobile ? "top" : "right"}
         align={mobile ? "end" : "start"}
         sideOffset={mobile ? 10 : 12}
@@ -244,12 +244,12 @@ function SidebarNavLink({
     <Link
       href={href}
       className={cn(
-        "group relative flex h-11 w-11 items-center justify-center rounded-2xl text-sidebar-foreground/55 transition-colors",
+        "group relative flex h-11 w-11 items-center justify-center rounded-[var(--radius-floating)] text-sidebar-foreground/55 transition-colors",
         active ? "bg-sidebar-primary text-sidebar-primary-foreground" : "hover:bg-sidebar-accent hover:text-sidebar-foreground",
       )}
     >
       <Icon className="h-5 w-5" />
-      <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 -translate-y-1/2 rounded-2xl border border-border/70 bg-[#ece8e1] px-4 py-2 text-[13px] font-medium text-foreground opacity-0 shadow-md transition-opacity group-hover:opacity-100">
+      <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 -translate-y-1/2 rounded-[var(--radius-floating)] border border-border/70 bg-[#ece8e1] px-4 py-2 text-[13px] font-medium text-foreground opacity-0 shadow-md transition-opacity group-hover:opacity-100">
         {label}
       </span>
       <span className="sr-only">{label}</span>

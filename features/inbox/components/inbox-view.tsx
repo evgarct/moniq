@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useQueryClient } from "@tanstack/react-query";
 import { Bot, FileUp, Info, Upload } from "lucide-react";
@@ -34,7 +34,7 @@ type Selection = {
 };
 
 // ---------------------------------------------------------------------------
-// Filter pill button
+// Filter tab button
 // ---------------------------------------------------------------------------
 
 function FilterPill({
@@ -55,7 +55,7 @@ function FilterPill({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",
+        "flex items-center gap-1.5 rounded-[var(--radius-control)] px-3.5 py-1.5 text-sm font-medium transition-colors",
         active
           ? "bg-foreground text-background"
           : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -66,8 +66,8 @@ function FilterPill({
       {count > 0 && (
         <span
           className={cn(
-            "flex h-4.5 min-w-[18px] items-center justify-center rounded-full px-1 text-[11px] font-semibold leading-none",
-            active ? "bg-background/20 text-background" : "bg-foreground/10 text-foreground",
+            "tabular-nums text-[11px] font-semibold leading-none",
+            active ? "text-background/80" : "text-muted-foreground",
           )}
         >
           {count}
@@ -83,10 +83,6 @@ function formatDateLabel(iso: string) {
     month: "short",
     day: "numeric",
   });
-}
-
-function sameSelection(a: Selection | null, b: Selection | null) {
-  return a?.source === b?.source && a?.batchId === b?.batchId;
 }
 
 export function InboxView() {
@@ -117,15 +113,19 @@ export function InboxView() {
   const mcpQuery = useMcpBatches();
 
   const bankingData = bankingQuery.data;
-  const mcpBatches = mcpQuery.data ?? [];
+  const mcpBatches = useMemo(() => mcpQuery.data ?? [], [mcpQuery.data]);
 
   // CSV batches with their draft transactions
-  const csvBatches = bankingData
-    ? bankingData.batches.filter((b) => {
-        const draftCount = bankingData.draftTransactions.filter((tx) => tx.batch_id === b.id).length;
-        return draftCount > 0;
-      })
-    : [];
+  const csvBatches = useMemo(
+    () =>
+      bankingData
+        ? bankingData.batches.filter((b) => {
+            const draftCount = bankingData.draftTransactions.filter((tx) => tx.batch_id === b.id).length;
+            return draftCount > 0;
+          })
+        : [],
+    [bankingData],
+  );
 
   const allEntries: InboxEntry[] = useMemo(
     () =>
@@ -148,11 +148,15 @@ export function InboxView() {
     [bankingData?.draftTransactions, claudeT, csvBatches, mcpBatches],
   );
 
-  const filteredEntries = allEntries.filter((entry) => {
-    if (filter === "claude") return entry.source === "claude";
-    if (filter === "csv") return entry.source === "csv";
-    return true;
-  });
+  const filteredEntries = useMemo(
+    () =>
+      allEntries.filter((entry) => {
+        if (filter === "claude") return entry.source === "claude";
+        if (filter === "csv") return entry.source === "csv";
+        return true;
+      }),
+    [allEntries, filter],
+  );
 
   const claudeCount = mcpBatches.length;
   const csvCount = csvBatches.length;
@@ -165,32 +169,7 @@ export function InboxView() {
   const selectedEntry = selected
     ? filteredEntries.find((entry) => entry.source === selected.source && entry.batchId === selected.batchId) ?? null
     : null;
-
-  useEffect(() => {
-    if (filteredEntries.length === 0) {
-      if (selected) {
-        setSelected(null);
-      }
-      if (mobileDetailsOpen) {
-        setMobileDetailsOpen(false);
-      }
-      return;
-    }
-
-    const currentSelection = selected ?? null;
-    const firstSelection: Selection = {
-      source: filteredEntries[0].source,
-      batchId: filteredEntries[0].batchId,
-    };
-
-    const hasCurrentSelection = filteredEntries.some(
-      (entry) => entry.source === currentSelection?.source && entry.batchId === currentSelection?.batchId,
-    );
-
-    if (!hasCurrentSelection && !sameSelection(currentSelection, firstSelection)) {
-      setSelected(firstSelection);
-    }
-  }, [filteredEntries, mobileDetailsOpen, selected]);
+  const activeEntry = selectedEntry ?? filteredEntries[0] ?? null;
 
   function openDetails(entry: InboxEntry) {
     const nextSelection: Selection = { source: entry.source, batchId: entry.batchId };
@@ -314,7 +293,7 @@ export function InboxView() {
             {isLoading ? (
               <div className="flex flex-col gap-3">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-20 animate-pulse rounded-2xl bg-muted/40" />
+                  <div key={i} className="h-20 animate-pulse rounded-[var(--radius-control)] bg-muted/40" />
                 ))}
               </div>
             ) : filteredEntries.length === 0 ? (
@@ -331,7 +310,7 @@ export function InboxView() {
             ) : (
               <div className="flex flex-col">
                 {filteredEntries.map((entry) => {
-                  const isActive = selectedEntry?.source === entry.source && selectedEntry.batchId === entry.batchId;
+                  const isActive = activeEntry?.source === entry.source && activeEntry.batchId === entry.batchId;
                   const SourceIcon = entry.source === "claude" ? Bot : FileUp;
                   const sourceLabel = entry.source === "claude" ? t("filterClaude") : t("filterCsv");
 
@@ -346,9 +325,7 @@ export function InboxView() {
                         isActive && "bg-secondary/60",
                       )}
                     >
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted/45">
-                        <SourceIcon className="h-3.5 w-3.5 text-muted-foreground" />
-                      </div>
+                      <SourceIcon className="h-[18px] w-[18px] shrink-0 text-muted-foreground" strokeWidth={1.75} />
                       <div className="min-w-0 flex-1">
                         <p className="type-body-14 truncate font-medium text-foreground">{entry.title}</p>
                         <p className="type-body-12 text-muted-foreground">
@@ -375,7 +352,7 @@ export function InboxView() {
           >
             <div className="px-3 pt-4 pb-3 sm:px-6 sm:pt-7 sm:pb-5 lg:px-7 lg:pt-8 lg:pb-6">
               <h2 className="min-w-0 truncate font-heading text-[28px] leading-none tracking-[-0.035em] text-foreground sm:type-h1">
-                {selectedEntry?.title ?? t("title")}
+                {activeEntry?.title ?? t("title")}
               </h2>
             </div>
           </div>
@@ -384,7 +361,7 @@ export function InboxView() {
             className="min-h-0 flex-1 overflow-auto px-3 pb-4 pt-2 sm:px-6 sm:pb-5 lg:px-7"
             onScroll={(event) => setRightPanelScrolled(event.currentTarget.scrollTop > 0)}
           >
-            {renderSelectedSection(selectedEntry)}
+            {renderSelectedSection(activeEntry)}
           </div>
         </section>
       </div>
@@ -396,7 +373,7 @@ export function InboxView() {
               <div className="px-4 pt-5 pb-3">
                 <div className="flex items-center justify-between gap-3">
                   <h2 className="min-w-0 truncate font-heading text-[24px] leading-none tracking-[-0.03em] text-foreground">
-                    {selectedEntry?.title ?? t("title")}
+                    {activeEntry?.title ?? t("title")}
                   </h2>
                   <Button type="button" size="sm" variant="outline" onClick={() => setMobileDetailsOpen(false)}>
                     {t("backToList")}
@@ -405,7 +382,7 @@ export function InboxView() {
               </div>
             </div>
 
-            <div className="px-4 pb-4 pt-2">{renderSelectedSection(selectedEntry)}</div>
+            <div className="px-4 pb-4 pt-2">{renderSelectedSection(activeEntry)}</div>
           </div>
         </SheetContent>
       </Sheet>

@@ -153,7 +153,6 @@ export function CsvBatchSection({
   });
 
   const walletOptions = wallets.filter((w) => w.type !== "debt");
-  const debtWallets = wallets.filter((w) => w.type === "debt");
 
   const editingTx = editingId ? transactions.find((tx) => tx.id === editingId) ?? null : null;
 
@@ -173,9 +172,7 @@ export function CsvBatchSection({
         <Surface tone="panel" padding="none" className="flex h-full min-h-0 flex-col">
         {/* Header */}
         <div className="flex items-center gap-3 px-4 py-3.5 sm:px-5 sm:py-4">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/40">
-            <FileUp className="h-3.5 w-3.5 text-amber-700 dark:text-amber-400" strokeWidth={1.75} />
-          </div>
+          <FileUp className="h-[18px] w-[18px] shrink-0 text-muted-foreground" strokeWidth={1.75} />
           <div className="flex-1 min-w-0">
             <p className="type-body-14 font-medium text-foreground truncate">
               {batch.file_name}
@@ -198,7 +195,7 @@ export function CsvBatchSection({
             </Button>
             <button
               type="button"
-              className="flex h-8 w-8 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-secondary hover:text-destructive disabled:opacity-50"
+              className="flex size-10 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-secondary hover:text-destructive disabled:opacity-50"
               disabled={deleteBatchMutation.isPending}
               aria-label={t("upload.deleteBatch")}
               onClick={() => void deleteBatchMutation.mutateAsync(batch.id)}
@@ -260,7 +257,7 @@ export function CsvBatchSection({
                         <button
                           type="button"
                           onClick={() => setEditingId(tx.id)}
-                          className="flex h-8 w-8 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                          className="flex size-10 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                           aria-label={t("inbox.merchantLabel")}
                         >
                           <PencilLine className="h-3.5 w-3.5" />
@@ -269,7 +266,7 @@ export function CsvBatchSection({
                           type="button"
                           disabled={confirmMutation.isPending}
                           onClick={() => void confirmMutation.mutateAsync([tx.id])}
-                          className="flex h-8 w-8 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-secondary hover:text-emerald-700 disabled:opacity-50"
+                          className="flex size-10 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-secondary hover:text-emerald-700 disabled:opacity-50"
                           aria-label={t("inbox.confirmOne")}
                         >
                           <Check className="h-3.5 w-3.5" />
@@ -278,7 +275,7 @@ export function CsvBatchSection({
                           type="button"
                           disabled={deleteTxMutation.isPending}
                           onClick={() => void deleteTxMutation.mutateAsync(tx.id)}
-                          className="flex h-8 w-8 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-secondary hover:text-destructive disabled:opacity-50"
+                          className="flex size-10 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-secondary hover:text-destructive disabled:opacity-50"
                           aria-label={t("inbox.deleteOne")}
                         >
                           <X className="h-3.5 w-3.5" />

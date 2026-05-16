@@ -59,7 +59,7 @@ export function TransactionFab({
           align="end"
           side="top"
           sideOffset={12}
-          className="w-80 rounded-3xl p-2"
+          className="w-80 rounded-[var(--radius-floating)] p-2"
         >
           <DropdownMenuGroup>
             <DropdownMenuLabel className="px-3 pt-2 pb-1 text-[11px] tracking-[0.16em] uppercase">
@@ -75,12 +75,10 @@ export function TransactionFab({
               return (
                 <DropdownMenuItem
                   key={option.kind}
-                  className="items-start gap-3 rounded-2xl px-3 py-3"
+                  className="items-start gap-3 rounded-[var(--radius-control)] px-3 py-3"
                   onClick={() => onSelect(option.kind)}
                 >
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-muted text-foreground">
-                    <Icon />
-                  </span>
+                  <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" strokeWidth={1.75} />
                   <span className="flex min-w-0 flex-col gap-0.5">
                     <span className="truncate font-medium text-foreground">{t(`kinds.${option.kind}`)}</span>
                     <span className="truncate text-xs text-muted-foreground">{t(`kindDescriptions.${option.kind}`)}</span>
