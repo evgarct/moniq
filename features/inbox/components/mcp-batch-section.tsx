@@ -6,7 +6,6 @@ import { Bot, ChevronDown, ChevronUp, Check, X, AlertCircle } from "lucide-react
 import { Button } from "@/components/ui/button";
 import { Surface } from "@/components/surface";
 import { PendingTransactionRow } from "@/components/pending-transaction-row";
-import { ViewportScrollRegion } from "@/features/inbox/components/viewport-scroll-region";
 import { getAccountIcon } from "@/features/transactions/form/account-select";
 import type { Category, Account, TransactionKind } from "@/types/finance";
 import type { McpBatch, McpBatchItem } from "@/features/inbox/hooks/use-mcp-batches";
@@ -127,8 +126,7 @@ export function McpBatchSection({
   const accountOptions = accounts.map((a) => ({ id: a.id, name: a.name, icon: getAccountIcon(a) }));
 
   return (
-    <ViewportScrollRegion overflow={false} className="overflow-hidden">
-      <Surface tone="panel" padding="none" className="flex h-full min-h-0 flex-col">
+    <Surface tone="panel" padding="none" className="flex h-full min-h-0 flex-col overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3.5 sm:px-5 sm:py-4">
         <Bot className="h-[18px] w-[18px] shrink-0 text-muted-foreground" strokeWidth={1.75} />
@@ -254,7 +252,6 @@ export function McpBatchSection({
           )}
         </div>
       )}
-      </Surface>
-    </ViewportScrollRegion>
+    </Surface>
   );
 }

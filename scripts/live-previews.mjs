@@ -21,13 +21,13 @@ await stopPort(appPort);
 await stopPort(storybookPort);
 
 spawnDetached(
-  path.join(repoDir, "node_modules", ".bin", "next"),
+  localBin("next"),
   ["dev", "--hostname", "0.0.0.0", "--port", String(appPort)],
   appLog,
 );
 
 spawnDetached(
-  path.join(repoDir, "node_modules", ".bin", "storybook"),
+  localBin("storybook"),
   ["dev", "-p", String(storybookPort), "--host", "0.0.0.0", "--ci"],
   storybookLog,
 );
@@ -71,6 +71,21 @@ await writeFile(
 console.log(JSON.stringify(payload, null, 2));
 
 async function stopPort(port) {
+  if (process.platform === "win32") {
+    await run(
+      "powershell.exe",
+      [
+        "-NoProfile",
+        "-Command",
+        `$connections = Get-NetTCPConnection -LocalPort ${port} -State Listen -ErrorAction SilentlyContinue; if ($connections) { $connections | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue } }`,
+      ],
+      "ignore",
+    ).catch(() => undefined);
+
+    await sleep(1_000);
+    return;
+  }
+
   await run(
     "bash",
     [
@@ -83,15 +98,22 @@ async function stopPort(port) {
   await sleep(1_000);
 }
 
+function localBin(name) {
+  return path.join(repoDir, "node_modules", ".bin", process.platform === "win32" ? `${name}.cmd` : name);
+}
+
 function spawnDetached(command, args, logPath) {
   const stdout = openSync(logPath, "w");
   const stderr = openSync(logPath, "a");
+  const spawnCommand = process.platform === "win32" ? "cmd.exe" : command;
+  const spawnArgs = process.platform === "win32" ? ["/c", command, ...args] : args;
 
-  const child = spawn(command, args, {
+  const child = spawn(spawnCommand, spawnArgs, {
     cwd: repoDir,
     detached: true,
     stdio: ["ignore", stdout, stderr],
     shell: false,
+    windowsHide: true,
   });
 
   child.unref();

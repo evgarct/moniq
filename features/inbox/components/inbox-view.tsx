@@ -222,8 +222,8 @@ export function InboxView() {
 
   return (
     <>
-      <div className="grid h-full w-full grid-cols-1 lg:grid-cols-[360px_minmax(0,1fr)]">
-        <section className="flex min-h-0 flex-col border-b border-border/40 bg-card lg:border-r lg:border-b-0 lg:border-r-border/25">
+      <div className="grid h-full min-h-0 w-full grid-cols-1 lg:grid-cols-[360px_minmax(0,1fr)]">
+        <section className="flex min-h-0 flex-col overflow-hidden border-b border-border/40 bg-card lg:border-r lg:border-b-0 lg:border-r-border/25">
           <div
             className={cn(
               "bg-card/96 backdrop-blur transition-shadow supports-[backdrop-filter]:bg-card/88",
@@ -368,8 +368,8 @@ export function InboxView() {
 
       <Sheet open={mobileDetailsOpen} onOpenChange={setMobileDetailsOpen}>
         <SheetContent side="fullscreen" className="gap-0 p-0 lg:hidden" showCloseButton={false}>
-          <div className="min-h-0 flex-1 overflow-auto">
-            <div className="sticky top-0 z-10 bg-background/94 backdrop-blur supports-[backdrop-filter]:bg-background/84">
+          <div className="flex h-full min-h-0 flex-col overflow-hidden">
+            <div className="shrink-0 bg-background/94 backdrop-blur supports-[backdrop-filter]:bg-background/84">
               <div className="px-4 pt-5 pb-3">
                 <div className="flex items-center justify-between gap-3">
                   <h2 className="min-w-0 truncate font-heading text-[24px] leading-none tracking-[-0.03em] text-foreground">
@@ -382,7 +382,9 @@ export function InboxView() {
               </div>
             </div>
 
-            <div className="px-4 pb-4 pt-2">{renderSelectedSection(activeEntry)}</div>
+            <div className="min-h-0 flex-1 px-4 pb-[calc(16px+env(safe-area-inset-bottom))] pt-2">
+              {renderSelectedSection(activeEntry)}
+            </div>
           </div>
         </SheetContent>
       </Sheet>
