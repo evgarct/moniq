@@ -11,16 +11,16 @@ const PhoneFrame = ({ Story }: { Story: React.ComponentType }) => (
    * hide it at the Storybook iframe width (>1024px).
    */
   <div
-    className="relative mx-auto h-[720px] w-[390px] overflow-hidden bg-[#fafaf7]"
+    className="relative mx-auto h-dvh w-[390px] overflow-hidden bg-[#fafaf7]"
     style={{ transform: "translate(0)" }}
   >
     <style>{`[data-mobile-nav] { display: flex !important; }`}</style>
     <div className="absolute inset-0 overflow-y-auto px-4 pt-6 pb-32">
-      <div className="mb-3 h-[200px] rounded-2xl bg-[#f0f0eb]" />
-      <div className="mb-3 h-[120px] rounded-2xl bg-[#e5e4df]" />
-      <div className="mb-3 h-[160px] rounded-2xl bg-[#f0f0eb]" />
-      <div className="mb-3 h-[120px] rounded-2xl bg-[#e5e4df]" />
-      <div className="h-[80px] rounded-2xl bg-[#f0f0eb]" />
+      <div className="mb-3 h-[200px] rounded-[var(--radius-surface)] bg-card" />
+      <div className="mb-3 h-[120px] rounded-[var(--radius-surface)] bg-secondary" />
+      <div className="mb-3 h-[160px] rounded-[var(--radius-surface)] bg-card" />
+      <div className="mb-3 h-[120px] rounded-[var(--radius-surface)] bg-secondary" />
+      <div className="h-[80px] rounded-[var(--radius-surface)] bg-card" />
     </div>
     <Story />
   </div>

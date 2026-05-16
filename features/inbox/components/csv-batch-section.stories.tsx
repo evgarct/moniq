@@ -63,28 +63,48 @@ const meta = {
   parameters: {
     layout: "padded",
   },
-  decorators: [
-    (Story) => (
-      <div className="mx-auto max-w-3xl">
-        <Story />
-      </div>
-    ),
-  ],
 } satisfies Meta<typeof CsvBatchSection>;
 
 export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {};
+const DesktopFrame = (Story: React.ComponentType) => (
+  <div className="mx-auto h-[620px] max-w-3xl">
+    <Story />
+  </div>
+);
+
+export const Default: Story = {
+  decorators: [DesktopFrame],
+};
 
 export const DenseScrollList: Story = {
+  decorators: [DesktopFrame],
+  args: {
+    transactions: manyTransactions,
+  },
+};
+
+export const MobileDenseScrollList: Story = {
+  parameters: {
+    layout: "fullscreen",
+    viewport: { defaultViewport: "mobile2" },
+  },
+  decorators: [
+    (Story) => (
+      <div className="mx-auto h-dvh max-w-[390px] bg-background p-3">
+        <Story />
+      </div>
+    ),
+  ],
   args: {
     transactions: manyTransactions,
   },
 };
 
 export const TransferHeavyBatch: Story = {
+  decorators: [DesktopFrame],
   args: {
     transactions: manyTransactions.map((tx, index) => ({
       ...tx,
