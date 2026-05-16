@@ -26,18 +26,18 @@ function CategoryTreeRow({
 }) {
   const t = useTranslations("categories.tree");
   return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-3 rounded-2xl border border-black/5 bg-white px-3 py-3 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
+    <div className="space-y-1.5">
+      <div className="flex items-center gap-3 rounded-[var(--radius-control)] px-2 py-2.5 transition-colors hover:bg-secondary/50">
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <div
-            className="h-8 w-8 shrink-0 rounded-xl border border-black/5 bg-slate-50 text-center text-base leading-8"
+            className="flex h-[18px] w-[18px] shrink-0 items-center justify-center text-muted-foreground"
             style={{ marginLeft: `${node.depth * 16}px` }}
           >
-            <CategoryIcon icon={node.icon} className="size-full" glyphClassName="text-slate-700" />
+            <CategoryIcon icon={node.icon} className="size-full" glyphClassName="text-muted-foreground" />
           </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-slate-900">{node.name}</p>
-            <p className="text-xs text-slate-500">{t("childrenCount", { count: node.children.length })}</p>
+            <p className="type-body-14 truncate font-medium text-foreground">{node.name}</p>
+            <p className="type-body-12 text-muted-foreground">{t("childrenCount", { count: node.children.length })}</p>
           </div>
         </div>
 
@@ -49,32 +49,32 @@ function CategoryTreeRow({
                 amount={total.amount}
                 currency={total.currency}
                 display="absolute"
-                className="block text-sm font-semibold text-slate-900"
+                className="block text-sm font-semibold text-foreground"
               />
             ))
           ) : (
-            <span className="text-xs text-slate-400">{t("noSpendYet")}</span>
+            <span className="type-body-12 text-muted-foreground">{t("noSpendYet")}</span>
           )}
         </div>
 
         <DropdownMenu>
           <DropdownMenuTrigger
             render={
-              <Button variant="ghost" size="icon-sm" className="rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700" />
+              <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:bg-secondary/50 hover:text-foreground" />
             }
           >
             <Ellipsis className="h-4 w-4" />
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-44 rounded-xl bg-white p-1.5">
-            <DropdownMenuItem className="rounded-lg px-2 py-2 text-[13px]" onClick={() => onAddChild(node)}>
+          <DropdownMenuContent className="w-44 p-1.5">
+            <DropdownMenuItem className="px-2 py-2 text-[13px]" onClick={() => onAddChild(node)}>
               <Plus className="h-4 w-4" />
               {t("addChild")}
             </DropdownMenuItem>
-            <DropdownMenuItem className="rounded-lg px-2 py-2 text-[13px]" onClick={() => onEdit(node)}>
+            <DropdownMenuItem className="px-2 py-2 text-[13px]" onClick={() => onEdit(node)}>
               <PencilLine className="h-4 w-4" />
               {t("editCategory")}
             </DropdownMenuItem>
-            <DropdownMenuItem className="rounded-lg px-2 py-2 text-[13px]" variant="destructive" onClick={() => onDelete(node)}>
+            <DropdownMenuItem className="px-2 py-2 text-[13px]" variant="destructive" onClick={() => onDelete(node)}>
               <Trash2 className="h-4 w-4" />
               {t("deleteCategory")}
             </DropdownMenuItem>
@@ -83,7 +83,7 @@ function CategoryTreeRow({
       </div>
 
       {node.children.length ? (
-        <div className={cn("space-y-2 border-l border-dashed border-slate-200 pl-3")}>
+        <div className={cn("space-y-1.5 border-l border-dashed border-border/70 pl-3")}>
           {node.children.map((child) => (
             <CategoryTreeRow key={child.id} node={child} onAddChild={onAddChild} onEdit={onEdit} onDelete={onDelete} />
           ))}

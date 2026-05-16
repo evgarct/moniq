@@ -124,10 +124,10 @@ export function DebtPaymentSection() {
       {breakdownSum > 0 && (
         <div
           className={cn(
-            "flex items-center justify-between rounded-md px-3 py-2 text-xs",
+            "flex items-center justify-between border-t border-border/70 px-0 py-2 text-xs",
             breakdownOk
-              ? "bg-emerald-50 text-emerald-700"
-              : "bg-destructive/10 text-destructive",
+              ? "text-muted-foreground"
+              : "text-destructive",
           )}
         >
           <span>

@@ -161,7 +161,7 @@
   h4,
   h5,
   h6 {
-    @apply font-heading tracking-[-0.02em];
+    @apply text-balance font-heading tracking-[-0.02em];
   }
 }
 
@@ -191,11 +191,11 @@
   }
 
   .type-body-14 {
-    @apply text-[14px] leading-6 font-normal text-foreground;
+    @apply text-pretty text-[14px] leading-6 font-normal text-foreground;
   }
 
   .type-body-12 {
-    @apply text-[12px] leading-5 font-normal text-muted-foreground;
+    @apply text-pretty text-[12px] leading-5 font-normal text-muted-foreground;
   }
 
   .radius-tight {

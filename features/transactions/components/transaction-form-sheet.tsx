@@ -2,6 +2,7 @@
 
 import {
   ArrowLeftRight,
+  type LucideIcon,
   ReceiptText,
   TrendingUp,
   WalletCards,
@@ -33,15 +34,12 @@ export type { TransactionFormSubmitPayload };
 
 // ─── Icon helpers ─────────────────────────────────────────────────────────────
 
-function getKindIcon(kind: Transaction["kind"]) {
-  switch (kind) {
-    case "income": return TrendingUp;
-    case "transfer": return ArrowLeftRight;
-    case "debt_payment": return WalletCards;
-    case "expense":
-    default: return ReceiptText;
-  }
-}
+const KIND_ICONS: Record<Transaction["kind"], LucideIcon> = {
+  expense: ReceiptText,
+  income: TrendingUp,
+  transfer: ArrowLeftRight,
+  debt_payment: WalletCards,
+};
 
 // ─── Kind section map ─────────────────────────────────────────────────────────
 
@@ -63,7 +61,6 @@ function TransactionFormInner() {
     kind,
     accounts,
     categories,
-    transactions,
     onSubmit,
     onOpenChange,
   } = useTransactionFormContext();
@@ -72,7 +69,7 @@ function TransactionFormInner() {
   void _control;
   const Section = KIND_SECTIONS[kind];
   const formId = "transaction-form-sheet";
-  const KindIcon = getKindIcon(kind);
+  const KindIcon = KIND_ICONS[kind];
 
   const handleSubmit = form.handleSubmit(async (values) => {
     const payload = buildSubmitPayload(values, mode, accounts, categories);

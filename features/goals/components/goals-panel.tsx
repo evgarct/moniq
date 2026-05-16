@@ -15,7 +15,7 @@ function ProgressBar({ value, max }: { value: number; max: number }) {
   return (
     <div className="h-1 w-full overflow-hidden rounded-full bg-foreground/10">
       <div
-        className={cn("h-full rounded-full transition-all", done ? "bg-emerald-500" : "bg-foreground/35")}
+        className={cn("h-full rounded-full transition-[width,background-color]", done ? "bg-emerald-500" : "bg-foreground/35")}
         style={{ width: `${percent}%` }}
       />
     </div>
@@ -103,13 +103,13 @@ export function GoalsPanel({
                 </div>
 
                 <div className="flex items-center justify-end gap-1">
-                  <div className="opacity-0 transition-opacity group-hover:opacity-100 flex items-center gap-0.5">
+                  <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                     {onEdit ? (
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon-sm"
-                        className="size-6 shrink-0 rounded-md bg-transparent text-muted-foreground hover:bg-[#e6e1d9] hover:text-foreground"
+                        className="size-8 shrink-0 rounded-[var(--radius-control)] bg-transparent text-muted-foreground hover:bg-[#e6e1d9] hover:text-foreground"
                         aria-label={`Edit ${allocation.name}`}
                         onClick={() => onEdit(allocation)}
                       >
@@ -121,7 +121,7 @@ export function GoalsPanel({
                         type="button"
                         variant="ghost"
                         size="icon-sm"
-                        className="size-6 shrink-0 rounded-md bg-transparent text-muted-foreground hover:bg-[#e6e1d9] hover:text-destructive"
+                        className="size-8 shrink-0 rounded-[var(--radius-control)] bg-transparent text-muted-foreground hover:bg-[#e6e1d9] hover:text-destructive"
                         aria-label={`Delete ${allocation.name}`}
                         onClick={() => onDelete(allocation)}
                       >

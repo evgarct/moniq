@@ -14,7 +14,6 @@ const PhoneFrame = ({ Story }: { Story: React.ComponentType }) => (
     className="relative mx-auto h-[720px] w-[390px] overflow-hidden bg-[#fafaf7]"
     style={{ transform: "translate(0)" }}
   >
-    {/* eslint-disable-next-line react/no-unknown-property */}
     <style>{`[data-mobile-nav] { display: flex !important; }`}</style>
     <div className="absolute inset-0 overflow-y-auto px-4 pt-6 pb-32">
       <div className="mb-3 h-[200px] rounded-2xl bg-[#f0f0eb]" />

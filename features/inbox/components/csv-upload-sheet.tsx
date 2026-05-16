@@ -211,9 +211,7 @@ export function CsvUploadSheet({
             }}
           >
             <div className="mx-auto flex max-w-[220px] flex-col items-center gap-3">
-              <div className="rounded-full border border-border/70 bg-muted/20 p-3">
-                <FileUp className="h-5 w-5 text-muted-foreground" />
-              </div>
+              <FileUp className="h-5 w-5 text-muted-foreground" strokeWidth={1.75} />
               <div className="space-y-1">
                 <p className="text-sm font-medium text-foreground">
                   {selectedFile ? selectedFile.name : t("upload.dropzone.title")}

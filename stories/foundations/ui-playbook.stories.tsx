@@ -707,7 +707,84 @@ const meta = {
           </div>
         </Surface>
 
-        {/* ── 14. What to avoid ─────────────────────────────────────────────── */}
+        {/* ── 14. Interaction polish ─────────────────────────────────────── */}
+        <Surface tone="panel" padding="lg" className="border border-black/5">
+          <div className="space-y-5">
+            <SectionHeader
+              eyebrow="Pattern · Interaction Polish"
+              heading="Small controls still need deliberate motion and real hit areas."
+              sub="These details keep dense finance UI feeling precise without making it twitchy, hard to tap, or expensive to animate."
+            />
+
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+              <div className="rounded-[16px] border border-black/5 bg-background/60 p-3">
+                <div className="flex items-center justify-between rounded-[var(--radius-control)] px-2 py-2 transition-[background-color] hover:bg-secondary/50">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <BanknoteArrowDown className="size-[18px] text-muted-foreground" strokeWidth={1.75} />
+                    <div className="min-w-0">
+                      <p className="type-body-14 truncate font-medium">Card payment</p>
+                      <p className="type-body-12 truncate">Prague Everyday Card</p>
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <Button
+                      size="icon-sm"
+                      variant="ghost"
+                      className="size-10 rounded-[var(--radius-control)] text-muted-foreground hover:bg-secondary"
+                      aria-label="Edit row"
+                    >
+                      <ArrowLeftRight className="size-4" />
+                    </Button>
+                    <MoneyAmount
+                      amount={-1240}
+                      currency="CZK"
+                      display="signed"
+                      className="text-sm font-medium tabular-nums"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-3">
+                <RuleCard
+                  label="Hit areas are at least 40px"
+                  body="Dense row actions may look quiet, but the interactive target must be size-10 or have a non-overlapping pseudo hit area. Never ship size-5 or size-6 click targets."
+                  variant="do"
+                />
+                <RuleCard
+                  label="Press scale is exactly 0.96"
+                  body="Buttons use active:scale-[0.96] for tactile feedback. Use a static escape hatch only when scale would distract from the interaction."
+                  variant="do"
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <RuleCard
+                label="No transition-all"
+                body="Transitions must name the changing properties: transition-[background-color,color,border-color,box-shadow] or transition-[width,background-color]."
+                variant="dont"
+              />
+              <RuleCard
+                label="Text wraps intentionally"
+                body="Headings use text-balance. Short body copy uses text-pretty. Do not fix orphans with manual line breaks."
+                variant="do"
+              />
+              <RuleCard
+                label="Stable Storybook assertions"
+                body="Use role-scoped queries when text appears in headings, tooltips, and sr-only labels. Use getAllBy... only when duplicates are intentional."
+                variant="do"
+              />
+              <RuleCard
+                label="Token radii on controls"
+                body="Dropdown rows, icon actions, and floating menus use radius-control or radius-floating. Do not reintroduce rounded-2xl or rounded-3xl."
+                variant="do"
+              />
+            </div>
+          </div>
+        </Surface>
+
+        {/* ── 15. What to avoid ─────────────────────────────────────────────── */}
         <Surface tone="panel" padding="lg" className="border border-black/5">
           <div className="space-y-5">
             <SectionHeader
@@ -767,9 +844,10 @@ export const Reference: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("UI Playbook")).toBeInTheDocument();
-    await expect(canvas.getByText("Surface Stack")).toBeInTheDocument();
-    await expect(canvas.getByText("Row Language")).toBeInTheDocument();
-    await expect(canvas.getByText("Transaction Kinds")).toBeInTheDocument();
-    await expect(canvas.getByText("Forms")).toBeInTheDocument();
+    await expect(canvas.getByRole("heading", { name: "Canvas → Panel → Floating" })).toBeInTheDocument();
+    await expect(canvas.getByRole("heading", { name: "Rows are quiet. The group does the talking." })).toBeInTheDocument();
+    await expect(canvas.getByRole("heading", { name: "Four kinds. One visual weight — except income." })).toBeInTheDocument();
+    await expect(canvas.getByRole("heading", { name: "Small controls still need deliberate motion and real hit areas." })).toBeInTheDocument();
+    await expect(canvas.getByRole("heading", { name: "Forms are sheets. Not dialogs, not center modals." })).toBeInTheDocument();
   },
 };

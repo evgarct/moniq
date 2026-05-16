@@ -195,17 +195,17 @@ export function AccountCard({
                   </div>
 
                   <div className="flex items-center justify-end gap-0.5">
-                    <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+                    <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                       {onEditGoal ? (
                         <Button
                           type="button"
                           variant="ghost"
                           size="icon-sm"
-                          className="size-5 shrink-0 rounded-md bg-transparent text-muted-foreground/60 hover:bg-foreground/8 hover:text-foreground"
+                          className="size-8 shrink-0 rounded-[var(--radius-control)] bg-transparent text-muted-foreground/60 hover:bg-foreground/8 hover:text-foreground"
                           aria-label={`Edit ${allocation.name}`}
                           onClick={(e) => { e.stopPropagation(); onEditGoal(allocation); }}
                         >
-                          <Pencil className="size-2.5" />
+                          <Pencil className="size-3" />
                         </Button>
                       ) : null}
                       {onDeleteGoal ? (
@@ -213,11 +213,11 @@ export function AccountCard({
                           type="button"
                           variant="ghost"
                           size="icon-sm"
-                          className="size-5 shrink-0 rounded-md bg-transparent text-muted-foreground/60 hover:bg-foreground/8 hover:text-destructive"
+                          className="size-8 shrink-0 rounded-[var(--radius-control)] bg-transparent text-muted-foreground/60 hover:bg-foreground/8 hover:text-destructive"
                           aria-label={`Delete ${allocation.name}`}
                           onClick={(e) => { e.stopPropagation(); onDeleteGoal(allocation); }}
                         >
-                          <Trash2 className="size-2.5" />
+                          <Trash2 className="size-3" />
                         </Button>
                       ) : null}
                     </div>
@@ -236,7 +236,7 @@ export function AccountCard({
                     <div className="h-0.5 w-full overflow-hidden rounded-full bg-foreground/8">
                       <div
                         className={cn(
-                          "h-full rounded-full transition-all",
+                          "h-full rounded-full transition-[width,background-color]",
                           progressPercent! >= 100 ? "bg-emerald-500" : "bg-foreground/30",
                         )}
                         style={{ width: `${progressPercent}%` }}

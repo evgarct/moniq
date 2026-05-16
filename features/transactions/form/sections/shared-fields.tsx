@@ -48,14 +48,14 @@ export function SharedFields({
                 <Select value={field.value} onValueChange={field.onChange} disabled={mode === "edit-schedule"}>
                   <SelectTrigger
                     className={cn(
-                      "h-auto w-auto rounded-full border-0 px-2.5 py-1 text-right text-[14px] font-medium shadow-none outline-none focus:outline-none focus-visible:border-transparent focus-visible:ring-0 data-[popup-open]:opacity-90",
-                      field.value === "paid" ? "bg-emerald-50" : "bg-amber-50",
+                      "h-auto w-auto border-0 bg-transparent px-0 py-0 text-right text-[14px] font-medium shadow-none outline-none focus:outline-none focus-visible:border-transparent focus-visible:ring-0 data-[popup-open]:opacity-90",
+                      field.value === "paid" ? "text-foreground" : "text-muted-foreground",
                     )}
                   >
                     <span
                       className={cn(
-                        "inline-flex items-center gap-1.5 rounded-full",
-                        field.value === "paid" ? "text-emerald-700" : "text-amber-700",
+                        "inline-flex items-center gap-1.5",
+                        field.value === "paid" ? "text-foreground" : "text-muted-foreground",
                       )}
                     >
                       {field.value === "paid" ? <CheckCircle2 className="size-4" /> : <Clock3 className="size-4" />}

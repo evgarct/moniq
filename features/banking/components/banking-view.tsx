@@ -27,9 +27,6 @@ import {
 import { useBankingData } from "@/features/banking/hooks/use-banking-data";
 import { cn } from "@/lib/utils";
 import type { ImportColumnKey, ImportColumnMapping, ImportFilePreview, TransactionImport } from "@/types/imports";
-import type { Category } from "@/types/finance";
-
-const KIND_OPTIONS = ["expense", "income", "transfer", "debt_payment"] as const;
 const BASIC_MAPPING_FIELDS: Array<{ key: ImportColumnKey; required?: boolean }> = [
   { key: "date", required: true },
   { key: "description", required: true },
@@ -354,7 +351,6 @@ export function BankingView() {
   }
 
   const walletOptions = data.wallets.filter((wallet) => wallet.type !== "debt");
-  const debtWalletOptions = data.wallets.filter((wallet) => wallet.type === "debt");
   const effectiveWalletId = selectedWalletId || walletOptions[0]?.id || "";
   const categoryOptions = data.categories.filter((category) => category.type === "expense" || category.type === "income");
   const draftTransactions = data.draftTransactions;
@@ -464,9 +460,7 @@ export function BankingView() {
                   }}
                 >
                   <div className="mx-auto flex max-w-[240px] flex-col items-center gap-2.5">
-                    <div className="rounded-full border border-border/70 bg-muted/20 p-3">
-                      <FileUp className="size-5 text-muted-foreground" />
-                    </div>
+                    <FileUp className="size-5 text-muted-foreground" strokeWidth={1.75} />
                     <div className="space-y-1">
                       <p className="font-medium text-foreground">{t("upload.dropzone.title")}</p>
                       {selectedFile ? (

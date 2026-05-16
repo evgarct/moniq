@@ -4,7 +4,7 @@
  * We test the exported handler functions in isolation by mocking Supabase
  * so that we don't need a real DB connection.
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 
 // ---------------------------------------------------------------------------
 // Mock Supabase before importing the route

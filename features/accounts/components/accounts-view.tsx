@@ -328,7 +328,7 @@ export function AccountsView({
               </div>
 
               {!hasAccounts ? (
-                <div className="rounded-2xl border border-dashed border-border/70 bg-background/65 px-4 py-3 type-body-14 text-muted-foreground">
+                <div className="rounded-[var(--radius-control)] border border-dashed border-border/70 bg-background/65 px-4 py-3 type-body-14 text-muted-foreground">
                   {walletsEditMode ? copy("view.emptyEditHint") : copy("view.emptyHint")}
                 </div>
               ) : null}
