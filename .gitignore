@@ -3,6 +3,7 @@
 /out
 /storybook-static
 /.env*.local
+/.codex-artifacts
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
