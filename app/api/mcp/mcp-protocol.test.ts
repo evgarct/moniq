@@ -27,6 +27,14 @@ vi.mock("@/lib/supabase/service", () => ({
   }),
 }));
 
+vi.mock("@/lib/supabase/anon", () => ({
+  createAnonClient: vi.fn().mockReturnValue({
+    rpc: vi.fn().mockResolvedValue({ data: [], error: null }),
+  }),
+}));
+
+import { getMcpTools } from "@/app/api/mcp/route";
+
 // ---------------------------------------------------------------------------
 // Inline handler functions (mirroring the logic from route.ts, no DB needed)
 // ---------------------------------------------------------------------------
@@ -105,5 +113,14 @@ describe("MCP initialize — protocol version negotiation", () => {
   it("includes tools capability", () => {
     const res = buildInitializeResponse(1);
     expect(res.result.capabilities).toHaveProperty("tools");
+  });
+});
+
+describe("MCP tools/list", () => {
+  it("includes transaction submission and category spending analytics tools", () => {
+    expect(getMcpTools().map((tool) => tool.name)).toEqual([
+      "submit_transaction_batch",
+      "get_category_spending_report",
+    ]);
   });
 });

@@ -420,6 +420,7 @@
       "description": "Build nested income and expense trees with reusable icon labels.",
       "fields": {
         "name": "Category name",
+        "description": "Description",
         "icon": "Icon",
         "type": "Type",
         "parent": "Parent category"
@@ -435,6 +436,7 @@
       },
       "validation": {
         "nameRequired": "Category name is required.",
+        "descriptionMax": "Keep the description under 600 characters.",
         "iconMax": "Use a short icon token."
       }
     },
