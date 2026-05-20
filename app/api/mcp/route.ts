@@ -7,7 +7,14 @@
 
 import { createHash } from "crypto";
 import { NextResponse } from "next/server";
+import {
+  buildCategorySpendingReport,
+  resolveCategorySpendingPeriod,
+  type CategorySpendingPeriodInput,
+} from "@/features/finance/lib/category-spending-report";
 import { createAnonClient } from "@/lib/supabase/anon";
+import type { CurrencyCode } from "@/types/currency";
+import type { Account, Category, Transaction } from "@/types/finance";
 
 // ---------------------------------------------------------------------------
 // CORS — required for Claude.ai (browser-based MCP client)
@@ -90,13 +97,62 @@ interface BatchTransactionItem {
   note?: string;
 }
 
+type WalletRow = {
+  id: string;
+  user_id: string;
+  name: string;
+  type: Account["type"];
+  cash_kind: Account["cash_kind"];
+  debt_kind: Account["debt_kind"];
+  balance: number | string;
+  credit_limit: number | string | null;
+  currency: CurrencyCode;
+  created_at: string;
+};
+
+type CategoryRow = {
+  id: string;
+  user_id: string;
+  name: string;
+  description: string | null;
+  icon: string | null;
+  type: Category["type"];
+  parent_id: string | null;
+  is_system: boolean;
+  created_at: string;
+};
+
+type TransactionRow = {
+  id: string;
+  user_id: string;
+  title: string;
+  note: string | null;
+  occurred_at: string;
+  created_at: string;
+  status: Transaction["status"];
+  kind: Transaction["kind"];
+  amount: number | string;
+  destination_amount: number | string | null;
+  fx_rate: number | string | null;
+  principal_amount: number | string | null;
+  interest_amount: number | string | null;
+  extra_principal_amount: number | string | null;
+  category_id: string | null;
+  source_account_id: string | null;
+  destination_account_id: string | null;
+  schedule_id: string | null;
+  schedule_occurrence_date: string | null;
+  is_schedule_override: boolean | null;
+  allocation_id: string | null;
+};
+
 // ---------------------------------------------------------------------------
 // Auth: validate Bearer API key via RPC (no service role needed)
 // ---------------------------------------------------------------------------
 
 async function authenticateApiKey(
   request: Request,
-): Promise<{ userId: string } | null> {
+): Promise<{ userId: string; keyHash: string } | null> {
   const authHeader = request.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) return null;
 
@@ -114,7 +170,7 @@ async function authenticateApiKey(
   // Fire-and-forget: update last_used_at
   db.rpc("mcp_touch_api_key", { p_key_id: row.id }).then(() => {});
 
-  return { userId: row.user_id };
+  return { userId: row.user_id, keyHash };
 }
 
 // ---------------------------------------------------------------------------
@@ -140,12 +196,8 @@ function handleInitialize(
   };
 }
 
-function handleToolsList(id: string | number | null): McpResponse {
-  return {
-    jsonrpc: "2.0",
-    id,
-    result: {
-      tools: [
+export function getMcpTools() {
+  return [
         {
           name: "submit_transaction_batch",
           description:
@@ -203,7 +255,200 @@ function handleToolsList(id: string | number | null): McpResponse {
             required: ["transactions"],
           },
         },
+        {
+          name: "get_category_spending_report",
+          description:
+            "Read Moniq category spending analytics for a period. Defaults to the last fully completed calendar month. Returns paid transactions grouped by root expense envelopes and income categories, with totals and percentages separated by currency.",
+          inputSchema: {
+            type: "object",
+            properties: {
+              period_preset: {
+                type: "string",
+                enum: ["last_complete_month"],
+                description:
+                  "Optional preset. Use last_complete_month to report the last fully completed calendar month.",
+              },
+              month: {
+                type: "string",
+                description: "Calendar month in YYYY-MM format. Mutually exclusive with start_date/end_date.",
+              },
+              start_date: {
+                type: "string",
+                description: "Inclusive custom period start date in YYYY-MM-DD format.",
+              },
+              end_date: {
+                type: "string",
+                description: "Inclusive custom period end date in YYYY-MM-DD format.",
+              },
+            },
+            additionalProperties: false,
+          },
+        },
+      ];
+}
+
+function handleToolsList(id: string | number | null): McpResponse {
+  return {
+    jsonrpc: "2.0",
+    id,
+    result: {
+      tools: getMcpTools(),
+    },
+  };
+}
+
+function mapWallet(row: WalletRow): Account {
+  return {
+    id: row.id,
+    user_id: row.user_id,
+    name: row.name,
+    type: row.type,
+    cash_kind: row.cash_kind,
+    debt_kind: row.debt_kind,
+    balance: Number(row.balance),
+    credit_limit: row.credit_limit === null ? null : Number(row.credit_limit),
+    currency: row.currency,
+    created_at: row.created_at,
+  };
+}
+
+function mapCategory(row: CategoryRow): Category {
+  return {
+    id: row.id,
+    user_id: row.user_id,
+    name: row.name,
+    description: row.description,
+    icon: row.icon,
+    type: row.type,
+    parent_id: row.parent_id,
+    is_system: row.is_system,
+    created_at: row.created_at,
+  };
+}
+
+function mapTransaction(
+  row: TransactionRow,
+  options: {
+    accountsById: Map<string, Account>;
+    categoriesById: Map<string, Category>;
+  },
+): Transaction {
+  return {
+    id: row.id,
+    user_id: row.user_id,
+    title: row.title,
+    note: row.note,
+    occurred_at: row.occurred_at,
+    created_at: row.created_at,
+    status: row.status,
+    kind: row.kind,
+    amount: Number(row.amount),
+    destination_amount: row.destination_amount === null ? null : Number(row.destination_amount),
+    fx_rate: row.fx_rate === null ? null : Number(row.fx_rate),
+    principal_amount: row.principal_amount === null ? null : Number(row.principal_amount),
+    interest_amount: row.interest_amount === null ? null : Number(row.interest_amount),
+    extra_principal_amount: row.extra_principal_amount === null ? null : Number(row.extra_principal_amount),
+    category_id: row.category_id,
+    source_account_id: row.source_account_id,
+    destination_account_id: row.destination_account_id,
+    schedule_id: row.schedule_id,
+    schedule_occurrence_date: row.schedule_occurrence_date,
+    is_schedule_override: row.is_schedule_override ?? false,
+    allocation_id: row.allocation_id ?? null,
+    category: row.category_id ? options.categoriesById.get(row.category_id) ?? null : null,
+    source_account: row.source_account_id ? options.accountsById.get(row.source_account_id) ?? null : null,
+    destination_account: row.destination_account_id ? options.accountsById.get(row.destination_account_id) ?? null : null,
+    schedule: null,
+    allocation: null,
+  };
+}
+
+function getOptionalStringArg(args: Record<string, unknown>, key: string) {
+  const value = args[key];
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+async function handleCategorySpendingReportTool(
+  id: string | number | null,
+  args: Record<string, unknown>,
+  keyHash: string,
+): Promise<McpResponse> {
+  const period: CategorySpendingPeriodInput = {
+    period_preset: getOptionalStringArg(args, "period_preset") as CategorySpendingPeriodInput["period_preset"],
+    month: getOptionalStringArg(args, "month"),
+    start_date: getOptionalStringArg(args, "start_date"),
+    end_date: getOptionalStringArg(args, "end_date"),
+  };
+  let resolvedPeriod: ReturnType<typeof resolveCategorySpendingPeriod>;
+
+  try {
+    resolvedPeriod = resolveCategorySpendingPeriod(period);
+  } catch (error) {
+    return {
+      jsonrpc: "2.0",
+      id,
+      error: { code: -32602, message: error instanceof Error ? error.message : "Invalid spending report period" },
+    };
+  }
+
+  const db = createAnonClient();
+  const { data, error } = await db.rpc("mcp_get_category_spending_report_source", {
+    p_key_hash: keyHash,
+    p_start_date: resolvedPeriod.start_date,
+    p_end_date: resolvedPeriod.end_date,
+  });
+
+  if (error || !data) {
+    return {
+      jsonrpc: "2.0",
+      id,
+      error: { code: -32000, message: "Failed to load finance data for spending report" },
+    };
+  }
+
+  const source = data as {
+    wallets?: WalletRow[];
+    categories?: CategoryRow[];
+    transactions?: TransactionRow[];
+  };
+  const accounts = (source.wallets ?? []).map(mapWallet);
+  const categories = (source.categories ?? []).map(mapCategory);
+  const accountsById = new Map(accounts.map((account) => [account.id, account]));
+  const categoriesById = new Map(categories.map((category) => [category.id, category]));
+  const transactions = (source.transactions ?? []).map((transaction) =>
+    mapTransaction(transaction, { accountsById, categoriesById }),
+  );
+
+  let report: ReturnType<typeof buildCategorySpendingReport>;
+  try {
+    report = buildCategorySpendingReport({
+      categories,
+      transactions,
+      period: {
+        start_date: resolvedPeriod.start_date,
+        end_date: resolvedPeriod.end_date,
+      },
+    });
+    report.period = resolvedPeriod;
+  } catch (error) {
+    return {
+      jsonrpc: "2.0",
+      id,
+      error: { code: -32602, message: error instanceof Error ? error.message : "Invalid spending report period" },
+    };
+  }
+
+  return {
+    jsonrpc: "2.0",
+    id,
+    result: {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(report, null, 2),
+        },
       ],
+      structuredContent: report,
     },
   };
 }
@@ -211,9 +456,13 @@ function handleToolsList(id: string | number | null): McpResponse {
 async function handleToolCall(
   id: string | number | null,
   params: Record<string, unknown>,
-  userId: string,
+  auth: { userId: string; keyHash: string },
 ): Promise<McpResponse> {
   const toolName = params.name as string;
+
+  if (toolName === "get_category_spending_report") {
+    return handleCategorySpendingReportTool(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash);
+  }
 
   if (toolName !== "submit_transaction_batch") {
     return {
@@ -267,7 +516,7 @@ async function handleToolCall(
   }));
 
   const { data: batchId, error } = await db.rpc("mcp_submit_batch", {
-    p_user_id: userId,
+    p_user_id: auth.userId,
     p_source_description: args.source_description ?? null,
     p_items: items,
   });
@@ -318,18 +567,18 @@ export async function POST(request: Request) {
   }
 
   if (Array.isArray(body)) {
-    const responses = await Promise.all(body.map((msg) => dispatchMessage(msg, auth.userId)));
+    const responses = await Promise.all(body.map((msg) => dispatchMessage(msg, auth)));
     return NextResponse.json(responses.filter(Boolean), { headers: CORS_HEADERS });
   }
 
-  const response = await dispatchMessage(body, auth.userId);
+  const response = await dispatchMessage(body, auth);
   if (response === null) {
     return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
   }
   return NextResponse.json(response, { headers: CORS_HEADERS });
 }
 
-async function dispatchMessage(msg: McpRequest, userId: string): Promise<McpResponse | null> {
+async function dispatchMessage(msg: McpRequest, auth: { userId: string; keyHash: string }): Promise<McpResponse | null> {
   const id = msg.id ?? null;
 
   switch (msg.method) {
@@ -347,7 +596,7 @@ async function dispatchMessage(msg: McpRequest, userId: string): Promise<McpResp
       return handleToolsList(id);
 
     case "tools/call":
-      return handleToolCall(id, (msg.params ?? {}) as Record<string, unknown>, userId);
+      return handleToolCall(id, (msg.params ?? {}) as Record<string, unknown>, auth);
 
     default:
       return { jsonrpc: "2.0", id, error: { code: -32601, message: `Method not found: ${msg.method}` } };

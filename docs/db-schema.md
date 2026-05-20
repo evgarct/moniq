@@ -57,6 +57,7 @@ Rules:
 - `id uuid primary key`
 - `user_id uuid not null references auth.users(id)`
 - `name text not null`
+- `description text null`
 - `icon text null`
 - `type finance_category_type not null`
   - `income`
@@ -72,6 +73,7 @@ Rules:
 - deleting a category must preserve transactions by reassigning them to another category of the same type.
 - category analytics aggregate linked transaction amounts from the full descendant subtree.
 - category totals must stay split by currency instead of merged into one fake number.
+- descriptions explain each category/envelope for MCP agents and UI review; they are optional for user-created categories.
 
 ## `finance_transactions`
 
@@ -228,3 +230,4 @@ Rules:
   - `create_wallet_allocation`
   - `update_wallet_allocation`
   - `delete_wallet_allocation`
+  - `mcp_get_category_spending_report_source`

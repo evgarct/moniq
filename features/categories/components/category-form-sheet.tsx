@@ -24,6 +24,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { Textarea } from "@/components/ui/textarea";
 import type { Category } from "@/types/finance";
 
 type CategoryFormValues = import("@/types/finance-schemas").CategoryInput;
@@ -47,6 +48,7 @@ export function CategoryFormSheet({
   const t = useTranslations("categories.form");
   const categoryFormSchema = z.object({
     name: z.string().trim().min(1, t("validation.nameRequired")),
+    description: z.string().trim().max(600, t("validation.descriptionMax")).nullable().optional(),
     icon: z.string().trim().max(48, t("validation.iconMax")).nullable().optional(),
     type: z.enum(["income", "expense"]),
     parent_id: z.string().uuid().nullable().optional(),
@@ -55,6 +57,7 @@ export function CategoryFormSheet({
     resolver: zodResolver(categoryFormSchema),
     defaultValues: {
       name: category?.name ?? "",
+      description: category?.description ?? "",
       icon: category?.icon ?? "folder",
       type: category?.type ?? "expense",
       parent_id: category?.parent_id ?? null,
@@ -64,6 +67,7 @@ export function CategoryFormSheet({
   useEffect(() => {
     form.reset({
       name: category?.name ?? "",
+      description: category?.description ?? "",
       icon: category?.icon ?? "folder",
       type: category?.type ?? "expense",
       parent_id: category?.parent_id ?? null,
@@ -95,6 +99,14 @@ export function CategoryFormSheet({
               </label>
               <Input id="category-name" {...form.register("name")} />
               {form.formState.errors.name ? <p className="text-sm text-destructive">{form.formState.errors.name.message}</p> : null}
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium" htmlFor="category-description">
+                {t("fields.description")}
+              </label>
+              <Textarea id="category-description" rows={4} {...form.register("description")} />
+              {form.formState.errors.description ? <p className="text-sm text-destructive">{form.formState.errors.description.message}</p> : null}
             </div>
 
             <div className="grid gap-4 sm:grid-cols-[96px_minmax(0,1fr)]">
