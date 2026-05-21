@@ -6,6 +6,7 @@ export type Category = {
   id: string;
   user_id: string;
   name: string;
+  description?: string | null;
   icon: string | null;
   type: CategoryType;
   parent_id: string | null;

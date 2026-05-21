@@ -10,7 +10,7 @@ vi.mock("@/lib/supabase/anon", () => ({
   }),
 }));
 
-import { OPTIONS, POST } from "./route";
+import { getMcpTools, OPTIONS, POST } from "./route";
 
 const AUTH_HEADERS = {
   Authorization: "Bearer mnq_test",
@@ -83,7 +83,7 @@ describe("MCP tools", () => {
     setupAuth();
   });
 
-  it("lists direct context, direct creation, and legacy batch tools", async () => {
+  it("lists direct transaction, balance, batch, and spending report tools", async () => {
     const response = await postMcp({
       jsonrpc: "2.0",
       id: "tools",
@@ -97,7 +97,9 @@ describe("MCP tools", () => {
       "get_card_and_debt_balances",
       "create_transactions",
       "submit_transaction_batch",
+      "get_category_spending_report",
     ]);
+    expect(getMcpTools().map((tool) => tool.name)).toEqual(names);
   });
 
   it("returns finance context with category paths and selectable flags", async () => {

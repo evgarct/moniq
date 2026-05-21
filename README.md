@@ -48,6 +48,27 @@ NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 ```
 
+For authenticated local verification, add a dedicated e2e user to `.env.local`:
+
+```bash
+MONIQ_E2E_EMAIL=codex-e2e@example.com
+MONIQ_E2E_PASSWORD=...
+MONIQ_E2E_APP_URL=http://localhost:3008
+MONIQ_E2E_PATH=/en/inbox
+```
+
+If email confirmations are enabled or that user already exists with another password, also add `SUPABASE_SERVICE_ROLE_KEY=...`.
+
+Then run:
+
+```bash
+npm run preview:live
+npm run test:e2e:auth
+npm run test:e2e:add-transaction
+```
+
+The e2e setup creates or updates that dedicated user when service role is available, otherwise it uses normal sign-up/sign-in. It resets only that user's finance/import data and verifies login through the real Supabase-backed form.
+
 If you are linked to the hosted project, apply the current finance schema with:
 
 ```bash

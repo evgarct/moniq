@@ -45,6 +45,7 @@ export const walletInputSchema = z.object({
 
 export const categoryInputSchema = z.object({
   name: z.string().trim().min(1, "Category name is required."),
+  description: z.string().trim().max(600, "Description is too long.").nullable().optional(),
   icon: z.string().trim().max(48, "Use a short icon token.").nullable().optional(),
   type: z.enum(["income", "expense"] satisfies [CategoryType, ...CategoryType[]]),
   parent_id: z.string().uuid().nullable().optional(),

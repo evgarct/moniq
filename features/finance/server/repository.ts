@@ -35,6 +35,7 @@ type CategoryRow = {
   id: string;
   user_id: string;
   name: string;
+  description: string | null;
   icon: string | null;
   type: Category["type"];
   parent_id: string | null;
@@ -110,6 +111,7 @@ function mapCategory(row: CategoryRow): Category {
     id: row.id,
     user_id: row.user_id,
     name: row.name,
+    description: row.description,
     icon: row.icon,
     type: row.type,
     parent_id: row.parent_id,
@@ -377,7 +379,7 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
       .order("created_at", { ascending: false }),
     supabase
       .from("finance_categories")
-      .select("id, user_id, name, icon, type, parent_id, is_system, created_at")
+      .select("id, user_id, name, description, icon, type, parent_id, is_system, created_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: true }),
     supabase
@@ -755,6 +757,7 @@ export async function createCategory(values: CategoryInput) {
   const { error } = await supabase.from("finance_categories").insert({
     user_id: user.id,
     name: values.name.trim(),
+    description: values.description?.trim() || null,
     icon: values.icon?.trim() || null,
     type: values.type,
     parent_id: values.parent_id ?? null,
@@ -784,6 +787,7 @@ export async function updateCategory(categoryId: string, values: CategoryInput) 
     .from("finance_categories")
     .update({
       name: values.name.trim(),
+      description: values.description?.trim() || null,
       icon: values.icon?.trim() || null,
       type: values.type,
       parent_id: values.parent_id ?? null,

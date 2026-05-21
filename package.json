@@ -10,7 +10,9 @@
     "preview:refresh": "npm run preview:live",
     "lint": "eslint",
     "test:unit": "vitest run --config vitest.unit.config.ts",
-    "test:e2e:auth": "node scripts/verify-authenticated-app.mjs",
+    "test:e2e:setup": "node scripts/ensure-e2e-user.mjs",
+    "test:e2e:auth": "npm run test:e2e:setup && node scripts/verify-authenticated-app.mjs",
+    "test:e2e:add-transaction": "npm run test:e2e:setup && node scripts/verify-add-transaction.mjs",
     "storybook": "storybook dev -p 6008 --host 0.0.0.0 --ci",
     "build-storybook": "storybook build",
     "test-storybook": "vitest run --project=storybook"
