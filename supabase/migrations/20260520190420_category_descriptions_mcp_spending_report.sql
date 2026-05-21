@@ -1,6 +1,5 @@
 alter table public.finance_categories
   add column if not exists description text;
-
 update public.finance_categories
 set description = case lower(trim(name))
   when 'income' then 'All money received during the period. Use this root to understand available income before splitting expenses into envelopes.'
@@ -11,7 +10,7 @@ set description = case lower(trim(name))
   when 'interest income' then 'Interest, yield, dividends, or other passive finance income.'
   when 'other' then 'Income that does not fit a more specific income category.'
 
-  when 'living costs' then 'Рядовые расходы: everyday baseline spending needed for normal daily life, separate from fixed bills and pleasure spending.'
+  when 'living costs' then 'Everyday baseline spending needed for normal daily life, separate from fixed bills and pleasure spending.'
   when 'food & home' then 'Groceries, household basics, cleaning supplies, and routine home consumables.'
   when 'beauty & care' then 'Routine personal care and grooming expenses.'
   when 'pet care' then 'Pet food, supplies, vet visits, and recurring pet care.'
@@ -21,7 +20,7 @@ set description = case lower(trim(name))
   when 'bureaucracy' then 'Documents, fees, registrations, public services, and administrative errands.'
   when 'transport' then 'Public transport, fuel, parking, and routine mobility costs.'
 
-  when 'enjoy life' then 'Наслаждение жизнью: discretionary spending that improves quality of life, leisure, hobbies, travel, and fun.'
+  when 'enjoy life' then 'Discretionary spending that improves quality of life, leisure, hobbies, travel, and fun.'
   when 'eat out & chill' then 'Restaurants, cafes, bars, delivery, and casual social time.'
   when 'english skills' then 'English lessons, learning materials, tutors, and practice subscriptions.'
   when 'shows & events' then 'Concerts, theater, cinema, exhibitions, festivals, and tickets.'
@@ -43,7 +42,7 @@ set description = case lower(trim(name))
   when 'apple' then 'Apple products, services, accessories, and repairs.'
   when 'clothing' then 'Clothes, shoes, accessories, and wardrobe updates.'
 
-  when 'core bills' then 'Обязательные платежи: fixed obligations and must-pay commitments that keep life running.'
+  when 'core bills' then 'Fixed obligations and must-pay commitments that keep life running.'
   when 'rent' then 'Rent and regular housing payments.'
   when 'loans' then 'Loan payments and required debt obligations.'
   when 'mortgage' then 'Mortgage payments and housing debt obligations.'
@@ -51,13 +50,13 @@ set description = case lower(trim(name))
   when 'for mom' then 'Regular family support or money set aside for mom.'
   when 'insurance' then 'Insurance premiums and required protection payments.'
 
-  when 'next & safe' then 'Краткосрочные сбережения: near-term reserves, cushions, and planned purchases that protect cash flow.'
+  when 'next & safe' then 'Near-term reserves, cushions, and planned purchases that protect cash flow.'
   when 'cushion' then 'General emergency cushion and short-term safety reserve.'
   when 'cat cushion' then 'Dedicated reserve for pet-related emergencies or larger pet costs.'
   when 'big buys' then 'Short-term savings for larger planned purchases.'
   when 'travel' then 'Short-term travel savings and trip budget reserves.'
 
-  when 'wealth' then 'Будущие инвестиции: money directed toward long-term capital, retirement, and future financial growth.'
+  when 'wealth' then 'Money directed toward long-term capital, retirement, and future financial growth.'
   when 'investments' then 'Brokerage contributions, ETFs, stocks, funds, and long-term investment purchases.'
   when 'pension' then 'Pension contributions and retirement-focused savings.'
 
@@ -65,7 +64,6 @@ set description = case lower(trim(name))
   else description
 end
 where description is null or trim(description) = '';
-
 create or replace function public.mcp_get_category_spending_report_source(
   p_key_hash text,
   p_start_date date,
@@ -176,6 +174,5 @@ begin
   );
 end;
 $$;
-
 revoke all on function public.mcp_get_category_spending_report_source(text, date, date) from public;
 grant execute on function public.mcp_get_category_spending_report_source(text, date, date) to anon;
