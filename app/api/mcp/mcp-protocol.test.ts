@@ -16,6 +16,7 @@ const AUTH_HEADERS = {
   Authorization: "Bearer mnq_test",
   "Content-Type": "application/json",
 };
+const AUTH_KEY_HASH = "4e9c2607dbc70aac6e1c00a5971f3929addde44c0c00f508d6f0952865ea5627";
 
 function setupAuth() {
   mocks.rpc.mockImplementation((name: string) => {
@@ -154,7 +155,7 @@ describe("MCP tools", () => {
         is_selectable: true,
       }),
     );
-    expect(mocks.rpc).toHaveBeenCalledWith("mcp_get_finance_context", { p_user_id: "user-1" });
+    expect(mocks.rpc).toHaveBeenCalledWith("mcp_get_finance_context", { p_key_hash: AUTH_KEY_HASH });
   });
 
   it("returns quick card and debt balances", async () => {
@@ -272,6 +273,27 @@ describe("MCP tools", () => {
     expect(body.error).toMatchObject({
       code: -32602,
       message: expect.stringContaining("category_id"),
+    });
+    expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_create_transactions", expect.anything());
+  });
+
+  it("rejects null transaction entries before field access", async () => {
+    const response = await postMcp({
+      jsonrpc: "2.0",
+      id: "create-null",
+      method: "tools/call",
+      params: {
+        name: "create_transactions",
+        arguments: {
+          transactions: [null],
+        },
+      },
+    });
+
+    const body = await response.json();
+    expect(body.error).toMatchObject({
+      code: -32602,
+      message: "Transaction 1 must be an object",
     });
     expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_create_transactions", expect.anything());
   });
@@ -404,7 +426,7 @@ describe("MCP tools", () => {
     const body = await response.json();
     expect(body.result.structuredContent.created).toHaveLength(4);
     expect(mocks.rpc).toHaveBeenCalledWith("mcp_create_transactions", {
-      p_user_id: "user-1",
+      p_key_hash: AUTH_KEY_HASH,
       p_transactions: [
         expect.objectContaining({
           title: "Salary",

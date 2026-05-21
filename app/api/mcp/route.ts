@@ -1,8 +1,9 @@
 /**
  * Moniq MCP Server — Streamable HTTP Transport (MCP 2025-03-26)
  *
- * All DB operations go through SECURITY DEFINER RPC functions so we never
- * need the Supabase service role key — the public anon key is sufficient.
+ * MCP auth uses a bearer API key resolved through narrow SECURITY DEFINER
+ * RPCs. Direct finance RPCs receive the key hash and resolve the user inside
+ * Postgres before touching tenant data.
  */
 
 import { createHash } from "crypto";
@@ -557,7 +558,13 @@ function optionalString(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
-function validateDirectTransaction(tx: DirectTransactionItem, index: number): string | null {
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function validateDirectTransaction(tx: unknown, index: number): string | null {
+  if (!isRecord(tx)) return `Transaction ${index + 1} must be an object`;
+
   const label = typeof tx.title === "string" && tx.title.trim() ? tx.title.trim() : `transaction ${index + 1}`;
 
   if (!tx.title || typeof tx.title !== "string" || !tx.title.trim()) return `Transaction ${index + 1} must have a title`;
@@ -700,9 +707,9 @@ function buildCardAndDebtBalances(context: { wallets?: WalletRow[] }) {
   };
 }
 
-async function handleGetFinanceContext(id: string | number | null, userId: string): Promise<McpResponse> {
+async function handleGetFinanceContext(id: string | number | null, keyHash: string): Promise<McpResponse> {
   const db = createAnonClient();
-  const { data, error } = await db.rpc("mcp_get_finance_context", { p_user_id: userId });
+  const { data, error } = await db.rpc("mcp_get_finance_context", { p_key_hash: keyHash });
 
   if (error || !data) {
     return {
@@ -727,9 +734,9 @@ async function handleGetFinanceContext(id: string | number | null, userId: strin
   };
 }
 
-async function handleGetCardAndDebtBalances(id: string | number | null, userId: string): Promise<McpResponse> {
+async function handleGetCardAndDebtBalances(id: string | number | null, keyHash: string): Promise<McpResponse> {
   const db = createAnonClient();
-  const { data, error } = await db.rpc("mcp_get_finance_context", { p_user_id: userId });
+  const { data, error } = await db.rpc("mcp_get_finance_context", { p_key_hash: keyHash });
 
   if (error || !data) {
     return {
@@ -759,9 +766,9 @@ async function handleGetCardAndDebtBalances(id: string | number | null, userId: 
 async function handleCreateTransactions(
   id: string | number | null,
   params: Record<string, unknown>,
-  userId: string,
+  keyHash: string,
 ): Promise<McpResponse> {
-  const args = (params.arguments ?? {}) as { transactions?: DirectTransactionItem[] };
+  const args = (params.arguments ?? {}) as { transactions?: unknown[] };
   const transactions = args.transactions;
 
   if (!Array.isArray(transactions) || transactions.length === 0) {
@@ -774,9 +781,9 @@ async function handleCreateTransactions(
   }
 
   const db = createAnonClient();
-  const normalized = transactions.map(normalizeDirectTransaction);
+  const normalized = (transactions as DirectTransactionItem[]).map(normalizeDirectTransaction);
   const { data, error } = await db.rpc("mcp_create_transactions", {
-    p_user_id: userId,
+    p_key_hash: keyHash,
     p_transactions: normalized,
   });
 
@@ -813,15 +820,15 @@ async function handleToolCall(
   const toolName = params.name as string;
 
   if (toolName === "get_finance_context") {
-    return handleGetFinanceContext(id, auth.userId);
+    return handleGetFinanceContext(id, auth.keyHash);
   }
 
   if (toolName === "get_card_and_debt_balances") {
-    return handleGetCardAndDebtBalances(id, auth.userId);
+    return handleGetCardAndDebtBalances(id, auth.keyHash);
   }
 
   if (toolName === "create_transactions") {
-    return handleCreateTransactions(id, params, auth.userId);
+    return handleCreateTransactions(id, params, auth.keyHash);
   }
 
   if (toolName === "get_category_spending_report") {

@@ -1,6 +1,7 @@
 -- Direct MCP transaction creation.
--- These RPCs are called with the anon key after the MCP bearer token has
--- already been resolved to a Moniq user_id by mcp_lookup_api_key.
+-- These RPCs trust a user_id that has already been resolved from the MCP
+-- bearer API key by the server route. They must not be executable through
+-- public anon/authenticated REST RPC calls with caller-supplied user IDs.
 
 create or replace function public.mcp_get_finance_context(p_user_id uuid)
 returns jsonb
@@ -362,5 +363,7 @@ begin
 end;
 $$;
 
-grant execute on function public.mcp_get_finance_context(uuid) to anon, authenticated;
-grant execute on function public.mcp_create_transactions(uuid, jsonb) to anon, authenticated;
+revoke execute on function public.mcp_get_finance_context(uuid) from public, anon, authenticated;
+revoke execute on function public.mcp_create_transactions(uuid, jsonb) from public, anon, authenticated;
+grant execute on function public.mcp_get_finance_context(uuid) to service_role;
+grant execute on function public.mcp_create_transactions(uuid, jsonb) to service_role;
