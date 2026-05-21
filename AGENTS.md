@@ -70,6 +70,7 @@ Right: category shown as plain muted text below the transaction title.
 
 - This repo is developed directly on Windows/PowerShell. Do not use WSL for normal project commands unless the user explicitly asks for it.
 - When starting a new feature in this repo, first update from the latest remote `main`, then create a fresh feature branch from that current base.
+- Before starting implementation, branching, or opening/updating a PR in this repo, run `git fetch origin` and verify the intended base against the freshly fetched `origin/main`. Do not rely on a pre-existing `main...origin/main` status line without fetching first.
 - Before opening a PR in this repo, update the relevant documentation first, then prepare the PR.
 - After finishing implementation work, always run the relevant local verification for this repo.
 - For wallet, allocation, and other finance-state mutations in this repo, keep invariants in pure domain helpers and cover them with node-level tests. Do not leave critical create/edit/delete rules only inside React component handlers.
