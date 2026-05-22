@@ -81,3 +81,4 @@ npx supabase db push
 - Wallets and savings allocations are persisted in Supabase and loaded through API route handlers plus TanStack Query.
 - Transactions, categories, and imports are persisted in Supabase.
 - CSV imports use a separate draft inbox. Imported rows stay as drafts until the user confirms them, then they are written into the main finance ledger and can create merchant-based category rules.
+- MCP-capable agents should use [docs/mcp-agent-instructions.md](docs/mcp-agent-instructions.md) before claiming Moniq cannot access transactions, future schedules, balances, or categories.
