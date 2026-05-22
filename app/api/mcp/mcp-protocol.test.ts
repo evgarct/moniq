@@ -104,6 +104,37 @@ describe("MCP tools", () => {
     expect(getMcpTools().map((tool) => tool.name)).toEqual(names);
   });
 
+  it("exposes human-readable metadata for ChatGPT confirmations", async () => {
+    const createTransactionsTool = getMcpTools().find((tool) => tool.name === "create_transactions");
+
+    expect(createTransactionsTool).toMatchObject({
+      title: "Create Moniq transactions",
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        openWorldHint: false,
+      },
+      _meta: {
+        "openai/toolInvocation/invoking": "Adding transactions",
+        "openai/toolInvocation/invoked": "Transactions added",
+      },
+    });
+    expect(createTransactionsTool?.inputSchema).toMatchObject({
+      title: "Transactions to add",
+      properties: {
+        transactions: {
+          title: "Transactions",
+          items: {
+            properties: {
+              source_account_id: { title: "From wallet" },
+              category_id: { title: "Category" },
+            },
+          },
+        },
+      },
+    });
+  });
+
   it("returns finance context with category paths and selectable flags", async () => {
     mocks.rpc.mockImplementation((name: string) => {
       if (name === "mcp_lookup_api_key") {
