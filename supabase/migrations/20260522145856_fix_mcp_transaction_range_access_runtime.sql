@@ -534,74 +534,6 @@ begin
       from combined_transactions
       group by coalesce(currency, 'unknown')
     ) grouped
-  ),
-  account_context as (
-    select coalesce(
-      jsonb_agg(
-        jsonb_build_object(
-          'id', w.id,
-          'name', w.name,
-          'type', w.type,
-          'cash_kind', w.cash_kind,
-          'debt_kind', w.debt_kind,
-          'currency', w.currency,
-          'balance', w.balance,
-          'credit_limit', w.credit_limit
-        )
-        order by w.created_at desc
-      ),
-      '[]'::jsonb
-    ) as accounts
-    from public.wallets w
-    where w.user_id = key_user_id
-  ),
-  category_context as (
-    select coalesce(
-      jsonb_agg(
-        jsonb_build_object(
-          'id', c.id,
-          'name', c.name,
-          'description', c.description,
-          'icon', c.icon,
-          'type', c.type,
-          'parent_id', c.parent_id,
-          'is_system', c.is_system
-        )
-        order by c.type, c.name
-      ),
-      '[]'::jsonb
-    ) as categories
-    from public.finance_categories c
-    where c.user_id = key_user_id
-  ),
-  schedule_context as (
-    select coalesce(
-      jsonb_agg(
-        jsonb_build_object(
-          'id', s.id,
-          'title', s.title,
-          'note', s.note,
-          'start_date', s.start_date,
-          'frequency', s.frequency,
-          'until_date', s.until_date,
-          'state', s.state,
-          'kind', s.kind,
-          'amount', s.amount,
-          'destination_amount', s.destination_amount,
-          'fx_rate', s.fx_rate,
-          'principal_amount', s.principal_amount,
-          'interest_amount', s.interest_amount,
-          'extra_principal_amount', s.extra_principal_amount,
-          'category_id', s.category_id,
-          'source_account_id', s.source_account_id,
-          'destination_account_id', s.destination_account_id
-        )
-        order by s.created_at desc
-      ),
-      '[]'::jsonb
-    ) as schedules
-    from public.finance_transaction_schedules s
-    where s.user_id = key_user_id
   )
   select jsonb_build_object(
     'period', jsonb_build_object(
@@ -617,14 +549,82 @@ begin
   )
   || case
     when p_include_context then jsonb_build_object(
-      'accounts', account_context.accounts,
-      'categories', category_context.categories,
-      'schedules', schedule_context.schedules
+      'accounts',
+      coalesce(
+        (
+          select jsonb_agg(
+            jsonb_build_object(
+              'id', w.id,
+              'name', w.name,
+              'type', w.type,
+              'cash_kind', w.cash_kind,
+              'debt_kind', w.debt_kind,
+              'currency', w.currency,
+              'balance', w.balance,
+              'credit_limit', w.credit_limit
+            )
+            order by w.created_at desc
+          )
+          from public.wallets w
+          where w.user_id = key_user_id
+        ),
+        '[]'::jsonb
+      ),
+      'categories',
+      coalesce(
+        (
+          select jsonb_agg(
+            jsonb_build_object(
+              'id', c.id,
+              'name', c.name,
+              'description', c.description,
+              'icon', c.icon,
+              'type', c.type,
+              'parent_id', c.parent_id,
+              'is_system', c.is_system
+            )
+            order by c.type, c.name
+          )
+          from public.finance_categories c
+          where c.user_id = key_user_id
+        ),
+        '[]'::jsonb
+      ),
+      'schedules',
+      coalesce(
+        (
+          select jsonb_agg(
+            jsonb_build_object(
+              'id', s.id,
+              'title', s.title,
+              'note', s.note,
+              'start_date', s.start_date,
+              'frequency', s.frequency,
+              'until_date', s.until_date,
+              'state', s.state,
+              'kind', s.kind,
+              'amount', s.amount,
+              'destination_amount', s.destination_amount,
+              'fx_rate', s.fx_rate,
+              'principal_amount', s.principal_amount,
+              'interest_amount', s.interest_amount,
+              'extra_principal_amount', s.extra_principal_amount,
+              'category_id', s.category_id,
+              'source_account_id', s.source_account_id,
+              'destination_account_id', s.destination_account_id
+            )
+            order by s.created_at desc
+          )
+          from public.finance_transaction_schedules s
+          where s.user_id = key_user_id
+        ),
+        '[]'::jsonb
+      )
     )
     else '{}'::jsonb
   end
   into response
-  from transaction_payload, summary_payload, account_context, category_context, schedule_context;
+  from transaction_payload, summary_payload;
 
   return response;
 end;

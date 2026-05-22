@@ -270,6 +270,28 @@ describe("MCP tools", () => {
     expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_get_transactions_for_period", expect.anything());
   });
 
+  it("rejects transaction range requests with non-existent calendar dates", async () => {
+    const response = await postMcp({
+      jsonrpc: "2.0",
+      id: "tx-range-invalid-calendar-date",
+      method: "tools/call",
+      params: {
+        name: "get_transactions",
+        arguments: {
+          start_date: "2026-02-31",
+          end_date: "2026-03-31",
+        },
+      },
+    });
+
+    const body = await response.json();
+    expect(body.error).toMatchObject({
+      code: -32602,
+      message: "start_date and end_date must be provided in YYYY-MM-DD format",
+    });
+    expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_get_transactions_for_period", expect.anything());
+  });
+
   it("rejects transaction range requests when start is after end", async () => {
     const response = await postMcp({
       jsonrpc: "2.0",
