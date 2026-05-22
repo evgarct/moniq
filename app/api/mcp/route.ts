@@ -224,8 +224,14 @@ export function getMcpTools() {
   return [
         {
           name: "get_finance_context",
+          title: "Get Moniq finance context",
           description:
-            "Read the user's Moniq wallet and category context before creating transactions. Use this first so you can choose exact account IDs and category IDs. Categories include hierarchical paths and selectable flags; use category IDs, never free-text category names.",
+            "Read the user's Moniq wallet and category context before creating transactions. Use this first so you can choose exact wallet IDs and category IDs. Categories include hierarchical paths and selectable flags; use category IDs, never free-text category names. When explaining the next action to the user, summarize wallets and categories by their names and paths, not by raw UUIDs.",
+          annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+          _meta: {
+            "openai/toolInvocation/invoking": "Reading Moniq context",
+            "openai/toolInvocation/invoked": "Moniq context ready",
+          },
           inputSchema: {
             type: "object",
             properties: {},
@@ -234,8 +240,14 @@ export function getMcpTools() {
         },
         {
           name: "get_card_and_debt_balances",
+          title: "Get card and debt balances",
           description:
             "Quickly read current Moniq balances for card-like wallets and debts only. Use this when the user asks for card balances, credit card debt, loans, mortgages, or total debts. Debit cards are cash wallets with cash_kind=debit_card; credit cards and debt wallets include outstanding_amount so you do not have to infer sign conventions.",
+          annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+          _meta: {
+            "openai/toolInvocation/invoking": "Checking balances",
+            "openai/toolInvocation/invoked": "Balances ready",
+          },
           inputSchema: {
             type: "object",
             properties: {},
@@ -244,33 +256,43 @@ export function getMcpTools() {
         },
         {
           name: "create_transactions",
+          title: "Create Moniq transactions",
           description:
-            "Create complete Moniq transactions directly in the ledger after you have clarified every required field with the user. Call get_finance_context first, then use exact wallet IDs and selectable category IDs from that context. Ask the user for missing date, amount, kind, wallet, category, transfer destination, or debt-payment breakdown before calling this tool. Preserve useful source details in note; send null or omit note when no detail is known.",
+            "Create complete Moniq transactions directly in the ledger after you have clarified every required field with the user. Call get_finance_context first, then use exact wallet IDs and selectable category IDs from that context. Before calling, confirm the transaction count, dates, titles, amounts with currencies, wallet names, and category names in plain language. Do not show raw UUIDs to the user unless they ask for technical details. Ask the user for missing date, amount, kind, wallet, category, transfer destination, or debt-payment breakdown before calling this tool. Preserve useful source details in note; send null or omit note when no detail is known.",
+          annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
+          _meta: {
+            "openai/toolInvocation/invoking": "Adding transactions",
+            "openai/toolInvocation/invoked": "Transactions added",
+          },
           inputSchema: {
             type: "object",
+            title: "Transactions to add",
             properties: {
               transactions: {
                 type: "array",
                 minItems: 1,
-                description: "Complete transactions to create directly in Moniq.",
+                title: "Transactions",
+                description: "Complete transactions to create directly in Moniq. The confirmation shown to the user should describe these by merchant, date, amount, wallet name, and category name.",
                 items: {
                   type: "object",
+                  title: "Transaction",
                   required: ["title", "amount", "occurred_at", "status", "kind"],
+                  additionalProperties: false,
                   properties: {
-                    title: { type: "string", description: "Merchant, payer, or concise transaction title." },
-                    note: { type: ["string", "null"], description: "Useful extra context, original label, or user-provided details." },
-                    occurred_at: { type: "string", description: "Transaction date in YYYY-MM-DD format." },
-                    status: { type: "string", enum: ["paid", "planned"], description: "Use paid for settled transactions and planned for upcoming ones." },
-                    kind: { type: "string", enum: TRANSACTION_KINDS },
-                    amount: { type: "number", description: "Positive source-side amount." },
-                    destination_amount: { type: ["number", "null"], description: "Transfer destination amount; omit/null to use amount." },
-                    fx_rate: { type: ["number", "null"], description: "Optional transfer FX rate." },
-                    principal_amount: { type: ["number", "null"], description: "Debt payment principal component." },
-                    interest_amount: { type: ["number", "null"], description: "Debt payment interest component." },
-                    extra_principal_amount: { type: ["number", "null"], description: "Debt payment extra principal component." },
-                    category_id: { type: ["string", "null"], description: "Required for income/expense. Optional expense category for debt payment interest. Never set for transfers." },
-                    source_account_id: { type: ["string", "null"], description: "Required for expense, transfer, and debt payment." },
-                    destination_account_id: { type: ["string", "null"], description: "Required for income, transfer, and debt payment. Debt payment destination must be a debt wallet." },
+                    title: { type: "string", title: "Title", description: "Merchant, payer, or concise transaction title." },
+                    note: { type: ["string", "null"], title: "Note", description: "Useful extra context, original label, or user-provided details." },
+                    occurred_at: { type: "string", title: "Date", description: "Transaction date in YYYY-MM-DD format." },
+                    status: { type: "string", title: "Status", enum: ["paid", "planned"], description: "Use paid for settled transactions and planned for upcoming ones." },
+                    kind: { type: "string", title: "Type", enum: TRANSACTION_KINDS },
+                    amount: { type: "number", title: "Amount", description: "Positive source-side amount." },
+                    destination_amount: { type: ["number", "null"], title: "Destination amount", description: "Transfer destination amount; omit/null to use amount." },
+                    fx_rate: { type: ["number", "null"], title: "FX rate", description: "Optional transfer FX rate." },
+                    principal_amount: { type: ["number", "null"], title: "Principal", description: "Debt payment principal component." },
+                    interest_amount: { type: ["number", "null"], title: "Interest", description: "Debt payment interest component." },
+                    extra_principal_amount: { type: ["number", "null"], title: "Extra principal", description: "Debt payment extra principal component." },
+                    category_id: { type: ["string", "null"], title: "Category", description: "Required selectable category ID for income/expense. Optional expense category for debt payment interest. Never set for transfers. In user-facing confirmation, describe this by category path from get_finance_context." },
+                    source_account_id: { type: ["string", "null"], title: "From wallet", description: "Required source wallet ID for expense, transfer, and debt payment. In user-facing confirmation, describe this by wallet name from get_finance_context." },
+                    destination_account_id: { type: ["string", "null"], title: "To wallet", description: "Required destination wallet ID for income, transfer, and debt payment. Debt payment destination must be a debt wallet. In user-facing confirmation, describe this by wallet name from get_finance_context." },
                   },
                 },
               },
@@ -281,46 +303,63 @@ export function getMcpTools() {
         },
         {
           name: "submit_transaction_batch",
+          title: "Send transactions to Moniq Inbox",
           description:
             "Legacy review flow: submit a batch of transactions extracted from a bank screenshot, statement, or file for review inside Moniq. Use this when confidence is low or the user explicitly wants inbox approval instead of direct ledger writes.",
+          annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
+          _meta: {
+            "openai/toolInvocation/invoking": "Sending to Moniq Inbox",
+            "openai/toolInvocation/invoked": "Sent to Moniq Inbox",
+          },
           inputSchema: {
             type: "object",
+            title: "Transactions for review",
             properties: {
               transactions: {
                 type: "array",
+                title: "Transactions",
                 description: "List of transactions to submit for review.",
                 items: {
                   type: "object",
+                  title: "Transaction",
                   required: ["title", "amount", "occurred_at", "kind"],
+                  additionalProperties: false,
                   properties: {
                     title: {
                       type: "string",
+                      title: "Title",
                       description: "Merchant name or transaction description.",
                     },
                     amount: {
                       type: "number",
+                      title: "Amount",
                       description: "Absolute transaction amount (always positive).",
                     },
                     occurred_at: {
                       type: "string",
+                      title: "Date",
                       description: "Transaction date in YYYY-MM-DD format.",
                     },
                     kind: {
                       type: "string",
+                      title: "Type",
                       enum: ["income", "expense"],
                       description: "Whether this is income or an expense.",
                     },
                     suggested_category_name: {
                       type: "string",
+                      title: "Suggested category",
                       description:
                         "Your best guess at a category name (e.g. 'Groceries', 'Transport', 'Salary'). The user can override it during review.",
                     },
                     currency: {
                       type: "string",
+                      title: "Currency",
                       description: "3-letter ISO currency code (e.g. EUR, USD, RUB). Optional.",
                     },
                     note: {
                       type: "string",
+                      title: "Note",
                       description: "Any extra context or original bank label. Optional.",
                     },
                   },
@@ -329,6 +368,7 @@ export function getMcpTools() {
               },
               source_description: {
                 type: "string",
+                title: "Source",
                 description:
                   "Brief description of where these transactions came from (e.g. 'Tinkoff screenshot March 2025', 'Revolut CSV export').",
               },
@@ -338,27 +378,38 @@ export function getMcpTools() {
         },
         {
           name: "get_category_spending_report",
+          title: "Get category spending report",
           description:
             "Read Moniq category spending analytics for a period. Defaults to the last fully completed calendar month. Returns paid transactions grouped by root expense envelopes and income categories, with totals and percentages separated by currency.",
+          annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+          _meta: {
+            "openai/toolInvocation/invoking": "Building spending report",
+            "openai/toolInvocation/invoked": "Spending report ready",
+          },
           inputSchema: {
             type: "object",
+            title: "Spending report period",
             properties: {
               period_preset: {
                 type: "string",
+                title: "Preset period",
                 enum: ["last_complete_month"],
                 description:
                   "Optional preset. Use last_complete_month to report the last fully completed calendar month.",
               },
               month: {
                 type: "string",
+                title: "Month",
                 description: "Calendar month in YYYY-MM format. Mutually exclusive with start_date/end_date.",
               },
               start_date: {
                 type: "string",
+                title: "Start date",
                 description: "Inclusive custom period start date in YYYY-MM-DD format.",
               },
               end_date: {
                 type: "string",
+                title: "End date",
                 description: "Inclusive custom period end date in YYYY-MM-DD format.",
               },
             },
