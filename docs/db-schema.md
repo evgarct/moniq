@@ -90,8 +90,6 @@ Rules:
   - `income`
   - `expense`
   - `transfer`
-  - `save_to_goal`
-  - `spend_from_goal`
   - `debt_payment`
 - `amount numeric(14,2) not null`
 - `destination_amount numeric(14,2) null`
@@ -217,6 +215,7 @@ Rules:
 - schedules always start as `planned`; settling cashflow happens on occurrences through `mark paid`.
 - `until_date`, when present, must be on or after `start_date`.
 - `paused` schedules preserve already generated history but stop future occurrence generation until resumed.
+- app snapshots materialize active schedule occurrences for the next 60 months, while MCP transaction-range reads generate occurrences for the requested period directly from schedules.
 
 ## RLS and RPC
 
@@ -230,4 +229,14 @@ Rules:
   - `create_wallet_allocation`
   - `update_wallet_allocation`
   - `delete_wallet_allocation`
+  - `mcp_get_transactions_for_period`
   - `mcp_get_category_spending_report_source`
+
+## MCP transaction range access
+
+- `get_transactions` reads an inclusive period through `mcp_get_transactions_for_period`.
+- the RPC resolves the Moniq user from the MCP API key hash inside Postgres and never accepts a caller-supplied `user_id`.
+- results include ledger rows for `paid`, `planned`, and `skipped` transactions plus generated active recurring schedule occurrences for the requested future range.
+- materialized schedule occurrences in `finance_transactions` take precedence over generated schedule rows for the same `(schedule_id, schedule_occurrence_date)`, including paid, skipped, and overridden occurrences.
+- generated occurrences use stable synthetic IDs in the form `schedule:{schedule_id}:{date}` and include `source = "schedule"` plus `is_generated = true`.
+- the response is capped at 5000 returned/generated transactions; agents should split larger date ranges.

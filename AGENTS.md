@@ -71,6 +71,7 @@ Right: category shown as plain muted text below the transaction title.
 - This repo is developed directly on Windows/PowerShell. Do not use WSL for normal project commands unless the user explicitly asks for it.
 - When starting a new feature in this repo, first update from the latest remote `main`, then create a fresh feature branch from that current base.
 - Before starting implementation, branching, or opening/updating a PR in this repo, run `git fetch origin` and verify the intended base against the freshly fetched `origin/main`. Do not rely on a pre-existing `main...origin/main` status line without fetching first.
+- Before editing files for new reviewable implementation work in this repo, create/switch to a fresh feature branch from the fetched `origin/main`. Do not start coding on an old topic branch unless the user explicitly asks to update that open PR branch.
 - Before opening a PR in this repo, update the relevant documentation first, then prepare the PR.
 - After finishing implementation work, always run the relevant local verification for this repo.
 - For wallet, allocation, and other finance-state mutations in this repo, keep invariants in pure domain helpers and cover them with node-level tests. Do not leave critical create/edit/delete rules only inside React component handlers.
@@ -108,6 +109,7 @@ Right: category shown as plain muted text below the transaction title.
 - This repo uses the linked remote Supabase project as the development database. When schema changes are required, apply the repo migrations to the linked remote immediately instead of deferring them to a separate local database flow.
 - In a fresh worktree of this repo, do not assume Supabase link metadata exists just because another sibling checkout is linked. Before running `npx supabase db push`, verify `supabase/.temp/project-ref` exists in that exact worktree, or re-link/copy the metadata first.
 - If `npx supabase db push` reports remote migration versions missing from the local migrations directory, do not run migration repair blindly. Run `npx supabase migration list`, report the missing remote version, and stop unless the user explicitly approves reconciling migration history.
+- After applying migrations to the linked Supabase project, verify remote objects with `supabase db query --linked`; plain `supabase db query` targets the local database and can fail when local Postgres is not running.
 - After completing meaningful work in this repo, invoke the `instruction-retrospective` skill to review execution problems and update durable instructions.
 - For this repo, do not reuse an already running `next start` preview after source changes. Rebuild with `npm run build`, restart the preview process, and then verify the reported app URL by HTTP before claiming the local preview is current.
 - For this repo, when fresh local app and Storybook links are needed after UI changes, use `npm run preview:live`, which must restart both dev servers in place on the stable URLs `http://localhost:3008` and `http://localhost:6008`. Do not rotate to new preview ports for normal UI work in this repo.

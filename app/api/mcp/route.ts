@@ -40,10 +40,12 @@ const WWW_AUTHENTICATE =
   'Bearer realm="moniq", resource_metadata="https://moniq.safronov.dev/.well-known/oauth-protected-resource"';
 
 const TRANSACTION_KINDS = ["income", "expense", "transfer", "debt_payment"] as const;
-const TRANSACTION_STATUSES = ["paid", "planned"] as const;
+const DIRECT_TRANSACTION_STATUSES = ["paid", "planned"] as const;
+const READ_TRANSACTION_STATUSES = ["paid", "planned", "skipped"] as const;
 
 type TransactionKind = (typeof TRANSACTION_KINDS)[number];
-type TransactionStatus = (typeof TRANSACTION_STATUSES)[number];
+type DirectTransactionStatus = (typeof DIRECT_TRANSACTION_STATUSES)[number];
+type ReadTransactionStatus = (typeof READ_TRANSACTION_STATUSES)[number];
 
 export async function GET(request: Request) {
   const auth = await authenticateApiKey(request);
@@ -255,6 +257,64 @@ export function getMcpTools() {
           },
         },
         {
+          name: "get_transactions",
+          title: "Get Moniq transactions",
+          description:
+            "Read all Moniq transactions for an inclusive date range, including past paid transactions, planned/skipped entries, one-off future transactions, and generated recurring schedule occurrences. Use this for retrospective analytics and future cash-flow forecasting. Generated recurring occurrences are returned with source=schedule, is_generated=true, and stable synthetic IDs. When replying, use wallet and category names from the returned context instead of exposing raw UUIDs.",
+          annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+          _meta: {
+            "openai/toolInvocation/invoking": "Reading transactions",
+            "openai/toolInvocation/invoked": "Transactions ready",
+          },
+          inputSchema: {
+            type: "object",
+            title: "Transaction period",
+            properties: {
+              start_date: {
+                type: "string",
+                title: "Start date",
+                description: "Inclusive period start date in YYYY-MM-DD format.",
+              },
+              end_date: {
+                type: "string",
+                title: "End date",
+                description: "Inclusive period end date in YYYY-MM-DD format.",
+              },
+              statuses: {
+                type: "array",
+                title: "Statuses",
+                items: { type: "string", enum: READ_TRANSACTION_STATUSES },
+                description: "Optional statuses to include. Defaults to paid, planned, and skipped.",
+              },
+              kinds: {
+                type: "array",
+                title: "Transaction types",
+                items: { type: "string", enum: TRANSACTION_KINDS },
+                description: "Optional transaction kinds to include. Defaults to income, expense, transfer, and debt_payment.",
+              },
+              account_ids: {
+                type: "array",
+                title: "Wallets",
+                items: { type: "string" },
+                description: "Optional source or destination wallet IDs to include. In user-facing summaries, refer to these wallets by name when known.",
+              },
+              category_ids: {
+                type: "array",
+                title: "Categories",
+                items: { type: "string" },
+                description: "Optional category IDs to include. Transfers without categories are excluded when this filter is set. In user-facing summaries, refer to these categories by path when known.",
+              },
+              include_context: {
+                type: "boolean",
+                title: "Include wallet and category names",
+                description: "When true, include matching account, category, and schedule context in the response.",
+              },
+            },
+            required: ["start_date", "end_date"],
+            additionalProperties: false,
+          },
+        },
+        {
           name: "create_transactions",
           title: "Create Moniq transactions",
           description:
@@ -282,7 +342,7 @@ export function getMcpTools() {
                     title: { type: "string", title: "Title", description: "Merchant, payer, or concise transaction title." },
                     note: { type: ["string", "null"], title: "Note", description: "Useful extra context, original label, or user-provided details." },
                     occurred_at: { type: "string", title: "Date", description: "Transaction date in YYYY-MM-DD format." },
-                    status: { type: "string", title: "Status", enum: ["paid", "planned"], description: "Use paid for settled transactions and planned for upcoming ones." },
+                    status: { type: "string", title: "Status", enum: DIRECT_TRANSACTION_STATUSES, description: "Use paid for settled transactions and planned for upcoming ones." },
                     kind: { type: "string", title: "Type", enum: TRANSACTION_KINDS },
                     amount: { type: "number", title: "Amount", description: "Positive source-side amount." },
                     destination_amount: { type: ["number", "null"], title: "Destination amount", description: "Transfer destination amount; omit/null to use amount." },
@@ -500,6 +560,22 @@ function getOptionalStringArg(args: Record<string, unknown>, key: string) {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
+function getOptionalBooleanArg(args: Record<string, unknown>, key: string) {
+  const value = args[key];
+  return typeof value === "boolean" ? value : undefined;
+}
+
+function getOptionalStringArrayArg(args: Record<string, unknown>, key: string) {
+  const value = args[key];
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value)) return null;
+
+  const normalized = value.map((item) => (typeof item === "string" ? item.trim() : ""));
+  if (normalized.some((item) => !item)) return null;
+
+  return normalized;
+}
+
 async function handleCategorySpendingReportTool(
   id: string | number | null,
   args: Record<string, unknown>,
@@ -585,8 +661,105 @@ async function handleCategorySpendingReportTool(
   };
 }
 
+async function handleGetTransactionsTool(
+  id: string | number | null,
+  args: Record<string, unknown>,
+  keyHash: string,
+): Promise<McpResponse> {
+  const startDate = getOptionalStringArg(args, "start_date");
+  const endDate = getOptionalStringArg(args, "end_date");
+
+  if (!isIsoDate(startDate) || !isIsoDate(endDate)) {
+    return {
+      jsonrpc: "2.0",
+      id,
+      error: { code: -32602, message: "start_date and end_date must be provided in YYYY-MM-DD format" },
+    };
+  }
+
+  if (startDate > endDate) {
+    return {
+      jsonrpc: "2.0",
+      id,
+      error: { code: -32602, message: "start_date must be on or before end_date" },
+    };
+  }
+
+  const statuses = getOptionalStringArrayArg(args, "statuses");
+  const kinds = getOptionalStringArrayArg(args, "kinds");
+  const accountIds = getOptionalStringArrayArg(args, "account_ids");
+  const categoryIds = getOptionalStringArrayArg(args, "category_ids");
+
+  if (statuses === null || statuses?.some((status) => !READ_TRANSACTION_STATUSES.includes(status as ReadTransactionStatus))) {
+    return {
+      jsonrpc: "2.0",
+      id,
+      error: { code: -32602, message: "statuses must contain only paid, planned, or skipped" },
+    };
+  }
+
+  if (kinds === null || kinds?.some((kind) => !TRANSACTION_KINDS.includes(kind as TransactionKind))) {
+    return {
+      jsonrpc: "2.0",
+      id,
+      error: { code: -32602, message: "kinds must contain only income, expense, transfer, or debt_payment" },
+    };
+  }
+
+  if (accountIds === null) {
+    return { jsonrpc: "2.0", id, error: { code: -32602, message: "account_ids must be an array of non-empty strings" } };
+  }
+
+  if (categoryIds === null) {
+    return { jsonrpc: "2.0", id, error: { code: -32602, message: "category_ids must be an array of non-empty strings" } };
+  }
+
+  const db = createAnonClient();
+  const { data, error } = await db.rpc("mcp_get_transactions_for_period", {
+    p_key_hash: keyHash,
+    p_start_date: startDate,
+    p_end_date: endDate,
+    p_statuses: statuses ?? null,
+    p_kinds: kinds ?? null,
+    p_account_ids: accountIds ?? null,
+    p_category_ids: categoryIds ?? null,
+    p_include_context: getOptionalBooleanArg(args, "include_context") ?? false,
+  });
+
+  if (error || !data) {
+    return {
+      jsonrpc: "2.0",
+      id,
+      error: { code: -32000, message: error?.message ?? "Failed to load transactions" },
+    };
+  }
+
+  return {
+    jsonrpc: "2.0",
+    id,
+    result: {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(data, null, 2),
+        },
+      ],
+      structuredContent: data,
+    },
+  };
+}
+
 function isIsoDate(value: unknown): value is string {
-  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
+  if (typeof value !== "string") return false;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return false;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
 }
 
 function isPositiveNumber(value: unknown): value is number {
@@ -601,8 +774,8 @@ function isKind(value: unknown): value is TransactionKind {
   return typeof value === "string" && TRANSACTION_KINDS.includes(value as TransactionKind);
 }
 
-function isStatus(value: unknown): value is TransactionStatus {
-  return typeof value === "string" && TRANSACTION_STATUSES.includes(value as TransactionStatus);
+function isStatus(value: unknown): value is DirectTransactionStatus {
+  return typeof value === "string" && DIRECT_TRANSACTION_STATUSES.includes(value as DirectTransactionStatus);
 }
 
 function optionalString(value: unknown): string | null {
@@ -876,6 +1049,10 @@ async function handleToolCall(
 
   if (toolName === "get_card_and_debt_balances") {
     return handleGetCardAndDebtBalances(id, auth.keyHash);
+  }
+
+  if (toolName === "get_transactions") {
+    return handleGetTransactionsTool(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash);
   }
 
   if (toolName === "create_transactions") {

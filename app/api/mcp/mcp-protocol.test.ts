@@ -96,6 +96,7 @@ describe("MCP tools", () => {
     expect(names).toEqual([
       "get_finance_context",
       "get_card_and_debt_balances",
+      "get_transactions",
       "create_transactions",
       "submit_transaction_batch",
       "get_category_spending_report",
@@ -275,6 +276,183 @@ describe("MCP tools", () => {
     expect(body.result.structuredContent.totals_by_currency).toMatchObject({
       credit_card_outstanding: [{ currency: "EUR", amount: 250 }],
       debts_outstanding: [{ currency: "EUR", amount: 5000 }],
+    });
+  });
+
+  it("rejects transaction range requests with invalid dates", async () => {
+    const response = await postMcp({
+      jsonrpc: "2.0",
+      id: "tx-range-invalid",
+      method: "tools/call",
+      params: {
+        name: "get_transactions",
+        arguments: {
+          start_date: "2026-05",
+          end_date: "2026-05-31",
+        },
+      },
+    });
+
+    const body = await response.json();
+    expect(body.error).toMatchObject({
+      code: -32602,
+      message: "start_date and end_date must be provided in YYYY-MM-DD format",
+    });
+    expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_get_transactions_for_period", expect.anything());
+  });
+
+  it("rejects transaction range requests with non-existent calendar dates", async () => {
+    const response = await postMcp({
+      jsonrpc: "2.0",
+      id: "tx-range-invalid-calendar-date",
+      method: "tools/call",
+      params: {
+        name: "get_transactions",
+        arguments: {
+          start_date: "2026-02-31",
+          end_date: "2026-03-31",
+        },
+      },
+    });
+
+    const body = await response.json();
+    expect(body.error).toMatchObject({
+      code: -32602,
+      message: "start_date and end_date must be provided in YYYY-MM-DD format",
+    });
+    expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_get_transactions_for_period", expect.anything());
+  });
+
+  it("rejects transaction range requests when start is after end", async () => {
+    const response = await postMcp({
+      jsonrpc: "2.0",
+      id: "tx-range-reversed",
+      method: "tools/call",
+      params: {
+        name: "get_transactions",
+        arguments: {
+          start_date: "2026-06-01",
+          end_date: "2026-05-31",
+        },
+      },
+    });
+
+    const body = await response.json();
+    expect(body.error).toMatchObject({
+      code: -32602,
+      message: "start_date must be on or before end_date",
+    });
+    expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_get_transactions_for_period", expect.anything());
+  });
+
+  it("returns transactions for a date range through the key-hash RPC", async () => {
+    const rpcPayload = {
+      period: { start_date: "2026-05-01", end_date: "2026-07-31" },
+      transactions: [
+        {
+          id: "tx-paid",
+          source: "ledger",
+          is_generated: false,
+          title: "Salary",
+          occurred_at: "2026-05-20",
+          status: "paid",
+          kind: "income",
+          amount: 5000,
+          currency: "EUR",
+        },
+        {
+          id: "tx-planned",
+          source: "ledger",
+          is_generated: false,
+          title: "Future transfer",
+          occurred_at: "2026-06-01",
+          status: "planned",
+          kind: "transfer",
+          amount: 300,
+          currency: "EUR",
+        },
+        {
+          id: "schedule:schedule-1:2026-07-01",
+          source: "schedule",
+          is_generated: true,
+          title: "Rent",
+          occurred_at: "2026-07-01",
+          status: "planned",
+          kind: "expense",
+          amount: 1200,
+          currency: "EUR",
+          schedule_id: "schedule-1",
+          schedule_occurrence_date: "2026-07-01",
+        },
+        {
+          id: "tx-debt",
+          source: "ledger",
+          is_generated: false,
+          title: "Loan payment",
+          occurred_at: "2026-07-15",
+          status: "paid",
+          kind: "debt_payment",
+          amount: 750,
+          currency: "EUR",
+        },
+      ],
+      summary_by_currency: [{ currency: "EUR", transaction_count: 4, total_amount: 7250 }],
+      limits: { max_transactions: 5000, returned_transactions: 4 },
+      accounts: [{ id: "wallet-main", name: "Main", currency: "EUR" }],
+      categories: [{ id: "cat-rent", name: "Rent", type: "expense" }],
+      schedules: [{ id: "schedule-1", title: "Rent", frequency: "monthly" }],
+    };
+
+    mocks.rpc.mockImplementation((name: string) => {
+      if (name === "mcp_lookup_api_key") {
+        return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
+      }
+      if (name === "mcp_touch_api_key") {
+        return Promise.resolve({ data: null, error: null });
+      }
+      if (name === "mcp_get_transactions_for_period") {
+        return Promise.resolve({ data: rpcPayload, error: null });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    const response = await postMcp({
+      jsonrpc: "2.0",
+      id: "tx-range",
+      method: "tools/call",
+      params: {
+        name: "get_transactions",
+        arguments: {
+          start_date: "2026-05-01",
+          end_date: "2026-07-31",
+          statuses: ["paid", "planned", "skipped"],
+          kinds: ["income", "expense", "transfer", "debt_payment"],
+          account_ids: ["wallet-main"],
+          category_ids: ["cat-rent"],
+          include_context: true,
+        },
+      },
+    });
+
+    const body = await response.json();
+    expect(body.result.structuredContent).toEqual(rpcPayload);
+    expect(body.result.structuredContent.transactions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ status: "paid", kind: "income" }),
+        expect.objectContaining({ status: "planned", kind: "transfer" }),
+        expect.objectContaining({ source: "schedule", is_generated: true, schedule_id: "schedule-1" }),
+        expect.objectContaining({ status: "paid", kind: "debt_payment" }),
+      ]),
+    );
+    expect(mocks.rpc).toHaveBeenCalledWith("mcp_get_transactions_for_period", {
+      p_key_hash: AUTH_KEY_HASH,
+      p_start_date: "2026-05-01",
+      p_end_date: "2026-07-31",
+      p_statuses: ["paid", "planned", "skipped"],
+      p_kinds: ["income", "expense", "transfer", "debt_payment"],
+      p_account_ids: ["wallet-main"],
+      p_category_ids: ["cat-rent"],
+      p_include_context: true,
     });
   });
 
