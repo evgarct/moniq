@@ -34,6 +34,7 @@
 
 - `wallets` are real balances.
 - `wallet_allocations` are logical reservations inside savings wallets only.
+- MCP exposes wallet/category/transaction context for agent workflows, but not `wallet_allocations`; savings free-vs-reserved buckets remain a Balance UI concept.
 - `finance_categories` are user-owned income or expense trees with arbitrary nesting.
 - `finance_transaction_schedules` define recurring series and own cadence/state rules.
 - `finance_transactions` store one register for income, expense, transfer, savings moves, and debt payments, including generated occurrences for recurring series.

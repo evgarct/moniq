@@ -113,6 +113,21 @@ describe("MCP tools", () => {
     expect(getMcpTools().map((tool) => tool.name)).toEqual(names);
   });
 
+  it("does not expose savings bucket management through MCP tool schemas", () => {
+    const tools = getMcpTools();
+    const names = tools.map((tool) => tool.name);
+    const schemaText = JSON.stringify(tools).toLowerCase();
+
+    expect(names).not.toContain("get_wallet_allocations");
+    expect(names).not.toContain("create_wallet_allocation");
+    expect(names).not.toContain("update_wallet_allocation");
+    expect(names).not.toContain("delete_wallet_allocation");
+    expect(names).not.toContain("spend_from_goal");
+    expect(schemaText).not.toContain("wallet_allocations");
+    expect(schemaText).not.toContain("allocation_id");
+    expect(schemaText).not.toContain("savings goal");
+  });
+
   it("exposes human-readable metadata for ChatGPT confirmations", async () => {
     const createTransactionsTool = getMcpTools().find((tool) => tool.name === "create_transactions");
 
@@ -155,7 +170,16 @@ describe("MCP tools", () => {
       if (name === "mcp_get_finance_context") {
         return Promise.resolve({
           data: {
-            wallets: [{ id: "wallet-1", name: "Main", type: "cash", currency: "EUR" }],
+            wallets: [
+              {
+                id: "wallet-1",
+                name: "Main",
+                type: "cash",
+                currency: "EUR",
+                allocations: [{ id: "hidden-allocation" }],
+              },
+            ],
+            allocations: [{ id: "hidden-root-allocation" }],
             categories: [
               {
                 id: "cat-parent",
@@ -189,6 +213,9 @@ describe("MCP tools", () => {
     });
 
     const body = await response.json();
+    expect(body.result.structuredContent).not.toHaveProperty("allocations");
+    expect(body.result.structuredContent.wallets[0]).not.toHaveProperty("allocations");
+    expect(body.result.content[0].text).not.toContain("hidden-allocation");
     expect(body.result.structuredContent.categories).toContainEqual(
       expect.objectContaining({
         id: "cat-child",
