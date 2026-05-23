@@ -4,6 +4,8 @@ Moniq records technical performance events to identify slow page loads, slow API
 
 ## Setup
 
+Vercel Speed Insights is enabled in the root layout through `@vercel/speed-insights/next`. Use the Vercel dashboard or `vercel metrics` when the account has Observability Plus to inspect Core Web Vitals by route.
+
 Performance events are stored in `public.performance_events` through the server-side service role client. Set these environment variables in the runtime that should collect data:
 
 - `SUPABASE_SERVICE_ROLE_KEY`: required for persistence and summary reads.
@@ -11,6 +13,14 @@ Performance events are stored in `public.performance_events` through the server-
 - `PERFORMANCE_ANALYTICS_SUMMARY_ENABLED=false`: optional kill switch for the summary endpoint.
 
 If `SUPABASE_SERVICE_ROLE_KEY` is missing, event writes are skipped and `/api/performance/summary` returns `503`.
+
+For Vercel production, confirm the key exists with:
+
+```text
+vercel env list production
+```
+
+Add it with `vercel env add SUPABASE_SERVICE_ROLE_KEY production`, then redeploy.
 
 ## Reading the Summary
 
