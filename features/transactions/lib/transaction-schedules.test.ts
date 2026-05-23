@@ -58,6 +58,23 @@ describe("transaction-schedules", () => {
     ]);
   });
 
+  it("includes the first monthly occurrence when the range starts earlier in the same month", () => {
+    expect(
+      generateScheduleOccurrences(
+        {
+          start_date: "2026-05-10",
+          frequency: "monthly",
+          until_date: null,
+        },
+        "2026-05-01",
+        "2026-06-30",
+      ),
+    ).toEqual([
+      { occurrenceDate: "2026-05-10" },
+      { occurrenceDate: "2026-06-10" },
+    ]);
+  });
+
   it("stops generating after the until date", () => {
     expect(
       generateScheduleOccurrences(
