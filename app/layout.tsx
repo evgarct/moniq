@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono, PT_Serif } from "next/font/google";
 import { getLocale } from "next-intl/server";
 
 import { AppProviders } from "@/components/providers/app-providers";
+import { WebVitalsReporter } from "@/components/providers/web-vitals";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 import "./globals.css";
@@ -52,6 +53,7 @@ export default async function RootLayout({
       </head>
       <body className="min-h-full bg-background font-sans text-foreground">
         <TooltipProvider>
+          <WebVitalsReporter />
           <AppProviders>{children}</AppProviders>
         </TooltipProvider>
       </body>

@@ -14,6 +14,7 @@ import type {
 } from "@/types/finance-schemas";
 import type { FinanceSnapshot } from "@/types/finance";
 import { loadMessages } from "@/i18n/messages";
+import { reportFetchPerformance } from "@/lib/performance/client";
 import { routing, type AppLocale } from "@/i18n/routing";
 
 export { financeSnapshotQueryKey } from "@/features/finance/lib/finance-keys";
@@ -79,13 +80,29 @@ async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit) {
   const t = await getCommonErrorTranslator();
   const controller = new AbortController();
   const timeoutId = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const startedAt = performance.now();
+  const method = init.method ?? (input instanceof Request ? input.method : "GET");
 
   try {
-    return await fetch(input, {
+    const response = await fetch(input, {
       ...init,
       signal: controller.signal,
     });
+    reportFetchPerformance({
+      url: input,
+      method,
+      status: response.status,
+      durationMs: performance.now() - startedAt,
+      responseBytes: parseResponseBytes(response),
+    });
+    return response;
   } catch (error) {
+    reportFetchPerformance({
+      url: input,
+      method,
+      durationMs: performance.now() - startedAt,
+      error: error instanceof DOMException && error.name === "AbortError" ? "timeout" : "network",
+    });
     if (error instanceof DOMException && error.name === "AbortError") {
       throw new Error(t("common.errors.requestTimedOut"));
     }
@@ -94,6 +111,13 @@ async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit) {
   } finally {
     window.clearTimeout(timeoutId);
   }
+}
+
+function parseResponseBytes(response: Response) {
+  const value = response.headers.get("content-length");
+  if (!value) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 export async function fetchFinanceSnapshot(): Promise<FinanceSnapshot> {

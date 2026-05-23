@@ -6,6 +6,7 @@ import { validateAccountValues } from "@/features/accounts/lib/account-state";
 import { validateCategoryHierarchy } from "@/features/categories/lib/category-tree";
 import { generateScheduleOccurrences } from "@/features/transactions/lib/transaction-schedules";
 import { validateTransactionRelationships } from "@/features/transactions/lib/transaction-utils";
+import { recordPerformanceEvent } from "@/lib/performance/server";
 import { createClient } from "@/lib/supabase/server";
 import type { CurrencyCode } from "@/types/currency";
 import type {
@@ -359,13 +360,13 @@ async function reconcileTransactionSchedule(
 }
 
 export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
-  const t0 = Date.now();
-  const snap = (phase: string, extra?: Record<string, unknown>) =>
-    console.log(JSON.stringify({ snapshot: phase, ms: Date.now() - t0, ...extra }));
+  const snapshotStartedAt = performance.now();
+  let phaseStartedAt = snapshotStartedAt;
 
   const { supabase, user } = await getAuthenticatedSupabase();
-  snap("auth_done");
+  recordSnapshotPhase(user.id, "auth", phaseStartedAt);
 
+  phaseStartedAt = performance.now();
   const [
     { data: wallets, error: walletError },
     { data: categories, error: categoryError },
@@ -412,13 +413,14 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
     throw new Error(normalizeFinanceRepositoryError(allocationFirstError));
   }
 
-  snap("base_reads_done", {
+  recordSnapshotPhase(user.id, "base_reads", phaseStartedAt, {
     wallets: wallets?.length ?? 0,
     categories: categories?.length ?? 0,
     schedules: scheduleRows?.length ?? 0,
     allocations: allocationsFirst?.length ?? 0,
   });
 
+  phaseStartedAt = performance.now();
   const mappedAccounts = (wallets ?? []).map((wallet) => mapWallet(wallet as WalletRow));
   const mappedCategories = (categories ?? []).map((category) => mapCategory(category as CategoryRow));
 
@@ -466,6 +468,7 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
   let existingScheduleTransactions: TransactionRow[] = [];
 
   if (activeScheduleIds.length) {
+    phaseStartedAt = performance.now();
     const { data, error } = await supabase
       .from("finance_transactions")
       .select(
@@ -481,8 +484,11 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
     }
 
     existingScheduleTransactions = (data ?? []) as TransactionRow[];
-    snap("schedule_tx_read_done", { existing_schedule_rows: existingScheduleTransactions.length });
+    recordSnapshotPhase(user.id, "schedule_tx_read", phaseStartedAt, {
+      existing_schedule_rows: existingScheduleTransactions.length,
+    });
 
+    phaseStartedAt = performance.now();
     await Promise.all(
       validatedSchedules
         .filter((s) => s.state === "active" && !s.validation_error)
@@ -497,11 +503,12 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
           ),
         ),
     );
-    snap("reconcile_done", { active_schedules: activeScheduleIds.length });
+    recordSnapshotPhase(user.id, "reconcile", phaseStartedAt, { active_schedules: activeScheduleIds.length });
   }
 
   const transactionCutoff = format(subMonths(startOfToday(), 12), "yyyy-MM-dd");
 
+  phaseStartedAt = performance.now();
   const { data: transactions, error: transactionError } = await supabase
     .from("finance_transactions")
     .select(
@@ -516,8 +523,9 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
     throw new Error(normalizeFinanceRepositoryError(transactionError));
   }
 
-  snap("transactions_read_done", { transactions: transactions?.length ?? 0 });
+  recordSnapshotPhase(user.id, "transactions_read", phaseStartedAt, { transactions: transactions?.length ?? 0 });
 
+  phaseStartedAt = performance.now();
   const schedulesById = new Map(validatedSchedules.map((schedule) => [schedule.id, schedule]));
   const mappedTransactions: Transaction[] = (transactions ?? []).map((transaction) => {
     const row = transaction as TransactionRow;
@@ -552,7 +560,20 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
     };
   });
 
-  snap("done");
+  recordSnapshotPhase(user.id, "map", phaseStartedAt, {
+    accounts: mappedAccounts.length,
+    categories: mappedCategories.length,
+    schedules: validatedSchedules.length,
+    transactions: mappedTransactions.length,
+    allocations: earlyMappedAllocations.length,
+  });
+  recordSnapshotPhase(user.id, "total", snapshotStartedAt, {
+    accounts: mappedAccounts.length,
+    categories: mappedCategories.length,
+    schedules: validatedSchedules.length,
+    transactions: mappedTransactions.length,
+    allocations: earlyMappedAllocations.length,
+  });
 
   return {
     accounts: mappedAccounts,
@@ -561,6 +582,22 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
     transactions: mappedTransactions,
     allocations: earlyMappedAllocations,
   };
+}
+
+function recordSnapshotPhase(
+  userId: string,
+  phase: string,
+  startedAt: number,
+  metadata?: Record<string, string | number | boolean | null>,
+) {
+  void recordPerformanceEvent({
+    event_type: "db_phase",
+    name: "finance_snapshot",
+    phase,
+    userId,
+    duration_ms: Math.round((performance.now() - startedAt) * 100) / 100,
+    metadata,
+  });
 }
 
 export async function createWallet(values: WalletInput) {

@@ -9,6 +9,7 @@ import {
   setTransactionScheduleState,
   updateTransactionSchedule,
 } from "@/features/finance/server/repository";
+import { withApiPerformance, withMutationPerformance } from "@/lib/performance/api";
 import { transactionScheduleInputSchema, transactionScheduleStateInputSchema } from "@/types/finance-schemas";
 
 const reschedulePayloadSchema = z.object({
@@ -17,36 +18,42 @@ const reschedulePayloadSchema = z.object({
 });
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ scheduleId: string }> }) {
-  try {
-    const payload = (await request.json()) as { mode?: "update" | "state" | "reschedule"; values?: unknown; state?: unknown; fromOccurrenceDate?: unknown; newOccurrenceDate?: unknown };
-    const { scheduleId } = await params;
+  return withApiPerformance(request, "transaction_schedule_update", async () => {
+    try {
+      const payload = (await request.json()) as { mode?: "update" | "state" | "reschedule"; values?: unknown; state?: unknown; fromOccurrenceDate?: unknown; newOccurrenceDate?: unknown };
+      const { scheduleId } = await params;
 
-    if (payload.mode === "state") {
-      const statePayload = transactionScheduleStateInputSchema.parse({ state: payload.state });
-      await setTransactionScheduleState(scheduleId, statePayload.state);
-    } else if (payload.mode === "reschedule") {
-      const reschedulePayload = reschedulePayloadSchema.parse({
-        fromOccurrenceDate: payload.fromOccurrenceDate,
-        newOccurrenceDate: payload.newOccurrenceDate,
-      });
-      await rescheduleScheduleFromDate(scheduleId, reschedulePayload.fromOccurrenceDate, reschedulePayload.newOccurrenceDate);
-    } else {
-      const schedulePayload = transactionScheduleInputSchema.parse(payload.values);
-      await updateTransactionSchedule(scheduleId, schedulePayload);
+      if (payload.mode === "state") {
+        const statePayload = transactionScheduleStateInputSchema.parse({ state: payload.state });
+        await withMutationPerformance(request, "set_transaction_schedule_state", () => setTransactionScheduleState(scheduleId, statePayload.state));
+      } else if (payload.mode === "reschedule") {
+        const reschedulePayload = reschedulePayloadSchema.parse({
+          fromOccurrenceDate: payload.fromOccurrenceDate,
+          newOccurrenceDate: payload.newOccurrenceDate,
+        });
+        await withMutationPerformance(request, "reschedule_transaction_schedule", () =>
+          rescheduleScheduleFromDate(scheduleId, reschedulePayload.fromOccurrenceDate, reschedulePayload.newOccurrenceDate),
+        );
+      } else {
+        const schedulePayload = transactionScheduleInputSchema.parse(payload.values);
+        await withMutationPerformance(request, "update_transaction_schedule", () => updateTransactionSchedule(scheduleId, schedulePayload));
+      }
+
+      return NextResponse.json(await getFinanceSnapshot());
+    } catch (error) {
+      return financeErrorResponse(request, error, "common.errors.transaction.update");
     }
-
-    return NextResponse.json(await getFinanceSnapshot());
-  } catch (error) {
-    return financeErrorResponse(request, error, "common.errors.transaction.update");
-  }
+  });
 }
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ scheduleId: string }> }) {
-  try {
-    const { scheduleId } = await params;
-    await deleteTransactionSchedule(scheduleId);
-    return NextResponse.json(await getFinanceSnapshot());
-  } catch (error) {
-    return financeErrorResponse(request, error, "common.errors.transaction.delete");
-  }
+  return withApiPerformance(request, "transaction_schedule_delete", async () => {
+    try {
+      const { scheduleId } = await params;
+      await withMutationPerformance(request, "delete_transaction_schedule", () => deleteTransactionSchedule(scheduleId));
+      return NextResponse.json(await getFinanceSnapshot());
+    } catch (error) {
+      return financeErrorResponse(request, error, "common.errors.transaction.delete");
+    }
+  });
 }
