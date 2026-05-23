@@ -30,6 +30,10 @@
 - `features/allocations` — allocation form and amount validation helpers.
 - `features/finance` — shared snapshot query (`useFinanceData`), server repository, and client-side API layer.
 
+## Performance telemetry
+
+Moniq records technical performance events for Web Vitals, client fetches, API route timings, finance mutations, and `getFinanceSnapshot()` phases. Events are stored in `public.performance_events` through the service role client only, with pseudonymous user/session identifiers and sanitized metadata. See `docs/performance-analytics.md` for setup and diagnosis workflow.
+
 ## Domain boundaries
 
 - `wallets` are real balances.
