@@ -212,6 +212,7 @@ Rules:
 
 Rules:
 - schedules are the source of truth for recurring transactions; generated occurrences inherit the schedule payload unless a specific occurrence is overridden.
+- `start_date` is the first occurrence date. App snapshots materialize from the first day of the current month so current-month overdue recurring items are visible.
 - schedules always start as `planned`; settling cashflow happens on occurrences through `mark paid`.
 - `until_date`, when present, must be on or after `start_date`.
 - `paused` schedules preserve already generated history but stop future occurrence generation until resumed.
@@ -231,6 +232,14 @@ Rules:
   - `delete_wallet_allocation`
   - `mcp_get_transactions_for_period`
   - `mcp_get_category_spending_report_source`
+  - `mcp_get_recurring_transaction_schedules`
+  - `mcp_create_recurring_transaction_schedule`
+  - `mcp_update_recurring_transaction_schedule`
+  - `mcp_reschedule_recurring_transaction_series_from_occurrence`
+  - `mcp_update_recurring_transaction_occurrence`
+  - `mcp_set_recurring_transaction_occurrence_status`
+  - `mcp_set_recurring_transaction_schedule_state`
+  - `mcp_delete_recurring_transaction_schedule`
 
 ## MCP transaction range access
 
@@ -240,3 +249,11 @@ Rules:
 - materialized schedule occurrences in `finance_transactions` take precedence over generated schedule rows for the same `(schedule_id, schedule_occurrence_date)`, including paid, skipped, and overridden occurrences.
 - generated occurrences use stable synthetic IDs in the form `schedule:{schedule_id}:{date}` and include `source = "schedule"` plus `is_generated = true`.
 - the response is capped at 5000 returned/generated transactions; agents should split larger date ranges.
+
+## MCP recurring transaction writes
+
+- recurring write RPCs resolve the owning user from the MCP API key hash inside Postgres and never accept caller-supplied `user_id`.
+- creating and updating a schedule uses the same relationship rules as normal transactions.
+- single-occurrence writes accept a materialized transaction ID or a generated occurrence reference `(schedule_id, occurrence_date)`.
+- generated occurrences are materialized into `finance_transactions` before they are edited, marked paid, or skipped.
+- deleting one occurrence marks it `skipped`; deleting a whole series preserves paid historical rows and removes future non-paid planned rows.

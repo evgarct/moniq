@@ -98,6 +98,15 @@ describe("MCP tools", () => {
       "get_card_and_debt_balances",
       "get_transactions",
       "create_transactions",
+      "get_recurring_transaction_schedules",
+      "create_recurring_transaction_schedule",
+      "update_recurring_transaction_schedule",
+      "reschedule_recurring_transaction_series_from_occurrence",
+      "update_recurring_transaction_occurrence",
+      "mark_recurring_transaction_occurrence_paid",
+      "delete_recurring_transaction_occurrence",
+      "set_recurring_transaction_schedule_state",
+      "delete_recurring_transaction_schedule",
       "submit_transaction_batch",
       "get_category_spending_report",
     ]);
@@ -670,6 +679,132 @@ describe("MCP tools", () => {
           category_id: "cat-interest",
         }),
       ],
+    });
+  });
+
+  it("creates recurring transaction schedules through key-hash RPCs", async () => {
+    mocks.rpc.mockImplementation((name: string) => {
+      if (name === "mcp_lookup_api_key") {
+        return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
+      }
+      if (name === "mcp_touch_api_key") {
+        return Promise.resolve({ data: null, error: null });
+      }
+      if (name === "mcp_create_recurring_transaction_schedule") {
+        return Promise.resolve({ data: { schedule_id: "schedule-1" }, error: null });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    const schedule = {
+      title: "Rent",
+      start_date: "2026-05-10",
+      frequency: "monthly",
+      until_date: null,
+      kind: "expense",
+      amount: 1200,
+      source_account_id: "wallet-main",
+      category_id: "cat-rent",
+    };
+
+    const response = await postMcp({
+      jsonrpc: "2.0",
+      id: "create-recurring",
+      method: "tools/call",
+      params: {
+        name: "create_recurring_transaction_schedule",
+        arguments: { schedule },
+      },
+    });
+
+    await expect(response.json()).resolves.toMatchObject({
+      result: {
+        structuredContent: { schedule_id: "schedule-1" },
+      },
+    });
+    expect(mocks.rpc).toHaveBeenCalledWith("mcp_create_recurring_transaction_schedule", {
+      p_key_hash: AUTH_KEY_HASH,
+      p_schedule: expect.objectContaining({
+        title: "Rent",
+        start_date: "2026-05-10",
+        frequency: "monthly",
+        kind: "expense",
+        amount: 1200,
+        source_account_id: "wallet-main",
+        category_id: "cat-rent",
+      }),
+    });
+  });
+
+  it("rejects recurring schedules when the end date is before the first occurrence", async () => {
+    const response = await postMcp({
+      jsonrpc: "2.0",
+      id: "create-recurring-invalid",
+      method: "tools/call",
+      params: {
+        name: "create_recurring_transaction_schedule",
+        arguments: {
+          schedule: {
+            title: "Rent",
+            start_date: "2026-05-10",
+            frequency: "monthly",
+            until_date: "2026-05-01",
+            kind: "expense",
+            amount: 1200,
+            source_account_id: "wallet-main",
+            category_id: "cat-rent",
+          },
+        },
+      },
+    });
+
+    await expect(response.json()).resolves.toMatchObject({
+      error: {
+        code: -32602,
+        message: expect.stringContaining("until_date"),
+      },
+    });
+    expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_create_recurring_transaction_schedule", expect.anything());
+  });
+
+  it("materializes and marks a generated recurring occurrence paid", async () => {
+    mocks.rpc.mockImplementation((name: string) => {
+      if (name === "mcp_lookup_api_key") {
+        return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
+      }
+      if (name === "mcp_touch_api_key") {
+        return Promise.resolve({ data: null, error: null });
+      }
+      if (name === "mcp_set_recurring_transaction_occurrence_status") {
+        return Promise.resolve({ data: { transaction_id: "tx-1", status: "paid" }, error: null });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    const response = await postMcp({
+      jsonrpc: "2.0",
+      id: "pay-recurring",
+      method: "tools/call",
+      params: {
+        name: "mark_recurring_transaction_occurrence_paid",
+        arguments: {
+          schedule_id: "schedule-1",
+          occurrence_date: "2026-05-10",
+        },
+      },
+    });
+
+    await expect(response.json()).resolves.toMatchObject({
+      result: {
+        structuredContent: { transaction_id: "tx-1", status: "paid" },
+      },
+    });
+    expect(mocks.rpc).toHaveBeenCalledWith("mcp_set_recurring_transaction_occurrence_status", {
+      p_key_hash: AUTH_KEY_HASH,
+      p_transaction_id: null,
+      p_schedule_id: "schedule-1",
+      p_occurrence_date: "2026-05-10",
+      p_status: "paid",
     });
   });
 });

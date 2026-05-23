@@ -1,6 +1,6 @@
 import "server-only";
 
-import { addDays, addMonths, differenceInCalendarDays, format, parseISO, startOfToday, subMonths } from "date-fns";
+import { addDays, addMonths, differenceInCalendarDays, format, parseISO, startOfMonth, startOfToday, subMonths } from "date-fns";
 
 import { validateAccountValues } from "@/features/accounts/lib/account-state";
 import { validateCategoryHierarchy } from "@/features/categories/lib/category-tree";
@@ -456,7 +456,7 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
     }),
   }));
 
-  const horizonStart = format(startOfToday(), "yyyy-MM-dd");
+  const horizonStart = format(startOfMonth(startOfToday()), "yyyy-MM-dd");
   const horizonEnd = format(addMonths(startOfToday(), 60), "yyyy-MM-dd");
 
   const activeScheduleIds = validatedSchedules

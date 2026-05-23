@@ -20,3 +20,10 @@ dates, merchant titles, amounts with currencies, wallet names, and category
 names before calling the tool. Raw wallet and category UUIDs are still required
 in the tool payload, but they should stay out of user-facing confirmation text
 unless the user asks for technical details.
+
+For recurring transaction tools, confirmations should state whether the action
+affects the whole series or one occurrence. For series creation/update, include
+the first occurrence date, frequency, optional end date, amount, wallet names,
+category name, and transaction kind. For one occurrence, include the occurrence
+date and clarify that deleting one occurrence marks it skipped so it will not
+regenerate.

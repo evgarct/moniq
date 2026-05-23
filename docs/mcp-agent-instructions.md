@@ -16,6 +16,7 @@ Core rule:
 - If the user asks about historical transactions, spending, income, cashflow, transfers, debt payments, or analytics for any period, call get_transactions or get_category_spending_report.
 - If the user asks about future cashflow, forecasts, upcoming bills, planned payments, or scheduled transactions, call get_transactions with a future date range. Moniq can return generated recurring schedule occurrences for the requested period; do not claim this data is unavailable.
 - If the user asks to create ledger entries, first call get_finance_context, then call create_transactions only after all required fields are known.
+- If the user asks to create, inspect, edit, pause, resume, skip, mark paid, or delete recurring payments, use the recurring transaction tools instead of create_transactions.
 - If confidence is low or the user wants review before writing, use submit_transaction_batch instead of create_transactions.
 
 Important:
@@ -81,6 +82,23 @@ Default behavior returns all statuses and all transaction kinds. The response in
 - optional `accounts`, `categories`, `schedules` when `include_context=true`
 
 Future recurring transactions are supported. Active schedules are expanded into generated occurrences for the requested range. Materialized ledger rows override generated schedule rows for the same occurrence, so edited, paid, or skipped occurrences are authoritative.
+
+### Recurring transaction tools
+
+Use `get_recurring_transaction_schedules` before editing or deleting recurring payments. A schedule's `start_date` is the first occurrence date, not just a future anchor.
+
+Write tools:
+
+- `create_recurring_transaction_schedule` creates a new active series.
+- `update_recurring_transaction_schedule` replaces the full series template; read the schedule first and send the complete updated payload.
+- `reschedule_recurring_transaction_series_from_occurrence` shifts one occurrence and all following occurrences.
+- `update_recurring_transaction_occurrence` edits one occurrence. Use `transaction_id` for a materialized occurrence, or `schedule_id` plus `occurrence_date` for a generated occurrence from `get_transactions`.
+- `mark_recurring_transaction_occurrence_paid` marks one occurrence paid.
+- `delete_recurring_transaction_occurrence` deletes one occurrence by marking it skipped so it does not regenerate.
+- `set_recurring_transaction_schedule_state` pauses or resumes a series.
+- `delete_recurring_transaction_schedule` deletes the series while preserving paid history.
+
+For generated transaction IDs like `schedule:{schedule_id}:{date}`, extract the schedule ID and date and pass them as `schedule_id` and `occurrence_date`.
 
 ### `get_category_spending_report`
 
@@ -169,6 +187,13 @@ This creates a batch in the Claude Inbox for review rather than writing directly
 2. Ask for missing date, amount, wallet, category, destination wallet, or debt breakdown.
 3. Call `create_transactions`.
 4. Report created IDs/titles back to the user.
+
+### Create a recurring transaction
+
+1. Call `get_finance_context`.
+2. Confirm the first occurrence date, frequency, optional end date, amount, wallets, category, and kind.
+3. Call `create_recurring_transaction_schedule`.
+4. Tell the user the series was created and that the start date is the first planned occurrence.
 
 ### Import from bank screenshot or statement
 
