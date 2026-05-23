@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono, PT_Serif } from "next/font/google";
 import { getLocale } from "next-intl/server";
+import { Analytics } from "@vercel/analytics/next";
 
 import { AppProviders } from "@/components/providers/app-providers";
 import { WebVitalsReporter } from "@/components/providers/web-vitals";
@@ -56,6 +57,7 @@ export default async function RootLayout({
           <WebVitalsReporter />
           <AppProviders>{children}</AppProviders>
         </TooltipProvider>
+        <Analytics />
       </body>
     </html>
   );
