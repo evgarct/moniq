@@ -1286,6 +1286,36 @@ function buildCardAndDebtBalances(context: { wallets?: WalletRow[] }) {
   };
 }
 
+function sanitizeFinanceContext(data: unknown) {
+  const source = isRecord(data) ? data : {};
+  const wallets = Array.isArray(source.wallets) ? source.wallets : [];
+  const categories = Array.isArray(source.categories) ? source.categories : [];
+
+  return {
+    wallets: wallets.filter(isRecord).map((wallet) => ({
+      id: wallet.id,
+      name: wallet.name,
+      type: wallet.type,
+      cash_kind: wallet.cash_kind ?? null,
+      debt_kind: wallet.debt_kind ?? null,
+      currency: wallet.currency,
+      balance: wallet.balance,
+      credit_limit: wallet.credit_limit ?? null,
+    })),
+    categories: categories.filter(isRecord).map((category) => ({
+      id: category.id,
+      type: category.type,
+      name: category.name,
+      path: category.path,
+      parent_id: category.parent_id ?? null,
+      icon: category.icon ?? null,
+      is_system: category.is_system,
+      is_selectable: category.is_selectable,
+    })),
+    rules: source.rules,
+  };
+}
+
 async function handleGetFinanceContext(id: string | number | null, keyHash: string): Promise<McpResponse> {
   const db = createAnonClient();
   const { data, error } = await db.rpc("mcp_get_finance_context", { p_key_hash: keyHash });
@@ -1298,6 +1328,8 @@ async function handleGetFinanceContext(id: string | number | null, keyHash: stri
     };
   }
 
+  const context = sanitizeFinanceContext(data);
+
   return {
     jsonrpc: "2.0",
     id,
@@ -1305,10 +1337,10 @@ async function handleGetFinanceContext(id: string | number | null, keyHash: stri
       content: [
         {
           type: "text",
-          text: JSON.stringify(data, null, 2),
+          text: JSON.stringify(context, null, 2),
         },
       ],
-      structuredContent: data,
+      structuredContent: context,
     },
   };
 }

@@ -337,6 +337,9 @@
     "actions": {
       "editWallet": "Edit wallet",
       "deleteWallet": "Delete wallet",
+      "addGoal": "Add goal",
+      "editGoal": "Edit {name}",
+      "deleteGoal": "Delete {name}",
       "adjustBalance": "Adjust balance",
       "adjustBalancePrompt": "Enter new balance"
     },
