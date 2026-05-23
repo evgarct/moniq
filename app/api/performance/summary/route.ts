@@ -40,7 +40,7 @@ export async function GET(request: Request) {
     .select("event_type, name, route, phase, status, duration_ms")
     .gte("created_at", since)
     .not("duration_ms", "is", null)
-    .order("duration_ms", { ascending: false })
+    .order("created_at", { ascending: false })
     .limit(10_000);
 
   if (error) {
