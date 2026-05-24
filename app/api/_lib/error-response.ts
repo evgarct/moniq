@@ -3,6 +3,35 @@ import { NextResponse } from "next/server";
 import { translateFinanceErrorMessage } from "@/features/finance/server/api-errors";
 import { getRequestTranslator } from "@/i18n/translator";
 
+type TranslationValues = Record<string, string | number | Date>;
+
+export async function localizedErrorResponse(
+  request: Request,
+  key: string,
+  status: number,
+  values?: TranslationValues,
+) {
+  const t = (await getRequestTranslator(request)) as (key: string, values?: TranslationValues) => string;
+
+  return NextResponse.json({ error: t(key, values) }, { status });
+}
+
+export async function localizedOAuthErrorResponse(
+  request: Request,
+  error: string,
+  descriptionKey: string | null,
+  status: number,
+  init?: ResponseInit,
+  values?: TranslationValues,
+) {
+  const t = (await getRequestTranslator(request)) as (key: string, values?: TranslationValues) => string;
+  const body = descriptionKey
+    ? { error, error_description: t(descriptionKey, values) }
+    : { error };
+
+  return NextResponse.json(body, { ...init, status });
+}
+
 export async function financeErrorResponse(
   request: Request,
   error: unknown,

@@ -13,6 +13,7 @@ import {
   resolveCategorySpendingPeriod,
   type CategorySpendingPeriodInput,
 } from "@/features/finance/lib/category-spending-report";
+import { getRequestTranslator } from "@/i18n/translator";
 import { createAnonClient } from "@/lib/supabase/anon";
 import type { CurrencyCode } from "@/types/currency";
 import type { Account, Category, Transaction } from "@/types/finance";
@@ -50,6 +51,7 @@ type DirectTransactionStatus = (typeof DIRECT_TRANSACTION_STATUSES)[number];
 type ReadTransactionStatus = (typeof READ_TRANSACTION_STATUSES)[number];
 type ScheduleFrequency = (typeof SCHEDULE_FREQUENCIES)[number];
 type ScheduleState = (typeof SCHEDULE_STATES)[number];
+type McpTranslator = (key: string, values?: Record<string, string | number | Date>) => string;
 
 export async function GET(request: Request) {
   const auth = await authenticateApiKey(request);
@@ -845,6 +847,7 @@ async function handleCategorySpendingReportTool(
   id: string | number | null,
   args: Record<string, unknown>,
   keyHash: string,
+  t: McpTranslator,
 ): Promise<McpResponse> {
   const period: CategorySpendingPeriodInput = {
     period_preset: getOptionalStringArg(args, "period_preset") as CategorySpendingPeriodInput["period_preset"],
@@ -860,7 +863,7 @@ async function handleCategorySpendingReportTool(
     return {
       jsonrpc: "2.0",
       id,
-      error: { code: -32602, message: error instanceof Error ? error.message : "Invalid spending report period" },
+      error: { code: -32602, message: error instanceof Error ? error.message : t("mcp.errors.invalidSpendingReportPeriod") },
     };
   }
 
@@ -875,7 +878,7 @@ async function handleCategorySpendingReportTool(
     return {
       jsonrpc: "2.0",
       id,
-      error: { code: -32000, message: "Failed to load finance data for spending report" },
+      error: { code: -32000, message: t("mcp.errors.spendingReportLoadFailed") },
     };
   }
 
@@ -907,7 +910,7 @@ async function handleCategorySpendingReportTool(
     return {
       jsonrpc: "2.0",
       id,
-      error: { code: -32602, message: error instanceof Error ? error.message : "Invalid spending report period" },
+      error: { code: -32602, message: error instanceof Error ? error.message : t("mcp.errors.invalidSpendingReportPeriod") },
     };
   }
 
@@ -930,6 +933,7 @@ async function handleGetTransactionsTool(
   id: string | number | null,
   args: Record<string, unknown>,
   keyHash: string,
+  t: McpTranslator,
 ): Promise<McpResponse> {
   const startDate = getOptionalStringArg(args, "start_date");
   const endDate = getOptionalStringArg(args, "end_date");
@@ -938,7 +942,7 @@ async function handleGetTransactionsTool(
     return {
       jsonrpc: "2.0",
       id,
-      error: { code: -32602, message: "start_date and end_date must be provided in YYYY-MM-DD format" },
+      error: { code: -32602, message: t("mcp.errors.transactionRangeRequired") },
     };
   }
 
@@ -946,7 +950,7 @@ async function handleGetTransactionsTool(
     return {
       jsonrpc: "2.0",
       id,
-      error: { code: -32602, message: "start_date must be on or before end_date" },
+      error: { code: -32602, message: t("mcp.errors.startDateBeforeEndDate") },
     };
   }
 
@@ -959,7 +963,7 @@ async function handleGetTransactionsTool(
     return {
       jsonrpc: "2.0",
       id,
-      error: { code: -32602, message: "statuses must contain only paid, planned, or skipped" },
+      error: { code: -32602, message: t("mcp.errors.invalidReadStatuses") },
     };
   }
 
@@ -967,16 +971,16 @@ async function handleGetTransactionsTool(
     return {
       jsonrpc: "2.0",
       id,
-      error: { code: -32602, message: "kinds must contain only income, expense, transfer, or debt_payment" },
+      error: { code: -32602, message: t("mcp.errors.invalidKinds") },
     };
   }
 
   if (accountIds === null) {
-    return { jsonrpc: "2.0", id, error: { code: -32602, message: "account_ids must be an array of non-empty strings" } };
+    return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.accountIdsArray") } };
   }
 
   if (categoryIds === null) {
-    return { jsonrpc: "2.0", id, error: { code: -32602, message: "category_ids must be an array of non-empty strings" } };
+    return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.categoryIdsArray") } };
   }
 
   const db = createAnonClient();
@@ -995,7 +999,7 @@ async function handleGetTransactionsTool(
     return {
       jsonrpc: "2.0",
       id,
-      error: { code: -32000, message: error?.message ?? "Failed to load transactions" },
+      error: { code: -32000, message: error?.message ?? t("mcp.errors.transactionsLoadFailed") },
     };
   }
 
@@ -1316,7 +1320,7 @@ function sanitizeFinanceContext(data: unknown) {
   };
 }
 
-async function handleGetFinanceContext(id: string | number | null, keyHash: string): Promise<McpResponse> {
+async function handleGetFinanceContext(id: string | number | null, keyHash: string, t: McpTranslator): Promise<McpResponse> {
   const db = createAnonClient();
   const { data, error } = await db.rpc("mcp_get_finance_context", { p_key_hash: keyHash });
 
@@ -1324,7 +1328,7 @@ async function handleGetFinanceContext(id: string | number | null, keyHash: stri
     return {
       jsonrpc: "2.0",
       id,
-      error: { code: -32000, message: error?.message ?? "Failed to load finance context" },
+      error: { code: -32000, message: error?.message ?? t("mcp.errors.financeContextLoadFailed") },
     };
   }
 
@@ -1345,7 +1349,7 @@ async function handleGetFinanceContext(id: string | number | null, keyHash: stri
   };
 }
 
-async function handleGetCardAndDebtBalances(id: string | number | null, keyHash: string): Promise<McpResponse> {
+async function handleGetCardAndDebtBalances(id: string | number | null, keyHash: string, t: McpTranslator): Promise<McpResponse> {
   const db = createAnonClient();
   const { data, error } = await db.rpc("mcp_get_finance_context", { p_key_hash: keyHash });
 
@@ -1353,7 +1357,7 @@ async function handleGetCardAndDebtBalances(id: string | number | null, keyHash:
     return {
       jsonrpc: "2.0",
       id,
-      error: { code: -32000, message: error?.message ?? "Failed to load balances" },
+      error: { code: -32000, message: error?.message ?? t("mcp.errors.balancesLoadFailed") },
     };
   }
 
@@ -1374,7 +1378,7 @@ async function handleGetCardAndDebtBalances(id: string | number | null, keyHash:
   };
 }
 
-function getOccurrenceRef(args: Record<string, unknown>): {
+function getOccurrenceRef(args: Record<string, unknown>, t: McpTranslator): {
   transactionId: string | null;
   scheduleId: string | null;
   occurrenceDate: string | null;
@@ -1389,7 +1393,7 @@ function getOccurrenceRef(args: Record<string, unknown>): {
       transactionId: null,
       scheduleId: null,
       occurrenceDate: null,
-      error: "Provide either transaction_id or schedule_id with occurrence_date, not both",
+      error: t("mcp.errors.occurrenceRefExclusive"),
     };
   }
 
@@ -1402,7 +1406,7 @@ function getOccurrenceRef(args: Record<string, unknown>): {
       transactionId: null,
       scheduleId: null,
       occurrenceDate: null,
-      error: "Provide transaction_id, or schedule_id and occurrence_date in YYYY-MM-DD format",
+      error: t("mcp.errors.occurrenceRefRequired"),
     };
   }
 
@@ -1425,6 +1429,7 @@ async function callRecurringRpc(
   rpcName: string,
   payload: Record<string, unknown>,
   successText: string,
+  t: McpTranslator,
 ): Promise<McpResponse> {
   const db = createAnonClient();
   const { data, error } = await db.rpc(rpcName, payload);
@@ -1433,7 +1438,7 @@ async function callRecurringRpc(
     return {
       jsonrpc: "2.0",
       id,
-      error: { code: -32000, message: error?.message ?? `Failed to call ${rpcName}` },
+      error: { code: -32000, message: error?.message ?? t("mcp.errors.rpcCallFailed", { rpcName }) },
     };
   }
 
@@ -1444,17 +1449,19 @@ async function handleGetRecurringSchedules(
   id: string | number | null,
   args: Record<string, unknown>,
   keyHash: string,
+  t: McpTranslator,
 ): Promise<McpResponse> {
   const states = getOptionalStringArrayArg(args, "states");
   if (states === null || states?.some((state) => !isScheduleState(state))) {
-    return { jsonrpc: "2.0", id, error: { code: -32602, message: "states must contain only active or paused" } };
+    return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.invalidScheduleStates") } };
   }
 
   return callRecurringRpc(
     id,
     "mcp_get_recurring_transaction_schedules",
     { p_key_hash: keyHash, p_states: states ?? null },
-    "Recurring transactions loaded.",
+    t("mcp.success.recurringLoaded"),
+    t,
   );
 }
 
@@ -1462,6 +1469,7 @@ async function handleCreateRecurringSchedule(
   id: string | number | null,
   params: Record<string, unknown>,
   keyHash: string,
+  t: McpTranslator,
 ): Promise<McpResponse> {
   const args = (params.arguments ?? {}) as { schedule?: unknown };
   const validationError = validateRecurringSchedule(args.schedule);
@@ -1471,7 +1479,8 @@ async function handleCreateRecurringSchedule(
     id,
     "mcp_create_recurring_transaction_schedule",
     { p_key_hash: keyHash, p_schedule: normalizeRecurringSchedule(args.schedule as RecurringScheduleItem) },
-    "Recurring transaction created in Moniq.",
+    t("mcp.success.recurringCreated"),
+    t,
   );
 }
 
@@ -1479,10 +1488,11 @@ async function handleUpdateRecurringSchedule(
   id: string | number | null,
   params: Record<string, unknown>,
   keyHash: string,
+  t: McpTranslator,
 ): Promise<McpResponse> {
   const args = (params.arguments ?? {}) as { schedule_id?: unknown; schedule?: unknown };
   const scheduleId = optionalString(args.schedule_id);
-  if (!scheduleId) return { jsonrpc: "2.0", id, error: { code: -32602, message: "schedule_id is required" } };
+  if (!scheduleId) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.scheduleIdRequired") } };
 
   const validationError = validateRecurringSchedule(args.schedule);
   if (validationError) return { jsonrpc: "2.0", id, error: { code: -32602, message: validationError } };
@@ -1491,7 +1501,8 @@ async function handleUpdateRecurringSchedule(
     id,
     "mcp_update_recurring_transaction_schedule",
     { p_key_hash: keyHash, p_schedule_id: scheduleId, p_schedule: normalizeRecurringSchedule(args.schedule as RecurringScheduleItem) },
-    "Recurring transaction updated in Moniq.",
+    t("mcp.success.recurringUpdated"),
+    t,
   );
 }
 
@@ -1499,14 +1510,15 @@ async function handleRescheduleRecurringSeries(
   id: string | number | null,
   args: Record<string, unknown>,
   keyHash: string,
+  t: McpTranslator,
 ): Promise<McpResponse> {
   const scheduleId = optionalString(args.schedule_id);
   const fromOccurrenceDate = optionalString(args.from_occurrence_date);
   const newOccurrenceDate = optionalString(args.new_occurrence_date);
 
-  if (!scheduleId) return { jsonrpc: "2.0", id, error: { code: -32602, message: "schedule_id is required" } };
+  if (!scheduleId) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.scheduleIdRequired") } };
   if (!isIsoDate(fromOccurrenceDate) || !isIsoDate(newOccurrenceDate)) {
-    return { jsonrpc: "2.0", id, error: { code: -32602, message: "from_occurrence_date and new_occurrence_date must be YYYY-MM-DD" } };
+    return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.rescheduleDatesRequired") } };
   }
 
   return callRecurringRpc(
@@ -1518,7 +1530,8 @@ async function handleRescheduleRecurringSeries(
       p_from_occurrence_date: fromOccurrenceDate,
       p_new_occurrence_date: newOccurrenceDate,
     },
-    "Recurring series rescheduled in Moniq.",
+    t("mcp.success.recurringRescheduled"),
+    t,
   );
 }
 
@@ -1526,9 +1539,10 @@ async function handleUpdateRecurringOccurrence(
   id: string | number | null,
   params: Record<string, unknown>,
   keyHash: string,
+  t: McpTranslator,
 ): Promise<McpResponse> {
   const args = (params.arguments ?? {}) as Record<string, unknown>;
-  const ref = getOccurrenceRef(args);
+  const ref = getOccurrenceRef(args, t);
   if (ref.error) return { jsonrpc: "2.0", id, error: { code: -32602, message: ref.error } };
 
   const values = args.values;
@@ -1545,7 +1559,8 @@ async function handleUpdateRecurringOccurrence(
       p_occurrence_date: ref.occurrenceDate,
       p_transaction: normalizeDirectTransaction(values as DirectTransactionItem),
     },
-    "Recurring occurrence updated in Moniq.",
+    t("mcp.success.occurrenceUpdated"),
+    t,
   );
 }
 
@@ -1554,8 +1569,9 @@ async function handleRecurringOccurrenceStatus(
   args: Record<string, unknown>,
   keyHash: string,
   status: "paid" | "skipped",
+  t: McpTranslator,
 ): Promise<McpResponse> {
-  const ref = getOccurrenceRef(args);
+  const ref = getOccurrenceRef(args, t);
   if (ref.error) return { jsonrpc: "2.0", id, error: { code: -32602, message: ref.error } };
 
   return callRecurringRpc(
@@ -1568,7 +1584,8 @@ async function handleRecurringOccurrenceStatus(
       p_occurrence_date: ref.occurrenceDate,
       p_status: status,
     },
-    status === "paid" ? "Recurring occurrence marked paid in Moniq." : "Recurring occurrence deleted in Moniq.",
+    status === "paid" ? t("mcp.success.occurrencePaid") : t("mcp.success.occurrenceDeleted"),
+    t,
   );
 }
 
@@ -1576,16 +1593,18 @@ async function handleSetRecurringScheduleState(
   id: string | number | null,
   args: Record<string, unknown>,
   keyHash: string,
+  t: McpTranslator,
 ): Promise<McpResponse> {
   const scheduleId = optionalString(args.schedule_id);
-  if (!scheduleId) return { jsonrpc: "2.0", id, error: { code: -32602, message: "schedule_id is required" } };
-  if (!isScheduleState(args.state)) return { jsonrpc: "2.0", id, error: { code: -32602, message: "state must be active or paused" } };
+  if (!scheduleId) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.scheduleIdRequired") } };
+  if (!isScheduleState(args.state)) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.invalidScheduleState") } };
 
   return callRecurringRpc(
     id,
     "mcp_set_recurring_transaction_schedule_state",
     { p_key_hash: keyHash, p_schedule_id: scheduleId, p_state: args.state },
-    "Recurring transaction state updated in Moniq.",
+    t("mcp.success.recurringStateUpdated"),
+    t,
   );
 }
 
@@ -1593,15 +1612,17 @@ async function handleDeleteRecurringSchedule(
   id: string | number | null,
   args: Record<string, unknown>,
   keyHash: string,
+  t: McpTranslator,
 ): Promise<McpResponse> {
   const scheduleId = optionalString(args.schedule_id);
-  if (!scheduleId) return { jsonrpc: "2.0", id, error: { code: -32602, message: "schedule_id is required" } };
+  if (!scheduleId) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.scheduleIdRequired") } };
 
   return callRecurringRpc(
     id,
     "mcp_delete_recurring_transaction_schedule",
     { p_key_hash: keyHash, p_schedule_id: scheduleId },
-    "Recurring transaction deleted in Moniq.",
+    t("mcp.success.recurringDeleted"),
+    t,
   );
 }
 
@@ -1609,12 +1630,13 @@ async function handleCreateTransactions(
   id: string | number | null,
   params: Record<string, unknown>,
   keyHash: string,
+  t: McpTranslator,
 ): Promise<McpResponse> {
   const args = (params.arguments ?? {}) as { transactions?: unknown[] };
   const transactions = args.transactions;
 
   if (!Array.isArray(transactions) || transactions.length === 0) {
-    return { jsonrpc: "2.0", id, error: { code: -32602, message: "transactions must be a non-empty array" } };
+    return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.transactionsRequired") } };
   }
 
   for (let index = 0; index < transactions.length; index += 1) {
@@ -1633,7 +1655,7 @@ async function handleCreateTransactions(
     return {
       jsonrpc: "2.0",
       id,
-      error: { code: -32000, message: error?.message ?? "Failed to create transactions" },
+      error: { code: -32000, message: error?.message ?? t("mcp.errors.createTransactionsFailed") },
     };
   }
 
@@ -1646,7 +1668,7 @@ async function handleCreateTransactions(
       content: [
         {
           type: "text",
-          text: `Created ${created} transaction${created === 1 ? "" : "s"} in Moniq.`,
+          text: t("mcp.success.transactionsCreated", { count: created }),
         },
       ],
       structuredContent: data,
@@ -1658,70 +1680,71 @@ async function handleToolCall(
   id: string | number | null,
   params: Record<string, unknown>,
   auth: { userId: string; keyHash: string },
+  t: McpTranslator,
 ): Promise<McpResponse> {
   const toolName = params.name as string;
 
   if (toolName === "get_finance_context") {
-    return handleGetFinanceContext(id, auth.keyHash);
+    return handleGetFinanceContext(id, auth.keyHash, t);
   }
 
   if (toolName === "get_card_and_debt_balances") {
-    return handleGetCardAndDebtBalances(id, auth.keyHash);
+    return handleGetCardAndDebtBalances(id, auth.keyHash, t);
   }
 
   if (toolName === "get_transactions") {
-    return handleGetTransactionsTool(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash);
+    return handleGetTransactionsTool(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash, t);
   }
 
   if (toolName === "create_transactions") {
-    return handleCreateTransactions(id, params, auth.keyHash);
+    return handleCreateTransactions(id, params, auth.keyHash, t);
   }
 
   if (toolName === "get_recurring_transaction_schedules") {
-    return handleGetRecurringSchedules(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash);
+    return handleGetRecurringSchedules(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash, t);
   }
 
   if (toolName === "create_recurring_transaction_schedule") {
-    return handleCreateRecurringSchedule(id, params, auth.keyHash);
+    return handleCreateRecurringSchedule(id, params, auth.keyHash, t);
   }
 
   if (toolName === "update_recurring_transaction_schedule") {
-    return handleUpdateRecurringSchedule(id, params, auth.keyHash);
+    return handleUpdateRecurringSchedule(id, params, auth.keyHash, t);
   }
 
   if (toolName === "reschedule_recurring_transaction_series_from_occurrence") {
-    return handleRescheduleRecurringSeries(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash);
+    return handleRescheduleRecurringSeries(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash, t);
   }
 
   if (toolName === "update_recurring_transaction_occurrence") {
-    return handleUpdateRecurringOccurrence(id, params, auth.keyHash);
+    return handleUpdateRecurringOccurrence(id, params, auth.keyHash, t);
   }
 
   if (toolName === "mark_recurring_transaction_occurrence_paid") {
-    return handleRecurringOccurrenceStatus(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash, "paid");
+    return handleRecurringOccurrenceStatus(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash, "paid", t);
   }
 
   if (toolName === "delete_recurring_transaction_occurrence") {
-    return handleRecurringOccurrenceStatus(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash, "skipped");
+    return handleRecurringOccurrenceStatus(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash, "skipped", t);
   }
 
   if (toolName === "set_recurring_transaction_schedule_state") {
-    return handleSetRecurringScheduleState(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash);
+    return handleSetRecurringScheduleState(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash, t);
   }
 
   if (toolName === "delete_recurring_transaction_schedule") {
-    return handleDeleteRecurringSchedule(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash);
+    return handleDeleteRecurringSchedule(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash, t);
   }
 
   if (toolName === "get_category_spending_report") {
-    return handleCategorySpendingReportTool(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash);
+    return handleCategorySpendingReportTool(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash, t);
   }
 
   if (toolName !== "submit_transaction_batch") {
     return {
       jsonrpc: "2.0",
       id,
-      error: { code: -32601, message: `Unknown tool: ${toolName}` },
+      error: { code: -32601, message: t("mcp.errors.unknownTool", { toolName }) },
     };
   }
 
@@ -1735,23 +1758,23 @@ async function handleToolCall(
     return {
       jsonrpc: "2.0",
       id,
-      error: { code: -32602, message: "transactions must be a non-empty array" },
+      error: { code: -32602, message: t("mcp.errors.transactionsRequired") },
     };
   }
 
   // Validate items
   for (const tx of transactions) {
     if (!tx.title || typeof tx.title !== "string") {
-      return { jsonrpc: "2.0", id, error: { code: -32602, message: "Each transaction must have a title" } };
+      return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.transactionTitleRequired") } };
     }
     if (!isPositiveNumber(tx.amount)) {
-      return { jsonrpc: "2.0", id, error: { code: -32602, message: `Transaction "${tx.title}" must have a positive amount` } };
+      return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.transactionPositiveAmount", { title: tx.title }) } };
     }
     if (!isIsoDate(tx.occurred_at)) {
-      return { jsonrpc: "2.0", id, error: { code: -32602, message: `Transaction "${tx.title}" must have occurred_at in YYYY-MM-DD format` } };
+      return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.transactionDateRequired", { title: tx.title }) } };
     }
     if (tx.kind !== "income" && tx.kind !== "expense") {
-      return { jsonrpc: "2.0", id, error: { code: -32602, message: `Transaction "${tx.title}" kind must be "income" or "expense"` } };
+      return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.transactionBatchKind", { title: tx.title }) } };
     }
   }
 
@@ -1778,7 +1801,7 @@ async function handleToolCall(
     return {
       jsonrpc: "2.0",
       id,
-      error: { code: -32000, message: error?.message ?? "Failed to save batch in database" },
+      error: { code: -32000, message: error?.message ?? t("mcp.errors.saveBatchFailed") },
     };
   }
 
@@ -1789,7 +1812,7 @@ async function handleToolCall(
       content: [
         {
           type: "text",
-          text: `Batch submitted successfully. ${transactions.length} transaction${transactions.length === 1 ? "" : "s"} are now in the Moniq Claude Inbox for review. Batch ID: ${batchId}`,
+          text: t("mcp.success.batchSubmitted", { count: transactions.length, batchId: String(batchId) }),
         },
       ],
     },
@@ -1801,10 +1824,11 @@ async function handleToolCall(
 // ---------------------------------------------------------------------------
 
 export async function POST(request: Request) {
+  const t = (await getRequestTranslator(request)) as McpTranslator;
   const auth = await authenticateApiKey(request);
   if (!auth) {
     return NextResponse.json(
-      { jsonrpc: "2.0", id: null, error: { code: -32001, message: "Unauthorized: provide a valid Moniq API key as Bearer token" } },
+      { jsonrpc: "2.0", id: null, error: { code: -32001, message: t("mcp.errors.unauthorizedApiKey") } },
       { status: 401, headers: { ...CORS_HEADERS, "WWW-Authenticate": WWW_AUTHENTICATE } },
     );
   }
@@ -1814,24 +1838,24 @@ export async function POST(request: Request) {
     body = await request.json();
   } catch {
     return NextResponse.json(
-      { jsonrpc: "2.0", id: null, error: { code: -32700, message: "Parse error" } },
+      { jsonrpc: "2.0", id: null, error: { code: -32700, message: t("mcp.errors.parseError") } },
       { status: 400, headers: CORS_HEADERS },
     );
   }
 
   if (Array.isArray(body)) {
-    const responses = await Promise.all(body.map((msg) => dispatchMessage(msg, auth)));
+    const responses = await Promise.all(body.map((msg) => dispatchMessage(msg, auth, t)));
     return NextResponse.json(responses.filter(Boolean), { headers: CORS_HEADERS });
   }
 
-  const response = await dispatchMessage(body, auth);
+  const response = await dispatchMessage(body, auth, t);
   if (response === null) {
     return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
   }
   return NextResponse.json(response, { headers: CORS_HEADERS });
 }
 
-async function dispatchMessage(msg: McpRequest, auth: { userId: string; keyHash: string }): Promise<McpResponse | null> {
+async function dispatchMessage(msg: McpRequest, auth: { userId: string; keyHash: string }, t: McpTranslator): Promise<McpResponse | null> {
   const id = msg.id ?? null;
 
   switch (msg.method) {
@@ -1849,9 +1873,9 @@ async function dispatchMessage(msg: McpRequest, auth: { userId: string; keyHash:
       return handleToolsList(id);
 
     case "tools/call":
-      return handleToolCall(id, (msg.params ?? {}) as Record<string, unknown>, auth);
+      return handleToolCall(id, (msg.params ?? {}) as Record<string, unknown>, auth, t);
 
     default:
-      return { jsonrpc: "2.0", id, error: { code: -32601, message: `Method not found: ${msg.method}` } };
+      return { jsonrpc: "2.0", id, error: { code: -32601, message: t("mcp.errors.methodNotFound", { method: msg.method }) } };
   }
 }

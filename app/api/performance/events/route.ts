@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { localizedErrorResponse } from "@/app/api/_lib/error-response";
 import { clientPerformanceEventBatchSchema } from "@/lib/performance/schema";
 import { getPerformanceSessionId, recordPerformanceEvent } from "@/lib/performance/server";
 import { createClient } from "@/lib/supabase/server";
@@ -9,7 +10,7 @@ export async function POST(request: Request) {
   const parsed = clientPerformanceEventBatchSchema.safeParse(body);
 
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid performance event payload." }, { status: 400 });
+    return localizedErrorResponse(request, "common.errors.performance.invalidEventPayload", 400);
   }
 
   const sessionId = await getPerformanceSessionId();

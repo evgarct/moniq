@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { localizedOAuthErrorResponse } from "@/app/api/_lib/error-response";
 import { createAnonClient } from "@/lib/supabase/anon";
 import { verifyPkce, generateRawToken, sha256Hex } from "./pkce";
 
@@ -33,10 +34,7 @@ export async function POST(request: Request) {
     try {
       body = await request.json();
     } catch {
-      return NextResponse.json(
-        { error: "invalid_request", error_description: "Invalid JSON body" },
-        { status: 400, headers: CORS_HEADERS },
-      );
+      return localizedOAuthErrorResponse(request, "invalid_request", "common.errors.oauth.invalidJsonBody", 400, { headers: CORS_HEADERS });
     }
     grantType = body.grant_type ?? null;
     code = body.code ?? null;
@@ -53,10 +51,7 @@ export async function POST(request: Request) {
   }
 
   if (!code || !codeVerifier || !clientId || !redirectUri) {
-    return NextResponse.json(
-      { error: "invalid_request", error_description: "Missing required parameters" },
-      { status: 400, headers: CORS_HEADERS },
-    );
+    return localizedOAuthErrorResponse(request, "invalid_request", "common.errors.oauth.missingRequiredParameters", 400, { headers: CORS_HEADERS });
   }
 
   const db = createAnonClient();
@@ -68,10 +63,7 @@ export async function POST(request: Request) {
   });
 
   if (redeemError || !rows || rows.length === 0) {
-    return NextResponse.json(
-      { error: "invalid_grant", error_description: "Code is invalid, expired, or already used" },
-      { status: 400, headers: CORS_HEADERS },
-    );
+    return localizedOAuthErrorResponse(request, "invalid_grant", "common.errors.oauth.invalidCode", 400, { headers: CORS_HEADERS });
   }
 
   const codeRow = rows[0] as {
@@ -82,26 +74,17 @@ export async function POST(request: Request) {
   };
 
   if (codeRow.client_id !== clientId) {
-    return NextResponse.json(
-      { error: "invalid_grant", error_description: "client_id mismatch" },
-      { status: 400, headers: CORS_HEADERS },
-    );
+    return localizedOAuthErrorResponse(request, "invalid_grant", "common.errors.oauth.clientIdMismatch", 400, { headers: CORS_HEADERS });
   }
 
   if (codeRow.redirect_uri !== redirectUri) {
-    return NextResponse.json(
-      { error: "invalid_grant", error_description: "redirect_uri mismatch" },
-      { status: 400, headers: CORS_HEADERS },
-    );
+    return localizedOAuthErrorResponse(request, "invalid_grant", "common.errors.oauth.redirectUriMismatch", 400, { headers: CORS_HEADERS });
   }
 
   // Verify PKCE
   const pkceValid = await verifyPkce(codeVerifier, codeRow.code_challenge);
   if (!pkceValid) {
-    return NextResponse.json(
-      { error: "invalid_grant", error_description: "PKCE verification failed" },
-      { status: 400, headers: CORS_HEADERS },
-    );
+    return localizedOAuthErrorResponse(request, "invalid_grant", "common.errors.oauth.pkceFailed", 400, { headers: CORS_HEADERS });
   }
 
   // Generate bearer token and store via RPC
@@ -117,10 +100,7 @@ export async function POST(request: Request) {
   });
 
   if (storeError) {
-    return NextResponse.json(
-      { error: "server_error", error_description: "Failed to create access token" },
-      { status: 500, headers: CORS_HEADERS },
-    );
+    return localizedOAuthErrorResponse(request, "server_error", "common.errors.oauth.createAccessTokenFailed", 500, { headers: CORS_HEADERS });
   }
 
   return NextResponse.json(

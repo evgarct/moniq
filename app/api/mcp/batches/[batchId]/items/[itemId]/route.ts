@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { localizedErrorResponse } from "@/app/api/_lib/error-response";
 import { createClient } from "@/lib/supabase/server";
 
 const updateItemSchema = z.object({
@@ -21,7 +22,7 @@ export async function PATCH(
 ) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user) return localizedErrorResponse(request, "common.errors.unauthorized", 401);
 
   const { batchId, itemId } = await params;
 
@@ -34,26 +35,23 @@ export async function PATCH(
     .single();
 
   if (batchError || !batch) {
-    return NextResponse.json({ error: "Batch not found" }, { status: 404 });
+    return localizedErrorResponse(request, "common.errors.mcp.batchNotFound", 404);
   }
 
   if (batch.status !== "pending") {
-    return NextResponse.json({ error: "Batch has already been reviewed" }, { status: 409 });
+    return localizedErrorResponse(request, "common.errors.mcp.batchReviewed", 409);
   }
 
   let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return localizedErrorResponse(request, "common.errors.invalidJson", 400);
   }
 
   const parsed = updateItemSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: parsed.error.issues[0]?.message ?? "Invalid input" },
-      { status: 400 },
-    );
+    return localizedErrorResponse(request, "common.errors.invalidInput", 400);
   }
 
   const { data, error } = await supabase

@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
+import { localizedErrorResponse } from "@/app/api/_lib/error-response";
 import { createClient } from "@/lib/supabase/server";
 
 // DELETE /api/mcp/api-keys/[keyId]
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ keyId: string }> },
 ) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user) return localizedErrorResponse(request, "common.errors.unauthorized", 401);
 
   const { keyId } = await params;
 

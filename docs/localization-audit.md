@@ -8,6 +8,8 @@ Scope: `app`, `features`, `components`, and `stories` TypeScript/TSX files. The 
 
 These are user-visible strings in runtime UI code that are not read through `next-intl`.
 
+Status: fixed in `features/goals/components/goal-form-sheet.tsx` and `features/goals/components/goals-panel.tsx`. The strings now live under `accounts.goals.*` in `messages/{locale}.json`.
+
 | File | Line | Text |
 | --- | ---: | --- |
 | `features/goals/components/goal-form-sheet.tsx` | 20 | `Goal name is required.` |
@@ -37,6 +39,8 @@ These are user-visible strings in runtime UI code that are not read through `nex
 ## Production API And MCP Text
 
 These strings are returned to clients or exposed as MCP tool/schema descriptions. Some OAuth error codes are protocol constants and should remain stable, but human-readable descriptions and JSON error messages should either use localization keys or be explicitly documented as protocol-only copy.
+
+Status: fixed for user/client-facing JSON errors and OAuth consent copy. The remaining MCP tool `title` and `description` fields in `app/api/mcp/route.ts` are protocol metadata for LLM tool selection, not app UI copy; keep them stable unless the MCP client explicitly supports localized tool metadata.
 
 | File | Line | Text |
 | --- | ---: | --- |
@@ -70,10 +74,10 @@ These strings are returned to clients or exposed as MCP tool/schema descriptions
 | `app/api/performance/summary/route.ts` | 30 | `Performance analytics storage is not configured.` |
 | `app/api/performance/summary/route.ts` | 47 | `Unable to load performance summary.` |
 
-`app/api/mcp/route.ts` also contains a large set of hardcoded MCP tool titles, descriptions, and validation messages. These are not JSX UI, but they are human-readable and externally visible:
+`app/api/mcp/route.ts` also contains MCP tool titles and descriptions. These are not JSX UI, but they are human-readable and externally visible:
 
 - Tool and schema copy around lines 249-738, including titles such as `Get Moniq finance context`, `Create Moniq transactions`, `Recurring transaction`, `Destination amount`, `From wallet`, and their descriptions.
-- Validation/result messages around lines 878, 941, 949, 962, 970, 975, 979, 1392, 1405, 1450, 1485, 1507, 1509, 1581, 1582, 1598, 1617, 1738, 1745, 1807, and 1817.
+- Validation/result messages were moved under the `mcp.errors.*` and `mcp.success.*` namespaces.
 
 ## Storybook And Fixtures
 
@@ -82,4 +86,3 @@ Storybook contains many hardcoded visible strings in stories and foundation docu
 ## Rule Going Forward
 
 All new user-visible text must be introduced as localization keys first, then consumed through `useTranslations` or `getTranslations`. This includes JSX text, `aria-label`, `title`, `placeholder`, form validation messages, toast/status copy, metadata, empty states, API errors surfaced to users, and Storybook-visible component copy.
-

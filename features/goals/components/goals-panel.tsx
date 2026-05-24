@@ -1,6 +1,7 @@
 "use client";
 
 import { Pencil, Plus, Target, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { MoneyAmount } from "@/components/money-amount";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ export function GoalsPanel({
   onEdit?: (allocation: WalletAllocation) => void;
   onDelete?: (allocation: WalletAllocation) => void;
 }) {
+  const t = useTranslations("accounts.goals.panel");
   const totalAllocated = allocations.reduce((sum, a) => sum + a.amount, 0);
   const free = balance - totalAllocated;
   const isOverfunded = free < -0.001;
@@ -45,7 +47,7 @@ export function GoalsPanel({
     <section className="mt-8 flex flex-col gap-2 sm:mt-10 sm:gap-2.5">
       <div className="flex items-center justify-between gap-3 px-1.5 sm:px-2.5">
         <h2 className="font-heading text-[20px] leading-[1.12] tracking-[-0.028em] text-foreground sm:type-h3">
-          Goals
+          {t("title")}
         </h2>
         {onAdd ? (
           <Button
@@ -53,7 +55,7 @@ export function GoalsPanel({
             variant="ghost"
             size="icon-sm"
             className="shrink-0 rounded-md bg-transparent text-muted-foreground hover:bg-[#ece8e1] hover:text-foreground active:bg-[#e6e1d9]"
-            aria-label="Add goal"
+            aria-label={t("actions.add")}
             onClick={onAdd}
           >
             <Plus />
@@ -64,11 +66,11 @@ export function GoalsPanel({
       <div className="flex flex-col gap-0.5 sm:gap-1">
         <div className="grid grid-cols-[minmax(0,1fr)_minmax(96px,auto)] items-center gap-2 rounded-sm px-1.5 py-1.5 sm:gap-3 sm:px-2.5 sm:py-2.5">
           <span className="text-[13px] leading-[18px] text-muted-foreground sm:type-body-14">
-            Free
+            {t("free")}
           </span>
           <div className="flex items-center justify-end gap-1.5">
             {isOverfunded ? (
-              <span className="text-[11px] leading-none text-destructive/70">over</span>
+              <span className="text-[11px] leading-none text-destructive/70">{t("over")}</span>
             ) : null}
             <MoneyAmount
               amount={free}
@@ -110,7 +112,7 @@ export function GoalsPanel({
                         variant="ghost"
                         size="icon-sm"
                         className="size-8 shrink-0 rounded-[var(--radius-control)] bg-transparent text-muted-foreground hover:bg-[#e6e1d9] hover:text-foreground"
-                        aria-label={`Edit ${allocation.name}`}
+                        aria-label={t("actions.edit", { name: allocation.name })}
                         onClick={() => onEdit(allocation)}
                       >
                         <Pencil className="size-3" />
@@ -122,7 +124,7 @@ export function GoalsPanel({
                         variant="ghost"
                         size="icon-sm"
                         className="size-8 shrink-0 rounded-[var(--radius-control)] bg-transparent text-muted-foreground hover:bg-[#e6e1d9] hover:text-destructive"
-                        aria-label={`Delete ${allocation.name}`}
+                        aria-label={t("actions.delete", { name: allocation.name })}
                         onClick={() => onDelete(allocation)}
                       >
                         <Trash2 className="size-3" />

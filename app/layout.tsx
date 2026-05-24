@@ -28,7 +28,6 @@ const ptSerif = PT_Serif({
 
 export const metadata: Metadata = {
   title: "Moniq",
-  description: "Personal finance management app built with Next.js and Supabase.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
