@@ -1,15 +1,16 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { localizedErrorResponse } from "@/app/api/_lib/error-response";
 import { createClient } from "@/lib/supabase/server";
 
 // GET /api/mcp/batches/[batchId] — batch details with items
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ batchId: string }> },
 ) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user) return localizedErrorResponse(request, "common.errors.unauthorized", 401);
 
   const { batchId } = await params;
 
@@ -43,7 +44,7 @@ export async function GET(
     .eq("user_id", user.id)
     .single();
 
-  if (error) return NextResponse.json({ error: "Batch not found" }, { status: 404 });
+  if (error) return localizedErrorResponse(request, "common.errors.mcp.batchNotFound", 404);
   return NextResponse.json(data);
 }
 
@@ -58,7 +59,7 @@ export async function PATCH(
 ) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user) return localizedErrorResponse(request, "common.errors.unauthorized", 401);
 
   const { batchId } = await params;
 
@@ -66,12 +67,12 @@ export async function PATCH(
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return localizedErrorResponse(request, "common.errors.invalidJson", 400);
   }
 
   const parsed = approveSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "action must be 'approve' or 'reject'" }, { status: 400 });
+    return localizedErrorResponse(request, "common.errors.mcp.invalidBatchAction", 400);
   }
 
   // Fetch the batch and verify ownership
@@ -83,11 +84,11 @@ export async function PATCH(
     .single();
 
   if (batchError || !batch) {
-    return NextResponse.json({ error: "Batch not found" }, { status: 404 });
+    return localizedErrorResponse(request, "common.errors.mcp.batchNotFound", 404);
   }
 
   if (batch.status !== "pending") {
-    return NextResponse.json({ error: "Batch has already been reviewed" }, { status: 409 });
+    return localizedErrorResponse(request, "common.errors.mcp.batchReviewed", 409);
   }
 
   if (parsed.data.action === "reject") {

@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
+import { localizedErrorResponse } from "@/app/api/_lib/error-response";
 import { createClient } from "@/lib/supabase/server";
 
 // GET /api/mcp/batches — list batches for current user
 export async function GET(request: Request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user) return localizedErrorResponse(request, "common.errors.unauthorized", 401);
 
   const url = new URL(request.url);
   const status = url.searchParams.get("status") ?? "pending";

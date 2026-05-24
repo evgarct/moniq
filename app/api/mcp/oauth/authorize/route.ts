@@ -1,4 +1,7 @@
 import { NextResponse } from "next/server";
+import { localizedOAuthErrorResponse } from "@/app/api/_lib/error-response";
+import { detectRequestLocale } from "@/i18n/locale";
+import { getRequestTranslator } from "@/i18n/translator";
 import { createClient } from "@/lib/supabase/server";
 import { createAnonClient } from "@/lib/supabase/anon";
 
@@ -21,19 +24,37 @@ function buildConsentHtml({
   redirectUri,
   codeChallenge,
   state,
+  locale,
+  title,
+  heading,
+  description,
+  requestedBy,
+  submitScope,
+  readScope,
+  deny,
+  allow,
 }: {
   clientName: string | null;
   clientId: string;
   redirectUri: string;
   codeChallenge: string;
   state: string | null;
+  locale: string;
+  title: string;
+  heading: string;
+  description: string;
+  requestedBy: string;
+  submitScope: string;
+  readScope: string;
+  deny: string;
+  allow: string;
 }): string {
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="${escHtml(locale)}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Connect Claude — Moniq</title>
+  <title>${escHtml(title)}</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -61,12 +82,12 @@ function buildConsentHtml({
 <body>
   <div class="card">
     <div class="logo">Moniq</div>
-    <h1>Connect Claude</h1>
-    <p class="desc">Claude is requesting access to your Moniq account to submit transaction batches for your review.</p>
-    ${clientName ? `<p class="client">Requested by <strong>${escHtml(clientName)}</strong></p>` : ""}
+    <h1>${escHtml(heading)}</h1>
+    <p class="desc">${escHtml(description)}</p>
+    ${clientName ? `<p class="client">${escHtml(requestedBy)} <strong>${escHtml(clientName)}</strong></p>` : ""}
     <div class="scopes">
-      <div class="scope"><div class="dot"></div>Submit transaction batches for review</div>
-      <div class="scope"><div class="dot"></div>Read your categories for suggestions</div>
+      <div class="scope"><div class="dot"></div>${escHtml(submitScope)}</div>
+      <div class="scope"><div class="dot"></div>${escHtml(readScope)}</div>
     </div>
     <form method="POST">
       <input type="hidden" name="client_id" value="${escHtml(clientId)}">
@@ -74,8 +95,8 @@ function buildConsentHtml({
       <input type="hidden" name="code_challenge" value="${escHtml(codeChallenge)}">
       <input type="hidden" name="state" value="${escHtml(state ?? "")}">
       <div class="actions">
-        <button type="submit" name="action" value="deny" class="deny">Deny</button>
-        <button type="submit" name="action" value="allow" class="allow">Allow</button>
+        <button type="submit" name="action" value="deny" class="deny">${escHtml(deny)}</button>
+        <button type="submit" name="action" value="allow" class="allow">${escHtml(allow)}</button>
       </div>
     </form>
   </div>
@@ -88,6 +109,8 @@ function buildConsentHtml({
 // ---------------------------------------------------------------------------
 
 export async function GET(request: Request) {
+  const locale = detectRequestLocale(request);
+  const t = (await getRequestTranslator(request)) as (key: string) => string;
   const url = new URL(request.url);
   const clientId = url.searchParams.get("client_id");
   const redirectUri = url.searchParams.get("redirect_uri");
@@ -98,24 +121,15 @@ export async function GET(request: Request) {
 
   // Validate required params
   if (!clientId || !redirectUri || !codeChallenge) {
-    return NextResponse.json(
-      { error: "invalid_request", error_description: "Missing required parameters" },
-      { status: 400 },
-    );
+    return localizedOAuthErrorResponse(request, "invalid_request", "common.errors.oauth.missingRequiredParameters", 400);
   }
 
   if (responseType !== "code") {
-    return NextResponse.json(
-      { error: "unsupported_response_type", error_description: "Only 'code' is supported" },
-      { status: 400 },
-    );
+    return localizedOAuthErrorResponse(request, "unsupported_response_type", "common.errors.oauth.onlyCodeSupported", 400);
   }
 
   if (codeChallengeMethod && codeChallengeMethod !== "S256") {
-    return NextResponse.json(
-      { error: "invalid_request", error_description: "Only S256 code_challenge_method is supported" },
-      { status: 400 },
-    );
+    return localizedOAuthErrorResponse(request, "invalid_request", "common.errors.oauth.onlyS256Supported", 400);
   }
 
   // Validate client via RPC (no service role needed)
@@ -124,17 +138,11 @@ export async function GET(request: Request) {
   const client = clientRows && clientRows.length > 0 ? clientRows[0] : null;
 
   if (!client) {
-    return NextResponse.json(
-      { error: "invalid_client", error_description: "Unknown client_id" },
-      { status: 400 },
-    );
+    return localizedOAuthErrorResponse(request, "invalid_client", "common.errors.oauth.unknownClient", 400);
   }
 
   if (!client.redirect_uris.includes(redirectUri)) {
-    return NextResponse.json(
-      { error: "invalid_request", error_description: "redirect_uri not allowed for this client" },
-      { status: 400 },
-    );
+    return localizedOAuthErrorResponse(request, "invalid_request", "common.errors.oauth.redirectUriNotAllowed", 400);
   }
 
   // Check authentication
@@ -144,7 +152,7 @@ export async function GET(request: Request) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    const loginUrl = new URL("/en/login", url.origin);
+    const loginUrl = new URL(`/${locale}/login`, url.origin);
     loginUrl.searchParams.set("next", url.pathname + url.search);
     return NextResponse.redirect(loginUrl.toString(), 302);
   }
@@ -156,6 +164,15 @@ export async function GET(request: Request) {
     redirectUri,
     codeChallenge,
     state,
+    locale,
+    title: t("settings.mcp.oauthConsent.title"),
+    heading: t("settings.mcp.oauthConsent.heading"),
+    description: t("settings.mcp.oauthConsent.description"),
+    requestedBy: t("settings.mcp.oauthConsent.requestedBy"),
+    submitScope: t("settings.mcp.oauthConsent.scopes.submit"),
+    readScope: t("settings.mcp.oauthConsent.scopes.read"),
+    deny: t("settings.mcp.oauthConsent.actions.deny"),
+    allow: t("settings.mcp.oauthConsent.actions.allow"),
   });
 
   return new Response(html, {
@@ -176,7 +193,7 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    return localizedOAuthErrorResponse(request, "unauthorized", null, 401);
   }
 
   const formData = await request.formData();
@@ -187,7 +204,7 @@ export async function POST(request: Request) {
   const state = formData.get("state") as string | null;
 
   if (!clientId || !redirectUri || !codeChallenge) {
-    return NextResponse.json({ error: "invalid_request" }, { status: 400 });
+    return localizedOAuthErrorResponse(request, "invalid_request", null, 400);
   }
 
   if (action !== "allow") {
@@ -208,7 +225,7 @@ export async function POST(request: Request) {
   });
 
   if (error || !code) {
-    return NextResponse.json({ error: "server_error" }, { status: 500 });
+    return localizedOAuthErrorResponse(request, "server_error", null, 500);
   }
 
   const successUrl = new URL(redirectUri);

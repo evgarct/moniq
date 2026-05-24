@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { localizedErrorResponse } from "@/app/api/_lib/error-response";
 import { createClient } from "@/lib/supabase/server";
 
 const createKeySchema = z.object({
@@ -8,10 +9,10 @@ const createKeySchema = z.object({
 });
 
 // GET /api/mcp/api-keys — list keys for the current user
-export async function GET() {
+export async function GET(request: Request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user) return localizedErrorResponse(request, "common.errors.unauthorized", 401);
 
   const { data, error } = await supabase
     .from("mcp_api_keys")
@@ -27,18 +28,18 @@ export async function GET() {
 export async function POST(request: Request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user) return localizedErrorResponse(request, "common.errors.unauthorized", 401);
 
   let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return localizedErrorResponse(request, "common.errors.invalidJson", 400);
   }
 
   const parsed = createKeySchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
+    return localizedErrorResponse(request, "common.errors.invalidInput", 400);
   }
 
   // Generate a secure random key: "mnq_" + 32 random hex bytes

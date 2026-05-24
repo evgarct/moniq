@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { localizedErrorResponse } from "@/app/api/_lib/error-response";
 import { createServiceClient } from "@/lib/supabase/service";
 import { createClient } from "@/lib/supabase/server";
 
@@ -14,7 +15,7 @@ type SummaryRow = {
 
 export async function GET(request: Request) {
   if (process.env.PERFORMANCE_ANALYTICS_SUMMARY_ENABLED === "false") {
-    return NextResponse.json({ error: "Performance summary is disabled." }, { status: 404 });
+    return localizedErrorResponse(request, "common.errors.performance.summaryDisabled", 404);
   }
 
   const supabase = await createClient();
@@ -23,11 +24,11 @@ export async function GET(request: Request) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return localizedErrorResponse(request, "common.errors.unauthorized", 401);
   }
 
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return NextResponse.json({ error: "Performance analytics storage is not configured." }, { status: 503 });
+    return localizedErrorResponse(request, "common.errors.performance.storageNotConfigured", 503);
   }
 
   const url = new URL(request.url);
@@ -44,7 +45,7 @@ export async function GET(request: Request) {
     .limit(10_000);
 
   if (error) {
-    return NextResponse.json({ error: "Unable to load performance summary." }, { status: 500 });
+    return localizedErrorResponse(request, "common.errors.performance.summaryLoad", 500);
   }
 
   const rows = (data ?? []) as SummaryRow[];

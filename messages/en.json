@@ -89,6 +89,36 @@
         "debtCategoryExpenseOnly": "Debt payment interest can only use an expense category.",
         "debtNeedsDebtAccount": "Debt payment must target a debt account.",
         "transferNoCategory": "Transfers do not use categories."
+      },
+      "invalidJson": "Invalid JSON.",
+      "invalidInput": "Invalid input.",
+      "mcp": {
+        "batchNotFound": "Batch not found.",
+        "batchReviewed": "Batch has already been reviewed.",
+        "invalidBatchAction": "Action must be 'approve' or 'reject'."
+      },
+      "oauth": {
+        "missingRequiredParameters": "Missing required parameters.",
+        "onlyCodeSupported": "Only 'code' is supported.",
+        "onlyS256Supported": "Only S256 code_challenge_method is supported.",
+        "unknownClient": "Unknown client_id.",
+        "redirectUriNotAllowed": "redirect_uri is not allowed for this client.",
+        "invalidJsonBody": "Invalid JSON body.",
+        "redirectUrisRequired": "redirect_uris must be a non-empty array.",
+        "redirectUrisMustBeStrings": "redirect_uris must contain strings.",
+        "invalidRedirectUri": "Invalid redirect_uri: {uri}",
+        "registerClientFailed": "Failed to register client.",
+        "invalidCode": "Code is invalid, expired, or already used.",
+        "clientIdMismatch": "client_id mismatch.",
+        "redirectUriMismatch": "redirect_uri mismatch.",
+        "pkceFailed": "PKCE verification failed.",
+        "createAccessTokenFailed": "Failed to create access token."
+      },
+      "performance": {
+        "invalidEventPayload": "Invalid performance event payload.",
+        "summaryDisabled": "Performance summary is disabled.",
+        "storageNotConfigured": "Performance analytics storage is not configured.",
+        "summaryLoad": "Unable to load performance summary."
       }
     },
     "currencyGroups": {
@@ -371,6 +401,47 @@
         "creditLimitRequired": "Credit limit is required for a credit card.",
         "creditLimitPositive": "Credit limit must be greater than 0.",
         "creditLimitExceeded": "Current balance cannot exceed the credit limit."
+      }
+    },
+    "goals": {
+      "panel": {
+        "title": "Goals",
+        "free": "Free",
+        "over": "over",
+        "actions": {
+          "add": "Add goal",
+          "edit": "Edit {name}",
+          "delete": "Delete {name}"
+        }
+      },
+      "form": {
+        "addTitle": "Add goal",
+        "editTitle": "Edit goal",
+        "fields": {
+          "name": "Name",
+          "type": "Type",
+          "currentAmount": "Current amount",
+          "targetAmount": "Target amount"
+        },
+        "placeholders": {
+          "name": "e.g. Rent, Vacation, Emergency fund"
+        },
+        "types": {
+          "open": "Open",
+          "openDescription": "No target amount",
+          "targeted": "With target",
+          "targetedDescription": "Track progress"
+        },
+        "submit": {
+          "add": "Add goal",
+          "edit": "Save changes"
+        },
+        "validation": {
+          "nameRequired": "Goal name is required.",
+          "amountMin": "Amount cannot be negative.",
+          "targetPositive": "Target must be greater than 0.",
+          "targetRequired": "Target amount is required."
+        }
       }
     }
   },
@@ -666,7 +737,21 @@
       "never": "Never",
       "revokeKey": "Revoke",
       "revoking": "Revoking...",
-      "created": "Created"
+      "created": "Created",
+      "oauthConsent": {
+        "title": "Connect Claude ? Moniq",
+        "heading": "Connect Claude",
+        "description": "Claude is requesting access to your Moniq account to submit transaction batches for your review.",
+        "requestedBy": "Requested by",
+        "scopes": {
+          "submit": "Submit transaction batches for review",
+          "read": "Read your categories for suggestions"
+        },
+        "actions": {
+          "deny": "Deny",
+          "allow": "Allow"
+        }
+      }
     }
   },
   "inbox": {
@@ -863,6 +948,52 @@
       "date": "Date",
       "actions": "Actions",
       "status": "Status"
+    }
+  },
+  "mcp": {
+    "errors": {
+      "invalidSpendingReportPeriod": "Invalid spending report period.",
+      "spendingReportLoadFailed": "Failed to load finance data for spending report.",
+      "transactionRangeRequired": "start_date and end_date must be provided in YYYY-MM-DD format.",
+      "startDateBeforeEndDate": "start_date must be on or before end_date.",
+      "invalidReadStatuses": "statuses must contain only paid, planned, or skipped.",
+      "invalidKinds": "kinds must contain only income, expense, transfer, or debt_payment.",
+      "accountIdsArray": "account_ids must be an array of non-empty strings.",
+      "categoryIdsArray": "category_ids must be an array of non-empty strings.",
+      "transactionsLoadFailed": "Failed to load transactions.",
+      "financeContextLoadFailed": "Failed to load finance context.",
+      "balancesLoadFailed": "Failed to load balances.",
+      "occurrenceRefExclusive": "Provide either transaction_id or schedule_id with occurrence_date, not both.",
+      "occurrenceRefRequired": "Provide transaction_id, or schedule_id and occurrence_date in YYYY-MM-DD format.",
+      "rpcCallFailed": "Failed to call {rpcName}.",
+      "invalidScheduleStates": "states must contain only active or paused.",
+      "scheduleIdRequired": "schedule_id is required.",
+      "rescheduleDatesRequired": "from_occurrence_date and new_occurrence_date must be YYYY-MM-DD.",
+      "invalidScheduleState": "state must be active or paused.",
+      "transactionsRequired": "transactions must be a non-empty array.",
+      "createTransactionsFailed": "Failed to create transactions.",
+      "unknownTool": "Unknown tool: {toolName}",
+      "transactionTitleRequired": "Each transaction must have a title.",
+      "transactionPositiveAmount": "Transaction \"{title}\" must have a positive amount.",
+      "transactionDateRequired": "Transaction \"{title}\" must have occurred_at in YYYY-MM-DD format.",
+      "transactionBatchKind": "Transaction \"{title}\" kind must be \"income\" or \"expense\".",
+      "saveBatchFailed": "Failed to save batch in database.",
+      "unauthorizedApiKey": "Unauthorized: provide a valid Moniq API key as Bearer token.",
+      "parseError": "Parse error.",
+      "methodNotFound": "Method not found: {method}"
+    },
+    "success": {
+      "recurringLoaded": "Recurring transactions loaded.",
+      "recurringCreated": "Recurring transaction created in Moniq.",
+      "recurringUpdated": "Recurring transaction updated in Moniq.",
+      "recurringRescheduled": "Recurring series rescheduled in Moniq.",
+      "occurrenceUpdated": "Recurring occurrence updated in Moniq.",
+      "occurrencePaid": "Recurring occurrence marked paid in Moniq.",
+      "occurrenceDeleted": "Recurring occurrence deleted in Moniq.",
+      "recurringStateUpdated": "Recurring transaction state updated in Moniq.",
+      "recurringDeleted": "Recurring transaction deleted in Moniq.",
+      "transactionsCreated": "{count, plural, one {Created # transaction in Moniq.} other {Created # transactions in Moniq.}}",
+      "batchSubmitted": "{count, plural, one {Batch submitted successfully. # transaction is now in the Moniq Claude Inbox for review. Batch ID: {batchId}} other {Batch submitted successfully. # transactions are now in the Moniq Claude Inbox for review. Batch ID: {batchId}}}"
     }
   }
 }
