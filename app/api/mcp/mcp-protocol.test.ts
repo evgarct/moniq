@@ -332,7 +332,7 @@ describe("MCP tools", () => {
     const body = await response.json();
     expect(body.error).toMatchObject({
       code: -32602,
-      message: "start_date and end_date must be provided in YYYY-MM-DD format",
+      message: "start_date and end_date must be provided in YYYY-MM-DD format.",
     });
     expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_get_transactions_for_period", expect.anything());
   });
@@ -354,7 +354,7 @@ describe("MCP tools", () => {
     const body = await response.json();
     expect(body.error).toMatchObject({
       code: -32602,
-      message: "start_date and end_date must be provided in YYYY-MM-DD format",
+      message: "start_date and end_date must be provided in YYYY-MM-DD format.",
     });
     expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_get_transactions_for_period", expect.anything());
   });
@@ -376,7 +376,7 @@ describe("MCP tools", () => {
     const body = await response.json();
     expect(body.error).toMatchObject({
       code: -32602,
-      message: "start_date must be on or before end_date",
+      message: "start_date must be on or before end_date.",
     });
     expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_get_transactions_for_period", expect.anything());
   });

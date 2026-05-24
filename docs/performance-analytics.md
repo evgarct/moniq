@@ -52,6 +52,8 @@ Start with p95, not average. p95 shows the slow experience users actually feel w
 - High `mutation` p95 but low following snapshot phases: write RPC/insert/update is slow.
 - Low `mutation` p95 but high API p95: the write is fine, but returning the full refreshed snapshot is slow.
 
+`/api/finance/snapshot` materializes recurring transactions for 18 months ahead. The reconciler prunes only non-overridden planned schedule occurrences beyond that horizon; paid, skipped, and manually overridden occurrences are kept as user history.
+
 ## Next Optimization Targets
 
 After enough events are collected, optimize the slowest p95 path first:
