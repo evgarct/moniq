@@ -1,9 +1,10 @@
 import "server-only";
 
-import { addDays, addMonths, differenceInCalendarDays, format, parseISO, startOfMonth, startOfToday, subMonths } from "date-fns";
+import { addDays, differenceInCalendarDays, format, parseISO, startOfToday, subMonths } from "date-fns";
 
 import { validateAccountValues } from "@/features/accounts/lib/account-state";
 import { validateCategoryHierarchy } from "@/features/categories/lib/category-tree";
+import { getFinanceSnapshotScheduleHorizon } from "@/features/finance/server/snapshot-horizon";
 import { generateScheduleOccurrences } from "@/features/transactions/lib/transaction-schedules";
 import { validateTransactionRelationships } from "@/features/transactions/lib/transaction-utils";
 import { recordPerformanceEvent } from "@/lib/performance/server";
@@ -359,6 +360,28 @@ async function reconcileTransactionSchedule(
   }
 }
 
+async function pruneScheduleOccurrencesBeyondHorizon(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  scheduleIds: string[],
+  horizonEnd: string,
+) {
+  if (!scheduleIds.length) return;
+
+  const { error } = await supabase
+    .from("finance_transactions")
+    .delete()
+    .eq("user_id", userId)
+    .in("schedule_id", scheduleIds)
+    .eq("status", "planned")
+    .eq("is_schedule_override", false)
+    .gt("schedule_occurrence_date", horizonEnd);
+
+  if (error) {
+    throw new Error(normalizeFinanceRepositoryError(error));
+  }
+}
+
 export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
   const snapshotStartedAt = performance.now();
   let phaseStartedAt = snapshotStartedAt;
@@ -458,14 +481,16 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
     }),
   }));
 
-  const horizonStart = format(startOfMonth(startOfToday()), "yyyy-MM-dd");
-  const horizonEnd = format(addMonths(startOfToday(), 60), "yyyy-MM-dd");
+  const { horizonStart, horizonEnd } = getFinanceSnapshotScheduleHorizon();
 
+  const scheduleIds = validatedSchedules.map((schedule) => schedule.id);
   const activeScheduleIds = validatedSchedules
     .filter((schedule) => schedule.state === "active" && !schedule.validation_error)
     .map((schedule) => schedule.id);
 
   let existingScheduleTransactions: TransactionRow[] = [];
+
+  await pruneScheduleOccurrencesBeyondHorizon(supabase, user.id, scheduleIds, horizonEnd);
 
   if (activeScheduleIds.length) {
     phaseStartedAt = performance.now();
