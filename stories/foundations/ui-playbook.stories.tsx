@@ -688,8 +688,9 @@ const meta = {
                   variant="do"
                 />
                 <RuleCard
-                  label="Next candidate: GoalFormSheet"
-                  body="GoalFormSheet still uses the old manual sheet layout. Migrate it after AccountFormSheet and CategoryFormSheet prove the shared pattern is stable."
+                  label="CRUD sheet forms are covered"
+                  body="AccountFormSheet, CategoryFormSheet, and GoalFormSheet now use the shared FormSheet path. New CRUD sheet forms should start there before adding feature-specific controls."
+                  variant="do"
                 />
               </div>
 

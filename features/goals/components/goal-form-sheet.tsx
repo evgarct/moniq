@@ -6,15 +6,10 @@ import { useEffect } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 
-import { Button } from "@/components/ui/button";
+import { FormField, FormSheet, FormSheetBody } from "@/components/form-sheet";
 import { Input } from "@/components/ui/input";
-import {
-  Sheet,
-  SheetContent,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { cn } from "@/lib/utils";
 import type { WalletAllocation, WalletAllocationKind } from "@/types/finance";
 import type { WalletAllocationInput, WalletAllocationInputValues } from "@/types/finance-schemas";
 
@@ -69,112 +64,91 @@ export function GoalFormSheet({
   const kind = useWatch({ control: form.control, name: "kind" });
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-md">
-        <SheetHeader className="border-b">
-          <SheetTitle>{mode === "add" ? t("addTitle") : t("editTitle")}</SheetTitle>
-        </SheetHeader>
+    <FormSheet
+      open={open}
+      onOpenChange={onOpenChange}
+      title={mode === "add" ? t("addTitle") : t("editTitle")}
+      submitLabel={mode === "add" ? t("submit.add") : t("submit.edit")}
+      onSubmit={form.handleSubmit(async (values) => {
+        await onSubmit(values);
+        onOpenChange(false);
+      })}
+    >
+      <FormSheetBody>
+        <FormField id="goal-name" label={t("fields.name")} error={form.formState.errors.name}>
+          <Input
+            id="goal-name"
+            autoComplete="off"
+            placeholder={t("placeholders.name")}
+            aria-invalid={Boolean(form.formState.errors.name)}
+            {...form.register("name")}
+          />
+        </FormField>
 
-        <form
-          className="flex flex-1 flex-col"
-          onSubmit={form.handleSubmit(async (values) => {
-            await onSubmit(values);
-            onOpenChange(false);
-          })}
-        >
-          <div className="flex-1 space-y-5 p-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="goal-name">
-                {t("fields.name")}
-              </label>
-              <Input id="goal-name" autoComplete="off" placeholder={t("placeholders.name")} {...form.register("name")} />
-              {form.formState.errors.name ? (
-                <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>
-              ) : null}
-            </div>
+        <Controller
+          control={form.control}
+          name="kind"
+          render={({ field }) => (
+            <FormField label={t("fields.type")} error={form.formState.errors.kind}>
+              <ToggleGroup
+                value={[field.value]}
+                onValueChange={(nextValue) => {
+                  const [selectedKind] = nextValue;
+                  if (selectedKind) {
+                    field.onChange(selectedKind);
+                  }
+                }}
+                className="grid w-full grid-cols-2 gap-2"
+                spacing={2}
+                variant="outline"
+              >
+                <ToggleGroupItem value="goal_open" className="h-auto min-h-16 flex-col items-start px-3 py-2.5 text-left">
+                  <span className="type-body-14 font-medium">{t("types.open")}</span>
+                  <span className={cn("type-body-12 text-muted-foreground", field.value === "goal_open" ? "text-foreground/70" : null)}>
+                    {t("types.openDescription")}
+                  </span>
+                </ToggleGroupItem>
+                <ToggleGroupItem value="goal_targeted" className="h-auto min-h-16 flex-col items-start px-3 py-2.5 text-left">
+                  <span className="type-body-14 font-medium">{t("types.targeted")}</span>
+                  <span className={cn("type-body-12 text-muted-foreground", field.value === "goal_targeted" ? "text-foreground/70" : null)}>
+                    {t("types.targetedDescription")}
+                  </span>
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </FormField>
+          )}
+        />
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">{t("fields.type")}</label>
-              <Controller
-                control={form.control}
-                name="kind"
-                render={({ field }) => (
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => field.onChange("goal_open")}
-                      className={`rounded-xl border px-3 py-2.5 text-left text-sm transition-colors ${
-                        field.value === "goal_open"
-                          ? "border-foreground/20 bg-foreground/5 font-medium text-foreground"
-                          : "border-border bg-white text-muted-foreground hover:border-foreground/15 hover:bg-muted/30"
-                      }`}
-                    >
-                      <div className="font-medium">{t("types.open")}</div>
-                      <div className="mt-0.5 text-xs opacity-70">{t("types.openDescription")}</div>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => field.onChange("goal_targeted")}
-                      className={`rounded-xl border px-3 py-2.5 text-left text-sm transition-colors ${
-                        field.value === "goal_targeted"
-                          ? "border-foreground/20 bg-foreground/5 font-medium text-foreground"
-                          : "border-border bg-white text-muted-foreground hover:border-foreground/15 hover:bg-muted/30"
-                      }`}
-                    >
-                      <div className="font-medium">{t("types.targeted")}</div>
-                      <div className="mt-0.5 text-xs opacity-70">{t("types.targetedDescription")}</div>
-                    </button>
-                  </div>
-                )}
-              />
-            </div>
+        <FormField id="goal-amount" label={t("fields.currentAmount")} error={form.formState.errors.amount}>
+          <Input
+            id="goal-amount"
+            type="number"
+            step="0.01"
+            min="0"
+            autoComplete="off"
+            aria-invalid={Boolean(form.formState.errors.amount)}
+            {...form.register("amount", {
+              setValueAs: (value) => (value === "" ? 0 : Number(value)),
+            })}
+          />
+        </FormField>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="goal-amount">
-                {t("fields.currentAmount")}
-              </label>
-              <Input
-                id="goal-amount"
-                type="number"
-                step="0.01"
-                min="0"
-                {...form.register("amount", {
-                  setValueAs: (value) => (value === "" ? 0 : Number(value)),
-                })}
-              />
-              {form.formState.errors.amount ? (
-                <p className="text-sm text-destructive">{form.formState.errors.amount.message}</p>
-              ) : null}
-            </div>
-
-            {kind === "goal_targeted" ? (
-              <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="goal-target">
-                  {t("fields.targetAmount")}
-                </label>
-                <Input
-                  id="goal-target"
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  {...form.register("target_amount", {
-                    setValueAs: (value) => (value === "" ? null : Number(value)),
-                  })}
-                />
-                {form.formState.errors.target_amount ? (
-                  <p className="text-sm text-destructive">{form.formState.errors.target_amount.message}</p>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
-
-          <SheetFooter className="border-t">
-            <Button type="submit" className="w-full">
-              {mode === "add" ? t("submit.add") : t("submit.edit")}
-            </Button>
-          </SheetFooter>
-        </form>
-      </SheetContent>
-    </Sheet>
+        {kind === "goal_targeted" ? (
+          <FormField id="goal-target" label={t("fields.targetAmount")} error={form.formState.errors.target_amount}>
+            <Input
+              id="goal-target"
+              type="number"
+              step="0.01"
+              min="0.01"
+              autoComplete="off"
+              aria-invalid={Boolean(form.formState.errors.target_amount)}
+              {...form.register("target_amount", {
+                setValueAs: (value) => (value === "" ? null : Number(value)),
+              })}
+            />
+          </FormField>
+        ) : null}
+      </FormSheetBody>
+    </FormSheet>
   );
 }
