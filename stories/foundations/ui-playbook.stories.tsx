@@ -677,6 +677,20 @@ const meta = {
                   body="RescheduleConfirmOverlay uses fixed inset-0 z-50. Never add relative to SheetContent — it breaks the sheet's height layout and cuts off the overlay."
                   variant="do"
                 />
+                <RuleCard
+                  label="Start CRUD forms with FormSheet"
+                  body="Account, category, goal, and import edit flows should compose FormSheet + FormSheetBody + FormField. Reach for raw Sheet only for non-form overlays or bespoke fullscreen drill-ins."
+                  variant="do"
+                />
+                <RuleCard
+                  label="Keep domain logic outside the shared layer"
+                  body="Zod schemas, API calls, optimistic updates, and feature state stay in the feature component. FormSheet owns anatomy only: title, description, body, footer, labels, and errors."
+                  variant="do"
+                />
+                <RuleCard
+                  label="Next candidate: GoalFormSheet"
+                  body="GoalFormSheet still uses the old manual sheet layout. Migrate it after AccountFormSheet and CategoryFormSheet prove the shared pattern is stable."
+                />
               </div>
 
               {/* Sheet anatomy mock */}
@@ -849,5 +863,6 @@ export const Reference: Story = {
     await expect(canvas.getByRole("heading", { name: "Four kinds. One visual weight — except income." })).toBeInTheDocument();
     await expect(canvas.getByRole("heading", { name: "Small controls still need deliberate motion and real hit areas." })).toBeInTheDocument();
     await expect(canvas.getByRole("heading", { name: "Forms are sheets. Not dialogs, not center modals." })).toBeInTheDocument();
+    await expect(canvas.getByText("Start CRUD forms with FormSheet")).toBeInTheDocument();
   },
 };

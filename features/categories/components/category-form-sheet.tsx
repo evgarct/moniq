@@ -7,23 +7,14 @@ import { useTranslations } from "next-intl";
 import { z } from "zod";
 
 import { CategoryIcon } from "@/components/category-icon";
-import { Button } from "@/components/ui/button";
+import {
+  FormField,
+  FormSelectField,
+  FormSheet,
+  FormSheetBody,
+} from "@/components/form-sheet";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { SelectGroup, SelectItem } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { Category } from "@/types/finance";
 
@@ -78,103 +69,99 @@ export function CategoryFormSheet({
   const parentOptions = categories.filter((item) => item.type === selectedType && item.id !== category?.id);
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-md">
-        <SheetHeader className="border-b">
-          <SheetTitle>{mode === "add" ? t("addTitle") : t("editTitle")}</SheetTitle>
-          <SheetDescription>{t("description")}</SheetDescription>
-        </SheetHeader>
+    <FormSheet
+      open={open}
+      onOpenChange={onOpenChange}
+      title={mode === "add" ? t("addTitle") : t("editTitle")}
+      description={t("description")}
+      submitLabel={mode === "add" ? t("submit.add") : t("submit.edit")}
+      onSubmit={form.handleSubmit(async (values) => {
+        await onSubmit(values);
+        onOpenChange(false);
+      })}
+    >
+      <FormSheetBody>
+        <FormField id="category-name" label={t("fields.name")} error={form.formState.errors.name}>
+          <Input
+            id="category-name"
+            autoComplete="off"
+            aria-invalid={Boolean(form.formState.errors.name)}
+            {...form.register("name")}
+          />
+        </FormField>
 
-        <form
-          className="flex flex-1 flex-col"
-          onSubmit={form.handleSubmit(async (values) => {
-            await onSubmit(values);
-            onOpenChange(false);
-          })}
+        <FormField
+          id="category-description"
+          label={t("fields.description")}
+          error={form.formState.errors.description}
         >
-          <div className="flex-1 space-y-5 p-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="category-name">
-                {t("fields.name")}
-              </label>
-              <Input id="category-name" {...form.register("name")} />
-              {form.formState.errors.name ? <p className="text-sm text-destructive">{form.formState.errors.name.message}</p> : null}
-            </div>
+          <Textarea
+            id="category-description"
+            rows={4}
+            autoComplete="off"
+            aria-invalid={Boolean(form.formState.errors.description)}
+            {...form.register("description")}
+          />
+        </FormField>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="category-description">
-                {t("fields.description")}
-              </label>
-              <Textarea id="category-description" rows={4} {...form.register("description")} />
-              {form.formState.errors.description ? <p className="text-sm text-destructive">{form.formState.errors.description.message}</p> : null}
-            </div>
+        <div className="grid gap-4 sm:grid-cols-[96px_minmax(0,1fr)]">
+          <FormField id="category-icon" label={t("fields.icon")} error={form.formState.errors.icon}>
+            <Input
+              id="category-icon"
+              maxLength={48}
+              autoComplete="off"
+              aria-invalid={Boolean(form.formState.errors.icon)}
+              {...form.register("icon")}
+            />
+          </FormField>
 
-            <div className="grid gap-4 sm:grid-cols-[96px_minmax(0,1fr)]">
-              <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="category-icon">
-                  {t("fields.icon")}
-                </label>
-                <Input id="category-icon" maxLength={48} {...form.register("icon")} />
-              </div>
+          <Controller
+            control={form.control}
+            name="type"
+            render={({ field }) => (
+            <FormSelectField
+              id="category-type"
+              label={t("fields.type")}
+              error={form.formState.errors.type}
+              value={field.value}
+                onValueChange={(value) => {
+                  field.onChange(value);
+                  form.setValue("parent_id", null, { shouldDirty: true });
+                }}
+              >
+                <SelectGroup>
+                  <SelectItem value="expense">{t("types.expense")}</SelectItem>
+                  <SelectItem value="income">{t("types.income")}</SelectItem>
+                </SelectGroup>
+              </FormSelectField>
+            )}
+          />
+        </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">{t("fields.type")}</label>
-                <Controller
-                  control={form.control}
-                  name="type"
-                  render={({ field }) => (
-                    <Select
-                      value={field.value}
-                      onValueChange={(value) => {
-                        field.onChange(value);
-                        form.setValue("parent_id", null, { shouldDirty: true });
-                      }}
-                    >
-                      <SelectTrigger className="w-full bg-white">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="expense">{t("types.expense")}</SelectItem>
-                        <SelectItem value="income">{t("types.income")}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">{t("fields.parent")}</label>
-              <Controller
-                control={form.control}
-                name="parent_id"
-                render={({ field }) => (
-                  <Select value={field.value ?? "root"} onValueChange={(value) => field.onChange(value === "root" ? null : value)}>
-                    <SelectTrigger className="w-full bg-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="root">{t("topLevel")}</SelectItem>
-                      {parentOptions.map((option) => (
-                        <SelectItem key={option.id} value={option.id}>
-                          <CategoryIcon icon={option.icon} glyphClassName="text-muted-foreground" />
-                          <span>{option.name}</span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </div>
-          </div>
-
-          <SheetFooter className="border-t">
-            <Button type="submit" className="w-full">
-              {mode === "add" ? t("submit.add") : t("submit.edit")}
-            </Button>
-          </SheetFooter>
-        </form>
-      </SheetContent>
-    </Sheet>
+        <Controller
+          control={form.control}
+          name="parent_id"
+          render={({ field }) => (
+            <FormSelectField
+              id="category-parent"
+              label={t("fields.parent")}
+              error={form.formState.errors.parent_id}
+              value={field.value ?? "root"}
+              onValueChange={(value) => field.onChange(value === "root" ? null : value)}
+            >
+              <SelectGroup>
+                <SelectItem value="root">{t("topLevel")}</SelectItem>
+                {parentOptions.map((option) => (
+                  <SelectItem key={option.id} value={option.id}>
+                    <CategoryIcon icon={option.icon} glyphClassName="text-muted-foreground" />
+                    <span>{option.name}</span>
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </FormSelectField>
+          )}
+        />
+      </FormSheetBody>
+    </FormSheet>
   );
 }

@@ -148,6 +148,49 @@
     "en": "English",
     "ru": "Russian"
   },
+  "designSystem": {
+    "formSheets": {
+      "basic": {
+        "title": "Add account",
+        "description": "Use FormSheet for focused create and edit flows.",
+        "name": "Name",
+        "namePlaceholder": "Everyday wallet",
+        "submit": "Save account"
+      },
+      "error": {
+        "title": "Validation state",
+        "description": "Field errors stay attached to their controls.",
+        "name": "Name",
+        "message": "Name is required.",
+        "submit": "Review errors"
+      },
+      "select": {
+        "title": "Select field",
+        "description": "Use FormSelectField when the value is controlled by the feature form.",
+        "type": "Type",
+        "cash": "Cash",
+        "saving": "Savings",
+        "credit": "Credit card",
+        "submit": "Save type"
+      },
+      "conditional": {
+        "title": "Conditional field",
+        "description": "Feature state decides which fields render; the shared layer only owns layout.",
+        "enabled": "Show target amount",
+        "disabled": "Hide target amount",
+        "amount": "Target amount",
+        "submit": "Save goal"
+      },
+      "playbook": {
+        "heading": "CRUD forms start with FormSheet.",
+        "sub": "Use FormSheet plus FormField for account, category, goal, and import edit forms. Use raw Sheet only for custom interaction layouts, fullscreen drill-ins, or non-form overlays.",
+        "useFormSheet": "Use FormSheet for create/edit forms with a title, optional description, scrollable body, and submit footer.",
+        "useFormField": "Use FormField for label, control, and validation message composition.",
+        "keepDomainOut": "Keep zod schemas, API calls, optimistic updates, and feature-specific state in the feature component.",
+        "nextCandidate": "Next migration candidate: GoalFormSheet."
+      }
+    }
+  },
   "auth": {
     "login": {
       "title": "Welcome back",
