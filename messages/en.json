@@ -640,6 +640,7 @@
         "note": "Note",
         "lineNote": "Line note",
         "recurrenceFrequency": "Repeat",
+        "recurrenceIntervalWeeks": "Every N weeks",
         "recurrenceUntil": "End repeat",
         "recurrenceUntilNever": "Never",
         "shared": "Shared details",
@@ -657,7 +658,8 @@
         "never": "Never",
         "daily": "Daily",
         "weekly": "Weekly",
-        "monthly": "Monthly"
+        "monthly": "Monthly",
+        "yearly": "Yearly"
       },
       "status": {
         "paid": "Paid",

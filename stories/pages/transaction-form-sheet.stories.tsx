@@ -48,6 +48,7 @@ const recurringSchedule: TransactionSchedule = {
   note: "Streaming subscription",
   start_date: "2026-03-01",
   frequency: "monthly",
+  interval_weeks: 1,
   until_date: "2026-12-31",
   state: "active",
   kind: "expense",
@@ -68,6 +69,26 @@ const recurringSchedule: TransactionSchedule = {
   validation_error: null,
   created_at: "2026-03-01T08:00:00.000Z",
   updated_at: "2026-03-31T08:00:00.000Z",
+};
+
+const biweeklySchedule: TransactionSchedule = {
+  ...recurringSchedule,
+  id: "schedule-story-biweekly",
+  title: "Freelance retainer",
+  start_date: "2026-03-06",
+  frequency: "weekly",
+  interval_weeks: 2,
+  until_date: null,
+};
+
+const yearlySchedule: TransactionSchedule = {
+  ...recurringSchedule,
+  id: "schedule-story-yearly",
+  title: "Annual insurance",
+  start_date: "2026-04-15",
+  frequency: "yearly",
+  interval_weeks: 1,
+  until_date: null,
 };
 
 function StorySurface({
@@ -159,6 +180,42 @@ export const EditSeries: Story = {
         open
         mode="edit-schedule"
         schedule={recurringSchedule}
+        accounts={snapshot.accounts}
+
+        categories={snapshot.categories}
+        transactions={snapshot.transactions}
+        onOpenChange={() => {}}
+        onSubmit={async () => {}}
+      />
+    </StorySurface>
+  ),
+};
+
+export const EditBiweeklySeries: Story = {
+  render: () => (
+    <StorySurface>
+      <TransactionFormSheet
+        open
+        mode="edit-schedule"
+        schedule={biweeklySchedule}
+        accounts={snapshot.accounts}
+
+        categories={snapshot.categories}
+        transactions={snapshot.transactions}
+        onOpenChange={() => {}}
+        onSubmit={async () => {}}
+      />
+    </StorySurface>
+  ),
+};
+
+export const EditYearlySeries: Story = {
+  render: () => (
+    <StorySurface>
+      <TransactionFormSheet
+        open
+        mode="edit-schedule"
+        schedule={yearlySchedule}
         accounts={snapshot.accounts}
 
         categories={snapshot.categories}

@@ -16,6 +16,7 @@ const recurringTransaction = {
     note: null,
     start_date: "2026-03-01",
     frequency: "monthly" as const,
+    interval_weeks: 1,
     until_date: null,
     state: "active" as const,
     kind: "expense" as const,

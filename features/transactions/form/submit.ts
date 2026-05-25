@@ -73,6 +73,7 @@ export function buildSubmitPayload(
           recurrence: values.is_recurring
             ? {
                 frequency: values.recurrence_frequency,
+                interval_weeks: values.recurrence_frequency === "weekly" ? values.recurrence_interval_weeks : 1,
                 until_date: values.recurrence_until?.trim() ? values.recurrence_until : null,
               }
             : null,
@@ -94,6 +95,7 @@ export function buildSubmitPayload(
         ...payload,
         recurrence: {
           frequency: values.recurrence_frequency,
+          interval_weeks: values.recurrence_frequency === "weekly" ? values.recurrence_interval_weeks : 1,
           until_date: values.recurrence_until?.trim() ? values.recurrence_until : null,
         },
       },
@@ -111,6 +113,7 @@ export function buildSubmitPayload(
       recurrence: values.is_recurring
         ? {
             frequency: values.recurrence_frequency,
+            interval_weeks: values.recurrence_frequency === "weekly" ? values.recurrence_interval_weeks : 1,
             until_date: values.recurrence_until?.trim() ? values.recurrence_until : null,
           }
         : null,

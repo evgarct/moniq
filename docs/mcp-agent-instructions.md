@@ -87,18 +87,26 @@ Future recurring transactions are supported. Active schedules are expanded into 
 
 ### Recurring transaction tools
 
-Use `get_recurring_transaction_schedules` before editing or deleting recurring payments. A schedule's `start_date` is the first occurrence date, not just a future anchor.
+Use `list_recurring_transactions` or `get_recurring_transaction_schedules` before editing or deleting recurring payments. A schedule's `start_date` is the first occurrence date, not just a future anchor. Supported frequencies are `daily`, `weekly`, `monthly`, and `yearly`; weekly schedules may set `interval_weeks` for every-N-weeks cadence.
 
 Write tools:
 
 - `create_recurring_transaction_schedule` creates a new active series.
+- `create_recurring_transaction` is an alias for creating a new active series.
 - `update_recurring_transaction_schedule` replaces the full series template; read the schedule first and send the complete updated payload.
+- `update_recurring_transaction` is an alias for replacing the full series template.
 - `reschedule_recurring_transaction_series_from_occurrence` shifts one occurrence and all following occurrences.
+- `reschedule_recurring_transaction` is an alias for shifting one occurrence and all following occurrences.
 - `update_recurring_transaction_occurrence` edits one occurrence. Use `transaction_id` for a materialized occurrence, or `schedule_id` plus `occurrence_date` for a generated occurrence from `get_transactions`.
+- `update_recurring_occurrence` is an alias for editing one occurrence.
 - `mark_recurring_transaction_occurrence_paid` marks one occurrence paid.
+- `mark_recurring_occurrence_paid` is an alias for marking one occurrence paid.
 - `delete_recurring_transaction_occurrence` deletes one occurrence by marking it skipped so it does not regenerate.
+- `skip_recurring_occurrence` and `delete_recurring_occurrence` both mark one occurrence skipped so it does not regenerate.
 - `set_recurring_transaction_schedule_state` pauses or resumes a series.
+- `set_recurring_transaction_state` is an alias for pausing or resuming a series.
 - `delete_recurring_transaction_schedule` deletes the series while preserving paid history.
+- `delete_recurring_transaction` is an alias for deleting a series while preserving paid history.
 
 For generated transaction IDs like `schedule:{schedule_id}:{date}`, extract the schedule ID and date and pass them as `schedule_id` and `occurrence_date`.
 
@@ -193,8 +201,8 @@ This creates a batch in the Claude Inbox for review rather than writing directly
 ### Create a recurring transaction
 
 1. Call `get_finance_context`.
-2. Confirm the first occurrence date, frequency, optional end date, amount, wallets, category, and kind.
-3. Call `create_recurring_transaction_schedule`.
+2. Confirm the first occurrence date, frequency, optional weekly interval, optional end date, amount, wallets, category, and kind.
+3. Call `create_recurring_transaction` or `create_recurring_transaction_schedule`.
 4. Tell the user the series was created and that the start date is the first planned occurrence.
 
 ### Import from bank screenshot or statement

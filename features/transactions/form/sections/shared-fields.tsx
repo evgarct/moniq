@@ -23,6 +23,7 @@ export function SharedFields({
   const { mode, isRecurring, occurredAt, status } = useTransactionFormContext();
   const { control, register, setValue, watch, formState: { errors } } = useFormContext<TransactionFormInputs>();
   const recurrenceUntil = watch("recurrence_until");
+  const recurrenceFrequency = watch("recurrence_frequency");
   const note = watch("note");
 
   const showRecurrenceSection =
@@ -106,12 +107,38 @@ export function SharedFields({
                       <SelectItem value="daily" className="capitalize">{t("recurrence.daily")}</SelectItem>
                       <SelectItem value="weekly" className="capitalize">{t("recurrence.weekly")}</SelectItem>
                       <SelectItem value="monthly" className="capitalize">{t("recurrence.monthly")}</SelectItem>
+                      <SelectItem value="yearly" className="capitalize">{t("recurrence.yearly")}</SelectItem>
                     </SelectContent>
                   </Select>
                 )}
               />
             }
           />
+          {(isRecurring || mode === "edit-schedule") && recurrenceFrequency === "weekly" ? (
+            <SplitRow
+              rowClassName="min-h-8 py-0 -mt-1"
+              left={<span className="text-sm text-foreground">{t("fields.recurrenceIntervalWeeks")}</span>}
+              right={
+                <Controller
+                  control={control}
+                  name="recurrence_interval_weeks"
+                  render={({ field }) => (
+                    <Input
+                      type="number"
+                      min={1}
+                      step={1}
+                      inputMode="numeric"
+                      className="h-8 w-20 rounded-none border-0 bg-transparent px-0 py-1 text-right text-sm shadow-none outline-none focus:outline-none focus-visible:border-transparent focus-visible:ring-0"
+                      value={field.value}
+                      onChange={(event) => field.onChange(Number(event.target.value) || 1)}
+                    />
+                  )}
+                />
+              }
+            >
+              <FieldMessage error={errors.recurrence_interval_weeks} />
+            </SplitRow>
+          ) : null}
           {isRecurring || mode === "edit-schedule" ? (
             <SplitRow
               rowClassName="min-h-8 py-0 -mt-1"
