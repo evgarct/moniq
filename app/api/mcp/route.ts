@@ -43,7 +43,7 @@ const WWW_AUTHENTICATE =
 const TRANSACTION_KINDS = ["income", "expense", "transfer", "debt_payment"] as const;
 const DIRECT_TRANSACTION_STATUSES = ["paid", "planned"] as const;
 const READ_TRANSACTION_STATUSES = ["paid", "planned", "skipped"] as const;
-const SCHEDULE_FREQUENCIES = ["daily", "weekly", "monthly"] as const;
+const SCHEDULE_FREQUENCIES = ["daily", "weekly", "monthly", "yearly"] as const;
 const SCHEDULE_STATES = ["active", "paused"] as const;
 
 type TransactionKind = (typeof TRANSACTION_KINDS)[number];
@@ -134,6 +134,7 @@ interface RecurringScheduleItem {
   note?: unknown;
   start_date?: unknown;
   frequency?: unknown;
+  interval_weeks?: unknown;
   until_date?: unknown;
   kind?: unknown;
   amount?: unknown;
@@ -276,6 +277,7 @@ function recurringScheduleProperties() {
       note: { type: ["string", "null"], title: "Note" },
       start_date: { type: "string", title: "First occurrence date", description: "First scheduled occurrence in YYYY-MM-DD format." },
       frequency: { type: "string", title: "Repeat", enum: SCHEDULE_FREQUENCIES },
+      interval_weeks: { type: "integer", title: "Weekly interval", minimum: 1, description: "For weekly schedules, repeat every N weeks. Omit or use 1 for every week. Non-weekly schedules always store 1." },
       until_date: { type: ["string", "null"], title: "End repeat", description: "Optional inclusive end date in YYYY-MM-DD format." },
       kind: { type: "string", title: "Type", enum: TRANSACTION_KINDS },
       amount: { type: "number", title: "Amount", description: "Positive source-side amount." },
@@ -322,6 +324,137 @@ function recurringOccurrenceActionSchema({
     required: valueSchema ? ["values"] : [],
     additionalProperties: false,
   };
+}
+
+function recurringToolAliases() {
+  return [
+    {
+      name: "list_recurring_transactions",
+      title: "List recurring transactions",
+      description: "Alias of get_recurring_transaction_schedules. Read active and paused Moniq recurring transaction schedules.",
+      annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+      inputSchema: {
+        type: "object",
+        title: "Recurring schedule filters",
+        properties: {
+          states: {
+            type: "array",
+            title: "States",
+            items: { type: "string", enum: SCHEDULE_STATES },
+          },
+        },
+        additionalProperties: false,
+      },
+    },
+    {
+      name: "create_recurring_transaction",
+      title: "Create recurring transaction",
+      description: "Alias of create_recurring_transaction_schedule. Create a recurring Moniq transaction series.",
+      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
+      inputSchema: recurringScheduleInputSchema("Recurring transaction"),
+    },
+    {
+      name: "update_recurring_transaction",
+      title: "Update recurring transaction",
+      description: "Alias of update_recurring_transaction_schedule. Replace a recurring transaction series template with a complete payload.",
+      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
+      inputSchema: {
+        type: "object",
+        title: "Recurring transaction update",
+        properties: {
+          schedule_id: { type: "string", title: "Schedule ID" },
+          schedule: recurringScheduleProperties(),
+        },
+        required: ["schedule_id", "schedule"],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: "set_recurring_transaction_state",
+      title: "Pause or resume recurring transaction",
+      description: "Alias of set_recurring_transaction_schedule_state. Set a recurring series state to active or paused.",
+      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
+      inputSchema: {
+        type: "object",
+        title: "Recurring transaction state",
+        properties: {
+          schedule_id: { type: "string", title: "Schedule ID" },
+          state: { type: "string", title: "State", enum: SCHEDULE_STATES },
+        },
+        required: ["schedule_id", "state"],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: "delete_recurring_transaction",
+      title: "Delete recurring transaction",
+      description: "Alias of delete_recurring_transaction_schedule. Delete a recurring series while preserving paid historical occurrences.",
+      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false, idempotentHint: false },
+      inputSchema: {
+        type: "object",
+        title: "Recurring transaction to delete",
+        properties: {
+          schedule_id: { type: "string", title: "Schedule ID" },
+        },
+        required: ["schedule_id"],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: "reschedule_recurring_transaction",
+      title: "Reschedule recurring transaction",
+      description: "Alias of reschedule_recurring_transaction_series_from_occurrence. Shift this and following occurrences from a chosen occurrence date.",
+      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
+      inputSchema: {
+        type: "object",
+        title: "Recurring series reschedule",
+        properties: {
+          schedule_id: { type: "string", title: "Schedule ID" },
+          from_occurrence_date: { type: "string", title: "From date", description: "Occurrence date to shift from, YYYY-MM-DD." },
+          new_occurrence_date: { type: "string", title: "New date", description: "New date for that occurrence, YYYY-MM-DD." },
+        },
+        required: ["schedule_id", "from_occurrence_date", "new_occurrence_date"],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: "update_recurring_occurrence",
+      title: "Update recurring occurrence",
+      description: "Alias of update_recurring_transaction_occurrence. Update one materialized or generated recurring occurrence.",
+      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
+      inputSchema: recurringOccurrenceActionSchema({
+        title: "Recurring occurrence update",
+        valueSchema: {
+          type: "object",
+          title: "Occurrence values",
+          required: ["title", "amount", "occurred_at", "status", "kind"],
+          additionalProperties: false,
+          properties: directTransactionProperties(),
+        },
+      }),
+    },
+    {
+      name: "mark_recurring_occurrence_paid",
+      title: "Mark recurring occurrence paid",
+      description: "Alias of mark_recurring_transaction_occurrence_paid. Materialize a generated occurrence if needed, then mark it paid.",
+      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
+      inputSchema: recurringOccurrenceActionSchema({ title: "Recurring occurrence to pay" }),
+    },
+    {
+      name: "skip_recurring_occurrence",
+      title: "Skip recurring occurrence",
+      description: "Mark one recurring occurrence skipped so it remains hidden and does not regenerate.",
+      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false, idempotentHint: false },
+      inputSchema: recurringOccurrenceActionSchema({ title: "Recurring occurrence to skip" }),
+    },
+    {
+      name: "delete_recurring_occurrence",
+      title: "Delete recurring occurrence",
+      description: "Alias of delete_recurring_transaction_occurrence. Mark one recurring occurrence skipped so it will not regenerate.",
+      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false, idempotentHint: false },
+      inputSchema: recurringOccurrenceActionSchema({ title: "Recurring occurrence to delete" }),
+    },
+  ];
 }
 
 export function getMcpTools() {
@@ -628,6 +761,7 @@ export function getMcpTools() {
             additionalProperties: false,
           },
         },
+        ...recurringToolAliases(),
         {
           name: "submit_transaction_batch",
           title: "Send transactions to Moniq Inbox",
@@ -1039,6 +1173,10 @@ function isNonNegativeNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value) && value >= 0;
 }
 
+function isPositiveInteger(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value >= 1;
+}
+
 function isKind(value: unknown): value is TransactionKind {
   return typeof value === "string" && TRANSACTION_KINDS.includes(value as TransactionKind);
 }
@@ -1129,7 +1267,10 @@ function validateRecurringSchedule(schedule: unknown, labelPrefix = "Recurring t
   if (!schedule.title || typeof schedule.title !== "string" || !schedule.title.trim()) return `${labelPrefix} must have a title`;
   if (!isPositiveNumber(schedule.amount)) return `${labelPrefix} "${label}" must have a positive amount`;
   if (!isIsoDate(schedule.start_date)) return `${labelPrefix} "${label}" must have start_date in YYYY-MM-DD format`;
-  if (!isScheduleFrequency(schedule.frequency)) return `${labelPrefix} "${label}" frequency must be daily, weekly, or monthly`;
+  if (!isScheduleFrequency(schedule.frequency)) return `${labelPrefix} "${label}" frequency must be daily, weekly, monthly, or yearly`;
+  if (schedule.interval_weeks != null && !isPositiveInteger(schedule.interval_weeks)) {
+    return `${labelPrefix} "${label}" interval_weeks must be an integer greater than or equal to 1`;
+  }
   if (schedule.until_date != null && !isIsoDate(schedule.until_date)) return `${labelPrefix} "${label}" until_date must be null or YYYY-MM-DD`;
   if (typeof schedule.until_date === "string" && typeof schedule.start_date === "string" && schedule.until_date < schedule.start_date) {
     return `${labelPrefix} "${label}" until_date must be on or after start_date`;
@@ -1208,6 +1349,7 @@ function normalizeRecurringSchedule(schedule: RecurringScheduleItem) {
     note: optionalString(schedule.note),
     start_date: schedule.start_date,
     frequency: schedule.frequency,
+    interval_weeks: schedule.frequency === "weekly" ? schedule.interval_weeks ?? 1 : 1,
     until_date: optionalString(schedule.until_date),
     kind: schedule.kind,
     amount: schedule.amount,
@@ -1700,39 +1842,43 @@ async function handleToolCall(
     return handleCreateTransactions(id, params, auth.keyHash, t);
   }
 
-  if (toolName === "get_recurring_transaction_schedules") {
+  if (toolName === "get_recurring_transaction_schedules" || toolName === "list_recurring_transactions") {
     return handleGetRecurringSchedules(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash, t);
   }
 
-  if (toolName === "create_recurring_transaction_schedule") {
+  if (toolName === "create_recurring_transaction_schedule" || toolName === "create_recurring_transaction") {
     return handleCreateRecurringSchedule(id, params, auth.keyHash, t);
   }
 
-  if (toolName === "update_recurring_transaction_schedule") {
+  if (toolName === "update_recurring_transaction_schedule" || toolName === "update_recurring_transaction") {
     return handleUpdateRecurringSchedule(id, params, auth.keyHash, t);
   }
 
-  if (toolName === "reschedule_recurring_transaction_series_from_occurrence") {
+  if (toolName === "reschedule_recurring_transaction_series_from_occurrence" || toolName === "reschedule_recurring_transaction") {
     return handleRescheduleRecurringSeries(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash, t);
   }
 
-  if (toolName === "update_recurring_transaction_occurrence") {
+  if (toolName === "update_recurring_transaction_occurrence" || toolName === "update_recurring_occurrence") {
     return handleUpdateRecurringOccurrence(id, params, auth.keyHash, t);
   }
 
-  if (toolName === "mark_recurring_transaction_occurrence_paid") {
+  if (toolName === "mark_recurring_transaction_occurrence_paid" || toolName === "mark_recurring_occurrence_paid") {
     return handleRecurringOccurrenceStatus(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash, "paid", t);
   }
 
-  if (toolName === "delete_recurring_transaction_occurrence") {
+  if (
+    toolName === "delete_recurring_transaction_occurrence" ||
+    toolName === "delete_recurring_occurrence" ||
+    toolName === "skip_recurring_occurrence"
+  ) {
     return handleRecurringOccurrenceStatus(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash, "skipped", t);
   }
 
-  if (toolName === "set_recurring_transaction_schedule_state") {
+  if (toolName === "set_recurring_transaction_schedule_state" || toolName === "set_recurring_transaction_state") {
     return handleSetRecurringScheduleState(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash, t);
   }
 
-  if (toolName === "delete_recurring_transaction_schedule") {
+  if (toolName === "delete_recurring_transaction_schedule" || toolName === "delete_recurring_transaction") {
     return handleDeleteRecurringSchedule(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash, t);
   }
 

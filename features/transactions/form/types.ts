@@ -30,6 +30,7 @@ export type TransactionFormInputs = {
   allocation_id: string | null;
   is_recurring: boolean;
   recurrence_frequency: TransactionSchedule["frequency"];
+  recurrence_interval_weeks: number;
   recurrence_until: string | null;
   line_items: TransactionLineItemInput[];
 };

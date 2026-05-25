@@ -40,6 +40,44 @@ describe("transaction-schedules", () => {
     ]);
   });
 
+  it("generates weekly occurrences every n weeks", () => {
+    expect(
+      generateScheduleOccurrences(
+        {
+          start_date: "2026-03-03",
+          frequency: "weekly",
+          interval_weeks: 2,
+          until_date: null,
+        },
+        "2026-03-01",
+        "2026-04-14",
+      ),
+    ).toEqual([
+      { occurrenceDate: "2026-03-03" },
+      { occurrenceDate: "2026-03-17" },
+      { occurrenceDate: "2026-03-31" },
+      { occurrenceDate: "2026-04-14" },
+    ]);
+  });
+
+  it("skips ahead to the first weekly interval inside the horizon", () => {
+    expect(
+      generateScheduleOccurrences(
+        {
+          start_date: "2026-03-03",
+          frequency: "weekly",
+          interval_weeks: 3,
+          until_date: null,
+        },
+        "2026-04-01",
+        "2026-05-20",
+      ),
+    ).toEqual([
+      { occurrenceDate: "2026-04-14" },
+      { occurrenceDate: "2026-05-05" },
+    ]);
+  });
+
   it("clamps monthly dates to the end of shorter months", () => {
     expect(
       generateScheduleOccurrences(
@@ -55,6 +93,43 @@ describe("transaction-schedules", () => {
       { occurrenceDate: "2026-02-28" },
       { occurrenceDate: "2026-03-31" },
       { occurrenceDate: "2026-04-30" },
+    ]);
+  });
+
+  it("generates yearly occurrences", () => {
+    expect(
+      generateScheduleOccurrences(
+        {
+          start_date: "2024-05-20",
+          frequency: "yearly",
+          until_date: null,
+        },
+        "2026-01-01",
+        "2028-12-31",
+      ),
+    ).toEqual([
+      { occurrenceDate: "2026-05-20" },
+      { occurrenceDate: "2027-05-20" },
+      { occurrenceDate: "2028-05-20" },
+    ]);
+  });
+
+  it("clamps yearly leap-day occurrences to February 28 in non-leap years", () => {
+    expect(
+      generateScheduleOccurrences(
+        {
+          start_date: "2024-02-29",
+          frequency: "yearly",
+          until_date: null,
+        },
+        "2025-01-01",
+        "2028-12-31",
+      ),
+    ).toEqual([
+      { occurrenceDate: "2025-02-28" },
+      { occurrenceDate: "2026-02-28" },
+      { occurrenceDate: "2027-02-28" },
+      { occurrenceDate: "2028-02-29" },
     ]);
   });
 
@@ -81,6 +156,7 @@ describe("transaction-schedules", () => {
         {
           start_date: "2026-03-01",
           frequency: "weekly",
+          interval_weeks: 2,
           until_date: "2026-03-20",
         },
         "2026-03-01",
@@ -88,7 +164,6 @@ describe("transaction-schedules", () => {
       ),
     ).toEqual([
       { occurrenceDate: "2026-03-01" },
-      { occurrenceDate: "2026-03-08" },
       { occurrenceDate: "2026-03-15" },
     ]);
   });

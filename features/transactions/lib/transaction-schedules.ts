@@ -2,6 +2,7 @@ import {
   addDays,
   addMonths,
   addWeeks,
+  addYears,
   endOfMonth,
   format,
   isAfter,
@@ -28,20 +29,29 @@ function clampMonthlyDate(anchor: Date, target: Date) {
   );
 }
 
-function getNextDate(date: Date, frequency: TransactionScheduleFrequency, anchorDate: Date) {
+function getNextDate(
+  date: Date,
+  frequency: TransactionScheduleFrequency,
+  anchorDate: Date,
+  intervalWeeks: number,
+) {
   if (frequency === "daily") {
     return addDays(date, 1);
   }
 
   if (frequency === "weekly") {
-    return addWeeks(date, 1);
+    return addWeeks(date, Math.max(1, intervalWeeks));
+  }
+
+  if (frequency === "yearly") {
+    return clampMonthlyDate(anchorDate, addYears(date, 1));
   }
 
   return clampMonthlyDate(anchorDate, addMonths(date, 1));
 }
 
 export function generateScheduleOccurrences(
-  schedule: Pick<TransactionSchedule, "start_date" | "frequency" | "until_date">,
+  schedule: Pick<TransactionSchedule, "start_date" | "frequency" | "until_date"> & Partial<Pick<TransactionSchedule, "interval_weeks">>,
   horizonStart: string,
   horizonEnd: string,
 ): ScheduleOccurrence[] {
@@ -49,6 +59,7 @@ export function generateScheduleOccurrences(
   const rangeStart = startOfDay(parseISO(horizonStart));
   const rangeEnd = startOfDay(parseISO(horizonEnd));
   const untilDate = schedule.until_date ? startOfDay(parseISO(schedule.until_date)) : null;
+  const intervalWeeks = schedule.frequency === "weekly" ? schedule.interval_weeks ?? 1 : 1;
 
   if (isAfter(start, rangeEnd)) {
     return [];
@@ -58,7 +69,7 @@ export function generateScheduleOccurrences(
   let current = start;
 
   while (isBefore(current, rangeStart)) {
-    current = getNextDate(current, schedule.frequency, start);
+    current = getNextDate(current, schedule.frequency, start, intervalWeeks);
   }
 
   while (!isAfter(current, rangeEnd)) {
@@ -66,7 +77,7 @@ export function generateScheduleOccurrences(
       occurrences.push({ occurrenceDate: formatDate(current) });
     }
 
-    current = getNextDate(current, schedule.frequency, start);
+    current = getNextDate(current, schedule.frequency, start, intervalWeeks);
   }
 
   return occurrences;

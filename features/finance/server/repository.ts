@@ -76,6 +76,7 @@ type TransactionScheduleRow = {
   note: string | null;
   start_date: string;
   frequency: TransactionSchedule["frequency"];
+  interval_weeks: number | string | null;
   until_date: string | null;
   state: TransactionSchedule["state"];
   kind: TransactionSchedule["kind"];
@@ -138,6 +139,7 @@ function mapSchedule(
     note: row.note,
     start_date: row.start_date,
     frequency: row.frequency,
+    interval_weeks: row.interval_weeks === null ? 1 : Number(row.interval_weeks),
     until_date: row.until_date,
     state: row.state,
     kind: row.kind,
@@ -409,7 +411,7 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
     supabase
       .from("finance_transaction_schedules")
       .select(
-        "id, user_id, title, note, start_date, frequency, until_date, state, kind, amount, destination_amount, fx_rate, principal_amount, interest_amount, extra_principal_amount, category_id, source_account_id, destination_account_id, allocation_id, created_at, updated_at",
+        "id, user_id, title, note, start_date, frequency, interval_weeks, until_date, state, kind, amount, destination_amount, fx_rate, principal_amount, interest_amount, extra_principal_amount, category_id, source_account_id, destination_account_id, allocation_id, created_at, updated_at",
       )
       .eq("user_id", user.id)
       .order("created_at", { ascending: false }),
@@ -1055,6 +1057,7 @@ export async function createTransactionSchedule(values: TransactionScheduleInput
     note: values.note,
     start_date: values.occurred_at,
     frequency: values.recurrence.frequency,
+    interval_weeks: values.recurrence.interval_weeks,
     until_date: values.recurrence.until_date,
     state: "active",
     kind: values.kind,
@@ -1156,6 +1159,7 @@ export async function updateTransactionSchedule(scheduleId: string, values: Tran
       note: values.note,
       start_date: values.occurred_at,
       frequency: values.recurrence.frequency,
+      interval_weeks: values.recurrence.interval_weeks,
       until_date: values.recurrence.until_date,
       kind: values.kind,
       amount: values.amount,

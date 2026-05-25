@@ -169,10 +169,24 @@ export const transactionInputSchema = addTransactionValidation(z.object(transact
   normalizeTransactionValues(values),
 );
 
-export const transactionRecurrenceSchema = z.object({
-  frequency: z.enum(["daily", "weekly", "monthly"] satisfies [TransactionScheduleFrequency, ...TransactionScheduleFrequency[]]),
-  until_date: z.string().trim().min(1, "Until date is required.").nullable().optional(),
-});
+const scheduleFrequencyValues = ["daily", "weekly", "monthly", "yearly"] satisfies [TransactionScheduleFrequency, ...TransactionScheduleFrequency[]];
+
+function normalizeRecurrenceValues<T extends { frequency: TransactionScheduleFrequency; interval_weeks?: number | null }>(
+  values: T,
+) {
+  return {
+    ...values,
+    interval_weeks: values.frequency === "weekly" ? values.interval_weeks ?? 1 : 1,
+  };
+}
+
+export const transactionRecurrenceSchema = z
+  .object({
+    frequency: z.enum(scheduleFrequencyValues),
+    interval_weeks: z.number().int().min(1, "Weekly interval must be at least 1.").nullable().optional(),
+    until_date: z.string().trim().min(1, "Until date is required.").nullable().optional(),
+  })
+  .transform((values) => normalizeRecurrenceValues(values));
 
 export const transactionEntryInputSchema = addTransactionValidation(
   z.object(transactionFieldShape).extend({

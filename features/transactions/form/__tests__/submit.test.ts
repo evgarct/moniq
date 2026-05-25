@@ -22,6 +22,7 @@ function base(overrides: Partial<TransactionFormInputs> = {}): TransactionFormIn
     allocation_id: null,
     is_recurring: false,
     recurrence_frequency: "monthly",
+    recurrence_interval_weeks: 1,
     recurrence_until: null,
     line_items: [],
     ...overrides,
@@ -128,7 +129,7 @@ describe("buildSubmitPayload – edit-transaction", () => {
 describe("buildSubmitPayload – edit-schedule", () => {
   it("returns schedule payload with recurrence", () => {
     const result = buildSubmitPayload(
-      base({ is_recurring: true, status: "planned", recurrence_frequency: "weekly" }),
+      base({ is_recurring: true, status: "planned", recurrence_frequency: "weekly", recurrence_interval_weeks: 2 }),
       "edit-schedule",
       accounts,
       categories,
@@ -136,6 +137,7 @@ describe("buildSubmitPayload – edit-schedule", () => {
     expect(result?.kind).toBe("schedule");
     if (result?.kind === "schedule") {
       expect(result.values.recurrence.frequency).toBe("weekly");
+      expect(result.values.recurrence.interval_weeks).toBe(2);
     }
   });
 });
@@ -151,7 +153,21 @@ describe("buildSubmitPayload – recurring add entry", () => {
     expect(result?.kind).toBe("entry");
     if (result?.kind === "entry") {
       expect(result.values.recurrence?.frequency).toBe("monthly");
+      expect(result.values.recurrence?.interval_weeks).toBe(1);
       expect(result.values.recurrence?.until_date).toBe("2026-12-31");
+    }
+  });
+
+  it("includes yearly recurrence", () => {
+    const result = buildSubmitPayload(
+      base({ kind: "income", source_account_id: null, destination_account_id: "acc-2", is_recurring: true, status: "planned", recurrence_frequency: "yearly" }),
+      "add",
+      accounts,
+      categories,
+    );
+    expect(result?.kind).toBe("entry");
+    if (result?.kind === "entry") {
+      expect(result.values.recurrence).toMatchObject({ frequency: "yearly", interval_weeks: 1 });
     }
   });
 });

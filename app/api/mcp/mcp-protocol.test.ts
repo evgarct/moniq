@@ -107,6 +107,16 @@ describe("MCP tools", () => {
       "delete_recurring_transaction_occurrence",
       "set_recurring_transaction_schedule_state",
       "delete_recurring_transaction_schedule",
+      "list_recurring_transactions",
+      "create_recurring_transaction",
+      "update_recurring_transaction",
+      "set_recurring_transaction_state",
+      "delete_recurring_transaction",
+      "reschedule_recurring_transaction",
+      "update_recurring_occurrence",
+      "mark_recurring_occurrence_paid",
+      "skip_recurring_occurrence",
+      "delete_recurring_occurrence",
       "submit_transaction_batch",
       "get_category_spending_report",
     ]);
@@ -726,7 +736,7 @@ describe("MCP tools", () => {
     const schedule = {
       title: "Rent",
       start_date: "2026-05-10",
-      frequency: "monthly",
+      frequency: "yearly",
       until_date: null,
       kind: "expense",
       amount: 1200,
@@ -754,11 +764,61 @@ describe("MCP tools", () => {
       p_schedule: expect.objectContaining({
         title: "Rent",
         start_date: "2026-05-10",
-        frequency: "monthly",
+        frequency: "yearly",
+        interval_weeks: 1,
         kind: "expense",
         amount: 1200,
         source_account_id: "wallet-main",
         category_id: "cat-rent",
+      }),
+    });
+  });
+
+  it("creates every-n-weeks recurring transaction schedules through alias tools", async () => {
+    mocks.rpc.mockImplementation((name: string) => {
+      if (name === "mcp_lookup_api_key") {
+        return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
+      }
+      if (name === "mcp_touch_api_key") {
+        return Promise.resolve({ data: null, error: null });
+      }
+      if (name === "mcp_create_recurring_transaction_schedule") {
+        return Promise.resolve({ data: { schedule_id: "schedule-2" }, error: null });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    const response = await postMcp({
+      jsonrpc: "2.0",
+      id: "create-recurring-alias",
+      method: "tools/call",
+      params: {
+        name: "create_recurring_transaction",
+        arguments: {
+          schedule: {
+            title: "Cleaner",
+            start_date: "2026-05-10",
+            frequency: "weekly",
+            interval_weeks: 3,
+            kind: "expense",
+            amount: 80,
+            source_account_id: "wallet-main",
+            category_id: "cat-home",
+          },
+        },
+      },
+    });
+
+    await expect(response.json()).resolves.toMatchObject({
+      result: {
+        structuredContent: { schedule_id: "schedule-2" },
+      },
+    });
+    expect(mocks.rpc).toHaveBeenCalledWith("mcp_create_recurring_transaction_schedule", {
+      p_key_hash: AUTH_KEY_HASH,
+      p_schedule: expect.objectContaining({
+        frequency: "weekly",
+        interval_weeks: 3,
       }),
     });
   });

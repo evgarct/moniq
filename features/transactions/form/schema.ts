@@ -53,7 +53,8 @@ export function buildSchema(msgs: SchemaMessages, mode: TransactionFormMode) {
       destination_account_id: opaqueId,
       allocation_id: opaqueId,
       is_recurring: z.boolean(),
-      recurrence_frequency: z.enum(["daily", "weekly", "monthly"]),
+      recurrence_frequency: z.enum(["daily", "weekly", "monthly", "yearly"]),
+      recurrence_interval_weeks: z.number().int().min(1),
       recurrence_until: z.string().trim().nullable(),
       line_items: z.array(lineItemSchema),
     })

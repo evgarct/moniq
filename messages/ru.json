@@ -640,6 +640,7 @@
         "note": "Заметка",
         "lineNote": "Заметка к строке",
         "recurrenceFrequency": "Повтор",
+        "recurrenceIntervalWeeks": "Каждые N недель",
         "recurrenceUntil": "Окончание повтора",
         "recurrenceUntilNever": "Никогда",
         "shared": "Общие детали",
@@ -657,7 +658,8 @@
         "never": "Никогда",
         "daily": "Ежедневно",
         "weekly": "Еженедельно",
-        "monthly": "Ежемесячно"
+        "monthly": "Ежемесячно",
+        "yearly": "Ежегодно"
       },
       "status": {
         "paid": "Оплачено",

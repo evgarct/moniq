@@ -192,6 +192,8 @@ Rules:
   - `daily`
   - `weekly`
   - `monthly`
+  - `yearly`
+- `interval_weeks integer not null default 1`
 - `until_date date null`
 - `state finance_transaction_schedule_state not null`
   - `active`
@@ -213,6 +215,7 @@ Rules:
 Rules:
 - schedules are the source of truth for recurring transactions; generated occurrences inherit the schedule payload unless a specific occurrence is overridden.
 - `start_date` is the first occurrence date. App snapshots materialize from the first day of the current month so current-month overdue recurring items are visible.
+- weekly schedules use `interval_weeks` for every-N-weeks cadence; non-weekly schedules keep `interval_weeks = 1`.
 - schedules always start as `planned`; settling cashflow happens on occurrences through `mark paid`.
 - `until_date`, when present, must be on or after `start_date`.
 - `paused` schedules preserve already generated history but stop future occurrence generation until resumed.

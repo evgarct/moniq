@@ -44,6 +44,7 @@ function base(overrides = {}) {
     allocation_id: null,
     is_recurring: false,
     recurrence_frequency: "monthly" as const,
+    recurrence_interval_weeks: 1,
     recurrence_until: null,
     line_items: [],
     ...overrides,
@@ -180,6 +181,46 @@ describe("buildSchema – add mode", () => {
     expect(result.success).toBe(false);
     const paths = result.error!.issues.map((i) => i.path.join("."));
     expect(paths).toContain("recurrence_until");
+  });
+
+  it("accepts yearly recurring transactions", () => {
+    const result = schema.safeParse(
+      base({
+        is_recurring: true,
+        status: "planned",
+        recurrence_frequency: "yearly",
+        line_items: [{ category_id: "cat-1", amount: 100, note: "" }],
+      }),
+    );
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts weekly recurring transactions with an interval", () => {
+    const result = schema.safeParse(
+      base({
+        is_recurring: true,
+        status: "planned",
+        recurrence_frequency: "weekly",
+        recurrence_interval_weeks: 3,
+        line_items: [{ category_id: "cat-1", amount: 100, note: "" }],
+      }),
+    );
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects invalid weekly intervals", () => {
+    const result = schema.safeParse(
+      base({
+        is_recurring: true,
+        status: "planned",
+        recurrence_frequency: "weekly",
+        recurrence_interval_weeks: 0,
+        line_items: [{ category_id: "cat-1", amount: 100, note: "" }],
+      }),
+    );
+    expect(result.success).toBe(false);
+    const paths = result.error!.issues.map((i) => i.path.join("."));
+    expect(paths).toContain("recurrence_interval_weeks");
   });
 
   it("rejects batch mode with no line items", () => {

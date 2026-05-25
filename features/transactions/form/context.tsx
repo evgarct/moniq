@@ -136,6 +136,7 @@ function makeDefaults({
     allocation_id: schedule?.allocation_id ?? transaction?.allocation_id ?? null,
     is_recurring: mode === "edit-schedule",
     recurrence_frequency: schedule?.frequency ?? "monthly",
+    recurrence_interval_weeks: schedule?.interval_weeks ?? 1,
     recurrence_until: schedule?.until_date ?? null,
     line_items:
       mode === "add" && supportsBatchItems(currentKind)

@@ -45,6 +45,7 @@ const recurringPlanned: Transaction = {
     note: null,
     start_date: "2026-01-01",
     frequency: "monthly",
+    interval_weeks: 1,
     until_date: null,
     state: "active",
     kind: "expense",
