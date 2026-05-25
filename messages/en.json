@@ -296,12 +296,12 @@
     },
     "view": {
       "title": "Today",
-      "description": "Use the month as the default planning surface. Select a date to inspect only that day's planned transactions."
+      "description": "Start with the next three days of planned operations. Select a date to inspect that day's agenda."
     },
     "planned": {
       "title": "Planned transactions",
-      "description": "Due today and overdue items that still need action.",
-      "empty": "Nothing planned or overdue right now."
+      "description": "Upcoming operations due today, tomorrow, or the day after.",
+      "empty": "Nothing planned for the next three days."
     },
     "paid": {
       "title": "Paid transactions",
@@ -318,13 +318,14 @@
       "agendaTitle": "Agenda",
       "selectedDescription": "Planned transactions scheduled for the selected day.",
       "doneDescription": "Completed transactions on the selected day.",
-      "monthDescription": "Active planned transactions visible in the current month.",
+      "upcomingTitle": "Next 3 days",
+      "monthDescription": "Planned operations due in the next three days.",
       "jumpToday": "Today",
-      "clearDay": "Show month",
+      "clearDay": "Show next 3 days",
       "tabPlanned": "Planned",
       "tabDone": "Done",
       "addForDay": "Add for this day",
-      "empty": "No active planned items in this month.",
+      "empty": "No planned items in the next three days.",
       "selectedEmpty": "No planned items for this day.",
       "doneEmpty": "No completed transactions for this day."
     }

@@ -1,6 +1,6 @@
 "use client";
 
-import { addMonths, format, isSameDay, isSameMonth, parseISO, startOfToday } from "date-fns";
+import { addDays, addMonths, format, isSameDay, isSameMonth, startOfToday } from "date-fns";
 import { CalendarDays, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
@@ -43,7 +43,10 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
     [snapshot.transactions],
   );
 
-  // Desktop: day or month view
+  const todayStr = format(today, "yyyy-MM-dd");
+  const upcomingWindowEndStr = format(addDays(today, 2), "yyyy-MM-dd");
+
+  // Default agenda: planned operations due from today through the next two days.
   const { plannedTransactions, paidTransactions } = useMemo(() => {
     if (selectedDate) {
       const dateStr = format(selectedDate, "yyyy-MM-dd");
@@ -54,33 +57,28 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
     }
     return {
       plannedTransactions: sortAscending(
-        visible.filter((tx) => tx.status === "planned" && isSameMonth(parseISO(tx.occurred_at), month)),
+        visible.filter(
+          (tx) =>
+            tx.status === "planned" &&
+            tx.occurred_at >= todayStr &&
+            tx.occurred_at <= upcomingWindowEndStr,
+        ),
       ),
-      paidTransactions: sortAscending(
-        visible.filter((tx) => tx.status !== "planned" && isSameMonth(parseISO(tx.occurred_at), month)),
-      ),
+      paidTransactions: [] as Transaction[],
     };
-  }, [month, selectedDate, visible]);
-
-  // Mobile list mode: all planned (overdue + upcoming) + today's paid
-  const todayStr = format(today, "yyyy-MM-dd");
-  const { mobileAllPlanned, mobileTodayPaid } = useMemo(() => ({
-    mobileAllPlanned: sortAscending(visible.filter((tx) => tx.status === "planned")),
-    mobileTodayPaid: sortAscending(visible.filter((tx) => tx.status !== "planned" && tx.occurred_at === todayStr)),
-  }), [visible, todayStr]);
+  }, [selectedDate, todayStr, upcomingWindowEndStr, visible]);
 
   const initialDate = selectedDate ? format(selectedDate, "yyyy-MM-dd") : null;
 
   const panelLabel = selectedDate
     ? formatDate.dateTime(calDate(selectedDate), { weekday: "long", month: "long", day: "numeric" })
-    : formatDate.dateTime(calDate(month), { month: "long", year: "numeric" });
+    : t("board.upcomingTitle");
 
   const isEmpty = plannedTransactions.length === 0 && paidTransactions.length === 0;
 
-  // Mobile: when a date is selected, show that day's data; otherwise show full agenda
-  const mobileDisplayDate = selectedDate ?? today;
-  const mobileListPlanned = selectedDate ? plannedTransactions : mobileAllPlanned;
-  const mobileListPaid = selectedDate ? paidTransactions : mobileTodayPaid;
+  // Mobile: when a date is selected, show that day's data; otherwise show the upcoming window.
+  const mobileListPlanned = plannedTransactions;
+  const mobileListPaid = paidTransactions;
   const mobileListEmpty = mobileListPlanned.length === 0 && mobileListPaid.length === 0;
 
   function handleSelectDate(date: Date, switchToList?: boolean) {
@@ -257,7 +255,7 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
           <>
             {/* Mobile date header */}
             <PageHeader
-              title={formatDate.dateTime(calDate(mobileDisplayDate), { weekday: "long", day: "numeric", month: "long" })}
+              title={panelLabel}
               actions={
                 <>
                   {selectedDate ? (

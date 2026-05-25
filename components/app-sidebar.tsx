@@ -88,14 +88,18 @@ export function MobileBottomNav({
   return (
     <div
       data-mobile-nav
-      className="fixed inset-x-3 z-50 lg:hidden"
-      style={{ bottom: "calc(env(safe-area-inset-bottom) + 10px)" }}
+      className="fixed inset-x-0 z-50 flex justify-center lg:hidden"
+      style={{
+        bottom: "max(8px, env(safe-area-inset-bottom))",
+        paddingLeft: "max(16px, env(safe-area-inset-left))",
+        paddingRight: "max(16px, env(safe-area-inset-right))",
+      }}
     >
       <nav
-        className="grid h-[58px] w-full grid-cols-5 items-center rounded-[var(--radius-floating)] border border-border/60 bg-popover/75 px-1 text-[10px] text-muted-foreground shadow-[0_12px_34px_rgba(25,25,25,0.16)] ring-1 ring-background/70 backdrop-blur-2xl supports-[backdrop-filter]:bg-popover/68"
+        className="grid h-14 w-full max-w-[430px] grid-cols-5 items-center rounded-[var(--radius-floating)] border border-border/55 bg-popover/82 px-1 text-[10px] text-muted-foreground shadow-[0_8px_22px_rgba(28,22,17,0.12)] ring-1 ring-background/70 backdrop-blur-2xl supports-[backdrop-filter]:bg-popover/72"
         style={{
-          backdropFilter: "saturate(180%) blur(24px)",
-          WebkitBackdropFilter: "saturate(180%) blur(24px)",
+          backdropFilter: "saturate(160%) blur(20px)",
+          WebkitBackdropFilter: "saturate(160%) blur(20px)",
         }}
       >
         {navigation.map((item) => {
@@ -111,14 +115,14 @@ export function MobileBottomNav({
               draggable={false}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "relative flex h-full min-w-0 touch-manipulation select-none flex-col items-center justify-center gap-1 rounded-[var(--radius-control)] px-1 [-webkit-tap-highlight-color:transparent] transition-[color,transform] duration-150 active:scale-[0.96]",
+                "relative flex h-full min-w-0 touch-manipulation select-none flex-col items-center justify-center gap-0.5 rounded-[var(--radius-control)] px-1 pt-0.5 [-webkit-tap-highlight-color:transparent] transition-[color,transform] duration-150 active:scale-[0.96]",
                 active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
               )}
             >
               {active && (
                 <motion.div
                   layoutId="tab-active-bg"
-                  className="absolute inset-x-1 top-1.5 bottom-1.5 rounded-[var(--radius-control)] bg-secondary/70"
+                  className="absolute left-1/2 top-2 h-7 w-11 -translate-x-1/2 rounded-[var(--radius-control)] bg-secondary/65"
                   transition={{ type: "spring", visualDuration: 0.3, bounce: 0 }}
                 />
               )}
@@ -153,7 +157,7 @@ function UserNavMenu({
           mobile ? (
             <button
               type="button"
-              className="flex h-full min-w-0 touch-manipulation select-none flex-col items-center justify-center gap-1 rounded-[var(--radius-control)] px-1 text-[10px] text-muted-foreground [-webkit-tap-highlight-color:transparent] transition-[color,transform] duration-150 hover:text-foreground active:scale-[0.96]"
+              className="flex h-full min-w-0 touch-manipulation select-none flex-col items-center justify-center gap-0.5 rounded-[var(--radius-control)] px-1 pt-0.5 text-[10px] text-muted-foreground [-webkit-tap-highlight-color:transparent] transition-[color,transform] duration-150 hover:text-foreground active:scale-[0.96]"
               aria-label={t("navigation.openProfileMenu")}
             />
           ) : (
