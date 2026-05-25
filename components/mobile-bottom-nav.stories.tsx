@@ -11,11 +11,15 @@ const PhoneFrame = ({ Story }: { Story: React.ComponentType }) => (
    * hide it at the Storybook iframe width (>1024px).
    */
   <div
-    className="relative mx-auto h-dvh w-[390px] overflow-hidden bg-[#fafaf7]"
+    className="relative mx-auto h-dvh w-[393px] overflow-hidden bg-[#fafaf7]"
     style={{ transform: "translate(0)" }}
   >
     <style>{`[data-mobile-nav] { display: flex !important; }`}</style>
     <div className="absolute inset-0 overflow-y-auto px-4 pt-6 pb-32">
+      <div className="mb-4 px-1">
+        <p className="type-body-12 text-muted-foreground">iPhone-width preview</p>
+        <h1 className="type-h4">Bottom navigation spacing</h1>
+      </div>
       <div className="mb-3 h-[200px] rounded-[var(--radius-surface)] bg-card" />
       <div className="mb-3 h-[120px] rounded-[var(--radius-surface)] bg-secondary" />
       <div className="mb-3 h-[160px] rounded-[var(--radius-surface)] bg-card" />
