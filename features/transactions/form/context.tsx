@@ -6,6 +6,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState } from 
 import { FormProvider, useFieldArray, useForm, useWatch, type UseFormReturn } from "react-hook-form";
 import { useTranslations } from "next-intl";
 
+import { DEFAULT_CURRENCY_CODE } from "@/lib/currencies";
 import { getCurrencySymbol } from "@/lib/formatters";
 import type { Account, Category, Transaction, TransactionSchedule, WalletAllocation } from "@/types/finance";
 
@@ -355,12 +356,22 @@ export function TransactionFormProvider({
   const destinationAccount = accountById.get(destinationAccountId ?? "");
   const selectedType: "income" | "expense" = kind === "income" ? "income" : "expense";
   const categoryOptions = categories.filter((c) => c.type === selectedType && !c.is_system);
+  const defaultSourceAccount =
+    sourceAccount ??
+    accountById.get(mostUsedSourceAccountId ?? "") ??
+    (defaultSourceAccountId && kind !== "income" ? accountById.get(defaultSourceAccountId) : undefined) ??
+    accounts[0];
+  const defaultDestinationAccount =
+    destinationAccount ??
+    accountById.get(mostUsedDestinationAccountId ?? "") ??
+    (defaultSourceAccountId && kind === "income" ? accountById.get(defaultSourceAccountId) : undefined) ??
+    accounts[0];
   const primaryBatchAccount =
-    kind === "income" ? accountById.get(destinationAccountId ?? "") : accountById.get(sourceAccountId ?? "");
-  const primaryCurrencySymbol = getCurrencySymbol(primaryBatchAccount?.currency ?? "EUR");
-  const sourceCurrencySymbol = getCurrencySymbol(sourceAccount?.currency ?? "EUR");
+    kind === "income" ? defaultDestinationAccount : defaultSourceAccount;
+  const primaryCurrencySymbol = getCurrencySymbol(primaryBatchAccount?.currency ?? DEFAULT_CURRENCY_CODE);
+  const sourceCurrencySymbol = getCurrencySymbol(defaultSourceAccount?.currency ?? DEFAULT_CURRENCY_CODE);
   const destinationCurrencySymbol = getCurrencySymbol(
-    destinationAccount?.currency ?? sourceAccount?.currency ?? "EUR",
+    defaultDestinationAccount?.currency ?? defaultSourceAccount?.currency ?? DEFAULT_CURRENCY_CODE,
   );
 
   // expose longPressTimerRef for batch section

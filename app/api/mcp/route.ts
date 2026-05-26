@@ -45,6 +45,8 @@ const DIRECT_TRANSACTION_STATUSES = ["paid", "planned"] as const;
 const READ_TRANSACTION_STATUSES = ["paid", "planned", "skipped"] as const;
 const SCHEDULE_FREQUENCIES = ["daily", "weekly", "monthly", "yearly"] as const;
 const SCHEDULE_STATES = ["active", "paused"] as const;
+const TRANSACTION_RESULT_WIDGET_URI = "ui://moniq/transaction-result.html";
+const TRANSACTION_RESULT_MIME_TYPE = "text/html;profile=mcp-app";
 
 type TransactionKind = (typeof TRANSACTION_KINDS)[number];
 type DirectTransactionStatus = (typeof DIRECT_TRANSACTION_STATUSES)[number];
@@ -52,6 +54,28 @@ type ReadTransactionStatus = (typeof READ_TRANSACTION_STATUSES)[number];
 type ScheduleFrequency = (typeof SCHEDULE_FREQUENCIES)[number];
 type ScheduleState = (typeof SCHEDULE_STATES)[number];
 type McpTranslator = (key: string, values?: Record<string, string | number | Date>) => string;
+
+type TransactionOperationItem = {
+  id?: string;
+  title: string;
+  amount: number;
+  occurred_at: string;
+  kind: string;
+  status?: string;
+  currency?: string | null;
+};
+
+type TransactionOperationSummary = {
+  operation: string;
+  status: "success";
+  title: string;
+  message: string;
+  batchId?: string;
+  transactionId?: string;
+  itemId?: string;
+  counts?: Record<string, number>;
+  items?: TransactionOperationItem[];
+};
 
 export async function GET(request: Request) {
   const auth = await authenticateApiKey(request);
@@ -241,7 +265,7 @@ function handleInitialize(
     id,
     result: {
       protocolVersion,
-      capabilities: { tools: {} },
+      capabilities: { tools: {}, resources: {} },
       serverInfo: { name: "moniq", version: "1.0.0" },
     },
   };
@@ -263,6 +287,73 @@ function directTransactionProperties() {
     category_id: { type: ["string", "null"], title: "Category", description: "Required selectable category ID for income/expense. Optional expense category for debt payment interest. Never set for transfers. In user-facing confirmation, describe this by category path from get_finance_context." },
     source_account_id: { type: ["string", "null"], title: "From wallet", description: "Required source wallet ID for expense, transfer, and debt payment. In user-facing confirmation, describe this by wallet name from get_finance_context." },
     destination_account_id: { type: ["string", "null"], title: "To wallet", description: "Required destination wallet ID for income, transfer, and debt payment. Debt payment destination must be a debt wallet. In user-facing confirmation, describe this by wallet name from get_finance_context." },
+  };
+}
+
+function transactionOperationOutputSchema(title = "Moniq transaction result") {
+  return {
+    type: "object",
+    title,
+    additionalProperties: false,
+    properties: {
+      operation: { type: "string" },
+      status: { type: "string", enum: ["success"] },
+      title: { type: "string" },
+      message: { type: "string" },
+      batchId: { type: "string" },
+      transactionId: { type: "string" },
+      itemId: { type: "string" },
+      counts: {
+        type: "object",
+        additionalProperties: { type: "number" },
+      },
+      items: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            id: { type: "string" },
+            title: { type: "string" },
+            amount: { type: "number" },
+            occurred_at: { type: "string" },
+            kind: { type: "string" },
+            status: { type: "string" },
+            currency: { type: ["string", "null"] },
+          },
+          required: ["title", "amount", "occurred_at", "kind"],
+        },
+      },
+    },
+    required: ["operation", "status", "title", "message"],
+  };
+}
+
+function transactionWidgetMeta(invoking: string, invoked: string) {
+  return {
+    ui: { resourceUri: TRANSACTION_RESULT_WIDGET_URI },
+    "openai/outputTemplate": TRANSACTION_RESULT_WIDGET_URI,
+    "openai/widgetAccessible": true,
+    "openai/toolInvocation/invoking": invoking,
+    "openai/toolInvocation/invoked": invoked,
+  };
+}
+
+function directTransactionInputSchema(title: string) {
+  return {
+    type: "object",
+    title,
+    properties: {
+      transaction: {
+        type: "object",
+        title: "Transaction",
+        required: ["title", "amount", "occurred_at", "status", "kind"],
+        additionalProperties: false,
+        properties: directTransactionProperties(),
+      },
+    },
+    required: ["transaction"],
+    additionalProperties: false,
   };
 }
 
@@ -555,10 +646,8 @@ export function getMcpTools() {
           description:
             "Create complete Moniq transactions directly in the ledger after you have clarified every required field with the user. Call get_finance_context first, then use exact wallet IDs and selectable category IDs from that context. Before calling, confirm the transaction count, dates, titles, amounts with currencies, wallet names, and category names in plain language. Do not show raw UUIDs to the user unless they ask for technical details. Ask the user for missing date, amount, kind, wallet, category, transfer destination, or debt-payment breakdown before calling this tool. Preserve useful source details in note; send null or omit note when no detail is known.",
           annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
-          _meta: {
-            "openai/toolInvocation/invoking": "Adding transactions",
-            "openai/toolInvocation/invoked": "Transactions added",
-          },
+          _meta: transactionWidgetMeta("Adding transactions", "Transactions added"),
+          outputSchema: transactionOperationOutputSchema("Created transactions"),
           inputSchema: {
             type: "object",
             title: "Transactions to add",
@@ -593,6 +682,53 @@ export function getMcpTools() {
               },
             },
             required: ["transactions"],
+            additionalProperties: false,
+          },
+        },
+        {
+          name: "create_transaction",
+          title: "Create Moniq transaction",
+          description:
+            "Create one complete Moniq transaction directly in the ledger. Call get_finance_context first, confirm the date, title, amount with currency, wallet names, and category name with the user, then send exact IDs.",
+          annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
+          _meta: transactionWidgetMeta("Adding transaction", "Transaction added"),
+          outputSchema: transactionOperationOutputSchema("Created transaction"),
+          inputSchema: directTransactionInputSchema("Transaction to add"),
+        },
+        {
+          name: "update_transaction",
+          title: "Update Moniq transaction",
+          description:
+            "Replace one existing Moniq ledger transaction with a complete updated payload. Read the transaction first with get_transactions, confirm the change in plain language, and use exact wallet/category IDs.",
+          annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
+          _meta: transactionWidgetMeta("Updating transaction", "Transaction updated"),
+          outputSchema: transactionOperationOutputSchema("Updated transaction"),
+          inputSchema: {
+            type: "object",
+            title: "Transaction update",
+            properties: {
+              transaction_id: { type: "string", title: "Transaction ID" },
+              transaction: directTransactionInputSchema("Transaction").properties.transaction,
+            },
+            required: ["transaction_id", "transaction"],
+            additionalProperties: false,
+          },
+        },
+        {
+          name: "delete_transaction",
+          title: "Delete Moniq transaction",
+          description:
+            "Delete one existing Moniq ledger transaction. Use only after confirming the exact transaction with the user.",
+          annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false, idempotentHint: false },
+          _meta: transactionWidgetMeta("Deleting transaction", "Transaction deleted"),
+          outputSchema: transactionOperationOutputSchema("Deleted transaction"),
+          inputSchema: {
+            type: "object",
+            title: "Transaction to delete",
+            properties: {
+              transaction_id: { type: "string", title: "Transaction ID" },
+            },
+            required: ["transaction_id"],
             additionalProperties: false,
           },
         },
@@ -763,15 +899,109 @@ export function getMcpTools() {
         },
         ...recurringToolAliases(),
         {
+          name: "list_transaction_batches",
+          title: "List Moniq Inbox batches",
+          description:
+            "List Moniq MCP transaction batches so you can recover batch IDs and continue create/edit/delete work in the same session.",
+          annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+          _meta: {
+            "openai/toolInvocation/invoking": "Reading inbox batches",
+            "openai/toolInvocation/invoked": "Inbox batches ready",
+          },
+          inputSchema: {
+            type: "object",
+            title: "Batch filters",
+            properties: {
+              status: { type: ["string", "null"], enum: ["pending", "approved", "rejected", null], title: "Batch status" },
+            },
+            additionalProperties: false,
+          },
+        },
+        {
+          name: "get_transaction_batch",
+          title: "Get Moniq Inbox batch",
+          description:
+            "Read a Moniq MCP transaction batch with its draft items before editing, rejecting, or deleting those draft records.",
+          annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+          _meta: {
+            "openai/toolInvocation/invoking": "Reading inbox batch",
+            "openai/toolInvocation/invoked": "Inbox batch ready",
+          },
+          inputSchema: {
+            type: "object",
+            title: "Batch to read",
+            properties: {
+              batch_id: { type: "string", title: "Batch ID" },
+            },
+            required: ["batch_id"],
+            additionalProperties: false,
+          },
+        },
+        {
+          name: "update_transaction_draft",
+          title: "Update Moniq Inbox draft",
+          description:
+            "Update one pending transaction draft inside a Moniq MCP batch. Use this when the agent created an inbox draft incorrectly and should fix it before review.",
+          annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
+          _meta: transactionWidgetMeta("Updating draft", "Draft updated"),
+          outputSchema: transactionOperationOutputSchema("Updated draft transaction"),
+          inputSchema: {
+            type: "object",
+            title: "Draft update",
+            properties: {
+              batch_id: { type: "string", title: "Batch ID" },
+              item_id: { type: "string", title: "Draft item ID" },
+              patch: {
+                type: "object",
+                title: "Draft patch",
+                additionalProperties: false,
+                properties: {
+                  title: { type: "string" },
+                  amount: { type: "number" },
+                  occurred_at: { type: "string" },
+                  kind: { type: "string", enum: TRANSACTION_KINDS },
+                  currency: { type: ["string", "null"] },
+                  note: { type: ["string", "null"] },
+                  suggested_category_name: { type: ["string", "null"] },
+                  status: { type: "string", enum: ["pending", "approved", "rejected"] },
+                  resolved_category_id: { type: ["string", "null"] },
+                  resolved_account_id: { type: ["string", "null"] },
+                  resolved_destination_account_id: { type: ["string", "null"] },
+                },
+              },
+            },
+            required: ["batch_id", "item_id", "patch"],
+            additionalProperties: false,
+          },
+        },
+        {
+          name: "delete_transaction_draft",
+          title: "Delete Moniq Inbox draft",
+          description:
+            "Remove one pending transaction draft from a Moniq MCP batch. Defaults to a soft delete by marking the item rejected; use hard_delete only when the row should disappear.",
+          annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false, idempotentHint: false },
+          _meta: transactionWidgetMeta("Deleting draft", "Draft deleted"),
+          outputSchema: transactionOperationOutputSchema("Deleted draft transaction"),
+          inputSchema: {
+            type: "object",
+            title: "Draft to delete",
+            properties: {
+              batch_id: { type: "string", title: "Batch ID" },
+              item_id: { type: "string", title: "Draft item ID" },
+              mode: { type: "string", enum: ["reject", "hard_delete"], title: "Delete mode", description: "Defaults to reject." },
+            },
+            required: ["batch_id", "item_id"],
+            additionalProperties: false,
+          },
+        },
+        {
           name: "submit_transaction_batch",
           title: "Send transactions to Moniq Inbox",
           description:
             "Legacy review flow: submit a batch of transactions extracted from a bank screenshot, statement, or file for review inside Moniq. Use this when confidence is low or the user explicitly wants inbox approval instead of direct ledger writes.",
           annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
-          _meta: {
-            "openai/toolInvocation/invoking": "Sending to Moniq Inbox",
-            "openai/toolInvocation/invoked": "Sent to Moniq Inbox",
-          },
+          _meta: transactionWidgetMeta("Sending to Moniq Inbox", "Sent to Moniq Inbox"),
+          outputSchema: transactionOperationOutputSchema("Submitted transaction batch"),
           inputSchema: {
             type: "object",
             title: "Transactions for review",
@@ -1566,6 +1796,169 @@ function successResponse(id: string | number | null, text: string, data: unknown
   };
 }
 
+function handleResourcesList(id: string | number | null): McpResponse {
+  return {
+    jsonrpc: "2.0",
+    id,
+    result: {
+      resources: [
+        {
+          uri: TRANSACTION_RESULT_WIDGET_URI,
+          name: "moniq-transaction-result",
+          title: "Moniq transaction result",
+          description: "Shows Moniq transaction create, edit, and delete results.",
+          mimeType: TRANSACTION_RESULT_MIME_TYPE,
+          _meta: {
+            "openai/widgetDescription": "A compact Moniq result card for transaction changes.",
+            "openai/widgetPrefersBorder": true,
+            "openai/widgetCSP": {
+              connect_domains: [],
+              resource_domains: [],
+            },
+          },
+        },
+      ],
+    },
+  };
+}
+
+function transactionResultWidgetHtml() {
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root { color-scheme: light dark; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { margin: 0; background: transparent; color: #262521; }
+    .wrap { padding: 14px; border: 1px solid rgba(64,64,62,.14); border-radius: 10px; background: #fafaf7; }
+    .eyebrow { margin: 0 0 4px; font-size: 11px; line-height: 1.3; letter-spacing: .08em; text-transform: uppercase; color: #77736b; font-weight: 650; }
+    h1 { margin: 0; font-size: 16px; line-height: 1.3; font-weight: 650; color: #262521; }
+    .message { margin: 6px 0 0; font-size: 13px; line-height: 1.45; color: #595650; }
+    .items { margin-top: 12px; border-top: 1px solid rgba(64,64,62,.12); }
+    .item { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px; padding: 9px 0; border-bottom: 1px solid rgba(64,64,62,.09); }
+    .item:last-child { border-bottom: 0; padding-bottom: 0; }
+    .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 600; color: #262521; }
+    .meta, .amount { font-size: 12px; color: #77736b; }
+    .amount { font-variant-numeric: tabular-nums; text-align: right; color: #262521; }
+    .counts { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; font-size: 12px; color: #77736b; }
+    @media (prefers-color-scheme: dark) {
+      body { color: #f4f1ea; }
+      .wrap { background: #1f1e1b; border-color: rgba(255,255,255,.12); }
+      h1, .name, .amount { color: #f4f1ea; }
+      .message, .meta, .counts, .eyebrow { color: #aaa49a; }
+      .items, .item { border-color: rgba(255,255,255,.1); }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <p class="eyebrow">Moniq</p>
+    <h1 id="title">Transaction result</h1>
+    <p class="message" id="message"></p>
+    <div class="counts" id="counts"></div>
+    <div class="items" id="items"></div>
+  </div>
+  <script>
+    const api = window.openai || {};
+    const output = api.toolOutput || api.structuredContent || {};
+    const meta = api.toolResponseMetadata || {};
+    const data = output && Object.keys(output).length ? output : (meta.operationResult || {});
+    const title = typeof data.title === "string" ? data.title : "Transaction result";
+    const message = typeof data.message === "string" ? data.message : "";
+    document.getElementById("title").textContent = title;
+    document.getElementById("message").textContent = message;
+
+    const counts = data.counts && typeof data.counts === "object" ? data.counts : null;
+    if (counts) {
+      document.getElementById("counts").innerHTML = Object.entries(counts)
+        .map(([key, value]) => "<span>" + key.replace(/_/g, " ") + ": " + value + "</span>")
+        .join("");
+    }
+
+    const items = Array.isArray(data.items) ? data.items : [];
+    document.getElementById("items").innerHTML = items.slice(0, 6).map((item) => {
+      const amount = Number(item.amount);
+      const amountText = Number.isFinite(amount) ? amount.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "";
+      const currency = item.currency ? " " + item.currency : "";
+      const meta = [item.kind, item.occurred_at, item.status].filter(Boolean).join(" - ");
+      return '<div class="item"><div><div class="name">' + escapeHtml(item.title || "Transaction") + '</div><div class="meta">' + escapeHtml(meta) + '</div></div><div class="amount">' + escapeHtml(amountText + currency) + '</div></div>';
+    }).join("");
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+    }
+  </script>
+</body>
+</html>`;
+}
+
+function handleResourcesRead(id: string | number | null, params?: Record<string, unknown>): McpResponse {
+  const uri = typeof params?.uri === "string" ? params.uri : "";
+  if (uri !== TRANSACTION_RESULT_WIDGET_URI) {
+    return { jsonrpc: "2.0", id, error: { code: -32602, message: `Unknown resource: ${uri}` } };
+  }
+
+  return {
+    jsonrpc: "2.0",
+    id,
+    result: {
+      contents: [
+        {
+          uri: TRANSACTION_RESULT_WIDGET_URI,
+          mimeType: TRANSACTION_RESULT_MIME_TYPE,
+          text: transactionResultWidgetHtml(),
+          _meta: {
+            "openai/widgetDescription": "A compact Moniq result card for transaction changes.",
+            "openai/widgetPrefersBorder": true,
+            "openai/widgetCSP": {
+              connect_domains: [],
+              resource_domains: [],
+            },
+          },
+        },
+      ],
+    },
+  };
+}
+
+function transactionOperationResponse(
+  id: string | number | null,
+  summary: TransactionOperationSummary,
+  privateDetails: unknown,
+): McpResponse {
+  return {
+    jsonrpc: "2.0",
+    id,
+    result: {
+      content: [{ type: "text", text: summary.message }],
+      structuredContent: summary,
+      _meta: {
+        operationResult: privateDetails,
+      },
+    },
+  };
+}
+
+function summarizeTransactionItem(item: unknown): TransactionOperationItem | null {
+  if (!isRecord(item)) return null;
+  const title = typeof item.title === "string" ? item.title : null;
+  const amount = typeof item.amount === "number" ? item.amount : Number(item.amount);
+  const occurredAt = typeof item.occurred_at === "string" ? item.occurred_at : null;
+  const kind = typeof item.kind === "string" ? item.kind : null;
+  if (!title || !Number.isFinite(amount) || !occurredAt || !kind) return null;
+
+  return {
+    id: typeof item.id === "string" ? item.id : undefined,
+    title,
+    amount,
+    occurred_at: occurredAt,
+    kind,
+    status: typeof item.status === "string" ? item.status : undefined,
+    currency: typeof item.currency === "string" ? item.currency : item.currency === null ? null : undefined,
+  };
+}
+
 async function callRecurringRpc(
   id: string | number | null,
   rpcName: string,
@@ -1802,20 +2195,275 @@ async function handleCreateTransactions(
   }
 
   const created = Array.isArray(data) ? data.length : ((data as { created?: unknown[] }).created?.length ?? normalized.length);
+  const createdItems = isRecord(data) && Array.isArray(data.created)
+    ? data.created.map(summarizeTransactionItem).filter((item): item is TransactionOperationItem => item !== null)
+    : [];
 
-  return {
-    jsonrpc: "2.0",
+  return transactionOperationResponse(
     id,
-    result: {
-      content: [
-        {
-          type: "text",
-          text: t("mcp.success.transactionsCreated", { count: created }),
-        },
-      ],
-      structuredContent: data,
+    {
+      operation: "create_transactions",
+      status: "success",
+      title: t("mcp.success.transactionsCreatedTitle"),
+      message: t("mcp.success.transactionsCreated", { count: created }),
+      counts: { created },
+      items: createdItems,
     },
-  };
+    data,
+  );
+}
+
+async function handleCreateTransaction(
+  id: string | number | null,
+  params: Record<string, unknown>,
+  keyHash: string,
+  t: McpTranslator,
+): Promise<McpResponse> {
+  const args = (params.arguments ?? {}) as { transaction?: unknown };
+  const validationError = validateDirectTransaction(args.transaction, 0);
+  if (validationError) return { jsonrpc: "2.0", id, error: { code: -32602, message: validationError } };
+
+  const response = await handleCreateTransactions(
+    id,
+    { arguments: { transactions: [args.transaction] } },
+    keyHash,
+    t,
+  );
+  if (isRecord(response.result) && isRecord(response.result.structuredContent)) {
+    response.result.structuredContent.operation = "create_transaction";
+    response.result.structuredContent.title = t("mcp.success.transactionCreatedTitle");
+  }
+  return response;
+}
+
+async function handleUpdateTransaction(
+  id: string | number | null,
+  params: Record<string, unknown>,
+  keyHash: string,
+  t: McpTranslator,
+): Promise<McpResponse> {
+  const args = (params.arguments ?? {}) as { transaction_id?: unknown; transaction?: unknown };
+  const transactionId = optionalString(args.transaction_id);
+  if (!transactionId) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.transactionIdRequired") } };
+
+  const validationError = validateDirectTransaction(args.transaction, 0);
+  if (validationError) return { jsonrpc: "2.0", id, error: { code: -32602, message: validationError } };
+
+  const db = createAnonClient();
+  const { data, error } = await db.rpc("mcp_update_transaction", {
+    p_key_hash: keyHash,
+    p_transaction_id: transactionId,
+    p_transaction: normalizeDirectTransaction(args.transaction as DirectTransactionItem),
+  });
+
+  if (error || !data) {
+    return {
+      jsonrpc: "2.0",
+      id,
+      error: { code: -32000, message: error?.message ?? t("mcp.errors.updateTransactionFailed") },
+    };
+  }
+
+  const updated = isRecord(data) ? summarizeTransactionItem(data.updated) : null;
+  return transactionOperationResponse(
+    id,
+    {
+      operation: "update_transaction",
+      status: "success",
+      title: t("mcp.success.transactionUpdatedTitle"),
+      message: t("mcp.success.transactionUpdated"),
+      transactionId,
+      counts: { updated: 1 },
+      items: updated ? [updated] : undefined,
+    },
+    data,
+  );
+}
+
+async function handleDeleteTransaction(
+  id: string | number | null,
+  args: Record<string, unknown>,
+  keyHash: string,
+  t: McpTranslator,
+): Promise<McpResponse> {
+  const transactionId = optionalString(args.transaction_id);
+  if (!transactionId) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.transactionIdRequired") } };
+
+  const db = createAnonClient();
+  const { data, error } = await db.rpc("mcp_delete_transaction", {
+    p_key_hash: keyHash,
+    p_transaction_id: transactionId,
+  });
+
+  if (error || !data) {
+    return {
+      jsonrpc: "2.0",
+      id,
+      error: { code: -32000, message: error?.message ?? t("mcp.errors.deleteTransactionFailed") },
+    };
+  }
+
+  const deleted = isRecord(data) ? summarizeTransactionItem(data.deleted) : null;
+  return transactionOperationResponse(
+    id,
+    {
+      operation: "delete_transaction",
+      status: "success",
+      title: t("mcp.success.transactionDeletedTitle"),
+      message: t("mcp.success.transactionDeleted"),
+      transactionId,
+      counts: { deleted: 1 },
+      items: deleted ? [deleted] : undefined,
+    },
+    data,
+  );
+}
+
+async function handleListTransactionBatches(
+  id: string | number | null,
+  args: Record<string, unknown>,
+  keyHash: string,
+  t: McpTranslator,
+): Promise<McpResponse> {
+  const status = optionalString(args.status);
+  if (status && !["pending", "approved", "rejected"].includes(status)) {
+    return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.invalidBatchStatus") } };
+  }
+
+  const db = createAnonClient();
+  const { data, error } = await db.rpc("mcp_list_transaction_batches", {
+    p_key_hash: keyHash,
+    p_status: status ?? "pending",
+  });
+
+  if (error || !data) {
+    return { jsonrpc: "2.0", id, error: { code: -32000, message: error?.message ?? t("mcp.errors.batchesLoadFailed") } };
+  }
+
+  return successResponse(id, t("mcp.success.batchesLoaded"), data);
+}
+
+async function handleGetTransactionBatch(
+  id: string | number | null,
+  args: Record<string, unknown>,
+  keyHash: string,
+  t: McpTranslator,
+): Promise<McpResponse> {
+  const batchId = optionalString(args.batch_id);
+  if (!batchId) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.batchIdRequired") } };
+
+  const db = createAnonClient();
+  const { data, error } = await db.rpc("mcp_get_transaction_batch", {
+    p_key_hash: keyHash,
+    p_batch_id: batchId,
+  });
+
+  if (error || !data) {
+    return { jsonrpc: "2.0", id, error: { code: -32000, message: error?.message ?? t("mcp.errors.batchLoadFailed") } };
+  }
+
+  return successResponse(id, t("mcp.success.batchLoaded"), data);
+}
+
+async function handleUpdateTransactionDraft(
+  id: string | number | null,
+  args: Record<string, unknown>,
+  keyHash: string,
+  t: McpTranslator,
+): Promise<McpResponse> {
+  const batchId = optionalString(args.batch_id);
+  const itemId = optionalString(args.item_id);
+  if (!batchId) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.batchIdRequired") } };
+  if (!itemId) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.itemIdRequired") } };
+  if (!isRecord(args.patch)) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.patchRequired") } };
+
+  if (args.patch.amount !== undefined && !isPositiveNumber(args.patch.amount)) {
+    return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.patchAmountPositive") } };
+  }
+  if (args.patch.occurred_at !== undefined && !isIsoDate(args.patch.occurred_at)) {
+    return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.patchDateRequired") } };
+  }
+  if (args.patch.kind !== undefined && !isKind(args.patch.kind)) {
+    return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.invalidKinds") } };
+  }
+  if (
+    args.patch.status !== undefined &&
+    !["pending", "approved", "rejected"].includes(String(args.patch.status))
+  ) {
+    return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.invalidDraftStatus") } };
+  }
+
+  const db = createAnonClient();
+  const { data, error } = await db.rpc("mcp_update_transaction_draft", {
+    p_key_hash: keyHash,
+    p_batch_id: batchId,
+    p_item_id: itemId,
+    p_patch: args.patch,
+  });
+
+  if (error || !data) {
+    return { jsonrpc: "2.0", id, error: { code: -32000, message: error?.message ?? t("mcp.errors.updateDraftFailed") } };
+  }
+
+  const updated = isRecord(data) ? summarizeTransactionItem(data.updated) : null;
+  return transactionOperationResponse(
+    id,
+    {
+      operation: "update_transaction_draft",
+      status: "success",
+      title: t("mcp.success.draftUpdatedTitle"),
+      message: t("mcp.success.draftUpdated"),
+      batchId,
+      itemId,
+      counts: { updated: 1 },
+      items: updated ? [updated] : undefined,
+    },
+    data,
+  );
+}
+
+async function handleDeleteTransactionDraft(
+  id: string | number | null,
+  args: Record<string, unknown>,
+  keyHash: string,
+  t: McpTranslator,
+): Promise<McpResponse> {
+  const batchId = optionalString(args.batch_id);
+  const itemId = optionalString(args.item_id);
+  const mode = optionalString(args.mode) ?? "reject";
+  if (!batchId) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.batchIdRequired") } };
+  if (!itemId) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.itemIdRequired") } };
+  if (!["reject", "hard_delete"].includes(mode)) {
+    return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.invalidDraftDeleteMode") } };
+  }
+
+  const db = createAnonClient();
+  const { data, error } = await db.rpc("mcp_delete_transaction_draft", {
+    p_key_hash: keyHash,
+    p_batch_id: batchId,
+    p_item_id: itemId,
+    p_mode: mode,
+  });
+
+  if (error || !data) {
+    return { jsonrpc: "2.0", id, error: { code: -32000, message: error?.message ?? t("mcp.errors.deleteDraftFailed") } };
+  }
+
+  const deleted = isRecord(data) ? summarizeTransactionItem(data.deleted) : null;
+  return transactionOperationResponse(
+    id,
+    {
+      operation: "delete_transaction_draft",
+      status: "success",
+      title: mode === "hard_delete" ? t("mcp.success.draftHardDeletedTitle") : t("mcp.success.draftRejectedTitle"),
+      message: mode === "hard_delete" ? t("mcp.success.draftHardDeleted") : t("mcp.success.draftRejected"),
+      batchId,
+      itemId,
+      counts: { deleted: 1 },
+      items: deleted ? [deleted] : undefined,
+    },
+    data,
+  );
 }
 
 async function handleToolCall(
@@ -1840,6 +2488,34 @@ async function handleToolCall(
 
   if (toolName === "create_transactions") {
     return handleCreateTransactions(id, params, auth.keyHash, t);
+  }
+
+  if (toolName === "create_transaction") {
+    return handleCreateTransaction(id, params, auth.keyHash, t);
+  }
+
+  if (toolName === "update_transaction") {
+    return handleUpdateTransaction(id, params, auth.keyHash, t);
+  }
+
+  if (toolName === "delete_transaction") {
+    return handleDeleteTransaction(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash, t);
+  }
+
+  if (toolName === "list_transaction_batches") {
+    return handleListTransactionBatches(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash, t);
+  }
+
+  if (toolName === "get_transaction_batch") {
+    return handleGetTransactionBatch(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash, t);
+  }
+
+  if (toolName === "update_transaction_draft") {
+    return handleUpdateTransactionDraft(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash, t);
+  }
+
+  if (toolName === "delete_transaction_draft") {
+    return handleDeleteTransactionDraft(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash, t);
   }
 
   if (toolName === "get_recurring_transaction_schedules" || toolName === "list_recurring_transactions") {
@@ -1951,18 +2627,35 @@ async function handleToolCall(
     };
   }
 
-  return {
-    jsonrpc: "2.0",
+  const { data: savedBatch } = await db.rpc("mcp_get_transaction_batch", {
+    p_key_hash: auth.keyHash,
+    p_batch_id: batchId,
+  });
+  const savedItems = isRecord(savedBatch) && Array.isArray(savedBatch.items) ? savedBatch.items : [];
+  const submittedItems = savedItems.length
+    ? savedItems.map(summarizeTransactionItem).filter((item): item is TransactionOperationItem => item !== null)
+    : transactions.map((tx) => ({
+        title: tx.title.trim(),
+        amount: tx.amount,
+        occurred_at: tx.occurred_at,
+        kind: tx.kind,
+        currency: tx.currency ?? null,
+        status: "pending",
+      }));
+
+  return transactionOperationResponse(
     id,
-    result: {
-      content: [
-        {
-          type: "text",
-          text: t("mcp.success.batchSubmitted", { count: transactions.length, batchId: String(batchId) }),
-        },
-      ],
+    {
+      operation: "submit_transaction_batch",
+      status: "success",
+      title: t("mcp.success.batchSubmittedTitle"),
+      message: t("mcp.success.batchSubmitted", { count: transactions.length, batchId: String(batchId) }),
+      batchId: String(batchId),
+      counts: { submitted: transactions.length, pending: transactions.length },
+      items: submittedItems,
     },
-  };
+    { batchId, items: savedItems.length ? savedItems : items },
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -2017,6 +2710,12 @@ async function dispatchMessage(msg: McpRequest, auth: { userId: string; keyHash:
 
     case "tools/list":
       return handleToolsList(id);
+
+    case "resources/list":
+      return handleResourcesList(id);
+
+    case "resources/read":
+      return handleResourcesRead(id, msg.params);
 
     case "tools/call":
       return handleToolCall(id, (msg.params ?? {}) as Record<string, unknown>, auth, t);

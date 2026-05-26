@@ -71,7 +71,7 @@ describe("MCP initialize", () => {
       id: 1,
       result: {
         protocolVersion: "2024-11-05",
-        capabilities: { tools: {} },
+        capabilities: { tools: {}, resources: {} },
         serverInfo: { name: "moniq", version: "1.0.0" },
       },
     });
@@ -98,6 +98,9 @@ describe("MCP tools", () => {
       "get_card_and_debt_balances",
       "get_transactions",
       "create_transactions",
+      "create_transaction",
+      "update_transaction",
+      "delete_transaction",
       "get_recurring_transaction_schedules",
       "create_recurring_transaction_schedule",
       "update_recurring_transaction_schedule",
@@ -117,6 +120,10 @@ describe("MCP tools", () => {
       "mark_recurring_occurrence_paid",
       "skip_recurring_occurrence",
       "delete_recurring_occurrence",
+      "list_transaction_batches",
+      "get_transaction_batch",
+      "update_transaction_draft",
+      "delete_transaction_draft",
       "submit_transaction_batch",
       "get_category_spending_report",
     ]);
@@ -149,8 +156,12 @@ describe("MCP tools", () => {
         openWorldHint: false,
       },
       _meta: {
+        "openai/outputTemplate": "ui://moniq/transaction-result.html",
         "openai/toolInvocation/invoking": "Adding transactions",
         "openai/toolInvocation/invoked": "Transactions added",
+      },
+      outputSchema: {
+        title: "Created transactions",
       },
     });
     expect(createTransactionsTool?.inputSchema).toMatchObject({
@@ -167,6 +178,53 @@ describe("MCP tools", () => {
         },
       },
     });
+  });
+
+  it("exposes transaction edit/delete tools with correct safety annotations and widget metadata", () => {
+    const tools = getMcpTools();
+    const updateDraftTool = tools.find((tool) => tool.name === "update_transaction_draft");
+    const deleteDraftTool = tools.find((tool) => tool.name === "delete_transaction_draft");
+    const deleteTransactionTool = tools.find((tool) => tool.name === "delete_transaction");
+
+    expect(updateDraftTool).toMatchObject({
+      annotations: { readOnlyHint: false, destructiveHint: false },
+      _meta: { "openai/outputTemplate": "ui://moniq/transaction-result.html" },
+      outputSchema: { title: "Updated draft transaction" },
+    });
+    expect(deleteDraftTool).toMatchObject({
+      annotations: { readOnlyHint: false, destructiveHint: true },
+      _meta: { "openai/outputTemplate": "ui://moniq/transaction-result.html" },
+    });
+    expect(deleteTransactionTool).toMatchObject({
+      annotations: { readOnlyHint: false, destructiveHint: true },
+      _meta: { "openai/outputTemplate": "ui://moniq/transaction-result.html" },
+    });
+  });
+
+  it("serves the ChatGPT transaction result widget resource", async () => {
+    const listResponse = await postMcp({
+      jsonrpc: "2.0",
+      id: "resources",
+      method: "resources/list",
+    });
+    const listBody = await listResponse.json();
+    expect(listBody.result.resources[0]).toMatchObject({
+      uri: "ui://moniq/transaction-result.html",
+      mimeType: "text/html;profile=mcp-app",
+    });
+
+    const readResponse = await postMcp({
+      jsonrpc: "2.0",
+      id: "resource",
+      method: "resources/read",
+      params: { uri: "ui://moniq/transaction-result.html" },
+    });
+    const readBody = await readResponse.json();
+    expect(readBody.result.contents[0]).toMatchObject({
+      uri: "ui://moniq/transaction-result.html",
+      mimeType: "text/html;profile=mcp-app",
+    });
+    expect(readBody.result.contents[0].text).toContain("window.openai");
   });
 
   it("returns finance context with category paths and selectable flags", async () => {
@@ -609,10 +667,10 @@ describe("MCP tools", () => {
         return Promise.resolve({
           data: {
             created: [
-              { id: "tx-income" },
-              { id: "tx-expense" },
-              { id: "tx-transfer" },
-              { id: "tx-debt" },
+              { id: "tx-income", title: "Salary", amount: 5000, occurred_at: "2026-05-20", kind: "income" },
+              { id: "tx-expense", title: "Groceries", amount: 82.4, occurred_at: "2026-05-21", kind: "expense" },
+              { id: "tx-transfer", title: "Move to savings", amount: 300, occurred_at: "2026-05-22", kind: "transfer" },
+              { id: "tx-debt", title: "Loan payment", amount: 750, occurred_at: "2026-05-23", kind: "debt_payment" },
             ],
           },
           error: null,
@@ -679,7 +737,13 @@ describe("MCP tools", () => {
     });
 
     const body = await response.json();
-    expect(body.result.structuredContent.created).toHaveLength(4);
+    expect(body.result.structuredContent).toMatchObject({
+      operation: "create_transactions",
+      status: "success",
+      counts: { created: 4 },
+    });
+    expect(body.result.structuredContent.items).toHaveLength(4);
+    expect(body.result._meta.operationResult.created).toHaveLength(4);
     expect(mocks.rpc).toHaveBeenCalledWith("mcp_create_transactions", {
       p_key_hash: AUTH_KEY_HASH,
       p_transactions: [

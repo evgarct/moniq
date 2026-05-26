@@ -32,6 +32,7 @@ export async function GET(request: Request) {
         status,
         resolved_category_id,
         resolved_account_id,
+        resolved_destination_account_id,
         finance_transaction_id,
         created_at
       )
