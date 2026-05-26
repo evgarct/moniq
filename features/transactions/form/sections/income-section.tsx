@@ -14,7 +14,7 @@ import type { TransactionFormInputs } from "../types";
 
 export function IncomeSection() {
   const t = useTranslations("transactions.form");
-  const { isBatchMode, accounts, categoryOptions, sourceCurrencySymbol } = useTransactionFormContext();
+  const { isBatchMode, accounts, categoryOptions, destinationCurrencySymbol } = useTransactionFormContext();
   const { control, formState: { errors } } = useFormContext<TransactionFormInputs>();
 
   if (isBatchMode) {
@@ -66,7 +66,7 @@ export function IncomeSection() {
                   value={field.value ?? null}
                   onValueChange={(value) => field.onChange(value ?? 0)}
                 />
-                <span className="text-sm text-foreground">{sourceCurrencySymbol}</span>
+                <span className="text-sm text-foreground">{destinationCurrencySymbol}</span>
               </div>
             )}
           />

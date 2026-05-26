@@ -10,6 +10,17 @@ const defaultTransaction = snapshot.transactions.find((transaction) => transacti
 const incomeTransaction = snapshot.transactions.find((transaction) => transaction.kind === "income") ?? snapshot.transactions[0];
 const transferTransaction = snapshot.transactions.find((transaction) => transaction.kind === "transfer") ?? snapshot.transactions[0];
 const debtPaymentTransaction = snapshot.transactions.find((transaction) => transaction.kind === "debt_payment") ?? snapshot.transactions[0];
+const rubleAccount = snapshot.accounts.find((account) => account.currency === "RUB") ?? snapshot.accounts[0];
+const rubleExpenseTransaction: Transaction = {
+  ...(defaultTransaction as Transaction),
+  id: "tx-story-ruble-expense",
+  title: "Ruble groceries",
+  amount: 2100,
+  source_account_id: rubleAccount?.id ?? null,
+  source_account: rubleAccount ?? null,
+  destination_account_id: null,
+  destination_account: null,
+};
 
 // A planned occurrence linked to recurringSchedule (used by reschedule stories)
 const recurringOccurrence: Transaction = {
@@ -155,6 +166,42 @@ export const BatchTransfer: Story = {
   ),
 };
 
+export const RubleBatchExpense: Story = {
+  render: () => (
+    <StorySurface>
+      <TransactionFormSheet
+        open
+        mode="add"
+        initialKind="expense"
+        defaultSourceAccountId={rubleAccount?.id}
+        accounts={snapshot.accounts}
+        categories={snapshot.categories}
+        transactions={snapshot.transactions}
+        onOpenChange={() => {}}
+        onSubmit={async () => {}}
+      />
+    </StorySurface>
+  ),
+};
+
+export const RubleIncome: Story = {
+  render: () => (
+    <StorySurface>
+      <TransactionFormSheet
+        open
+        mode="add"
+        initialKind="income"
+        defaultSourceAccountId={rubleAccount?.id}
+        accounts={snapshot.accounts}
+        categories={snapshot.categories}
+        transactions={snapshot.transactions}
+        onOpenChange={() => {}}
+        onSubmit={async () => {}}
+      />
+    </StorySurface>
+  ),
+};
+
 export const EditOccurrence: Story = {
   render: () => (
     <StorySurface>
@@ -164,6 +211,23 @@ export const EditOccurrence: Story = {
         transaction={defaultTransaction}
         accounts={snapshot.accounts}
 
+        categories={snapshot.categories}
+        transactions={snapshot.transactions}
+        onOpenChange={() => {}}
+        onSubmit={async () => {}}
+      />
+    </StorySurface>
+  ),
+};
+
+export const RubleExpenseEdit: Story = {
+  render: () => (
+    <StorySurface>
+      <TransactionFormSheet
+        open
+        mode="edit-transaction"
+        transaction={rubleExpenseTransaction}
+        accounts={snapshot.accounts}
         categories={snapshot.categories}
         transactions={snapshot.transactions}
         onOpenChange={() => {}}
