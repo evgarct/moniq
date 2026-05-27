@@ -6,11 +6,11 @@ import { useTranslations } from "next-intl";
 import { useRef } from "react";
 
 import { CategoryCascadePicker } from "@/components/category-cascade-picker";
+import { DecimalInput, FieldMessage, FormPickerRow, FormSplitRow } from "@/components/form-primitives";
 import { Button } from "@/components/ui/button";
 
 import { useTransactionFormContext } from "../context";
 import { AccountSelect } from "../account-select";
-import { DecimalInput, FieldMessage, SplitRow, PickerRow } from "../primitives";
 import type { TransactionFormInputs } from "../types";
 
 export function BatchItemsSection() {
@@ -51,7 +51,7 @@ export function BatchItemsSection() {
   return (
     <>
       {/* Account picker at top */}
-      <PickerRow className="border-b-0 pt-4">
+      <FormPickerRow className="border-b-0 pt-4">
         {kind === "income" ? (
           <AccountSelect
             name="destination_account_id"
@@ -65,11 +65,11 @@ export function BatchItemsSection() {
             placeholder={t("placeholders.sourceAccount")}
           />
         )}
-      </PickerRow>
+      </FormPickerRow>
 
       {/* Line items */}
       {fields.map((field, index) => (
-        <SplitRow
+        <FormSplitRow
           key={field.id}
           rowClassName="min-h-0 py-0"
           onContextMenu={(event) => {
@@ -130,11 +130,11 @@ export function BatchItemsSection() {
         >
           <FieldMessage error={errors.line_items?.[index]?.category_id as FieldError | undefined} />
           <FieldMessage error={errors.line_items?.[index]?.amount as FieldError | undefined} />
-        </SplitRow>
+        </FormSplitRow>
       ))}
 
       {/* Add row + total */}
-      <SplitRow
+      <FormSplitRow
         rowClassName="min-h-6 py-0 -mt-1"
         left={
           <Button

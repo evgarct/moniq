@@ -4,11 +4,11 @@ import { Controller, useFormContext } from "react-hook-form";
 import { useTranslations } from "next-intl";
 
 import { CategoryCascadePicker } from "@/components/category-cascade-picker";
+import { DecimalInput, FieldMessage, FormPickerRow, FormRow, FormSection } from "@/components/form-primitives";
 import { cn } from "@/lib/utils";
 
 import { useTransactionFormContext } from "../context";
 import { AccountSelect } from "../account-select";
-import { DecimalInput, FieldMessage, FormBlock, PickerRow, RowShell } from "../primitives";
 import { SharedFields } from "./shared-fields";
 import type { TransactionFormInputs } from "../types";
 
@@ -25,16 +25,16 @@ export function DebtPaymentSection() {
   const breakdownOk = breakdownSum > 0 && breakdownDiff <= 0.01;
 
   return (
-    <FormBlock>
-      <PickerRow className="border-b-0 pt-4">
+    <FormSection>
+      <FormPickerRow className="border-b-0 pt-4">
         <AccountSelect name="source_account_id" accounts={accounts} placeholder={t("placeholders.sourceAccount")} />
-      </PickerRow>
+      </FormPickerRow>
 
-      <PickerRow className="border-b-0">
+      <FormPickerRow className="border-b-0">
         <AccountSelect name="destination_account_id" accounts={accounts} placeholder={t("placeholders.destinationAccount")} />
-      </PickerRow>
+      </FormPickerRow>
 
-      <PickerRow className="border-b-0">
+      <FormPickerRow className="border-b-0">
         <div className="flex flex-col gap-1">
           <Controller
             control={control}
@@ -52,9 +52,9 @@ export function DebtPaymentSection() {
           />
           <FieldMessage error={errors.category_id} />
         </div>
-      </PickerRow>
+      </FormPickerRow>
 
-      <RowShell label={t("fields.amount")}>
+      <FormRow label={t("fields.amount")}>
         <div className="flex flex-col items-end gap-1">
           <Controller
             control={control}
@@ -74,10 +74,10 @@ export function DebtPaymentSection() {
           />
           <FieldMessage error={errors.amount} />
         </div>
-      </RowShell>
+      </FormRow>
 
       {/* Breakdown rows */}
-      <RowShell label={t("fields.principal")}>
+      <FormRow label={t("fields.principal")}>
         <Controller
           control={control}
           name="principal_amount"
@@ -90,8 +90,8 @@ export function DebtPaymentSection() {
             />
           )}
         />
-      </RowShell>
-      <RowShell label={t("fields.interest")}>
+      </FormRow>
+      <FormRow label={t("fields.interest")}>
         <Controller
           control={control}
           name="interest_amount"
@@ -104,8 +104,8 @@ export function DebtPaymentSection() {
             />
           )}
         />
-      </RowShell>
-      <RowShell label={t("fields.extraPrincipal")}>
+      </FormRow>
+      <FormRow label={t("fields.extraPrincipal")}>
         <Controller
           control={control}
           name="extra_principal_amount"
@@ -118,7 +118,7 @@ export function DebtPaymentSection() {
             />
           )}
         />
-      </RowShell>
+      </FormRow>
 
       {/* Live breakdown validation bar */}
       {breakdownSum > 0 && (
@@ -140,6 +140,6 @@ export function DebtPaymentSection() {
       <FieldMessage error={errors.principal_amount} />
 
       <SharedFields />
-    </FormBlock>
+    </FormSection>
   );
 }

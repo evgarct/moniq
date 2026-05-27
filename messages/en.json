@@ -183,12 +183,23 @@
       },
       "playbook": {
         "heading": "CRUD forms start with FormSheet.",
-        "sub": "Use FormSheet plus FormField for account, category, goal, and import edit forms. Use raw Sheet only for custom interaction layouts, fullscreen drill-ins, or non-form overlays.",
+        "sub": "Use FormSheet plus shared form primitives for account, category, goal, transaction, and import edit forms. Use raw Sheet only for custom interaction layouts, fullscreen drill-ins, or non-form overlays.",
         "useFormSheet": "Use FormSheet for create/edit forms with a title, optional description, scrollable body, and submit footer.",
-        "useFormField": "Use FormField for label, control, and validation message composition.",
+        "useFormField": "Use FormField for classic label, control, and validation message composition. Use FormRow, FormSplitRow, and FormPickerRow for compact register-style forms.",
         "keepDomainOut": "Keep zod schemas, API calls, optimistic updates, and feature-specific state in the feature component.",
-        "nextCandidate": "Next migration candidate: GoalFormSheet."
+        "nextCandidate": "Feature forms compose shared primitives before adding feature-local markup."
       }
+    },
+    "formPrimitives": {
+      "eyebrow": "Molecules",
+      "title": "Form primitives",
+      "description": "Shared rows, picker rows, decimal inputs, date pickers, and field messages for compact feature forms.",
+      "pickerLabel": "Merchant",
+      "pickerPlaceholder": "Merchant or note",
+      "amount": "Amount",
+      "currency": "CZK",
+      "amountError": "Amount must be greater than 0.",
+      "paid": "Paid"
     }
   },
   "auth": {

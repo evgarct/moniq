@@ -14,7 +14,7 @@ import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
-import { Sheet, SheetClose, SheetContent, SheetHeader } from "@/components/ui/sheet";
+import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Account, Category, Transaction, TransactionSchedule, WalletAllocation } from "@/types/finance";
 
@@ -86,6 +86,13 @@ function TransactionFormInner() {
   return (
     <form id={formId} className="flex min-h-0 flex-1 flex-col" onSubmit={handleSubmit}>
       <SheetHeader className="gap-0 border-0 px-4 pt-4 pb-2 sm:px-5">
+        <SheetTitle className="sr-only">
+          {mode === "add"
+            ? t("addTitle")
+            : mode === "edit-schedule"
+              ? t("editSeriesTitle")
+              : t("editTitle")}
+        </SheetTitle>
         <div className="relative flex justify-center">
           <Select
             value={kind}

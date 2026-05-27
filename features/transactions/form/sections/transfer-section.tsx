@@ -3,9 +3,10 @@
 import { Controller, useFormContext } from "react-hook-form";
 import { useTranslations } from "next-intl";
 
+import { DecimalInput, FieldMessage, FormPickerRow, FormRow, FormSection } from "@/components/form-primitives";
+
 import { useTransactionFormContext } from "../context";
 import { AccountSelect } from "../account-select";
-import { DecimalInput, FieldMessage, FormBlock, PickerRow, RowShell } from "../primitives";
 import { SharedFields } from "./shared-fields";
 import type { TransactionFormInputs } from "../types";
 
@@ -15,16 +16,16 @@ export function TransferSection() {
   const { control, formState: { errors } } = useFormContext<TransactionFormInputs>();
 
   return (
-    <FormBlock>
-      <PickerRow className="border-b-0 pt-4">
+    <FormSection>
+      <FormPickerRow className="border-b-0 pt-4">
         <AccountSelect name="source_account_id" accounts={accounts} placeholder={t("placeholders.sourceAccount")} />
-      </PickerRow>
+      </FormPickerRow>
 
-      <PickerRow className="border-b-0">
+      <FormPickerRow className="border-b-0">
         <AccountSelect name="destination_account_id" accounts={accounts} placeholder={t("placeholders.destinationAccount")} />
-      </PickerRow>
+      </FormPickerRow>
 
-      <RowShell label={t("fields.amount")}>
+      <FormRow label={t("fields.amount")}>
         <div className="flex flex-col items-end gap-1">
           <Controller
             control={control}
@@ -44,9 +45,9 @@ export function TransferSection() {
           />
           <FieldMessage error={errors.amount} />
         </div>
-      </RowShell>
+      </FormRow>
 
-      <RowShell label={t("fields.destinationAmount")}>
+      <FormRow label={t("fields.destinationAmount")}>
         <div className="flex flex-col items-end gap-1">
           <Controller
             control={control}
@@ -66,9 +67,9 @@ export function TransferSection() {
           />
           <FieldMessage error={errors.destination_amount} />
         </div>
-      </RowShell>
+      </FormRow>
 
-      <RowShell label={t("fields.fxRate")}>
+      <FormRow label={t("fields.fxRate")}>
         <div className="flex flex-col items-end gap-1">
           <Controller
             control={control}
@@ -84,9 +85,9 @@ export function TransferSection() {
           />
           <FieldMessage error={errors.fx_rate} />
         </div>
-      </RowShell>
+      </FormRow>
 
       <SharedFields />
-    </FormBlock>
+    </FormSection>
   );
 }

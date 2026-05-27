@@ -3,12 +3,12 @@
 import { BanknoteArrowDown, CreditCard, Landmark, PiggyBank } from "lucide-react";
 import { Controller, useFormContext } from "react-hook-form";
 
+import { FieldMessage } from "@/components/form-primitives";
 import { InlineIcon } from "@/components/ui/inline-icon";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type { Account } from "@/types/finance";
 
-import { FieldMessage } from "./primitives";
 import { toSelectValue } from "./helpers";
 import type { TransactionFormInputs } from "./types";
 
