@@ -6,10 +6,10 @@ import { useTranslations } from "next-intl";
 
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FlatDatePicker, FieldMessage, FormPickerRow, FormSplitRow } from "@/components/form-primitives";
 import { cn } from "@/lib/utils";
 
 import { useTransactionFormContext } from "../context";
-import { FlatDatePicker, FieldMessage, SplitRow } from "../primitives";
 import type { TransactionFormInputs } from "../types";
 
 export function SharedFields({
@@ -31,7 +31,7 @@ export function SharedFields({
 
   return (
     <>
-      <SplitRow
+      <FormSplitRow
         rowClassName="pt-5"
         left={
           <Controller
@@ -75,11 +75,11 @@ export function SharedFields({
       >
         <FieldMessage error={errors.occurred_at} />
         <FieldMessage error={errors.status} />
-      </SplitRow>
+      </FormSplitRow>
 
       {showRecurrenceSection ? (
         <>
-          <SplitRow
+          <FormSplitRow
             rowClassName="min-h-8 py-0 pt-4"
             left={<span className="text-sm text-foreground">{t("fields.recurrenceFrequency")}</span>}
             right={
@@ -115,7 +115,7 @@ export function SharedFields({
             }
           />
           {(isRecurring || mode === "edit-schedule") && recurrenceFrequency === "weekly" ? (
-            <SplitRow
+            <FormSplitRow
               rowClassName="min-h-8 py-0 -mt-1"
               left={<span className="text-sm text-foreground">{t("fields.recurrenceIntervalWeeks")}</span>}
               right={
@@ -137,10 +137,10 @@ export function SharedFields({
               }
             >
               <FieldMessage error={errors.recurrence_interval_weeks} />
-            </SplitRow>
+            </FormSplitRow>
           ) : null}
           {isRecurring || mode === "edit-schedule" ? (
-            <SplitRow
+            <FormSplitRow
               rowClassName="min-h-8 py-0 -mt-1"
               left={<span className="text-sm text-foreground">{t("fields.recurrenceUntil")}</span>}
               right={
@@ -171,12 +171,12 @@ export function SharedFields({
               }
             >
               <FieldMessage error={errors.recurrence_until} />
-            </SplitRow>
+            </FormSplitRow>
           ) : null}
         </>
       ) : null}
 
-      <div className={cn("min-h-11 border-b border-border/70 py-2 pt-4", !note?.trim() && "border-b-0")}>
+      <FormPickerRow className={cn("pt-4", !note?.trim() && "border-b-0")}>
         <Input
           id="transaction-note"
           className="h-10 w-full rounded-none border-0 bg-transparent px-0 py-1 text-base leading-7 shadow-none outline-none focus:outline-none focus-visible:border-transparent focus-visible:ring-0"
@@ -184,7 +184,7 @@ export function SharedFields({
           {...register("note")}
         />
         <FieldMessage error={errors.note} />
-      </div>
+      </FormPickerRow>
     </>
   );
 }

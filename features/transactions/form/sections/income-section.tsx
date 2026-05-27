@@ -4,10 +4,10 @@ import { Controller, useFormContext } from "react-hook-form";
 import { useTranslations } from "next-intl";
 
 import { CategoryCascadePicker } from "@/components/category-cascade-picker";
+import { DecimalInput, FieldMessage, FormPickerRow, FormRow, FormSection } from "@/components/form-primitives";
 
 import { useTransactionFormContext } from "../context";
 import { AccountSelect } from "../account-select";
-import { DecimalInput, FieldMessage, FormBlock, PickerRow, RowShell } from "../primitives";
 import { SharedFields } from "./shared-fields";
 import { BatchItemsSection } from "./batch-items-section";
 import type { TransactionFormInputs } from "../types";
@@ -19,20 +19,20 @@ export function IncomeSection() {
 
   if (isBatchMode) {
     return (
-      <FormBlock>
+      <FormSection>
         <BatchItemsSection />
         <SharedFields />
-      </FormBlock>
+      </FormSection>
     );
   }
 
   return (
-    <FormBlock>
-      <PickerRow className="border-b-0 pt-4">
+    <FormSection>
+      <FormPickerRow className="border-b-0 pt-4">
         <AccountSelect name="destination_account_id" accounts={accounts} placeholder={t("placeholders.destinationAccount")} />
-      </PickerRow>
+      </FormPickerRow>
 
-      <PickerRow className="border-b-0">
+      <FormPickerRow className="border-b-0">
         <div className="flex flex-col gap-1">
           <Controller
             control={control}
@@ -50,9 +50,9 @@ export function IncomeSection() {
           />
           <FieldMessage error={errors.category_id} />
         </div>
-      </PickerRow>
+      </FormPickerRow>
 
-      <RowShell label={t("fields.amount")}>
+      <FormRow label={t("fields.amount")}>
         <div className="flex flex-col items-end gap-1">
           <Controller
             control={control}
@@ -72,9 +72,9 @@ export function IncomeSection() {
           />
           <FieldMessage error={errors.amount} />
         </div>
-      </RowShell>
+      </FormRow>
 
       <SharedFields />
-    </FormBlock>
+    </FormSection>
   );
 }

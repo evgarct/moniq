@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import * as React from "react";
 import { format, isSameYear, parseISO } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import type { FieldError } from "react-hook-form";
@@ -10,37 +10,70 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
-// ─── Layout primitives ───────────────────────────────────────────────────────
+type FieldErrorLike = Pick<FieldError, "message"> | undefined;
 
-export function FieldMessage({ error }: { error?: FieldError }) {
+export function FieldMessage({
+  error,
+  className,
+}: {
+  error?: FieldErrorLike;
+  className?: string;
+}) {
   if (!error?.message) return null;
-  return <p className="text-xs text-destructive mt-0.5">{error.message}</p>;
+  return <p className={cn("mt-0.5 text-xs text-destructive", className)}>{error.message}</p>;
 }
 
-export function FormBlock({ children }: { children: React.ReactNode }) {
-  return <section className="space-y-2">{children}</section>;
+export function FormSection({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return <section className={cn("flex flex-col gap-2", className)}>{children}</section>;
 }
 
-export function PickerRow({ children, className }: { children: React.ReactNode; className?: string }) {
+export function FormPickerRow({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   return <div className={cn("min-h-11 border-b border-border/70 py-2", className)}>{children}</div>;
 }
 
-export function RowShell({ label, children }: { label?: string; children: React.ReactNode }) {
+export function FormRow({
+  label,
+  children,
+  className,
+  labelClassName,
+  contentClassName,
+}: {
+  label?: React.ReactNode;
+  children: React.ReactNode;
+  className?: string;
+  labelClassName?: string;
+  contentClassName?: string;
+}) {
   return (
     <div
-      className={
+      className={cn(
         label
           ? "grid min-h-10 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-1"
-          : "min-h-10 py-1"
-      }
+          : "min-h-10 py-1",
+        className,
+      )}
     >
-      {label ? <div className="min-w-0 text-sm text-foreground">{label}</div> : null}
-      <div className={label ? "min-w-0 flex items-center justify-end gap-2" : "min-w-0"}>{children}</div>
+      {label ? <div className={cn("min-w-0 text-sm text-foreground", labelClassName)}>{label}</div> : null}
+      <div className={cn(label ? "flex min-w-0 items-center justify-end gap-2" : "min-w-0", contentClassName)}>
+        {children}
+      </div>
     </div>
   );
 }
 
-export function SplitRow({
+export function FormSplitRow({
   left,
   right,
   trailing,
@@ -48,6 +81,7 @@ export function SplitRow({
   align = "center",
   rowClassName,
   className,
+  childrenClassName,
   ...props
 }: {
   left: React.ReactNode;
@@ -56,24 +90,26 @@ export function SplitRow({
   children?: React.ReactNode;
   align?: "center" | "start";
   rowClassName?: string;
+  childrenClassName?: string;
 } & React.ComponentProps<"div">) {
   return (
     <div className={cn("relative min-h-10 py-1.5", rowClassName)} {...props}>
       <div
-        className={`${className ?? ""} grid gap-3 ${trailing ? "grid-cols-[minmax(0,1fr)_auto_auto]" : "grid-cols-[minmax(0,1fr)_auto]"} ${
-          align === "start" ? "items-start" : "items-center"
-        }`}
+        className={cn(
+          "grid gap-3",
+          trailing ? "grid-cols-[minmax(0,1fr)_auto_auto]" : "grid-cols-[minmax(0,1fr)_auto]",
+          align === "start" ? "items-start" : "items-center",
+          className,
+        )}
       >
         <div className="min-w-0">{left}</div>
         {right ? <div className="min-w-0">{right}</div> : null}
         {trailing ? <div className="flex items-center justify-end">{trailing}</div> : null}
       </div>
-      {children ? <div className="mt-1 space-y-1">{children}</div> : null}
+      {children ? <div className={cn("mt-1 flex flex-col gap-1", childrenClassName)}>{children}</div> : null}
     </div>
   );
 }
-
-// ─── DecimalInput ─────────────────────────────────────────────────────────────
 
 function sanitizeDecimalInput(value: string) {
   const normalized = value.replace(/,/g, ".").replace(/[^\d.]/g, "");
@@ -92,8 +128,8 @@ export const DecimalInput = React.forwardRef<
   { value, onValueChange, inputMode = "decimal", hidePlaceholderOnFocus = false, ...props },
   ref,
 ) {
-  const [draft, setDraft] = useState(value == null ? "" : String(value));
-  const [isFocused, setIsFocused] = useState(false);
+  const [draft, setDraft] = React.useState(value == null ? "" : String(value));
+  const [isFocused, setIsFocused] = React.useState(false);
   const displayValue = isFocused ? draft : value == null ? "" : String(value);
 
   return (
@@ -118,7 +154,10 @@ export const DecimalInput = React.forwardRef<
       onChange={(event) => {
         const sanitized = sanitizeDecimalInput(event.target.value);
         setDraft(sanitized);
-        if (!sanitized) { onValueChange(null); return; }
+        if (!sanitized) {
+          onValueChange(null);
+          return;
+        }
         if (sanitized === ".") return;
         const parsed = Number(sanitized);
         if (!Number.isNaN(parsed)) onValueChange(parsed);
@@ -127,9 +166,7 @@ export const DecimalInput = React.forwardRef<
   );
 });
 
-// ─── FlatDatePicker ───────────────────────────────────────────────────────────
-
-function formatTransactionDate(value: string) {
+function formatFormDate(value: string) {
   const parsed = parseISO(value);
   if (Number.isNaN(parsed.getTime())) return value;
   return format(parsed, isSameYear(parsed, new Date()) ? "d MMM" : "d MMM yyyy");
@@ -153,7 +190,7 @@ export function FlatDatePicker({
         )}
       >
         <CalendarIcon className="size-4 opacity-70" />
-        <span>{formatTransactionDate(value)}</span>
+        <span>{formatFormDate(value)}</span>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-auto p-0">
         <Calendar
