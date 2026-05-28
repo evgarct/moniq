@@ -4,7 +4,8 @@ import { Controller, useFormContext } from "react-hook-form";
 import { useTranslations } from "next-intl";
 
 import { CategoryCascadePicker } from "@/components/category-cascade-picker";
-import { DecimalInput, FieldMessage, FormPickerRow, FormRow, FormSection } from "@/components/form-primitives";
+import { FieldMessage, FormPickerRow, FormRow, FormSection } from "@/components/form-primitives";
+import { MoneyInput } from "@/components/money-input";
 import { cn } from "@/lib/utils";
 
 import { useTransactionFormContext } from "../context";
@@ -61,10 +62,10 @@ export function DebtPaymentSection() {
             name="amount"
             render={({ field }) => (
               <div className="flex items-center justify-end gap-2">
-                <DecimalInput
+                <MoneyInput
                   id="transaction-amount"
                   className="h-8 w-[11rem] rounded-none border-0 bg-transparent px-0 py-1 text-right text-base leading-6 font-medium shadow-none"
-                  hidePlaceholderOnFocus
+                  blankZeroOnFocus
                   value={field.value ?? null}
                   onValueChange={(value) => field.onChange(value ?? 0)}
                 />
@@ -82,7 +83,7 @@ export function DebtPaymentSection() {
           control={control}
           name="principal_amount"
           render={({ field }) => (
-            <DecimalInput
+            <MoneyInput
               id="transaction-principal"
               className="h-auto w-[8rem] rounded-none border-0 bg-transparent px-0 py-0 text-right shadow-none"
               value={field.value ?? null}
@@ -96,7 +97,7 @@ export function DebtPaymentSection() {
           control={control}
           name="interest_amount"
           render={({ field }) => (
-            <DecimalInput
+            <MoneyInput
               id="transaction-interest"
               className="h-auto w-[8rem] rounded-none border-0 bg-transparent px-0 py-0 text-right shadow-none"
               value={field.value ?? null}
@@ -110,7 +111,7 @@ export function DebtPaymentSection() {
           control={control}
           name="extra_principal_amount"
           render={({ field }) => (
-            <DecimalInput
+            <MoneyInput
               id="transaction-extra-principal"
               className="h-auto w-[8rem] rounded-none border-0 bg-transparent px-0 py-0 text-right shadow-none"
               value={field.value ?? null}

@@ -6,7 +6,6 @@ import { CalendarIcon } from "lucide-react";
 import type { FieldError } from "react-hook-form";
 
 import { Calendar } from "@/components/ui/calendar";
-import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
@@ -110,61 +109,6 @@ export function FormSplitRow({
     </div>
   );
 }
-
-function sanitizeDecimalInput(value: string) {
-  const normalized = value.replace(/,/g, ".").replace(/[^\d.]/g, "");
-  const [integerPart = "", ...fractionParts] = normalized.split(".");
-  return fractionParts.length > 0 ? `${integerPart}.${fractionParts.join("")}` : integerPart;
-}
-
-export const DecimalInput = React.forwardRef<
-  HTMLInputElement,
-  Omit<React.ComponentProps<typeof Input>, "type" | "value" | "onChange"> & {
-    hidePlaceholderOnFocus?: boolean;
-    value: number | null | undefined;
-    onValueChange: (value: number | null) => void;
-  }
->(function DecimalInput(
-  { value, onValueChange, inputMode = "decimal", hidePlaceholderOnFocus = false, ...props },
-  ref,
-) {
-  const [draft, setDraft] = React.useState(value == null ? "" : String(value));
-  const [isFocused, setIsFocused] = React.useState(false);
-  const displayValue = isFocused ? draft : value == null ? "" : String(value);
-
-  return (
-    <Input
-      {...props}
-      ref={ref}
-      type="text"
-      inputMode={inputMode}
-      placeholder={hidePlaceholderOnFocus && isFocused ? "" : props.placeholder}
-      value={displayValue}
-      onFocus={(event) => {
-        setDraft(value == null ? "" : String(value));
-        setIsFocused(true);
-        props.onFocus?.(event);
-      }}
-      onBlur={(event) => {
-        setIsFocused(false);
-        const sanitized = sanitizeDecimalInput(event.target.value);
-        setDraft(sanitized);
-        props.onBlur?.(event);
-      }}
-      onChange={(event) => {
-        const sanitized = sanitizeDecimalInput(event.target.value);
-        setDraft(sanitized);
-        if (!sanitized) {
-          onValueChange(null);
-          return;
-        }
-        if (sanitized === ".") return;
-        const parsed = Number(sanitized);
-        if (!Number.isNaN(parsed)) onValueChange(parsed);
-      }}
-    />
-  );
-});
 
 function formatFormDate(value: string) {
   const parsed = parseISO(value);

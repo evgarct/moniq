@@ -6,7 +6,8 @@ import { useTranslations } from "next-intl";
 import { useRef } from "react";
 
 import { CategoryCascadePicker } from "@/components/category-cascade-picker";
-import { DecimalInput, FieldMessage, FormPickerRow, FormSplitRow } from "@/components/form-primitives";
+import { FieldMessage, FormPickerRow, FormSplitRow } from "@/components/form-primitives";
+import { MoneyInput } from "@/components/money-input";
 import { Button } from "@/components/ui/button";
 
 import { useTransactionFormContext } from "../context";
@@ -111,13 +112,13 @@ export function BatchItemsSection() {
               name={`line_items.${index}.amount`}
               render={({ field: itemField }) => (
                 <div className="flex items-center justify-end gap-2">
-                  <DecimalInput
+                  <MoneyInput
                     id={`transaction-line-amount-${index}`}
                     ref={(node) => {
                       amountInputRefs.current[index] = node;
                     }}
                     className="h-7 w-[5.25rem] rounded-none border-0 bg-transparent px-0 py-0.5 text-right text-base leading-6 font-medium tabular-nums shadow-none outline-none focus:outline-none focus-visible:border-transparent focus-visible:ring-0"
-                    hidePlaceholderOnFocus
+                    blankZeroOnFocus
                     placeholder="0.00"
                     value={itemField.value ?? null}
                     onValueChange={itemField.onChange}
