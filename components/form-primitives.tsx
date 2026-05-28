@@ -29,7 +29,7 @@ export function FormSection({
   children: React.ReactNode;
   className?: string;
 }) {
-  return <section className={cn("flex flex-col", className)}>{children}</section>;
+  return <section className={cn("flex flex-col gap-1", className)}>{children}</section>;
 }
 
 export function FormPickerRow({
@@ -40,7 +40,7 @@ export function FormPickerRow({
   className?: string;
 }) {
   return (
-    <div className={cn("min-h-12 border-b border-border/70 py-2.5", className)}>
+    <div className={cn("min-h-12 py-2", className)}>
       {children}
     </div>
   );
@@ -63,8 +63,8 @@ export function FormRow({
     <div
       className={cn(
         label
-          ? "grid min-h-12 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border/70 py-2.5"
-          : "min-h-12 border-b border-border/70 py-2.5",
+          ? "grid min-h-12 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-2"
+          : "min-h-12 py-2",
         className,
       )}
     >
@@ -96,7 +96,7 @@ export function FormSplitRow({
   childrenClassName?: string;
 } & React.ComponentProps<"div">) {
   return (
-    <div className={cn("relative min-h-12 border-b border-border/70 py-2.5", rowClassName)} {...props}>
+    <div className={cn("relative min-h-12 py-2", rowClassName)} {...props}>
       <div
         className={cn(
           "grid gap-3",

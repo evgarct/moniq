@@ -111,7 +111,7 @@ function TransactionFormInner() {
 
   return (
     <form id={formId} className="flex min-h-0 flex-1 flex-col" onSubmit={handleSubmit}>
-      <SheetHeader className="gap-0 border-b border-border/60 bg-card px-4 pt-4 pb-3 sm:px-5 sm:pt-5">
+      <SheetHeader className="gap-0 bg-card px-4 pt-4 pb-4 sm:px-5 sm:pt-5">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <SheetTitle className="type-h5 truncate">{title}</SheetTitle>
@@ -156,8 +156,8 @@ function TransactionFormInner() {
             <SelectTrigger
               autoFocus
               className={cn(
-                "h-11 w-full justify-between rounded-control border border-border/70 bg-background px-3 text-left shadow-none",
-                "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+                "h-9 w-full justify-between rounded-control !border-0 bg-transparent px-2 text-left shadow-none hover:bg-secondary/45",
+                "focus-visible:bg-secondary/70 focus-visible:ring-0",
                 mode !== "add" && "opacity-100",
               )}
             >
@@ -186,13 +186,13 @@ function TransactionFormInner() {
         </div>
       </SheetHeader>
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-5">
-        <div className="flex flex-col gap-5">
+      <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-5">
+        <div className="flex flex-col gap-7">
           <Section />
         </div>
       </div>
 
-      <div className="border-t border-border/60 bg-card px-4 py-3 sm:px-5">
+      <div className="bg-card px-4 py-4 sm:px-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="type-body-12 text-muted-foreground">
             {t("footer.singleSummary")}
@@ -285,7 +285,7 @@ export function TransactionFormSheet({
       <SheetContent
         side="right"
         showCloseButton={false}
-        className="w-full gap-0 border-l-0 bg-background p-0 sm:top-6 sm:right-0 sm:h-[calc(100vh-3rem)] sm:w-[42rem] sm:max-w-none sm:border sm:border-border/30 sm:border-r-0"
+        className="w-full gap-0 border-l-0 bg-background p-0 sm:top-6 sm:right-0 sm:h-[calc(100vh-3rem)] sm:w-[42rem] sm:max-w-none sm:border-0"
       >
         <TransactionFormProvider
           open={open}

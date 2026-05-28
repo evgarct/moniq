@@ -24,7 +24,6 @@ export function SharedFields({
   const { control, register, setValue, watch, formState: { errors } } = useFormContext<TransactionFormInputs>();
   const recurrenceUntil = watch("recurrence_until");
   const recurrenceFrequency = watch("recurrence_frequency");
-  const note = watch("note");
 
   const showRecurrenceSection =
     showRecurrence && (status === "planned" || mode === "edit-schedule");
@@ -180,7 +179,7 @@ export function SharedFields({
         </>
       ) : null}
 
-      <FormPickerRow className={cn("pt-4", !note?.trim() && "border-b-0")}>
+      <FormPickerRow className="pt-4">
         <Input
           id="transaction-note"
           className="h-10 w-full rounded-none border-0 bg-transparent px-0 py-1 text-base leading-7 shadow-none outline-none focus:outline-none focus-visible:border-transparent focus-visible:ring-0"
