@@ -13,9 +13,10 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { DetailField, DetailFieldGrid } from "@/components/detail-field";
 import { EmptyState } from "@/components/empty-state";
 import { MoneyAmount } from "@/components/money-amount";
-import { Surface } from "@/components/surface";
+import { Surface, SurfaceDescription, SurfaceEyebrow, SurfaceHeader, SurfaceTitle } from "@/components/surface";
 import { StoryWorkspace, withPathname } from "@/stories/fixtures/story-data";
 import type { CurrencyCode } from "@/types/currency";
 
@@ -31,13 +32,13 @@ function SectionHeader({
   sub?: string;
 }) {
   return (
-    <div className="space-y-1.5 px-1">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-        {eyebrow}
-      </p>
-      <h2 className="type-h3">{heading}</h2>
-      {sub && <p className="type-body-14 max-w-2xl text-muted-foreground">{sub}</p>}
-    </div>
+    <SurfaceHeader>
+      <div className="flex flex-col gap-1.5">
+        <SurfaceEyebrow>{eyebrow}</SurfaceEyebrow>
+        <SurfaceTitle>{heading}</SurfaceTitle>
+        {sub ? <SurfaceDescription>{sub}</SurfaceDescription> : null}
+      </div>
+    </SurfaceHeader>
   );
 }
 
@@ -207,6 +208,11 @@ const meta = {
                 </p>
               </Surface>
             </div>
+
+            <DetailFieldGrid>
+              <DetailField label="Reusable detail field">Read-only review metadata in sheets</DetailField>
+              <DetailField label="Shared rule">Do not rebuild rounded label/value blocks locally</DetailField>
+            </DetailFieldGrid>
           </div>
         </Surface>
 

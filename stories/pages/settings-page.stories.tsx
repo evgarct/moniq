@@ -64,6 +64,6 @@ export const NoKeys: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("Settings")).toBeInTheDocument();
-    await expect(canvas.getByText("No API keys yet.")).toBeInTheDocument();
+    await expect(canvas.getByText("No connected keys yet.")).toBeInTheDocument();
   },
 };

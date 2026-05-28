@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { CsvBatchSection } from "@/features/inbox/components/csv-batch-section";
+import { CsvBatchSection, CsvEditSheet } from "@/features/inbox/components/csv-batch-section";
 import { makeFinanceSnapshot } from "@/stories/fixtures/story-data";
 import type { TransactionImport, TransactionImportBatch } from "@/types/imports";
 
@@ -113,4 +113,25 @@ export const TransferHeavyBatch: Story = {
       counterpart_wallet: wallets[1] ?? null,
     })),
   },
+};
+
+export const EditSheetOpen: Story = {
+  render: () => (
+    <CsvEditSheet
+      transaction={fewTransactions[0] ?? null}
+      open
+      onOpenChange={() => {}}
+      onSave={async () => {}}
+    />
+  ),
+  parameters: {
+    layout: "fullscreen",
+  },
+  decorators: [
+    (Story) => (
+      <div className="min-h-screen bg-background">
+        <Story />
+      </div>
+    ),
+  ],
 };
