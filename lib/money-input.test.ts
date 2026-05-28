@@ -17,6 +17,18 @@ describe("money input helpers", () => {
     expect(parseMoneyInput("CZK 1 200.50")).toBe(1200.5);
   });
 
+  it("preserves a leading negative sign for validation", () => {
+    expect(sanitizeMoneyInput("-50")).toBe("-50");
+    expect(parseMoneyInput("-50")).toBe(-50);
+    expect(sanitizeMoneyInput("CZK -1 200.50")).toBe("-1200.50");
+    expect(parseMoneyInput("CZK -1 200.50")).toBe(-1200.5);
+  });
+
+  it("does not treat mid-value dashes as negative signs", () => {
+    expect(sanitizeMoneyInput("12-34")).toBe("1234");
+    expect(parseMoneyInput("12-34")).toBe(1234);
+  });
+
   it("keeps only one decimal separator", () => {
     expect(sanitizeMoneyInput("1.2.3")).toBe("1.23");
     expect(parseMoneyInput("1.2.3")).toBe(1.23);
@@ -25,6 +37,8 @@ describe("money input helpers", () => {
   it("treats empty drafts as null", () => {
     expect(parseMoneyInput("")).toBeNull();
     expect(parseMoneyInput(".")).toBeNull();
+    expect(parseMoneyInput("-")).toBeNull();
+    expect(parseMoneyInput("-.")).toBeNull();
   });
 
   it("formats nullable controlled values for display", () => {
