@@ -44,7 +44,7 @@ export const NoKeys: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("Claude MCP Connector")).toBeInTheDocument();
-    await expect(canvas.getByText("No API keys yet.")).toBeInTheDocument();
+    await expect(canvas.getByText("No connected keys yet.")).toBeInTheDocument();
   },
 };
 

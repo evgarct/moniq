@@ -7,7 +7,7 @@ import { Check, Eye, EyeOff, FileUp, Info, PencilLine, SlidersHorizontal, Trash2
 import { useFormatter, useTranslations } from "next-intl";
 
 import { EmptyState } from "@/components/empty-state";
-import { FormRow, FormSection } from "@/components/form-primitives";
+import { DetailField, DetailFieldGrid } from "@/components/detail-field";
 import { PageContainer } from "@/components/page-container";
 import { PendingTransactionRow } from "@/components/pending-transaction-row";
 import { Button } from "@/components/ui/button";
@@ -116,7 +116,7 @@ function MappingField({
   );
 }
 
-function ImportDetailSheet({
+export function ImportDetailSheet({
   transaction,
   open,
   t,
@@ -160,39 +160,19 @@ function ImportDetailSheet({
 
         {transaction ? (
           <div key={transaction.id} className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto p-4">
-            <FormSection className="gap-3">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <FormRow
-                  label={t("review.fields.date")}
-                  className="rounded-[var(--radius-control)] border border-border/70 bg-background px-3 py-2"
-                  labelClassName="text-[11px] uppercase tracking-[0.12em] text-muted-foreground"
-                  contentClassName="text-sm text-foreground"
-                >
-                  {dateLabel}
-                </FormRow>
-                <FormRow
-                  label={t("review.fields.amount")}
-                  className="rounded-[var(--radius-control)] border border-border/70 bg-background px-3 py-2"
-                  labelClassName="text-[11px] uppercase tracking-[0.12em] text-muted-foreground"
-                  contentClassName="text-sm text-foreground"
-                >
-                  {amountLabel}
-                </FormRow>
-              </div>
+            <div className="flex flex-col gap-3">
+              <DetailFieldGrid>
+                <DetailField label={t("review.fields.date")}>{dateLabel}</DetailField>
+                <DetailField label={t("review.fields.amount")}>{amountLabel}</DetailField>
+              </DetailFieldGrid>
 
-              <FormRow
-                label={t("review.fields.wallet")}
-                className="rounded-[var(--radius-control)] border border-border/70 bg-background px-3 py-2"
-                labelClassName="text-[11px] uppercase tracking-[0.12em] text-muted-foreground"
-                contentClassName="text-sm text-foreground"
-              >
-                {walletLabel}
-              </FormRow>
-            </FormSection>
+              <DetailField label={t("review.fields.wallet")}>{walletLabel}</DetailField>
+            </div>
 
             <Field>
-              <FieldLabel>{t("review.fields.merchant")}</FieldLabel>
+              <FieldLabel htmlFor="banking-import-merchant">{t("review.fields.merchant")}</FieldLabel>
               <Input
+                id="banking-import-merchant"
                 key={transaction.id}
                 defaultValue={currentMerchant}
                 className="h-9 bg-background"
@@ -200,14 +180,9 @@ function ImportDetailSheet({
               />
             </Field>
 
-            <FormRow
-              label={t("review.fields.rawMerchant")}
-              className="rounded-[var(--radius-control)] border border-border/70 bg-background px-3 py-2"
-              labelClassName="text-[11px] uppercase tracking-[0.12em] text-muted-foreground"
-              contentClassName="text-sm text-foreground"
-            >
+            <DetailField label={t("review.fields.rawMerchant")}>
               {transaction.merchant_raw || "—"}
-            </FormRow>
+            </DetailField>
 
             <div className="mt-auto flex justify-end gap-2 pt-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

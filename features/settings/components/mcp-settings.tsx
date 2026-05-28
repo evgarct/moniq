@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Bot, Copy, Check, Plus, Trash2, Key } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Surface } from "@/components/surface";
+import { Surface, SurfaceDescription, SurfaceEyebrow, SurfaceHeader } from "@/components/surface";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -208,9 +208,9 @@ export function McpSettings({ initialKeys }: { initialKeys: ApiKey[] }) {
 
       {/* OAuth setup — primary path */}
       <Surface tone="panel" padding="lg">
-        <p className="mb-4 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-          {t("setupTitle")}
-        </p>
+        <SurfaceHeader className="mb-4 px-0">
+          <SurfaceEyebrow>{t("setupTitle")}</SurfaceEyebrow>
+        </SurfaceHeader>
         <ol className="flex flex-col gap-5">
           <li className="flex gap-3">
             <span className="type-body-12 mt-px shrink-0 font-semibold text-muted-foreground">1.</span>
@@ -243,10 +243,12 @@ export function McpSettings({ initialKeys }: { initialKeys: ApiKey[] }) {
         {showAdvanced && (
           <div className="mt-4">
             <Surface tone="panel" padding="lg">
-              <p className="mb-4 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-                {t("advancedTitle")}
-              </p>
-              <p className="type-body-14 mb-4 text-muted-foreground">{t("advancedDescription")}</p>
+              <SurfaceHeader className="mb-4 px-0">
+                <div className="flex flex-col gap-1">
+                  <SurfaceEyebrow>{t("advancedTitle")}</SurfaceEyebrow>
+                  <SurfaceDescription>{t("advancedDescription")}</SurfaceDescription>
+                </div>
+              </SurfaceHeader>
               <ConfigSnippet host={host} />
             </Surface>
           </div>
@@ -255,16 +257,18 @@ export function McpSettings({ initialKeys }: { initialKeys: ApiKey[] }) {
 
       {/* API Keys */}
       <Surface tone="panel" padding="lg">
-        <div className="mb-5">
-          <p className="mb-4 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-            {t("apiKeysTitle")}
-          </p>
-          <p className="type-body-14 text-muted-foreground">{t("apiKeysDescription")}</p>
-        </div>
+        <SurfaceHeader className="mb-5 px-0">
+          <div className="flex flex-col gap-1">
+            <SurfaceEyebrow>{t("apiKeysTitle")}</SurfaceEyebrow>
+            <SurfaceDescription>{t("apiKeysDescription")}</SurfaceDescription>
+          </div>
+        </SurfaceHeader>
 
         {/* Create key form (advanced / non-Claude usage) */}
         <form onSubmit={createKey} className="mb-5 flex gap-2">
           <input
+            id="mcp-key-name"
+            name="mcp-key-name"
             type="text"
             value={newKeyName}
             onChange={(e) => setNewKeyName(e.target.value)}

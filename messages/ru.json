@@ -200,6 +200,20 @@
       "currency": "CZK",
       "amountError": "Amount must be greater than 0.",
       "paid": "Paid"
+    },
+    "surface": {
+      "eyebrow": "Atom",
+      "title": "Surface header",
+      "description": "Reusable section anatomy for panels, canvases, and floating tools.",
+      "action": "Action"
+    },
+    "detailField": {
+      "dateLabel": "Date",
+      "dateValue": "Apr 12, 2026",
+      "amountLabel": "Amount",
+      "amountValue": "CZK 128.40",
+      "walletLabel": "Wallet",
+      "walletValue": "Everyday wallet · CZK"
     }
   },
   "auth": {

@@ -6,6 +6,7 @@ import { FileUp, ChevronDown, ChevronUp, Trash2, Check, X, AlertCircle, PencilLi
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
+import { DetailField, DetailFieldGrid } from "@/components/detail-field";
 import { Surface } from "@/components/surface";
 import { PendingTransactionRow } from "@/components/pending-transaction-row";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -25,7 +26,7 @@ import type { TransactionImport, TransactionImportBatch } from "@/types/imports"
 // Edit sheet (merchant name)
 // ---------------------------------------------------------------------------
 
-function EditSheet({
+export function CsvEditSheet({
   transaction,
   open,
   onOpenChange,
@@ -52,35 +53,32 @@ function EditSheet({
         </SheetHeader>
         {transaction && (
           <div key={transaction.id} className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto p-4">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-xl border border-border/70 bg-background px-3 py-2">
-                <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">{t("review.fields.date")}</div>
-                <div className="text-sm">{new Date(transaction.occurred_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}</div>
-              </div>
-              <div className="rounded-xl border border-border/70 bg-background px-3 py-2">
-                <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">{t("review.fields.amount")}</div>
-                <div className="text-sm">{fmt(transaction.amount, transaction.currency)}</div>
-              </div>
-            </div>
+            <DetailFieldGrid>
+              <DetailField label={t("review.fields.date")}>
+                {new Date(transaction.occurred_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}
+              </DetailField>
+              <DetailField label={t("review.fields.amount")}>
+                {fmt(transaction.amount, transaction.currency)}
+              </DetailField>
+            </DetailFieldGrid>
             {transaction.wallet && (
-              <div className="rounded-xl border border-border/70 bg-background px-3 py-2">
-                <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">{t("review.fields.wallet")}</div>
-                <div className="text-sm">{transaction.wallet.name} · {transaction.wallet.currency}</div>
-              </div>
+              <DetailField label={t("review.fields.wallet")}>
+                {transaction.wallet.name} · {transaction.wallet.currency}
+              </DetailField>
             )}
             <Field>
-              <FieldLabel>{t("review.fields.merchant")}</FieldLabel>
+              <FieldLabel htmlFor="csv-import-merchant">{t("review.fields.merchant")}</FieldLabel>
               <Input
+                id="csv-import-merchant"
                 key={transaction.id}
                 defaultValue={transaction.merchant_clean}
                 className="h-9 bg-background"
                 onChange={(e) => setDraft(e.target.value)}
               />
             </Field>
-            <div className="rounded-xl border border-border/70 bg-background px-3 py-2">
-              <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">{t("review.fields.rawMerchant")}</div>
-              <div className="text-sm text-muted-foreground">{transaction.merchant_raw || "—"}</div>
-            </div>
+            <DetailField label={t("review.fields.rawMerchant")} contentClassName="text-muted-foreground">
+              {transaction.merchant_raw || "—"}
+            </DetailField>
             <div className="mt-auto flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => onOpenChange(false)}>{commonT("cancel")}</Button>
               <Button
@@ -289,7 +287,7 @@ export function CsvBatchSection({
       </Surface>
 
       {/* Edit merchant sheet */}
-      <EditSheet
+      <CsvEditSheet
         transaction={editingTx}
         open={editingId !== null}
         onOpenChange={(open) => { if (!open) setEditingId(null); }}

@@ -27,6 +27,7 @@ Right: category shown as plain muted text below the transaction title.
 ## Core visual identity
 - **Warm neutrals carry everything.** Use `bg-background` (#fafaf7), `bg-card` (#f0f0eb), `bg-secondary` (#e5e4df). Avoid bright brand color fills on surfaces.
 - **The `Surface` component** is the only approved container primitive. Three tones: `canvas` (base workspace), `panel` (primary work area, default), `floating` (tools, popovers). Never replicate its styles inline.
+- **Surface composition**: Inside a `Surface`, use `SurfaceHeader`, `SurfaceEyebrow`, `SurfaceTitle`, and `SurfaceDescription` for section headings before adding feature-local heading markup.
 - **Typography**: Use the four heading classes (`type-h1`–`type-h4` for serif editorial, `type-h5`–`type-h6` for UI), `type-body-14`, `type-body-12`. Do not use arbitrary font sizes like `text-[15px]`.
 - **Radius**: Always use `radius-tight` / `radius-control` / `radius-surface` / `radius-floating`. Do not write `rounded-2xl`, `rounded-3xl`, or any arbitrary `rounded-[Xpx]` value outside the Surface component.
 - **Shadows**: Only the Surface component introduces shadow. Do not add `shadow-*` or `box-shadow` values on other elements.
@@ -43,6 +44,7 @@ Right: category shown as plain muted text below the transaction title.
 - Account/category icons: Lucide outline icons at `h-[18px] w-[18px]` with `strokeWidth={1.75}` and `text-muted-foreground`. No filled icons, no bordered chips.
 - Amounts: always use `MoneyAmount`. Use `tabular-nums` class. Hero balances: `text-[32px] font-semibold`. Row amounts: `text-sm font-medium tabular-nums`.
 - Do not repeat group context (type label, currency label) inside the row if the group heading already provides it.
+- For compact read-only key/value metadata inside sheets or review panels, use `DetailField` and `DetailFieldGrid`. Do not recreate rounded label/value blocks locally.
 
 ## Buttons and actions
 - Primary action: default `Button` (black fill). One per surface.

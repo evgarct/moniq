@@ -1,7 +1,26 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { ComponentProps } from "react";
+import { useTranslations } from "next-intl";
 
-import { Surface } from "@/components/surface";
+import { Button } from "@/components/ui/button";
+import { Surface, SurfaceDescription, SurfaceEyebrow, SurfaceHeader, SurfaceTitle } from "@/components/surface";
 import { StoryDemoFrame } from "@/stories/fixtures/story-data";
+
+function SurfaceDemo({ tone, padding }: Pick<ComponentProps<typeof Surface>, "tone" | "padding">) {
+  const t = useTranslations("designSystem.surface");
+
+  return (
+    <Surface tone={tone} padding={padding}>
+      <SurfaceHeader action={<Button size="sm">{t("action")}</Button>}>
+        <div className="flex flex-col gap-1">
+          <SurfaceEyebrow>{t("eyebrow")}</SurfaceEyebrow>
+          <SurfaceTitle>{t("title")}</SurfaceTitle>
+          <SurfaceDescription>{t("description")}</SurfaceDescription>
+        </div>
+      </SurfaceHeader>
+    </Surface>
+  );
+}
 
 const meta = {
   title: "Atoms/Surface",
@@ -9,13 +28,9 @@ const meta = {
   args: {
     tone: "panel",
     padding: "lg",
-    children: (
-      <div className="space-y-1">
-        <p className="text-sm text-slate-500">Surface label</p>
-        <p className="text-base font-medium text-slate-900">Reusable finance shell</p>
-      </div>
-    ),
+    children: null,
   },
+  render: (args) => <SurfaceDemo tone={args.tone} padding={args.padding} />,
   decorators: [
     (Story) => (
       <StoryDemoFrame width="max-w-[360px]">
