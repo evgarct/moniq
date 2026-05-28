@@ -52,7 +52,7 @@ export function BatchItemsSection() {
   return (
     <>
       {/* Account picker at top */}
-      <FormPickerRow className="border-b-0 pt-4">
+      <FormPickerRow>
         {kind === "income" ? (
           <AccountSelect
             name="destination_account_id"

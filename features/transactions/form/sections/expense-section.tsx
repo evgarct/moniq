@@ -24,7 +24,7 @@ export function ExpenseSection() {
       <FormSection>
         <BatchItemsSection />
         {allocations.length > 0 && (
-          <FormPickerRow className="border-b-0">
+          <FormPickerRow>
             <GoalSelect allocations={allocations} />
           </FormPickerRow>
         )}
@@ -35,17 +35,17 @@ export function ExpenseSection() {
 
   return (
     <FormSection>
-      <FormPickerRow className="border-b-0 pt-4">
+      <FormPickerRow>
         <AccountSelect name="source_account_id" accounts={accounts} placeholder={t("placeholders.sourceAccount")} />
       </FormPickerRow>
 
       {allocations.length > 0 && (
-        <FormPickerRow className="border-b-0">
+        <FormPickerRow>
           <GoalSelect allocations={allocations} />
         </FormPickerRow>
       )}
 
-      <FormPickerRow className="border-b-0">
+      <FormPickerRow>
         <div className="flex flex-col gap-1">
           <Controller
             control={control}
@@ -74,12 +74,12 @@ export function ExpenseSection() {
               <div className="flex items-center justify-end gap-2">
                 <MoneyInput
                   id="transaction-amount"
-                  className="h-8 w-[11rem] rounded-none border-0 bg-transparent px-0 py-1 text-right text-base leading-6 font-medium shadow-none"
+                  className="type-h3 h-10 w-[11rem] rounded-none border-0 bg-transparent px-0 py-1 text-right shadow-none"
                   blankZeroOnFocus
                   value={field.value ?? null}
                   onValueChange={(value) => field.onChange(value ?? 0)}
                 />
-                <span className="text-sm text-foreground">{sourceCurrencySymbol}</span>
+                <span className="type-h5 text-muted-foreground">{sourceCurrencySymbol}</span>
               </div>
             )}
           />
