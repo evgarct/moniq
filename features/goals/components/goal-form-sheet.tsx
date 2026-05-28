@@ -7,6 +7,7 @@ import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 
 import { FormField, FormSheet, FormSheetBody } from "@/components/form-sheet";
+import { MoneyInput } from "@/components/money-input";
 import { Input } from "@/components/ui/input";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
@@ -120,31 +121,38 @@ export function GoalFormSheet({
         />
 
         <FormField id="goal-amount" label={t("fields.currentAmount")} error={form.formState.errors.amount}>
-          <Input
-            id="goal-amount"
-            type="number"
-            step="0.01"
-            min="0"
-            autoComplete="off"
-            aria-invalid={Boolean(form.formState.errors.amount)}
-            {...form.register("amount", {
-              setValueAs: (value) => (value === "" ? 0 : Number(value)),
-            })}
+          <Controller
+            control={form.control}
+            name="amount"
+            render={({ field }) => (
+              <MoneyInput
+                id="goal-amount"
+                autoComplete="off"
+                aria-invalid={Boolean(form.formState.errors.amount)}
+                blankZeroOnFocus
+                value={field.value}
+                onBlur={field.onBlur}
+                onValueChange={(value) => field.onChange(value ?? 0)}
+              />
+            )}
           />
         </FormField>
 
         {kind === "goal_targeted" ? (
           <FormField id="goal-target" label={t("fields.targetAmount")} error={form.formState.errors.target_amount}>
-            <Input
-              id="goal-target"
-              type="number"
-              step="0.01"
-              min="0.01"
-              autoComplete="off"
-              aria-invalid={Boolean(form.formState.errors.target_amount)}
-              {...form.register("target_amount", {
-                setValueAs: (value) => (value === "" ? null : Number(value)),
-              })}
+            <Controller
+              control={form.control}
+              name="target_amount"
+              render={({ field }) => (
+                <MoneyInput
+                  id="goal-target"
+                  autoComplete="off"
+                  aria-invalid={Boolean(form.formState.errors.target_amount)}
+                  value={field.value}
+                  onBlur={field.onBlur}
+                  onValueChange={field.onChange}
+                />
+              )}
             />
           </FormField>
         ) : null}

@@ -3,7 +3,8 @@
 import { Controller, useFormContext } from "react-hook-form";
 import { useTranslations } from "next-intl";
 
-import { DecimalInput, FieldMessage, FormPickerRow, FormRow, FormSection } from "@/components/form-primitives";
+import { FieldMessage, FormPickerRow, FormRow, FormSection } from "@/components/form-primitives";
+import { MoneyInput } from "@/components/money-input";
 
 import { useTransactionFormContext } from "../context";
 import { AccountSelect } from "../account-select";
@@ -32,10 +33,10 @@ export function TransferSection() {
             name="amount"
             render={({ field }) => (
               <div className="flex items-center justify-end gap-2">
-                <DecimalInput
+                <MoneyInput
                   id="transaction-amount"
                   className="h-8 w-[11rem] rounded-none border-0 bg-transparent px-0 py-1 text-right text-base leading-6 font-medium shadow-none"
-                  hidePlaceholderOnFocus
+                  blankZeroOnFocus
                   value={field.value ?? null}
                   onValueChange={(value) => field.onChange(value ?? 0)}
                 />
@@ -54,10 +55,9 @@ export function TransferSection() {
             name="destination_amount"
             render={({ field }) => (
               <div className="flex items-center justify-end gap-2">
-                <DecimalInput
+                <MoneyInput
                   id="transaction-destination-amount"
                   className="h-8 w-[11rem] rounded-none border-0 bg-transparent px-0 py-1 text-right text-base leading-6 font-medium shadow-none"
-                  hidePlaceholderOnFocus
                   value={field.value ?? null}
                   onValueChange={field.onChange}
                 />
@@ -75,7 +75,7 @@ export function TransferSection() {
             control={control}
             name="fx_rate"
             render={({ field }) => (
-              <DecimalInput
+              <MoneyInput
                 id="transaction-fx-rate"
                 className="h-auto w-[8rem] rounded-none border-0 bg-transparent px-0 py-0 text-right shadow-none"
                 value={field.value ?? null}

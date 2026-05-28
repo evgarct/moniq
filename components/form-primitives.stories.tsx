@@ -5,7 +5,6 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useTranslations } from "next-intl";
 
 import {
-  DecimalInput,
   FieldMessage,
   FlatDatePicker,
   FormPickerRow,
@@ -13,12 +12,14 @@ import {
   FormSection,
   FormSplitRow,
 } from "@/components/form-primitives";
+import { MoneyInput } from "@/components/money-input";
 import { Input } from "@/components/ui/input";
 import { Surface } from "@/components/surface";
 
 function FormPrimitivesDemo() {
   const t = useTranslations("designSystem.formPrimitives");
   const [amount, setAmount] = useState<number | null>(1250);
+  const [zeroAmount, setZeroAmount] = useState<number | null>(0);
   const [date, setDate] = useState("2026-05-27");
 
   return (
@@ -43,16 +44,30 @@ function FormPrimitivesDemo() {
         <FormRow label={t("amount")}>
           <div className="flex flex-col items-end gap-1">
             <div className="flex items-center justify-end gap-2">
-              <DecimalInput
+              <MoneyInput
                 aria-label={t("amount")}
                 className="h-8 w-[11rem] rounded-none border-0 bg-transparent px-0 py-1 text-right text-base leading-6 font-medium shadow-none"
-                hidePlaceholderOnFocus
+                blankZeroOnFocus
                 value={amount}
                 onValueChange={setAmount}
               />
               <span className="text-sm text-foreground">{t("currency")}</span>
             </div>
             <FieldMessage error={{ message: t("amountError") }} />
+          </div>
+        </FormRow>
+
+        <FormRow label={t("amount")}>
+          <div className="flex items-center justify-end gap-2">
+            <MoneyInput
+              aria-label={t("amount")}
+              className="h-8 w-[11rem] rounded-none border-0 bg-transparent px-0 py-1 text-right text-base leading-6 font-medium shadow-none"
+              blankZeroOnFocus
+              placeholder="0.00"
+              value={zeroAmount}
+              onValueChange={setZeroAmount}
+            />
+            <span className="text-sm text-foreground">{t("currency")}</span>
           </div>
         </FormRow>
 

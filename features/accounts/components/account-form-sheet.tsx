@@ -18,6 +18,7 @@ import {
   FormSheet,
   FormSheetBody,
 } from "@/components/form-sheet";
+import { MoneyInput } from "@/components/money-input";
 import { Input } from "@/components/ui/input";
 import {
   SelectGroup,
@@ -191,15 +192,20 @@ export function AccountFormSheet({
             label={type === "credit_card" ? t("fields.currentBalance") : t("fields.balance")}
             error={form.formState.errors.balance}
           >
-            <Input
-              id="wallet-balance"
-              type="number"
-              step="0.01"
-              autoComplete="off"
-              aria-invalid={Boolean(form.formState.errors.balance)}
-              {...form.register("balance", {
-                setValueAs: (value) => (value === "" ? 0 : Number(value)),
-              })}
+            <Controller
+              control={form.control}
+              name="balance"
+              render={({ field }) => (
+                <MoneyInput
+                  id="wallet-balance"
+                  autoComplete="off"
+                  aria-invalid={Boolean(form.formState.errors.balance)}
+                  blankZeroOnFocus
+                  value={field.value}
+                  onBlur={field.onBlur}
+                  onValueChange={(value) => field.onChange(value ?? 0)}
+                />
+              )}
             />
           </FormField>
 
@@ -240,15 +246,19 @@ export function AccountFormSheet({
 
         {type === "credit_card" ? (
           <FormField id="wallet-credit-limit" label={t("fields.creditLimit")} error={form.formState.errors.credit_limit}>
-            <Input
-              id="wallet-credit-limit"
-              type="number"
-              step="0.01"
-              autoComplete="off"
-              aria-invalid={Boolean(form.formState.errors.credit_limit)}
-              {...form.register("credit_limit", {
-                setValueAs: (value) => (value === "" ? null : Number(value)),
-              })}
+            <Controller
+              control={form.control}
+              name="credit_limit"
+              render={({ field }) => (
+                <MoneyInput
+                  id="wallet-credit-limit"
+                  autoComplete="off"
+                  aria-invalid={Boolean(form.formState.errors.credit_limit)}
+                  value={field.value}
+                  onBlur={field.onBlur}
+                  onValueChange={field.onChange}
+                />
+              )}
             />
           </FormField>
         ) : null}

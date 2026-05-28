@@ -4,7 +4,8 @@ import { Controller, useFormContext } from "react-hook-form";
 import { useTranslations } from "next-intl";
 
 import { CategoryCascadePicker } from "@/components/category-cascade-picker";
-import { DecimalInput, FieldMessage, FormPickerRow, FormRow, FormSection } from "@/components/form-primitives";
+import { FieldMessage, FormPickerRow, FormRow, FormSection } from "@/components/form-primitives";
+import { MoneyInput } from "@/components/money-input";
 
 import { useTransactionFormContext } from "../context";
 import { AccountSelect } from "../account-select";
@@ -71,10 +72,10 @@ export function ExpenseSection() {
             name="amount"
             render={({ field }) => (
               <div className="flex items-center justify-end gap-2">
-                <DecimalInput
+                <MoneyInput
                   id="transaction-amount"
                   className="h-8 w-[11rem] rounded-none border-0 bg-transparent px-0 py-1 text-right text-base leading-6 font-medium shadow-none"
-                  hidePlaceholderOnFocus
+                  blankZeroOnFocus
                   value={field.value ?? null}
                   onValueChange={(value) => field.onChange(value ?? 0)}
                 />
