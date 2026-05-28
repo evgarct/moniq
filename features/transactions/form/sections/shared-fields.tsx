@@ -5,7 +5,7 @@ import { Controller, useFormContext } from "react-hook-form";
 import { useTranslations } from "next-intl";
 
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FlatDatePicker, FieldMessage, FormPickerRow, FormSplitRow } from "@/components/form-primitives";
 import { cn } from "@/lib/utils";
 
@@ -24,7 +24,6 @@ export function SharedFields({
   const { control, register, setValue, watch, formState: { errors } } = useFormContext<TransactionFormInputs>();
   const recurrenceUntil = watch("recurrence_until");
   const recurrenceFrequency = watch("recurrence_frequency");
-  const note = watch("note");
 
   const showRecurrenceSection =
     showRecurrence && (status === "planned" || mode === "edit-schedule");
@@ -32,7 +31,7 @@ export function SharedFields({
   return (
     <>
       <FormSplitRow
-        rowClassName="pt-5"
+        rowClassName="mt-2"
         left={
           <Controller
             control={control}
@@ -49,7 +48,7 @@ export function SharedFields({
                 <Select value={field.value} onValueChange={field.onChange} disabled={mode === "edit-schedule"}>
                   <SelectTrigger
                     className={cn(
-                      "h-auto w-auto border-0 bg-transparent px-0 py-0 text-right text-[14px] font-medium shadow-none outline-none focus:outline-none focus-visible:border-transparent focus-visible:ring-0 data-[popup-open]:opacity-90",
+                      "h-auto w-auto border-0 bg-transparent px-0 py-0 text-right type-body-14 font-medium shadow-none outline-none focus:outline-none focus-visible:border-transparent focus-visible:ring-0 data-[popup-open]:opacity-90",
                       field.value === "paid" ? "text-foreground" : "text-muted-foreground",
                     )}
                   >
@@ -64,8 +63,10 @@ export function SharedFields({
                     </span>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="paid">{t("status.paid")}</SelectItem>
-                    <SelectItem value="planned">{t("status.planned")}</SelectItem>
+                    <SelectGroup>
+                      <SelectItem value="paid">{t("status.paid")}</SelectItem>
+                      <SelectItem value="planned">{t("status.planned")}</SelectItem>
+                    </SelectGroup>
                   </SelectContent>
                 </Select>
               )}
@@ -80,8 +81,8 @@ export function SharedFields({
       {showRecurrenceSection ? (
         <>
           <FormSplitRow
-            rowClassName="min-h-8 py-0 pt-4"
-            left={<span className="text-sm text-foreground">{t("fields.recurrenceFrequency")}</span>}
+            rowClassName="min-h-10 pt-4"
+            left={<span className="type-body-14 text-foreground">{t("fields.recurrenceFrequency")}</span>}
             right={
               <Controller
                 control={control}
@@ -103,11 +104,13 @@ export function SharedFields({
                       <SelectValue className="capitalize" placeholder={t("recurrence.never")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="never" className="capitalize">{t("recurrence.never")}</SelectItem>
-                      <SelectItem value="daily" className="capitalize">{t("recurrence.daily")}</SelectItem>
-                      <SelectItem value="weekly" className="capitalize">{t("recurrence.weekly")}</SelectItem>
-                      <SelectItem value="monthly" className="capitalize">{t("recurrence.monthly")}</SelectItem>
-                      <SelectItem value="yearly" className="capitalize">{t("recurrence.yearly")}</SelectItem>
+                      <SelectGroup>
+                        <SelectItem value="never" className="capitalize">{t("recurrence.never")}</SelectItem>
+                        <SelectItem value="daily" className="capitalize">{t("recurrence.daily")}</SelectItem>
+                        <SelectItem value="weekly" className="capitalize">{t("recurrence.weekly")}</SelectItem>
+                        <SelectItem value="monthly" className="capitalize">{t("recurrence.monthly")}</SelectItem>
+                        <SelectItem value="yearly" className="capitalize">{t("recurrence.yearly")}</SelectItem>
+                      </SelectGroup>
                     </SelectContent>
                   </Select>
                 )}
@@ -116,8 +119,8 @@ export function SharedFields({
           />
           {(isRecurring || mode === "edit-schedule") && recurrenceFrequency === "weekly" ? (
             <FormSplitRow
-              rowClassName="min-h-8 py-0 -mt-1"
-              left={<span className="text-sm text-foreground">{t("fields.recurrenceIntervalWeeks")}</span>}
+              rowClassName="min-h-10"
+              left={<span className="type-body-14 text-foreground">{t("fields.recurrenceIntervalWeeks")}</span>}
               right={
                 <Controller
                   control={control}
@@ -141,8 +144,8 @@ export function SharedFields({
           ) : null}
           {isRecurring || mode === "edit-schedule" ? (
             <FormSplitRow
-              rowClassName="min-h-8 py-0 -mt-1"
-              left={<span className="text-sm text-foreground">{t("fields.recurrenceUntil")}</span>}
+              rowClassName="min-h-10"
+              left={<span className="type-body-14 text-foreground">{t("fields.recurrenceUntil")}</span>}
               right={
                 recurrenceUntil === null ? (
                   <button
@@ -176,7 +179,7 @@ export function SharedFields({
         </>
       ) : null}
 
-      <FormPickerRow className={cn("pt-4", !note?.trim() && "border-b-0")}>
+      <FormPickerRow className="pt-4">
         <Input
           id="transaction-note"
           className="h-10 w-full rounded-none border-0 bg-transparent px-0 py-1 text-base leading-7 shadow-none outline-none focus:outline-none focus-visible:border-transparent focus-visible:ring-0"

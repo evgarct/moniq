@@ -5,7 +5,7 @@ import { Controller, useFormContext } from "react-hook-form";
 
 import { FieldMessage } from "@/components/form-primitives";
 import { InlineIcon } from "@/components/ui/inline-icon";
-import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type { Account } from "@/types/finance";
 
@@ -63,17 +63,19 @@ export function AccountSelect({
                 </div>
               </SelectTrigger>
               <SelectContent>
-                {accounts.map((account) => {
-                  const Icon = getAccountIcon(account);
-                  return (
-                    <SelectItem key={account.id} value={account.id}>
-                      <div className="flex min-w-0 items-center gap-2">
-                        <InlineIcon icon={Icon} />
-                        <span className="truncate">{account.name}</span>
-                      </div>
-                    </SelectItem>
-                  );
-                })}
+                <SelectGroup>
+                  {accounts.map((account) => {
+                    const Icon = getAccountIcon(account);
+                    return (
+                      <SelectItem key={account.id} value={account.id}>
+                        <div className="flex min-w-0 items-center gap-2">
+                          <InlineIcon icon={Icon} />
+                          <span className="truncate">{account.name}</span>
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectGroup>
               </SelectContent>
             </Select>
             <FieldMessage error={error} />

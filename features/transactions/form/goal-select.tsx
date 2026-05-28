@@ -5,7 +5,7 @@ import { Controller, useFormContext } from "react-hook-form";
 import { useTranslations } from "next-intl";
 
 import { InlineIcon } from "@/components/ui/inline-icon";
-import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type { WalletAllocation } from "@/types/finance";
 
@@ -41,20 +41,22 @@ export function GoalSelect({ allocations }: { allocations: WalletAllocation[] })
               </div>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={NONE}>
-                <div className="flex min-w-0 items-center gap-2">
-                  <InlineIcon icon={Target} />
-                  <span className="text-muted-foreground">{t("placeholders.noGoal")}</span>
-                </div>
-              </SelectItem>
-              {allocations.map((a) => (
-                <SelectItem key={a.id} value={a.id}>
+              <SelectGroup>
+                <SelectItem value={NONE}>
                   <div className="flex min-w-0 items-center gap-2">
                     <InlineIcon icon={Target} />
-                    <span className="truncate">{a.name}</span>
+                    <span className="text-muted-foreground">{t("placeholders.noGoal")}</span>
                   </div>
                 </SelectItem>
-              ))}
+                {allocations.map((a) => (
+                  <SelectItem key={a.id} value={a.id}>
+                    <div className="flex min-w-0 items-center gap-2">
+                      <InlineIcon icon={Target} />
+                      <span className="truncate">{a.name}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectGroup>
             </SelectContent>
           </Select>
         );

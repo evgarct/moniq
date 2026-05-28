@@ -19,7 +19,7 @@ export function FieldMessage({
   className?: string;
 }) {
   if (!error?.message) return null;
-  return <p className={cn("mt-0.5 text-xs text-destructive", className)}>{error.message}</p>;
+  return <p className={cn("type-body-12 mt-0.5 text-destructive", className)}>{error.message}</p>;
 }
 
 export function FormSection({
@@ -29,7 +29,7 @@ export function FormSection({
   children: React.ReactNode;
   className?: string;
 }) {
-  return <section className={cn("flex flex-col gap-2", className)}>{children}</section>;
+  return <section className={cn("flex flex-col gap-1", className)}>{children}</section>;
 }
 
 export function FormPickerRow({
@@ -39,7 +39,11 @@ export function FormPickerRow({
   children: React.ReactNode;
   className?: string;
 }) {
-  return <div className={cn("min-h-11 border-b border-border/70 py-2", className)}>{children}</div>;
+  return (
+    <div className={cn("min-h-12 py-2", className)}>
+      {children}
+    </div>
+  );
 }
 
 export function FormRow({
@@ -59,12 +63,12 @@ export function FormRow({
     <div
       className={cn(
         label
-          ? "grid min-h-10 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-1"
-          : "min-h-10 py-1",
+          ? "grid min-h-12 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-2"
+          : "min-h-12 py-2",
         className,
       )}
     >
-      {label ? <div className={cn("min-w-0 text-sm text-foreground", labelClassName)}>{label}</div> : null}
+      {label ? <div className={cn("type-body-14 min-w-0 text-foreground", labelClassName)}>{label}</div> : null}
       <div className={cn(label ? "flex min-w-0 items-center justify-end gap-2" : "min-w-0", contentClassName)}>
         {children}
       </div>
@@ -92,7 +96,7 @@ export function FormSplitRow({
   childrenClassName?: string;
 } & React.ComponentProps<"div">) {
   return (
-    <div className={cn("relative min-h-10 py-1.5", rowClassName)} {...props}>
+    <div className={cn("relative min-h-12 py-2", rowClassName)} {...props}>
       <div
         className={cn(
           "grid gap-3",

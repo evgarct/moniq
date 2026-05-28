@@ -13,9 +13,10 @@ import { useFormContext } from "react-hook-form";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
-import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger } from "@/components/ui/select";
+import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import type { Account, Category, Transaction, TransactionSchedule, WalletAllocation } from "@/types/finance";
 
 import { RescheduleConfirmOverlay } from "./reschedule-confirm-overlay";
@@ -50,6 +51,30 @@ const KIND_SECTIONS: Record<Transaction["kind"], React.ComponentType> = {
   debt_payment: DebtPaymentSection,
 };
 
+function getFormTitle(
+  t: (key: "addTitle" | "editSeriesTitle" | "editTitle") => string,
+  mode: TransactionFormMode,
+) {
+  if (mode === "add") return t("addTitle");
+  if (mode === "edit-schedule") return t("editSeriesTitle");
+  return t("editTitle");
+}
+
+function TransactionKindOption({
+  icon: Icon,
+  children,
+}: {
+  icon: LucideIcon;
+  children: React.ReactNode;
+}) {
+  return (
+    <span className="inline-flex min-w-0 items-center gap-2">
+      <Icon className="size-[18px] shrink-0 text-muted-foreground" strokeWidth={1.75} />
+      <span className="truncate">{children}</span>
+    </span>
+  );
+}
+
 // ─── Inner form (has access to context) ──────────────────────────────────────
 
 function TransactionFormInner() {
@@ -70,6 +95,7 @@ function TransactionFormInner() {
   const Section = KIND_SECTIONS[kind];
   const formId = "transaction-form-sheet";
   const KindIcon = KIND_ICONS[kind];
+  const title = getFormTitle(t, mode);
 
   const handleSubmit = form.handleSubmit(async (values) => {
     const payload = buildSubmitPayload(values, mode, accounts, categories);
@@ -85,43 +111,14 @@ function TransactionFormInner() {
 
   return (
     <form id={formId} className="flex min-h-0 flex-1 flex-col" onSubmit={handleSubmit}>
-      <SheetHeader className="gap-0 border-0 px-4 pt-4 pb-2 sm:px-5">
-        <SheetTitle className="sr-only">
-          {mode === "add"
-            ? t("addTitle")
-            : mode === "edit-schedule"
-              ? t("editSeriesTitle")
-              : t("editTitle")}
-        </SheetTitle>
-        <div className="relative flex justify-center">
-          <Select
-            value={kind}
-            onValueChange={(v) => {
-              form.setValue("kind", v as Transaction["kind"], { shouldValidate: false });
-            }}
-            disabled={mode !== "add"}
-          >
-            <SelectTrigger className="h-auto w-auto border-0 bg-transparent px-2 py-0 text-center text-[0.95rem] font-medium capitalize shadow-none outline-none focus:outline-none focus-visible:border-transparent focus-visible:ring-0">
-              <span className="inline-flex items-center gap-2 truncate">
-                <KindIcon className="size-4 opacity-70" />
-                <span>{kindsT(kind)}</span>
-              </span>
-            </SelectTrigger>
-            <SelectContent alignItemWithTrigger={false} className="w-auto min-w-[14rem]">
-              <SelectItem value="expense">
-                <span className="inline-flex items-center gap-2"><ReceiptText className="size-4 opacity-70" />{kindsT("expense")}</span>
-              </SelectItem>
-              <SelectItem value="income">
-                <span className="inline-flex items-center gap-2"><TrendingUp className="size-4 opacity-70" />{kindsT("income")}</span>
-              </SelectItem>
-              <SelectItem value="transfer">
-                <span className="inline-flex items-center gap-2"><ArrowLeftRight className="size-4 opacity-70" />{kindsT("transfer")}</span>
-              </SelectItem>
-              <SelectItem value="debt_payment">
-                <span className="inline-flex items-center gap-2"><WalletCards className="size-4 opacity-70" />{kindsT("debt_payment")}</span>
-              </SelectItem>
-            </SelectContent>
-          </Select>
+      <SheetHeader className="gap-0 bg-card px-4 pt-4 pb-4 sm:px-5 sm:pt-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <SheetTitle className="type-h5 truncate">{title}</SheetTitle>
+            <SheetDescription className="type-body-12 mt-1 line-clamp-2 text-muted-foreground">
+              {t("description")}
+            </SheetDescription>
+          </div>
 
           <Tooltip>
             <TooltipTrigger
@@ -132,7 +129,7 @@ function TransactionFormInner() {
                       type="button"
                       variant="ghost"
                       size="icon-sm"
-                      className="absolute top-1/2 right-0 -translate-y-1/2"
+                      className="shrink-0 text-muted-foreground"
                       aria-label={t("submit.cancel")}
                     />
                   }
@@ -144,21 +141,69 @@ function TransactionFormInner() {
             <TooltipContent>{t("submit.cancel")}</TooltipContent>
           </Tooltip>
         </div>
+
+        <div className="mt-4 grid gap-1.5">
+          <span className="type-body-12 font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            {t("fields.kind")}
+          </span>
+          <Select
+            value={kind}
+            onValueChange={(v) => {
+              form.setValue("kind", v as Transaction["kind"], { shouldValidate: false });
+            }}
+            disabled={mode !== "add"}
+          >
+            <SelectTrigger
+              autoFocus
+              className={cn(
+                "h-auto w-auto justify-start rounded-none !border-0 bg-transparent px-0 py-0 text-left shadow-none hover:bg-transparent",
+                "focus-visible:bg-transparent focus-visible:ring-0 focus-visible:underline focus-visible:underline-offset-4",
+                mode !== "add" && "opacity-100",
+              )}
+            >
+              <span className="inline-flex min-w-0 items-center gap-2 truncate pr-1">
+                <KindIcon className="size-[18px] shrink-0 text-muted-foreground" strokeWidth={1.75} />
+                <span>{kindsT(kind)}</span>
+              </span>
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false} className="w-auto min-w-[14rem]">
+              <SelectGroup>
+                <SelectItem value="expense">
+                  <TransactionKindOption icon={ReceiptText}>{kindsT("expense")}</TransactionKindOption>
+                </SelectItem>
+                <SelectItem value="income">
+                  <TransactionKindOption icon={TrendingUp}>{kindsT("income")}</TransactionKindOption>
+                </SelectItem>
+                <SelectItem value="transfer">
+                  <TransactionKindOption icon={ArrowLeftRight}>{kindsT("transfer")}</TransactionKindOption>
+                </SelectItem>
+                <SelectItem value="debt_payment">
+                  <TransactionKindOption icon={WalletCards}>{kindsT("debt_payment")}</TransactionKindOption>
+                </SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
       </SheetHeader>
 
-      <div className="flex-1 overflow-y-auto px-4 pb-4 sm:px-5">
-        <div className="space-y-6">
+      <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-5">
+        <div className="flex flex-col gap-7">
           <Section />
+        </div>
+      </div>
 
-          <div className="flex justify-end pt-2">
-            <Button type="submit" form={formId} variant="secondary" className="border-0 shadow-none">
-              {mode === "add"
-                ? t("submit.add")
-                : mode === "edit-schedule"
-                  ? t("submit.editSeries")
-                  : t("submit.edit")}
-            </Button>
-          </div>
+      <div className="bg-card px-4 py-4 sm:px-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="type-body-12 text-muted-foreground">
+            {t("footer.singleSummary")}
+          </p>
+          <Button type="submit" form={formId} className="w-full sm:w-auto">
+            {mode === "add"
+              ? t("submit.add")
+              : mode === "edit-schedule"
+                ? t("submit.editSeries")
+                : t("submit.edit")}
+          </Button>
         </div>
       </div>
     </form>
@@ -240,7 +285,7 @@ export function TransactionFormSheet({
       <SheetContent
         side="right"
         showCloseButton={false}
-        className="w-full gap-0 border-l-0 bg-background p-0 sm:top-6 sm:right-0 sm:h-[calc(100vh-3rem)] sm:w-[42rem] sm:max-w-none sm:border sm:border-border/30 sm:border-r-0 sm:shadow-[0_24px_72px_rgba(15,23,42,0.14)]"
+        className="w-full gap-0 border-l-0 bg-background p-0 sm:top-6 sm:right-0 sm:h-[calc(100vh-3rem)] sm:w-[42rem] sm:max-w-none sm:border-0"
       >
         <TransactionFormProvider
           open={open}
