@@ -156,12 +156,12 @@ function TransactionFormInner() {
             <SelectTrigger
               autoFocus
               className={cn(
-                "h-9 w-full justify-between rounded-control !border-0 bg-transparent px-2 text-left shadow-none hover:bg-secondary/45",
-                "focus-visible:bg-secondary/70 focus-visible:ring-0",
+                "h-auto w-auto justify-start rounded-none !border-0 bg-transparent px-0 py-0 text-left shadow-none hover:bg-transparent",
+                "focus-visible:bg-transparent focus-visible:ring-0 focus-visible:underline focus-visible:underline-offset-4",
                 mode !== "add" && "opacity-100",
               )}
             >
-              <span className="inline-flex min-w-0 items-center gap-2 truncate">
+              <span className="inline-flex min-w-0 items-center gap-2 truncate pr-1">
                 <KindIcon className="size-[18px] shrink-0 text-muted-foreground" strokeWidth={1.75} />
                 <span>{kindsT(kind)}</span>
               </span>
