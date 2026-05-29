@@ -555,7 +555,10 @@
       "noSpendYet": "No spend yet",
       "addChild": "Add child",
       "editCategory": "Edit category",
-      "deleteCategory": "Delete category"
+      "deleteCategory": "Delete category",
+      "openMenu": "Open actions for {name}",
+      "topLevel": "Top level",
+      "linkedTransactions": "{count, plural, =0 {No linked transactions} one {# linked transaction} other {# linked transactions}}"
     },
     "form": {
       "addTitle": "Add category",
@@ -599,7 +602,30 @@
       "emptyTitle": "No categories yet",
       "emptyDescription": "Start with one expense or income category and grow the tree from there.",
       "saveError": "Unable to save category.",
-      "deleteError": "Unable to delete category."
+      "deleteError": "Unable to delete category.",
+      "eyebrow": "Taxonomy",
+      "categoryCount": "{count, plural, =0 {0 categories} one {# category} other {# categories}}"
+    },
+    "detail": {
+      "eyebrow": "Category detail",
+      "edit": "Edit",
+      "addChild": "Add child",
+      "pathWithParent": "Under {parent}",
+      "pathTopLevel": "Top-level category",
+      "topLevel": "Top level",
+      "fields": {
+        "type": "Type",
+        "parent": "Parent",
+        "children": "Children",
+        "linked": "Linked activity"
+      },
+      "childrenCount": "{count, plural, =0 {No child categories} one {# child category} other {# child categories}}",
+      "linkedTransactions": "{count, plural, =0 {No linked transactions} one {# linked transaction} other {# linked transactions}}",
+      "totals": "Totals by currency",
+      "noTotals": "No linked totals yet.",
+      "children": "Child categories",
+      "activity": "Linked activity",
+      "emptyActivity": "No transactions in this category yet."
     }
   },
   "transactions": {

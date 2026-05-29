@@ -6,6 +6,42 @@ originSessionId: a724e347-5813-4f1e-81e3-b5b181fcbddb
 ---
 # Design Principles
 
+## Visual style memory
+
+Moniq is a restrained product UI, not a marketing surface. It should feel like a calm financial workspace: warm neutral, dense enough for repeated use, and precise in alignment. The main scene is a person reviewing money, correcting imports, or entering transactions in a focused desktop or mobile workspace, so the design should reduce hesitation and keep financial structure easy to scan.
+
+### Core visual rules
+
+- Warm neutrals carry almost everything: `bg-background`, `bg-card`, `bg-secondary`, `bg-popover`, `border`, `foreground`, and `muted-foreground`.
+- Use color as information, not decoration. Data visualization uses `chart-1` through `chart-5`; errors use `text-destructive`; income/positive moments may use the approved positive tone only when the domain says it is positive.
+- Repeated data is row language. Rows are flat, quiet, and grouped inside a shared region. Do not make card-per-row layouts, category chips, account type pills, status pills, or icon badges.
+- Icons are raw outline marks. Use Lucide or `CategoryIcon` inline at the established size and stroke, without colored circles, squares, badge backgrounds, or filled treatments.
+- `Surface` is the only container primitive for major regions. Do not recreate surface radius, shadow, tone, or padding locally unless extending `Surface` itself.
+- Typography stays on the product scale. Use `type-h1` through `type-h6`, `type-body-14`, and `type-body-12`; avoid arbitrary text sizes in feature code.
+- Radius and shadow stay tokenized. Use radius variables/classes and existing UI primitives; do not introduce new `rounded-*` or `shadow-*` styling for ordinary product UI.
+- Actions stay restrained: one filled primary action per surface, outline for escape/cancel, ghost for row-level or low-emphasis actions.
+- Forms are sheets when they collect structured data. Dialogs are for focused confirmations, not multi-field data entry.
+- Motion is tactile and short. Use named transitions for actual state changes; avoid `transition-all`, decorative choreography, and page-load performance theater.
+
+### Composition patterns to preserve
+
+- New simple screens open with a `Surface tone="panel" padding="lg"` containing `SurfaceHeader`, `SurfaceEyebrow`, `SurfaceTitle`, and optional `SurfaceDescription`.
+- Full-bleed workspace views such as Balance, Budget, and Calendar own the whole `main` area and should not be wrapped in an outer page card.
+- Inventory/detail screens use the two-panel grid: left inventory around 280px, right register/detail filling the remaining space.
+- Lists and registers need an `EmptyState`; metadata is plain muted text near the primary label.
+- Money must be rendered with `MoneyAmount` unless a shared-grid multi-amount layout is explicitly required.
+- Stateful UI primitives need focused Storybook stories that open directly into the interaction state used for review.
+
+### Anti-patterns I should reject
+
+- Card-per-item finance lists, repeated bordered tiles, and nested card structures.
+- Badge or pill metadata for categories, account types, statuses, or transaction kinds.
+- Icon containers used as decoration.
+- Bright blue, indigo, purple, emerald, or gradient accents as generic UI styling.
+- Hardcoded unlocalized UI text in runtime components.
+- Center modals for ordinary create/edit forms.
+- One-off control styles when `components/ui`, shared form primitives, or `Surface` already cover the pattern.
+
 ## Money display
 
 **Rule: currency symbol always after the number, with a small gap.**
