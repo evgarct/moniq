@@ -7,12 +7,17 @@ import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 
 import { EmptyState } from "@/components/empty-state";
-import { SectionCard } from "@/components/section-card";
+import {
+  Surface,
+  SurfaceDescription,
+  SurfaceHeader,
+  SurfaceTitle,
+} from "@/components/surface";
 import { TransactionList } from "@/components/transaction-list";
 import { Button } from "@/components/ui/button";
 import { CategoryDeleteSheet } from "@/features/categories/components/category-delete-sheet";
 import { CategoryFormSheet } from "@/features/categories/components/category-form-sheet";
-import { CategoryTree } from "@/features/categories/components/category-tree";
+import { CategoryWorkspace } from "@/features/categories/components/category-workspace";
 import { buildCategoryTree, flattenCategoryTree } from "@/features/categories/lib/category-tree";
 import {
   createCategoryRequest,
@@ -48,13 +53,15 @@ export function TransactionsView({
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
-  const { data } = useFinanceData();
+  const { data } = useFinanceData({ enabled: !snapshotProp });
   const snapshot = snapshotProp ?? data ?? emptySnapshot;
   const transactionActions = useTransactionActions();
   const [actionError, setActionError] = useState<string | null>(null);
   const [categorySheetOpen, setCategorySheetOpen] = useState(false);
   const [categorySheetMode, setCategorySheetMode] = useState<"add" | "edit">("add");
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [selectedCategoryType, setSelectedCategoryType] = useState<"expense" | "income">("expense");
   const [transactionSheetOpen, setTransactionSheetOpen] = useState(false);
   const [transactionSheetMode, setTransactionSheetMode] = useState<"add" | "edit-transaction" | "edit-schedule">("add");
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -112,115 +119,153 @@ export function TransactionsView({
 
   return (
     <>
-      <div className="grid gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
-        <SectionCard
-          title={categoriesT("title")}
-          description={categoriesT("description")}
-          action={
-            <Button
-              onClick={() => {
-                setCategorySheetMode("add");
-                setEditingCategory(null);
-                setCategorySheetOpen(true);
-              }}
-            >
-              <Plus className="h-4 w-4" />
-              {categoriesT("add")}
-            </Button>
+      <div className="grid gap-6 xl:grid-cols-[minmax(360px,0.9fr)_minmax(0,1.1fr)]">
+        {actionError ? <div className="xl:col-span-2 rounded-[var(--radius-control)] border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{actionError}</div> : null}
+        <CategoryWorkspace
+          nodes={categoryTree}
+          categories={snapshot.categories}
+          transactions={snapshot.transactions}
+          selectedCategoryId={selectedCategoryId}
+          selectedType={selectedCategoryType}
+          onSelectCategory={setSelectedCategoryId}
+          onTypeChange={(type) => {
+            setSelectedCategoryType(type);
+            setSelectedCategoryId(null);
+          }}
+          onAddCategory={() => {
+            setCategorySheetMode("add");
+            setEditingCategory(null);
+            setCategorySheetOpen(true);
+          }}
+          onAddChild={(node) => {
+            setCategorySheetMode("add");
+            setEditingCategory({
+              id: "",
+              user_id: "",
+              name: "",
+              icon: node.icon,
+              type: node.type,
+              parent_id: node.id,
+              is_system: false,
+              created_at: new Date().toISOString(),
+            });
+            setCategorySheetOpen(true);
+          }}
+          onEdit={(node) => {
+            setCategorySheetMode("edit");
+            setEditingCategory(node);
+            setCategorySheetOpen(true);
+          }}
+          onDelete={(node) => setDeletingCategory(node)}
+          onEditOccurrence={(selectedTransaction) => {
+            setTransactionSheetMode("edit-transaction");
+            setEditingTransaction(selectedTransaction);
+            setEditingSchedule(null);
+            setTransactionSheetOpen(true);
+          }}
+          onEditSeries={(selectedTransaction) => {
+            if (!selectedTransaction.schedule) return;
+            setTransactionSheetMode("edit-schedule");
+            setEditingTransaction(selectedTransaction);
+            setEditingSchedule(selectedTransaction.schedule);
+            setTransactionSheetOpen(true);
+          }}
+          onDeleteTransaction={(selectedTransaction) => {
+            transactionActions.deleteTransactionOptimistic(selectedTransaction.id);
+          }}
+          onDeleteSeries={(selectedTransaction) => {
+            if (!selectedTransaction.schedule_id) return;
+            transactionActions.deleteScheduleOptimistic(selectedTransaction.schedule_id, (error) => {
+              setActionError(error instanceof Error ? error.message : t("view.deleteError"));
+            });
+          }}
+          onMarkPaid={(selectedTransaction) => {
+            transactionActions.markPaidOptimistic(selectedTransaction.id);
+          }}
+          onSkipOccurrence={(selectedTransaction) => {
+            transactionActions.skipOccurrenceOptimistic(selectedTransaction.id);
+          }}
+          onToggleScheduleState={async (selectedTransaction) => {
+            if (!selectedTransaction.schedule_id || !selectedTransaction.schedule) return;
+            try {
+              await transactionActions.setScheduleState(
+                selectedTransaction.schedule_id,
+                selectedTransaction.schedule.state === "paused" ? "active" : "paused",
+              );
+              setActionError(null);
+            } catch (error) {
+              setActionError(error instanceof Error ? error.message : t("view.saveError"));
+            }
+          }}
+          fallback={
+            <Surface tone="panel" padding="lg" className="min-h-[560px] border border-black/5">
+              <SurfaceHeader
+                action={
+                  <Button
+                    onClick={() => {
+                      setTransactionSheetMode("add");
+                      setEditingTransaction(null);
+                      setEditingSchedule(null);
+                      setTransactionSheetOpen(true);
+                    }}
+                  >
+                    <Plus className="h-4 w-4" />
+                    {t("view.add")}
+                  </Button>
+                }
+              >
+                <SurfaceTitle>{t("view.title")}</SurfaceTitle>
+                <SurfaceDescription>{t("view.description")}</SurfaceDescription>
+              </SurfaceHeader>
+              <div className="mt-5">
+                <TransactionList
+                  transactions={snapshot.transactions}
+                  emptyMessage={tr("common.empty.noTransactionsYet")}
+                  onEditOccurrence={(selectedTransaction) => {
+                    setTransactionSheetMode("edit-transaction");
+                    setEditingTransaction(selectedTransaction);
+                    setEditingSchedule(null);
+                    setTransactionSheetOpen(true);
+                  }}
+                  onEditSeries={(selectedTransaction) => {
+                    if (!selectedTransaction.schedule) return;
+                    setTransactionSheetMode("edit-schedule");
+                    setEditingTransaction(selectedTransaction);
+                    setEditingSchedule(selectedTransaction.schedule);
+                    setTransactionSheetOpen(true);
+                  }}
+                  onDeleteTransaction={(selectedTransaction) => {
+                    transactionActions.deleteTransactionOptimistic(selectedTransaction.id);
+                  }}
+                  onDeleteSeries={(selectedTransaction) => {
+                    if (!selectedTransaction.schedule_id) return;
+                    transactionActions.deleteScheduleOptimistic(selectedTransaction.schedule_id, (error) => {
+                      setActionError(error instanceof Error ? error.message : t("view.deleteError"));
+                    });
+                  }}
+                  onMarkPaid={(selectedTransaction) => {
+                    transactionActions.markPaidOptimistic(selectedTransaction.id);
+                  }}
+                  onSkipOccurrence={(selectedTransaction) => {
+                    transactionActions.skipOccurrenceOptimistic(selectedTransaction.id);
+                  }}
+                  onToggleScheduleState={async (selectedTransaction) => {
+                    if (!selectedTransaction.schedule_id || !selectedTransaction.schedule) return;
+                    try {
+                      await transactionActions.setScheduleState(
+                        selectedTransaction.schedule_id,
+                        selectedTransaction.schedule.state === "paused" ? "active" : "paused",
+                      );
+                      setActionError(null);
+                    } catch (error) {
+                      setActionError(error instanceof Error ? error.message : t("view.saveError"));
+                    }
+                  }}
+                />
+              </div>
+            </Surface>
           }
-        >
-          {actionError ? <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{actionError}</div> : null}
-          {categoryTree.length ? (
-            <CategoryTree
-              nodes={categoryTree}
-              onAddChild={(node) => {
-                setCategorySheetMode("add");
-                setEditingCategory({
-                  id: "",
-                  user_id: "",
-                  name: "",
-                  icon: node.icon,
-                  type: node.type,
-                  parent_id: node.id,
-                  is_system: false,
-                  created_at: new Date().toISOString(),
-                });
-                setCategorySheetOpen(true);
-              }}
-              onEdit={(node) => {
-                setCategorySheetMode("edit");
-                setEditingCategory(node);
-                setCategorySheetOpen(true);
-              }}
-              onDelete={(node) => setDeletingCategory(node)}
-            />
-          ) : (
-            <EmptyState title={categoriesT("emptyTitle")} description={categoriesT("emptyDescription")} />
-          )}
-        </SectionCard>
-
-        <SectionCard
-          title={t("view.title")}
-          description={t("view.description")}
-          action={
-            <Button
-              onClick={() => {
-                setTransactionSheetMode("add");
-                setEditingTransaction(null);
-                setEditingSchedule(null);
-                setTransactionSheetOpen(true);
-              }}
-            >
-              <Plus className="h-4 w-4" />
-              {t("view.add")}
-            </Button>
-          }
-        >
-          <TransactionList
-            transactions={snapshot.transactions}
-            emptyMessage={tr("common.empty.noTransactionsYet")}
-            onEditOccurrence={(selectedTransaction) => {
-              setTransactionSheetMode("edit-transaction");
-              setEditingTransaction(selectedTransaction);
-              setEditingSchedule(null);
-              setTransactionSheetOpen(true);
-            }}
-            onEditSeries={(selectedTransaction) => {
-              if (!selectedTransaction.schedule) return;
-              setTransactionSheetMode("edit-schedule");
-              setEditingTransaction(selectedTransaction);
-              setEditingSchedule(selectedTransaction.schedule);
-              setTransactionSheetOpen(true);
-            }}
-            onDeleteTransaction={(selectedTransaction) => {
-              transactionActions.deleteTransactionOptimistic(selectedTransaction.id);
-            }}
-            onDeleteSeries={(selectedTransaction) => {
-              if (!selectedTransaction.schedule_id) return;
-              transactionActions.deleteScheduleOptimistic(selectedTransaction.schedule_id, (error) => {
-                setActionError(error instanceof Error ? error.message : t("view.deleteError"));
-              });
-            }}
-            onMarkPaid={(selectedTransaction) => {
-              transactionActions.markPaidOptimistic(selectedTransaction.id);
-            }}
-            onSkipOccurrence={(selectedTransaction) => {
-              transactionActions.skipOccurrenceOptimistic(selectedTransaction.id);
-            }}
-            onToggleScheduleState={async (selectedTransaction) => {
-              if (!selectedTransaction.schedule_id || !selectedTransaction.schedule) return;
-              try {
-                await transactionActions.setScheduleState(
-                  selectedTransaction.schedule_id,
-                  selectedTransaction.schedule.state === "paused" ? "active" : "paused",
-                );
-                setActionError(null);
-              } catch (error) {
-                setActionError(error instanceof Error ? error.message : t("view.saveError"));
-              }
-            }}
-          />
-        </SectionCard>
+        />
       </div>
 
       <CategoryFormSheet
