@@ -34,6 +34,11 @@ function PercentValue({ value }: { value: number | null }) {
   );
 }
 
+function percent(part: number, whole: number) {
+  if (whole <= 0) return null;
+  return Number(((part / whole) * 100).toFixed(2));
+}
+
 function MoneyValue({
   amount,
   currency,
@@ -79,15 +84,84 @@ function TotalsLine({ totals }: { totals: CategorySpendingCurrencyAmount[] }) {
   );
 }
 
-function PercentageLine({ total }: { total: CategorySpendingCurrencyAmount }) {
+function OverviewRatio({
+  label,
+  value,
+}: {
+  label: string;
+  value: number | null;
+}) {
+  return (
+    <div className="grid grid-cols-[1fr_auto] items-center gap-3">
+      <span className="type-body-12">{label}</span>
+      <PercentValue value={value} />
+    </div>
+  );
+}
+
+function EnvelopeShareRows({ total }: { total: CategorySpendingCurrencyAmount }) {
   const t = useTranslations("budget.monthAnalysis");
 
   return (
-    <div className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-0.5 type-body-12">
-      <span>{t("ofIncome", { currency: total.currency })}</span>
-      <PercentValue value={total.percent_of_income} />
-      <span>{t("ofExpenses", { currency: total.currency })}</span>
-      <PercentValue value={total.percent_of_total_expenses} />
+    <div className="flex flex-col gap-1.5 border-t border-border/40 px-2 py-2 first:border-t-0">
+      <div className="flex items-center justify-between gap-3">
+        <span className="type-body-12 text-foreground">{t("spentInCurrency", { currency: total.currency })}</span>
+        <MoneyValue
+          amount={total.amount}
+          currency={total.currency}
+          className="type-body-12 font-medium tabular-nums text-foreground"
+        />
+      </div>
+      <div className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 type-body-12">
+        <span>{t("ofIncome")}</span>
+        <PercentValue value={total.percent_of_income} />
+        <span>{t("ofExpenses")}</span>
+        <PercentValue value={total.percent_of_total_expenses} />
+      </div>
+      <p className="type-body-12 text-muted-foreground">{t("shareExplanation", { currency: total.currency })}</p>
+    </div>
+  );
+}
+
+function CurrencyOverview({
+  currency,
+}: {
+  currency: CategorySpendingReport["summary"]["currencies"][number];
+}) {
+  const t = useTranslations("budget.monthAnalysis");
+  const spentPercent = percent(currency.expense_total, currency.income_total);
+  const netPercent = percent(Math.abs(currency.net), currency.income_total);
+  const netLabel = currency.net >= 0 ? t("leftFromIncome") : t("overIncome");
+
+  return (
+    <div className="flex flex-col gap-3 border-t border-border/40 px-2 py-3 first:border-t-0">
+      <div className="grid grid-cols-[1fr_auto] items-start gap-4">
+        <div>
+          <p className="type-h6">{currency.currency}</p>
+          <p className="type-body-12">{t("paidTransactions", { count: currency.transaction_count })}</p>
+        </div>
+        <div className="text-right">
+          <p className="type-body-12">{currency.net >= 0 ? t("leftLabel") : t("overLabel")}</p>
+          <MoneyValue
+            amount={Math.abs(currency.net)}
+            currency={currency.currency}
+            tone={currency.net >= 0 ? "positive" : "negative"}
+            className="text-sm font-semibold tabular-nums"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1.5">
+        <p className="type-body-12">{t("incomeLabel")}</p>
+        <MoneyValue amount={currency.income_total} currency={currency.currency} className="type-body-12 tabular-nums" />
+        <p className="type-body-12">{t("expensesLabel")}</p>
+        <MoneyValue amount={currency.expense_total} currency={currency.currency} className="type-body-12 tabular-nums" />
+      </div>
+
+      <div className="grid gap-1.5 border-t border-border/40 pt-2">
+        <OverviewRatio label={t("spentFromIncome")} value={spentPercent} />
+        <OverviewRatio label={netLabel} value={netPercent} />
+      </div>
     </div>
   );
 }
@@ -160,7 +234,7 @@ function CategoryNodeRow({ node, depth = 0 }: { node: CategorySpendingNode; dept
         {node.totals.length ? (
           <div className="grid gap-2 px-2 py-2">
             {node.totals.map((total) => (
-              <PercentageLine key={total.currency} total={total} />
+              <EnvelopeShareRows key={total.currency} total={total} />
             ))}
           </div>
         ) : null}
@@ -228,16 +302,7 @@ export function BudgetMonthAnalysisSheet({
               <div className="flex flex-col gap-2">
                 {report.summary.currencies.length ? (
                   report.summary.currencies.map((currency) => (
-                    <div key={currency.currency} className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 px-2 py-1.5">
-                      <p className="type-h6">{currency.currency}</p>
-                      <p className={cn("text-sm font-medium tabular-nums", currency.net < 0 ? "text-destructive" : "text-foreground")}>
-                        <MoneyValue amount={currency.net} currency={currency.currency} tone={currency.net >= 0 ? "positive" : "negative"} />
-                      </p>
-                      <p className="type-body-12">{t("incomeLabel")}</p>
-                      <MoneyValue amount={currency.income_total} currency={currency.currency} className="type-body-12 tabular-nums" />
-                      <p className="type-body-12">{t("expensesLabel")}</p>
-                      <MoneyValue amount={currency.expense_total} currency={currency.currency} className="type-body-12 tabular-nums" />
-                    </div>
+                    <CurrencyOverview key={currency.currency} currency={currency} />
                   ))
                 ) : (
                   <p className="type-body-12 px-2 py-2">{t("emptyMonth")}</p>
