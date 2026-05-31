@@ -6,12 +6,14 @@ import { useMemo, useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
 
 import { BudgetBarChart } from "@/features/budget/components/budget-bar-chart";
+import { BudgetMonthAnalysisSheet } from "@/features/budget/components/budget-month-analysis-sheet";
 import { CategoryIcon } from "@/components/category-icon";
 import { MoneyAmount } from "@/components/money-amount";
 import { TransactionList } from "@/components/transaction-list";
 import { Button } from "@/components/ui/button";
 import { getCategoryDescendantIds } from "@/features/categories/lib/category-tree";
 import { buildCategoryTree } from "@/features/categories/lib/category-tree";
+import type { CategorySpendingReport } from "@/features/finance/lib/category-spending-report";
 import { isSettledTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
 import { calDate } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
@@ -188,6 +190,7 @@ export function BudgetView({ snapshot }: { snapshot: FinanceSnapshot }) {
   const today = startOfToday();
   const [month, setMonth] = useState(today);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [selectedMonthReport, setSelectedMonthReport] = useState<CategorySpendingReport | null>(null);
 
   const monthTransactions = useMemo(
     () =>
@@ -227,7 +230,12 @@ export function BudgetView({ snapshot }: { snapshot: FinanceSnapshot }) {
 
       {/* Chart + month nav — fixed height, never scrolls */}
       <div className="shrink-0 border-b border-border/40 px-4 pb-4 pt-5 sm:px-6 lg:px-7">
-        <BudgetBarChart transactions={snapshot.transactions} currentMonth={month} />
+        <BudgetBarChart
+          transactions={snapshot.transactions}
+          categories={snapshot.categories}
+          currentMonth={month}
+          onMonthSelect={setSelectedMonthReport}
+        />
         <div className="mt-3 flex items-center justify-between">
           <Button
             variant="ghost"
@@ -324,6 +332,14 @@ export function BudgetView({ snapshot }: { snapshot: FinanceSnapshot }) {
         )}
 
       </div>
+
+      <BudgetMonthAnalysisSheet
+        report={selectedMonthReport}
+        open={Boolean(selectedMonthReport)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedMonthReport(null);
+        }}
+      />
     </div>
   );
 }

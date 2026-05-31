@@ -1,4 +1,4 @@
-import { endOfMonth, format, isValid, parseISO, startOfMonth, subMonths } from "date-fns";
+import { addMonths, endOfMonth, format, isValid, parseISO, startOfMonth, subMonths } from "date-fns";
 
 import { getTransactionAnalyticsAmount, getTransactionPrimaryAccount } from "@/features/transactions/lib/transaction-utils";
 import type { Category, Transaction } from "@/types/finance";
@@ -42,6 +42,19 @@ export type CategorySpendingCurrencyTotal = {
   net: number;
 };
 
+export type BudgetMonthCurrencySummary = CategorySpendingCurrencyTotal & {
+  transaction_count: number;
+};
+
+export type BudgetMonthSummary = {
+  month: string;
+  start_date: string;
+  end_date: string;
+  label: string;
+  transaction_count: number;
+  currencies: BudgetMonthCurrencySummary[];
+};
+
 export type CategorySpendingCurrencyAmount = {
   currency: string;
   amount: number;
@@ -53,6 +66,7 @@ export type CategorySpendingNode = {
   category_id: string;
   name: string;
   description: string | null;
+  icon: string | null;
   path: string[];
   totals: CategorySpendingCurrencyAmount[];
   transaction_count: number;
@@ -69,6 +83,7 @@ export type UncategorizedSpendingGroup = {
 
 export type CategorySpendingReport = {
   period: CategorySpendingPeriod;
+  summary: BudgetMonthSummary;
   currencies: CategorySpendingCurrencyTotal[];
   envelopes: CategorySpendingNode[];
   income_categories: CategorySpendingNode[];
@@ -187,6 +202,10 @@ function getTransactionCurrency(transaction: Transaction) {
   return getTransactionPrimaryAccount(transaction)?.currency ?? "unknown";
 }
 
+function getPeriodMonth(period: CategorySpendingPeriod) {
+  return period.start_date.slice(0, 7);
+}
+
 function toReportTransaction(transaction: Transaction, categoriesById: Map<string, Category>): ReportTransaction {
   const category = transaction.category_id ? categoriesById.get(transaction.category_id) ?? null : null;
   const path = category ? getCategoryPath(category, categoriesById) : [];
@@ -260,6 +279,7 @@ function buildNode(
     category_id: category.id,
     name: category.name,
     description: category.description ?? null,
+    icon: category.icon,
     path,
     totals: toCurrencyAmounts(amounts, options.currencyTotals, category.type),
     transaction_count: allTransactions.length,
@@ -293,6 +313,7 @@ export function buildCategorySpendingReport(options: {
   );
   const reportTransactions = periodTransactions.map((transaction) => toReportTransaction(transaction, categoriesById));
   const currencyTotals = new Map<string, CategorySpendingCurrencyTotal>();
+  const transactionCountsByCurrency = new Map<string, number>();
   const transactionsByCategory = new Map<string, ReportTransaction[]>();
   const uncategorizedByKind = new Map<"income" | "expense", ReportTransaction[]>();
 
@@ -313,6 +334,7 @@ export function buildCategorySpendingReport(options: {
     }
 
     currencyTotals.set(transaction.currency, totals);
+    transactionCountsByCurrency.set(transaction.currency, (transactionCountsByCurrency.get(transaction.currency) ?? 0) + 1);
 
     if (transaction.category_id) {
       const list = transactionsByCategory.get(transaction.category_id) ?? [];
@@ -346,13 +368,83 @@ export function buildCategorySpendingReport(options: {
     };
   });
 
+  const currencies = sortCurrencyTotals(Array.from(currencyTotals.values()));
+
   return {
     period,
-    currencies: sortCurrencyTotals(Array.from(currencyTotals.values())),
+    summary: {
+      month: getPeriodMonth(period),
+      start_date: period.start_date,
+      end_date: period.end_date,
+      label: period.label,
+      transaction_count: reportTransactions.length,
+      currencies: currencies.map((total) => ({
+        ...total,
+        transaction_count: transactionCountsByCurrency.get(total.currency) ?? 0,
+      })),
+    },
+    currencies,
     envelopes,
     income_categories: incomeCategories,
     uncategorized,
   };
+}
+
+export function buildBudgetMonthlySummaries(options: {
+  transactions: Transaction[];
+  currentMonth: Date;
+  monthsShown?: number;
+}): BudgetMonthSummary[] {
+  const monthsShown = options.monthsShown ?? 13;
+
+  return Array.from({ length: monthsShown }, (_, index) => {
+    const month = addMonths(options.currentMonth, index - (monthsShown - 1));
+    const start = startOfMonth(month);
+    const end = endOfMonth(month);
+    const period = {
+      start_date: formatDate(start),
+      end_date: formatDate(end),
+      label: format(start, "MMMM yyyy"),
+    };
+    const periodTransactions = options.transactions.filter(
+      (transaction) =>
+        transaction.status === "paid" &&
+        transaction.kind !== "transfer" &&
+        transaction.occurred_at >= period.start_date &&
+        transaction.occurred_at <= period.end_date,
+    );
+    const currencyTotals = new Map<string, BudgetMonthCurrencySummary>();
+
+    for (const transaction of periodTransactions) {
+      const currency = getTransactionCurrency(transaction);
+      const amount = getTransactionAnalyticsAmount(transaction);
+      const total = currencyTotals.get(currency) ?? {
+        currency,
+        income_total: 0,
+        expense_total: 0,
+        net: 0,
+        transaction_count: 0,
+      };
+
+      if (transaction.kind === "income") {
+        total.income_total += amount;
+        total.net += amount;
+      } else {
+        total.expense_total += amount;
+        total.net -= amount;
+      }
+
+      total.transaction_count += 1;
+      currencyTotals.set(currency, total);
+    }
+
+    return {
+      month: format(start, "yyyy-MM"),
+      ...period,
+      transaction_count: periodTransactions.length,
+      currencies: sortCurrencyTotals(Array.from(currencyTotals.values())),
+    };
+  });
 }
 
 export function getCategoryRootId(categoryId: string, categories: Category[]) {

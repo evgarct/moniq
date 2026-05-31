@@ -2,42 +2,33 @@
 
 ## Overview
 
-The Budget page (`/budget`) shows monthly cashflow across 13 rolling months and lets users drill into spending by category. It answers two questions at a glance:
+The Budget page (`/budget`) shows retrospective monthly cashflow and lets users drill into spending by envelope, category, and transaction. It answers three questions at a glance:
 
-1. **Is this month better or worse than the last?** — answered by the diverging bar chart at the top.
-2. **Where is the money going?** — answered by the category grid below.
+1. **Is this month positive or negative?** The top timeline shows net cashflow by month.
+2. **Which envelopes used the income?** The month analysis sheet shows root expense envelopes as percentages of income and total expenses.
+3. **Where is the money going?** The category grid and detail panel show current-month category activity.
+
+All budget analytics use paid transactions only. Transfers are excluded. Debt payments keep the finance analytics rule that only `interest_amount` contributes to expense analytics.
 
 ## Page Layout
 
-The page is a **viewport-fitting, no-scroll-at-page-level** layout. The outer container is `h-full overflow-hidden`. Each section owns its own scroll independently:
+The page is a viewport-fitting layout. The outer container is `h-full overflow-hidden`; each section owns its own scroll.
 
 ```
-┌──────────────────────────────────────┐
-│  BudgetBarChart + month navigation   │  shrink-0, never scrolls
-├──────────────────────────────────────┤
-│  EXPENSES   (section total →)        │  flex-[3], overflow-y-auto
-│   [tile] [tile] [tile] [tile] …      │
-├──────────────────────────────────────┤
-│  INCOME     (section total →)        │  flex-[2], overflow-y-auto
-│   [tile] …                           │
-└──────────────────────────────────────┘
++--------------------------------------+
+|  BudgetBarChart + month navigation   |  shrink-0, never scrolls
++--------------------------------------+
+|  EXPENSES                            |  flex-[3], overflow-y-auto
+|   [tile] [tile] [tile] [tile]        |
++--------------------------------------+
+|  INCOME                              |  flex-[2], overflow-y-auto
+|   [tile]                             |
++--------------------------------------+
 ```
 
-When a category tile is selected, a **detail panel** opens to the right of the category panels on desktop (`lg:w-[340px]` left + `flex-1` right), also with its own internal scroll:
+When a category tile is selected, a detail panel opens to the right of the category panels on desktop. Month analysis opens as a right-side `Sheet` over the page and does not replace the category drill-in.
 
-```
-┌──────────────────┬───────────────────┐
-│  chart + nav     (full width)        │
-├──────────────────┬───────────────────┤
-│  EXPENSES        │  Category name    │
-│   [tile][tile]   │  ────────────     │
-├──────────────────│  Subcategories    │
-│  INCOME          │  ────────────     │
-│   [tile]         │  Transactions     │
-└──────────────────┴───────────────────┘
-```
-
-**Important:** the page does NOT use `PageContainer` or `Surface` as a full-page wrapper. Content renders directly on `bg-background`, matching the Balance page pattern. `Surface` is only for floating or inset panels — never for the page itself.
+The page does not use `PageContainer` or a full-page `Surface`. Content renders directly on `bg-background`, matching the Balance page pattern.
 
 ## Components
 
@@ -45,56 +36,58 @@ When a category tile is selected, a **detail panel** opens to the right of the c
 
 Location: `features/budget/components/budget-view.tsx`
 
-Top-level view. Owns month state, selected-category state, and all data derivation (filtering transactions to the current month, building the category tree, computing subcategory totals). Renders the chart, grid sections, and detail panel.
+Top-level view. Owns selected month, selected category, and selected month-analysis report state. It renders the monthly timeline, month navigation, category grids, category detail panel, and month analysis sheet.
 
 ### `BudgetBarChart`
 
 Location: `features/budget/components/budget-bar-chart.tsx`
 
-A 13-month **diverging bar chart** showing net cashflow (income − expenses) per month. The zero line sits at the vertical midpoint; positive months extend upward in foreground color, negative months extend downward in destructive color. The current month is filled solid; past months use reduced opacity.
+A 13-month interactive timeline. It keeps every currency in its own lane and shows net cashflow against a midpoint baseline. Positive months extend upward with neutral chart color; negative months extend downward with the destructive token. The current month is emphasized with a stronger fill.
 
-**Implementation notes:**
-- The SVG uses `preserveAspectRatio="none"` so bars scale horizontally to fill any container width. This is safe because the SVG contains only `<rect>` elements — no text.
-- Month labels live in a separate HTML `<div className="flex w-full">` below the SVG, not inside the SVG, to prevent text distortion.
-- `CHART_H = 56` keeps the chart compact so labels sit close to the bars.
-- Uses `type-body-12 leading-none` for labels (design-system typography, never arbitrary font sizes).
+Hover opens a `Tooltip` with income, expenses, net, paid transaction count, and top root envelopes. Click opens `BudgetMonthAnalysisSheet` for full detail.
+
+### `BudgetMonthAnalysisSheet`
+
+Location: `features/budget/components/budget-month-analysis-sheet.tsx`
+
+Right-side sheet opened from a month in the timeline. It shows currency-local overview totals, root expense envelopes with percentages, nested category rows, income category breakdowns, uncategorized groups, and transaction rows for expanded groups.
+
+The sheet follows the Moniq row language: no cards, no chips, no icon badges, no bright semantic fills, and no cross-currency aggregation.
 
 ### `CategoryTile`
 
-A grid cell button: centered icon (Lucide outline, `size-[18px]`) + `type-body-12` name + `type-body-12` amount. No border, no shadow. Selection state is `bg-secondary/60`; hover is `hover:bg-secondary/50`. Grid columns adapt when the detail panel is open (`grid-cols-3 lg:grid-cols-4`) vs. when it is closed (`grid-cols-4 sm:grid-cols-5 xl:grid-cols-6`).
-
-### `SectionHeader`
-
-Inline section label (ALL-CAPS 12px tracked) with the currency-split total for that section right-aligned. Totals are summed across all category nodes in the section, grouped by currency.
+A grid cell button: centered icon, `type-body-12` name, and amount. Selection state is `bg-secondary/60`; hover is `hover:bg-secondary/50`.
 
 ### `CategoryDetail`
 
-Appears in the right panel when a tile is selected. Shows: category header row (icon + name + total), subcategory rows (flat, divided by `border-t border-border/40`), and a `<TransactionList>` for the category's settled transactions in the current month.
+Appears in the right panel when a category tile is selected. Shows the category header, subcategory rows, and a `TransactionList` for settled transactions in the current month.
 
 ## Data Flow
 
 ```
-useFinanceData()                   ← TanStack Query, fetches /api/finance/snapshot
-  ↓
-BudgetView
-  ↓ filter to current month
-  monthTransactions
-  ↓ buildCategoryTree(categories, monthTransactions)
-  categoryTree                     ← CategoryTreeNode[] with totals_by_currency
-  ↓ split and sort by |total_amount|
-  expenseNodes / incomeNodes
-  ↓ getCategoryDescendantIds() for selected category
-  selectedTransactions
+useFinanceData()
+  -> BudgetView
+  -> buildBudgetMonthlySummaries(transactions, currentMonth)
+  -> monthly timeline summaries
+  -> buildCategorySpendingReport(categories, transactions, month)
+  -> month tooltip + month analysis sheet
+  -> filter to selected month
+  -> monthTransactions
+  -> buildCategoryTree(categories, monthTransactions)
+  -> categoryTree
+  -> split and sort by |total_amount|
+  -> expenseNodes / incomeNodes
+  -> getCategoryDescendantIds() for selected category
+  -> selectedTransactions
 ```
 
-`buildCategoryTree` aggregates transaction amounts into each category node and rolls up children into parents. Totals are split by currency — never mixed into a single number.
+`buildCategoryTree` powers the current-month category grid and detail panel. `buildCategorySpendingReport` is the shared UI/MCP analytics contract. The MCP tools `get_category_spending_report` and `get_budget_month_analysis` return the same report shape, including the `summary` block used by the Budget page. Percentages are always calculated per currency.
 
 ## Storybook
 
-Stories: `stories/pages/budget-page.stories.tsx` → `Pages/Budget`
+Stories:
 
-- `Default` — chart + grid, nothing selected
-- `CategoryExpanded` — Core Bills selected, subcategory rows and transactions visible in the detail panel
-- `CategoryCollapsed` — tile toggled off, panel closed
+- `Pages/Budget` renders the full viewport-fitting page.
+- `Features/Budget/BudgetBarChart` covers default, previous-month, negative-month, and empty timeline states.
 
-The story wrapper uses `<div className="h-screen">` (no padding) so the viewport-fitting layout renders correctly in the Storybook canvas. The `BudgetBarChart` component has its own isolated stories under `Features/Budget/BudgetBarChart`.
+The full-page story wrapper uses `<div className="h-screen">` with no padding so the viewport-fitting layout renders correctly in Storybook.

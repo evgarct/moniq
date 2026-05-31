@@ -12,12 +12,13 @@ const meta = {
   component: BudgetBarChart,
   parameters: { layout: "padded" },
   argTypes: {
-    // Hide the raw transaction array from the controls panel — not useful to edit there
     transactions: { table: { disable: true } },
+    categories: { table: { disable: true } },
+    onMonthSelect: { table: { disable: true } },
   },
   decorators: [
     (Story) => (
-      <div className="mx-auto max-w-lg">
+      <div className="mx-auto max-w-3xl">
         <Surface tone="panel" padding="lg" className="border border-black/5">
           <Story />
         </Surface>
@@ -29,35 +30,38 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// All 13 months visible, current month (today) highlighted in dark
 export const Default: Story = {
   args: {
     transactions: snapshot.transactions,
+    categories: snapshot.categories,
     currentMonth: new Date(),
+    onMonthSelect: () => {},
   },
 };
 
-// Navigate 3 months back — highlighted bar shifts left, future months drop off right
 export const PreviousMonth: Story = {
   args: {
     transactions: snapshot.transactions,
+    categories: snapshot.categories,
     currentMonth: subMonths(new Date(), 3),
+    onMonthSelect: () => {},
   },
 };
 
-// Negative net month — mock data has a large vacation purchase in Oct 2025
-// making net cashflow negative; bar renders below zero line in destructive color
 export const NegativeMonth: Story = {
   args: {
     transactions: snapshot.transactions,
+    categories: snapshot.categories,
     currentMonth: subMonths(new Date(), 6),
+    onMonthSelect: () => {},
   },
 };
 
-// No transactions at all — every bar is a thin stub at the zero line
 export const Empty: Story = {
   args: {
     transactions: [],
+    categories: snapshot.categories,
     currentMonth: new Date(),
+    onMonthSelect: () => {},
   },
 };
