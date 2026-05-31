@@ -126,8 +126,162 @@ describe("MCP tools", () => {
       "delete_transaction_draft",
       "submit_transaction_batch",
       "get_category_spending_report",
+      "get_budget_month_analysis",
     ]);
     expect(getMcpTools().map((tool) => tool.name)).toEqual(names);
+  });
+
+  it("returns budget month analysis through the spending report source RPC", async () => {
+    mocks.rpc.mockImplementation((name: string) => {
+      if (name === "mcp_lookup_api_key") {
+        return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
+      }
+      if (name === "mcp_touch_api_key") {
+        return Promise.resolve({ data: null, error: null });
+      }
+      if (name === "mcp_get_category_spending_report_source") {
+        return Promise.resolve({
+          data: {
+            wallets: [
+              {
+                id: "wallet-1",
+                user_id: "user-1",
+                name: "Main",
+                type: "cash",
+                cash_kind: "debit_card",
+                debt_kind: null,
+                balance: 0,
+                credit_limit: null,
+                currency: "EUR",
+                created_at: "2026-01-01",
+              },
+            ],
+            categories: [
+              {
+                id: "income-root",
+                user_id: "user-1",
+                name: "Income",
+                description: null,
+                icon: null,
+                type: "income",
+                parent_id: null,
+                is_system: false,
+                created_at: "2026-01-01",
+              },
+              {
+                id: "salary",
+                user_id: "user-1",
+                name: "Salary",
+                description: null,
+                icon: null,
+                type: "income",
+                parent_id: "income-root",
+                is_system: false,
+                created_at: "2026-01-01",
+              },
+              {
+                id: "living",
+                user_id: "user-1",
+                name: "Living",
+                description: null,
+                icon: null,
+                type: "expense",
+                parent_id: null,
+                is_system: false,
+                created_at: "2026-01-01",
+              },
+              {
+                id: "food",
+                user_id: "user-1",
+                name: "Food",
+                description: null,
+                icon: null,
+                type: "expense",
+                parent_id: "living",
+                is_system: false,
+                created_at: "2026-01-01",
+              },
+            ],
+            transactions: [
+              {
+                id: "salary-1",
+                user_id: "user-1",
+                title: "Salary",
+                note: null,
+                occurred_at: "2026-04-05",
+                created_at: "2026-04-05",
+                status: "paid",
+                kind: "income",
+                amount: 1000,
+                destination_amount: null,
+                fx_rate: null,
+                principal_amount: null,
+                interest_amount: null,
+                extra_principal_amount: null,
+                category_id: "salary",
+                source_account_id: null,
+                destination_account_id: "wallet-1",
+                schedule_id: null,
+                schedule_occurrence_date: null,
+                is_schedule_override: false,
+                allocation_id: null,
+              },
+              {
+                id: "food-1",
+                user_id: "user-1",
+                title: "Groceries",
+                note: null,
+                occurred_at: "2026-04-06",
+                created_at: "2026-04-06",
+                status: "paid",
+                kind: "expense",
+                amount: 250,
+                destination_amount: null,
+                fx_rate: null,
+                principal_amount: null,
+                interest_amount: null,
+                extra_principal_amount: null,
+                category_id: "food",
+                source_account_id: "wallet-1",
+                destination_account_id: null,
+                schedule_id: null,
+                schedule_occurrence_date: null,
+                is_schedule_override: false,
+                allocation_id: null,
+              },
+            ],
+          },
+          error: null,
+        });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    const response = await postMcp({
+      jsonrpc: "2.0",
+      id: "budget-month",
+      method: "tools/call",
+      params: {
+        name: "get_budget_month_analysis",
+        arguments: { month: "2026-04" },
+      },
+    });
+
+    const body = await response.json();
+    expect(body.result.structuredContent.summary).toMatchObject({
+      month: "2026-04",
+      transaction_count: 2,
+      currencies: [{ currency: "EUR", income_total: 1000, expense_total: 250, net: 750, transaction_count: 2 }],
+    });
+    expect(body.result.structuredContent.envelopes[0]).toMatchObject({
+      name: "Living",
+      totals: [{ currency: "EUR", amount: 250, percent_of_income: 25, percent_of_total_expenses: 100 }],
+    });
+    expect(mocks.rpc).toHaveBeenCalledWith("mcp_get_category_spending_report_source", {
+      p_key_hash: AUTH_KEY_HASH,
+      p_start_date: "2026-04-01",
+      p_end_date: "2026-04-30",
+    });
   });
 
   it("does not expose savings bucket management through MCP tool schemas", () => {

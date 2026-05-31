@@ -1107,6 +1107,46 @@ export function getMcpTools() {
             additionalProperties: false,
           },
         },
+        {
+          name: "get_budget_month_analysis",
+          title: "Get budget month analysis",
+          description:
+            "Read Moniq monthly budget analytics for a period. Defaults to the last fully completed calendar month. Returns paid income and expenses by currency, root envelopes, category tree, percentages, uncategorized groups, and transaction detail.",
+          annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+          _meta: {
+            "openai/toolInvocation/invoking": "Building month analysis",
+            "openai/toolInvocation/invoked": "Month analysis ready",
+          },
+          inputSchema: {
+            type: "object",
+            title: "Budget month analysis period",
+            properties: {
+              period_preset: {
+                type: "string",
+                title: "Preset period",
+                enum: ["last_complete_month"],
+                description:
+                  "Optional preset. Use last_complete_month to report the last fully completed calendar month.",
+              },
+              month: {
+                type: "string",
+                title: "Month",
+                description: "Calendar month in YYYY-MM format. Mutually exclusive with start_date/end_date.",
+              },
+              start_date: {
+                type: "string",
+                title: "Start date",
+                description: "Inclusive custom period start date in YYYY-MM-DD format.",
+              },
+              end_date: {
+                type: "string",
+                title: "End date",
+                description: "Inclusive custom period end date in YYYY-MM-DD format.",
+              },
+            },
+            additionalProperties: false,
+          },
+        },
       ];
 }
 
@@ -2558,7 +2598,7 @@ async function handleToolCall(
     return handleDeleteRecurringSchedule(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash, t);
   }
 
-  if (toolName === "get_category_spending_report") {
+  if (toolName === "get_category_spending_report" || toolName === "get_budget_month_analysis") {
     return handleCategorySpendingReportTool(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash, t);
   }
 

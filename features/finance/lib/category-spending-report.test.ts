@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { buildCategorySpendingReport, resolveCategorySpendingPeriod } from "@/features/finance/lib/category-spending-report";
+import {
+  buildBudgetMonthlySummaries,
+  buildCategorySpendingReport,
+  resolveCategorySpendingPeriod,
+} from "@/features/finance/lib/category-spending-report";
 import type { Account, Category, Transaction } from "@/types/finance";
 
 const userId = "user-1";
@@ -256,6 +260,17 @@ describe("buildCategorySpendingReport", () => {
       { currency: "CZK", income_total: 1000, expense_total: 400, net: 600 },
       { currency: "EUR", income_total: 0, expense_total: 20, net: -20 },
     ]);
+    expect(report.summary).toEqual({
+      month: "2026-04",
+      start_date: "2026-04-01",
+      end_date: "2026-04-30",
+      label: "April 2026",
+      transaction_count: 4,
+      currencies: [
+        { currency: "CZK", income_total: 1000, expense_total: 400, net: 600, transaction_count: 3 },
+        { currency: "EUR", income_total: 0, expense_total: 20, net: -20, transaction_count: 1 },
+      ],
+    });
 
     const living = report.envelopes.find((item) => item.category_id === "living");
     expect(living?.totals).toEqual([
@@ -302,5 +317,75 @@ describe("buildCategorySpendingReport", () => {
     expect(report.uncategorized.find((item) => item.kind === "expense")?.totals).toEqual([
       { currency: "CZK", amount: 30, percent_of_income: 30, percent_of_total_expenses: 100 },
     ]);
+  });
+});
+
+describe("buildBudgetMonthlySummaries", () => {
+  it("returns currency-separated positive, negative, and zero-net months", () => {
+    const summaries = buildBudgetMonthlySummaries({
+      currentMonth: new Date("2026-04-15T12:00:00Z"),
+      monthsShown: 3,
+      transactions: [
+        tx({
+          id: "feb-income",
+          title: "Salary",
+          kind: "income",
+          amount: 1000,
+          occurred_at: "2026-02-01",
+          category_id: "salary",
+          destination_account_id: "czk-cash",
+        }),
+        tx({
+          id: "feb-expense",
+          title: "Rent",
+          kind: "expense",
+          amount: 400,
+          occurred_at: "2026-02-02",
+          category_id: "groceries",
+          source_account_id: "czk-cash",
+        }),
+        tx({
+          id: "mar-expense",
+          title: "Trip",
+          kind: "expense",
+          amount: 100,
+          occurred_at: "2026-03-02",
+          category_id: "groceries",
+          source_account_id: "eur-cash",
+        }),
+        tx({
+          id: "planned-mar",
+          title: "Planned",
+          kind: "expense",
+          amount: 500,
+          occurred_at: "2026-03-03",
+          status: "planned",
+          category_id: "groceries",
+          source_account_id: "eur-cash",
+        }),
+        tx({
+          id: "transfer-apr",
+          title: "Transfer",
+          kind: "transfer",
+          amount: 200,
+          occurred_at: "2026-04-01",
+          source_account_id: "czk-cash",
+          destination_account_id: "eur-cash",
+        }),
+      ],
+    });
+
+    expect(summaries.map((summary) => summary.month)).toEqual(["2026-02", "2026-03", "2026-04"]);
+    expect(summaries[0].currencies).toEqual([
+      { currency: "CZK", income_total: 1000, expense_total: 400, net: 600, transaction_count: 2 },
+    ]);
+    expect(summaries[1].currencies).toEqual([
+      { currency: "EUR", income_total: 0, expense_total: 100, net: -100, transaction_count: 1 },
+    ]);
+    expect(summaries[2]).toMatchObject({
+      month: "2026-04",
+      transaction_count: 0,
+      currencies: [],
+    });
   });
 });
