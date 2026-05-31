@@ -32,10 +32,12 @@ function getCurrencyNet(summary: BudgetMonthSummary, currency: string) {
 function MoneyValue({
   amount,
   currency,
+  display = "absolute",
   tone,
 }: {
   amount: number;
   currency: string;
+  display?: "absolute" | "signed";
   tone?: "default" | "muted" | "positive" | "negative";
 }) {
   if (!isSupportedCurrency(currency)) {
@@ -51,7 +53,7 @@ function MoneyValue({
       amount={amount}
       currency={currency as CurrencyCode}
       tone={tone}
-      display="absolute"
+      display={display}
       showMinorUnits={false}
       className="text-inherit"
     />
@@ -85,7 +87,7 @@ function MonthTooltip({
             <div key={currency.currency} className="grid grid-cols-[1fr_auto] gap-3 text-xs text-background">
               <span className="text-background/70">{currency.currency}</span>
               <span className={cn("tabular-nums", currency.net < 0 && "text-background")}>
-                {t("netLabel")}: <MoneyValue amount={currency.net} currency={currency.currency} tone={currency.net >= 0 ? "positive" : "negative"} />
+                {t("netLabel")}: <MoneyValue amount={currency.net} currency={currency.currency} display="signed" tone={currency.net >= 0 ? "positive" : "negative"} />
               </span>
               <span className="text-background/70">{t("incomeLabel")}</span>
               <MoneyValue amount={currency.income_total} currency={currency.currency} />

@@ -570,6 +570,7 @@
       "overview": "Overview",
       "incomeLabel": "Income",
       "expensesLabel": "Expenses",
+      "netLabel": "Net",
       "leftLabel": "Left",
       "overLabel": "Over",
       "spentFromIncome": "Spent from income",

@@ -570,6 +570,7 @@
       "overview": "Обзор",
       "incomeLabel": "Доход",
       "expensesLabel": "Расходы",
+      "netLabel": "Итог",
       "leftLabel": "Осталось",
       "overLabel": "Перерасход",
       "spentFromIncome": "Потрачено от дохода",

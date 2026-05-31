@@ -43,11 +43,13 @@ function MoneyValue({
   amount,
   currency,
   className,
+  display = "absolute",
   tone,
 }: {
   amount: number;
   currency: string;
   className?: string;
+  display?: "absolute" | "signed";
   tone?: "default" | "muted" | "positive" | "negative";
 }) {
   if (!isSupportedCurrency(currency)) {
@@ -62,7 +64,7 @@ function MoneyValue({
     <MoneyAmount
       amount={amount}
       currency={currency as CurrencyCode}
-      display="absolute"
+      display={display}
       tone={tone}
       className={className}
     />
@@ -131,7 +133,7 @@ function CurrencyOverview({
   const t = useTranslations("budget.monthAnalysis");
   const spentPercent = percent(currency.expense_total, currency.income_total);
   const netPercent = percent(Math.abs(currency.net), currency.income_total);
-  const netLabel = currency.net >= 0 ? t("leftFromIncome") : t("overIncome");
+  const netRatioLabel = currency.net >= 0 ? t("leftFromIncome") : t("overIncome");
 
   return (
     <div className="flex flex-col gap-3 border-t border-border/40 px-2 py-3 first:border-t-0">
@@ -141,10 +143,11 @@ function CurrencyOverview({
           <p className="type-body-12">{t("paidTransactions", { count: currency.transaction_count })}</p>
         </div>
         <div className="text-right">
-          <p className="type-body-12">{currency.net >= 0 ? t("leftLabel") : t("overLabel")}</p>
+          <p className="type-body-12">{t("netLabel")}</p>
           <MoneyValue
-            amount={Math.abs(currency.net)}
+            amount={currency.net}
             currency={currency.currency}
+            display="signed"
             tone={currency.net >= 0 ? "positive" : "negative"}
             className="text-sm font-semibold tabular-nums"
           />
@@ -160,7 +163,7 @@ function CurrencyOverview({
 
       <div className="grid gap-1.5 border-t border-border/40 pt-2">
         <OverviewRatio label={t("spentFromIncome")} value={spentPercent} />
-        <OverviewRatio label={netLabel} value={netPercent} />
+        <OverviewRatio label={netRatioLabel} value={netPercent} />
       </div>
     </div>
   );
