@@ -3,6 +3,7 @@ import { expect, within } from "storybook/test";
 
 import { McpSettings } from "@/features/settings/components/mcp-settings";
 import { CurrencySettings } from "@/features/settings/components/currency-settings";
+import { BillingSettings } from "@/features/settings/components/billing-settings";
 import { PageContainer } from "@/components/page-container";
 import { AppProviders } from "@/components/providers/app-providers";
 import { makeFinanceSnapshot, StoryWorkspace, withPathname } from "@/stories/fixtures/story-data";
@@ -44,6 +45,18 @@ function SettingsPageTemplate({ keys }: { keys: typeof sampleKeys }) {
               initialDefaultCurrencySource={snapshot.preferences.default_currency_source}
               walletCurrencies={walletCurrencies}
             />
+            <BillingSettings
+              entitlement={{
+                user_id: "user-1",
+                stripe_customer_id: "cus_story",
+                stripe_subscription_id: "sub_story",
+                subscription_status: "trialing",
+                trial_end: "2026-07-05T12:00:00.000Z",
+                current_period_end: "2026-07-05T12:00:00.000Z",
+                cancel_at_period_end: false,
+                access_override: null,
+              }}
+            />
             <McpSettings initialKeys={keys} />
           </div>
         </PageContainer>
@@ -70,6 +83,7 @@ export const Default: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("Settings")).toBeInTheDocument();
     await expect(canvas.getByText("Default currency")).toBeInTheDocument();
+    await expect(canvas.getByText("Subscription")).toBeInTheDocument();
     await expect(canvas.getByText("Claude MCP Connector")).toBeInTheDocument();
     await expect(canvas.getByText("My laptop")).toBeInTheDocument();
   },

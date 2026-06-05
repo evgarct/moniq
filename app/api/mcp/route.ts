@@ -77,6 +77,33 @@ type TransactionOperationSummary = {
   items?: TransactionOperationItem[];
 };
 
+const MCP_MUTATION_TOOLS = new Set([
+  "submit_transaction_batch",
+  "create_transactions",
+  "create_transaction",
+  "update_transaction",
+  "delete_transaction",
+  "update_transaction_draft",
+  "delete_transaction_draft",
+  "create_recurring_transaction_schedule",
+  "create_recurring_transaction",
+  "update_recurring_transaction_schedule",
+  "update_recurring_transaction",
+  "reschedule_recurring_transaction_series_from_occurrence",
+  "reschedule_recurring_transaction",
+  "update_recurring_transaction_occurrence",
+  "update_recurring_occurrence",
+  "mark_recurring_transaction_occurrence_paid",
+  "mark_recurring_occurrence_paid",
+  "delete_recurring_transaction_occurrence",
+  "delete_recurring_occurrence",
+  "skip_recurring_occurrence",
+  "set_recurring_transaction_schedule_state",
+  "set_recurring_transaction_state",
+  "delete_recurring_transaction_schedule",
+  "delete_recurring_transaction",
+]);
+
 export async function GET(request: Request) {
   const auth = await authenticateApiKey(request);
   if (!auth) {
@@ -246,6 +273,12 @@ async function authenticateApiKey(
   db.rpc("mcp_touch_api_key", { p_key_id: row.id }).then(() => {});
 
   return { userId: row.user_id, keyHash };
+}
+
+async function keyHasMutationEntitlement(keyHash: string) {
+  const db = createAnonClient();
+  const { data, error } = await db.rpc("mcp_key_has_mutation_entitlement", { p_key_hash: keyHash });
+  return !error && data === true;
 }
 
 // ---------------------------------------------------------------------------
@@ -2513,6 +2546,14 @@ async function handleToolCall(
   t: McpTranslator,
 ): Promise<McpResponse> {
   const toolName = params.name as string;
+
+  if (MCP_MUTATION_TOOLS.has(toolName) && !(await keyHasMutationEntitlement(auth.keyHash))) {
+    return {
+      jsonrpc: "2.0",
+      id,
+      error: { code: -32002, message: t("mcp.errors.subscriptionRequired") },
+    };
+  }
 
   if (toolName === "get_finance_context") {
     return handleGetFinanceContext(id, auth.keyHash, t);

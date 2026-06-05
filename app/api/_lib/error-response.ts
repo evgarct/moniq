@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { translateFinanceErrorMessage } from "@/features/finance/server/api-errors";
+import { isBillingAccessError } from "@/lib/billing/access";
 import { getRequestTranslator } from "@/i18n/translator";
 
 type TranslationValues = Record<string, string | number | Date>;
@@ -39,11 +40,12 @@ export async function financeErrorResponse(
 ) {
   const t = (await getRequestTranslator(request)) as (key: string) => string;
   const unauthorized = error instanceof Error && error.message === "Unauthorized";
+  const subscriptionRequired = isBillingAccessError(error);
   const message =
     error instanceof Error
       ? translateFinanceErrorMessage(t, error.message)
       : t(fallbackKey);
-  const status = unauthorized ? 401 : 400;
+  const status = unauthorized ? 401 : subscriptionRequired ? 402 : 400;
 
   return NextResponse.json({ error: message }, { status });
 }

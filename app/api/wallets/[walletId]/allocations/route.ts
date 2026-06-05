@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 
 import { financeErrorResponse } from "@/app/api/_lib/error-response";
 import { createWalletAllocation } from "@/features/finance/server/repository";
+import { requireMutationEntitlementForRequest } from "@/lib/billing/server";
 import { withApiPerformance, withMutationPerformance } from "@/lib/performance/api";
 import { walletAllocationInputSchema } from "@/types/finance-schemas";
 
 export async function POST(request: Request, { params }: { params: Promise<{ walletId: string }> }) {
   return withApiPerformance(request, "wallet_allocation_create", async () => {
     try {
+      await requireMutationEntitlementForRequest(request);
       const { walletId } = await params;
       const payload = walletAllocationInputSchema.parse(await request.json());
       return NextResponse.json(
