@@ -2,9 +2,11 @@ import { NextResponse } from "next/server";
 
 import { financeErrorResponse } from "@/app/api/_lib/error-response";
 import { batchConfirmBankingTransactions } from "@/features/banking/server/repository";
+import { requireMutationEntitlementForRequest } from "@/lib/billing/server";
 
 export async function POST(request: Request) {
   try {
+    await requireMutationEntitlementForRequest(request);
     const payload = (await request.json()) as { transactionIds?: string[] };
     const snapshot = await batchConfirmBankingTransactions(payload.transactionIds ?? []);
     return NextResponse.json(snapshot);

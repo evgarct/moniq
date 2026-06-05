@@ -2,9 +2,11 @@ import { NextResponse } from "next/server";
 
 import { financeErrorResponse } from "@/app/api/_lib/error-response";
 import { uploadCsvImport } from "@/features/banking/server/repository";
+import { requireMutationEntitlementForRequest } from "@/lib/billing/server";
 
 export async function POST(request: Request) {
   try {
+    await requireMutationEntitlementForRequest(request);
     const formData = await request.formData();
     const file = formData.get("file");
     const walletId = String(formData.get("walletId") ?? "").trim();

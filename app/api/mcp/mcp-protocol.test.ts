@@ -18,14 +18,23 @@ const AUTH_HEADERS = {
 };
 const AUTH_KEY_HASH = "4e9c2607dbc70aac6e1c00a5971f3929addde44c0c00f508d6f0952865ea5627";
 
+function authRpcResponse(name: string) {
+  if (name === "mcp_lookup_api_key") {
+    return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
+  }
+  if (name === "mcp_touch_api_key") {
+    return Promise.resolve({ data: null, error: null });
+  }
+  if (name === "mcp_key_has_mutation_entitlement") {
+    return Promise.resolve({ data: true, error: null });
+  }
+  return null;
+}
+
 function setupAuth() {
   mocks.rpc.mockImplementation((name: string) => {
-    if (name === "mcp_lookup_api_key") {
-      return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
-    }
-    if (name === "mcp_touch_api_key") {
-      return Promise.resolve({ data: null, error: null });
-    }
+    const authResponse = authRpcResponse(name);
+    if (authResponse) return authResponse;
     return Promise.resolve({ data: null, error: null });
   });
 }
@@ -133,6 +142,8 @@ describe("MCP tools", () => {
 
   it("returns budget month analysis through the spending report source RPC", async () => {
     mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name);
+      if (authResponse) return authResponse;
       if (name === "mcp_lookup_api_key") {
         return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
       }
@@ -383,6 +394,8 @@ describe("MCP tools", () => {
 
   it("returns finance context with category paths and selectable flags", async () => {
     mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name);
+      if (authResponse) return authResponse;
       if (name === "mcp_lookup_api_key") {
         return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
       }
@@ -450,6 +463,8 @@ describe("MCP tools", () => {
 
   it("returns quick card and debt balances", async () => {
     mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name);
+      if (authResponse) return authResponse;
       if (name === "mcp_lookup_api_key") {
         return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
       }
@@ -662,6 +677,8 @@ describe("MCP tools", () => {
     };
 
     mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name);
+      if (authResponse) return authResponse;
       if (name === "mcp_lookup_api_key") {
         return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
       }
@@ -712,6 +729,40 @@ describe("MCP tools", () => {
       p_category_ids: ["cat-rent"],
       p_include_context: true,
     });
+  });
+
+  it("blocks MCP mutation tools without a billing entitlement", async () => {
+    mocks.rpc.mockImplementation((name: string) => {
+      if (name === "mcp_lookup_api_key") {
+        return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
+      }
+      if (name === "mcp_touch_api_key") {
+        return Promise.resolve({ data: null, error: null });
+      }
+      if (name === "mcp_key_has_mutation_entitlement") {
+        return Promise.resolve({ data: false, error: null });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    const response = await postMcp({
+      jsonrpc: "2.0",
+      id: "create-blocked",
+      method: "tools/call",
+      params: {
+        name: "create_transactions",
+        arguments: {
+          transactions: [],
+        },
+      },
+    });
+
+    const body = await response.json();
+    expect(body.error).toMatchObject({
+      code: -32002,
+      message: "An active Moniq subscription is required to change data. Read-only tools remain available.",
+    });
+    expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_create_transactions", expect.anything());
   });
 
   it("rejects direct creation when required fields are missing", async () => {
@@ -767,6 +818,8 @@ describe("MCP tools", () => {
 
   it("surfaces RPC validation errors for IDs outside the authenticated user", async () => {
     mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name);
+      if (authResponse) return authResponse;
       if (name === "mcp_lookup_api_key") {
         return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
       }
@@ -811,6 +864,8 @@ describe("MCP tools", () => {
 
   it("writes valid income, expense, transfer, and debt payment payloads", async () => {
     mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name);
+      if (authResponse) return authResponse;
       if (name === "mcp_lookup_api_key") {
         return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
       }
@@ -939,6 +994,8 @@ describe("MCP tools", () => {
 
   it("creates recurring transaction schedules through key-hash RPCs", async () => {
     mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name);
+      if (authResponse) return authResponse;
       if (name === "mcp_lookup_api_key") {
         return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
       }
@@ -994,6 +1051,8 @@ describe("MCP tools", () => {
 
   it("creates every-n-weeks recurring transaction schedules through alias tools", async () => {
     mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name);
+      if (authResponse) return authResponse;
       if (name === "mcp_lookup_api_key") {
         return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
       }
@@ -1074,6 +1133,8 @@ describe("MCP tools", () => {
 
   it("materializes and marks a generated recurring occurrence paid", async () => {
     mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name);
+      if (authResponse) return authResponse;
       if (name === "mcp_lookup_api_key") {
         return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
       }

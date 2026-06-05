@@ -1,9 +1,11 @@
 import { redirect } from "@/i18n/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PageContainer } from "@/components/page-container";
+import { BillingSettings } from "@/features/settings/components/billing-settings";
 import { CurrencySettings } from "@/features/settings/components/currency-settings";
 import { McpSettings } from "@/features/settings/components/mcp-settings";
 import { getUserPreferencesWithDefault } from "@/features/finance/server/repository";
+import { getBillingEntitlementForUser } from "@/lib/billing/server";
 import type { AppLocale } from "@/i18n/routing";
 import type { CurrencyCode } from "@/types/currency";
 import { getTranslations } from "next-intl/server";
@@ -38,6 +40,7 @@ export default async function SettingsPage({
     user.id,
     walletCurrencies.map((currency) => ({ currency })),
   );
+  const billingEntitlement = await getBillingEntitlementForUser(user.id);
 
   return (
     <PageContainer className="max-w-2xl">
@@ -45,6 +48,7 @@ export default async function SettingsPage({
         <h1 className="text-xl font-semibold text-foreground">{t("title")}</h1>
       </div>
       <div className="flex flex-col gap-8">
+        <BillingSettings entitlement={billingEntitlement} />
         <CurrencySettings
           initialDefaultCurrency={preferences.default_currency}
           initialDefaultCurrencySource={preferences.default_currency_source}

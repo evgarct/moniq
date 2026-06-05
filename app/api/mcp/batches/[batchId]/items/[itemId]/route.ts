@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { localizedErrorResponse } from "@/app/api/_lib/error-response";
+import { requireMutationEntitlementForUser } from "@/lib/billing/server";
 import { createClient } from "@/lib/supabase/server";
 
 const updateItemSchema = z.object({
@@ -23,6 +24,11 @@ export async function PATCH(
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return localizedErrorResponse(request, "common.errors.unauthorized", 401);
+  try {
+    await requireMutationEntitlementForUser(user.id);
+  } catch {
+    return localizedErrorResponse(request, "common.errors.billing.subscriptionRequired", 402);
+  }
 
   const { batchId, itemId } = await params;
 

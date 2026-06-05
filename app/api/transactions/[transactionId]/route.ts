@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 
 import { financeErrorResponse } from "@/app/api/_lib/error-response";
 import { deleteTransaction, getFinanceSnapshot, updateTransaction } from "@/features/finance/server/repository";
+import { requireMutationEntitlementForRequest } from "@/lib/billing/server";
 import { withApiPerformance, withMutationPerformance } from "@/lib/performance/api";
 import { transactionInputSchema } from "@/types/finance-schemas";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ transactionId: string }> }) {
   return withApiPerformance(request, "transaction_update", async () => {
     try {
+      await requireMutationEntitlementForRequest(request);
       const payload = transactionInputSchema.parse(await request.json());
       const { transactionId } = await params;
       await withMutationPerformance(request, "update_transaction", () => updateTransaction(transactionId, payload));
@@ -21,6 +23,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ tr
 export async function DELETE(request: Request, { params }: { params: Promise<{ transactionId: string }> }) {
   return withApiPerformance(request, "transaction_delete", async () => {
     try {
+      await requireMutationEntitlementForRequest(request);
       const { transactionId } = await params;
       await withMutationPerformance(request, "delete_transaction", () => deleteTransaction(transactionId));
       return NextResponse.json(await getFinanceSnapshot());

@@ -43,6 +43,12 @@
         "save": "Unable to save exchange rates.",
         "refresh": "Unable to refresh exchange rates."
       },
+      "billing": {
+        "subscriptionRequired": "An active Moniq subscription is required to change data. Read-only access remains available.",
+        "checkout": "Unable to start billing checkout.",
+        "portal": "Unable to open the billing portal.",
+        "customerMissing": "Start a subscription before opening the billing portal."
+      },
       "imports": {
         "load": "Unable to load imported transactions.",
         "upload": "Unable to import CSV file.",
@@ -878,6 +884,37 @@
       "saved": "Default currency saved.",
       "saveError": "Unable to save default currency."
     },
+    "billing": {
+      "eyebrow": "Billing",
+      "title": "Subscription",
+      "description": "Moniq costs €2 per month after a 30-day trial. A payment method is collected before the trial starts.",
+      "labels": {
+        "always_paid": "Always paid",
+        "active": "Active",
+        "trialing": "Trial",
+        "canceling": "Canceling",
+        "blocked": "Read-only"
+      },
+      "state": {
+        "alwaysPaid": "This account has permanent access and does not need a Stripe subscription.",
+        "trialing": "Your trial is active.",
+        "trialingUntil": "Your trial is active until {date}.",
+        "active": "Your subscription is active.",
+        "activeUntil": "Your subscription is active through {date}.",
+        "canceling": "Your subscription will end after the paid period.",
+        "cancelingUntil": "Your subscription will end after {date}. Mutations stay available until then.",
+        "blocked": "Read-only access is available. Start the trial to create, update, import, or delete data."
+      },
+      "actions": {
+        "start": "Start trial",
+        "starting": "Starting...",
+        "subscribe": "Subscribe",
+        "subscribing": "Opening...",
+        "manage": "Manage billing",
+        "openingPortal": "Opening..."
+      },
+      "requestError": "Billing request failed. Try again."
+    },
     "mcp": {
       "title": "Claude MCP Connector",
       "description": "Connect Claude to Moniq so it can send transaction batches for review. Paste a bank screenshot or statement into Claude and ask it to submit transactions to Moniq.",
@@ -1162,6 +1199,7 @@
       "transactionDateRequired": "Transaction \"{title}\" must have occurred_at in YYYY-MM-DD format.",
       "transactionBatchKind": "Transaction \"{title}\" kind must be \"income\" or \"expense\".",
       "saveBatchFailed": "Failed to save batch in database.",
+      "subscriptionRequired": "An active Moniq subscription is required to change data. Read-only tools remain available.",
       "unauthorizedApiKey": "Unauthorized: provide a valid Moniq API key as Bearer token.",
       "parseError": "Parse error.",
       "methodNotFound": "Method not found: {method}"

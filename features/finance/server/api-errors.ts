@@ -1,5 +1,6 @@
 const FINANCE_ERROR_KEYS = {
   Unauthorized: "common.errors.unauthorized",
+  "Mutation access requires an active Moniq subscription.": "common.errors.billing.subscriptionRequired",
   "Unable to load finance data.": "common.errors.finance.load",
   "Unable to load exchange rates.": "common.errors.fx.load",
   "Unable to save exchange rates.": "common.errors.fx.save",

@@ -2,9 +2,11 @@ import { NextResponse } from "next/server";
 
 import { financeErrorResponse } from "@/app/api/_lib/error-response";
 import { deleteBankingTransaction, getBankingSnapshot, updateBankingTransaction } from "@/features/banking/server/repository";
+import { requireMutationEntitlementForRequest } from "@/lib/billing/server";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ transactionId: string }> }) {
   try {
+    await requireMutationEntitlementForRequest(request);
     const { transactionId } = await params;
     const payload = (await request.json()) as {
       merchant_clean?: string;
@@ -23,6 +25,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ tr
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ transactionId: string }> }) {
   try {
+    await requireMutationEntitlementForRequest(request);
     const { transactionId } = await params;
     const snapshot = await deleteBankingTransaction(transactionId);
     return NextResponse.json(snapshot);

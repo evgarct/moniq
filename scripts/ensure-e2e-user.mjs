@@ -156,6 +156,30 @@ async function resetUserData(supabase, userId) {
   }
 }
 
+async function seedBillingEntitlement(supabase, userId) {
+  const result = await supabase
+    .from("user_billing_entitlements")
+    .upsert(
+      {
+        user_id: userId,
+        subscription_status: "active",
+        current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        cancel_at_period_end: false,
+        access_override: null,
+      },
+      { onConflict: "user_id" },
+    );
+
+  if (!result.error || isMissingTableOrColumn(result.error)) {
+    return;
+  }
+
+  const rpcResult = await supabase.rpc("ensure_e2e_billing_entitlement");
+  if (rpcResult.error && !isMissingTableOrColumn(rpcResult.error)) {
+    throw new Error(`Seed billing entitlement: ${rpcResult.error.message}`);
+  }
+}
+
 async function seedWallets(supabase, userId) {
   return await requireNoError(
     await supabase
@@ -471,6 +495,7 @@ async function main() {
     : await ensureAuthSession(sessionSupabase, email, password);
   const dataClient = adminSupabase ?? sessionSupabase;
   await resetUserData(dataClient, user.id);
+  await seedBillingEntitlement(dataClient, user.id);
 
   const wallets = await seedWallets(dataClient, user.id);
   const savings = wallets.find((wallet) => wallet.name === "E2E Savings Vault");

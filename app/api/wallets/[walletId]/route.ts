@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 
 import { financeErrorResponse } from "@/app/api/_lib/error-response";
 import { adjustWalletBalance, deleteWallet, getFinanceSnapshot, updateWallet } from "@/features/finance/server/repository";
+import { requireMutationEntitlementForRequest } from "@/lib/billing/server";
 import { withApiPerformance, withMutationPerformance } from "@/lib/performance/api";
 import { walletInputSchema } from "@/types/finance-schemas";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ walletId: string }> }) {
   return withApiPerformance(request, "wallet_update", async () => {
     try {
+      await requireMutationEntitlementForRequest(request);
       const payload = walletInputSchema.parse(await request.json());
       const { walletId } = await params;
 
@@ -33,6 +35,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ wa
 export async function DELETE(request: Request, { params }: { params: Promise<{ walletId: string }> }) {
   return withApiPerformance(request, "wallet_delete", async () => {
     try {
+      await requireMutationEntitlementForRequest(request);
       const { walletId } = await params;
       await withMutationPerformance(request, "delete_wallet", () => deleteWallet(walletId));
       return NextResponse.json(await getFinanceSnapshot());

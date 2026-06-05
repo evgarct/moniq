@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 
 import { financeErrorResponse } from "@/app/api/_lib/error-response";
 import { deleteCategory, getFinanceSnapshot, updateCategory } from "@/features/finance/server/repository";
+import { requireMutationEntitlementForRequest } from "@/lib/billing/server";
 import { withApiPerformance, withMutationPerformance } from "@/lib/performance/api";
 import { categoryInputSchema } from "@/types/finance-schemas";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ categoryId: string }> }) {
   return withApiPerformance(request, "category_update", async () => {
     try {
+      await requireMutationEntitlementForRequest(request);
       const payload = categoryInputSchema.parse(await request.json());
       const { categoryId } = await params;
       await withMutationPerformance(request, "update_category", () => updateCategory(categoryId, payload));
@@ -21,6 +23,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ca
 export async function DELETE(request: Request, { params }: { params: Promise<{ categoryId: string }> }) {
   return withApiPerformance(request, "category_delete", async () => {
     try {
+      await requireMutationEntitlementForRequest(request);
       const payload = (await request.json().catch(() => null)) as { replacementCategoryId?: string | null } | null;
       const { categoryId } = await params;
       await withMutationPerformance(request, "delete_category", () => deleteCategory(categoryId, payload?.replacementCategoryId ?? null));

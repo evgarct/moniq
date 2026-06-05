@@ -9,6 +9,7 @@ import {
   setTransactionScheduleState,
   updateTransactionSchedule,
 } from "@/features/finance/server/repository";
+import { requireMutationEntitlementForRequest } from "@/lib/billing/server";
 import { withApiPerformance, withMutationPerformance } from "@/lib/performance/api";
 import { transactionScheduleInputSchema, transactionScheduleStateInputSchema } from "@/types/finance-schemas";
 
@@ -20,6 +21,7 @@ const reschedulePayloadSchema = z.object({
 export async function PATCH(request: Request, { params }: { params: Promise<{ scheduleId: string }> }) {
   return withApiPerformance(request, "transaction_schedule_update", async () => {
     try {
+      await requireMutationEntitlementForRequest(request);
       const payload = (await request.json()) as { mode?: "update" | "state" | "reschedule"; values?: unknown; state?: unknown; fromOccurrenceDate?: unknown; newOccurrenceDate?: unknown };
       const { scheduleId } = await params;
 
@@ -49,6 +51,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ sc
 export async function DELETE(request: Request, { params }: { params: Promise<{ scheduleId: string }> }) {
   return withApiPerformance(request, "transaction_schedule_delete", async () => {
     try {
+      await requireMutationEntitlementForRequest(request);
       const { scheduleId } = await params;
       await withMutationPerformance(request, "delete_transaction_schedule", () => deleteTransactionSchedule(scheduleId));
       return NextResponse.json(await getFinanceSnapshot());
