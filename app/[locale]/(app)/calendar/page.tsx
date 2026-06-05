@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { EmptyState } from "@/components/empty-state";
 import { PageContainer } from "@/components/page-container";
 import { CalendarView } from "@/features/calendar/components/calendar-view";
+import { createEmptyFinanceSnapshot } from "@/features/finance/lib/empty-snapshot";
 import { useFinanceData } from "@/features/finance/hooks/use-finance-data";
 
 export default function CalendarPage() {
@@ -32,7 +33,7 @@ export default function CalendarPage() {
 
   return (
     <PageContainer>
-      <CalendarView snapshot={data ?? { accounts: [], categories: [], schedules: [], transactions: [], allocations: [] }} />
+      <CalendarView snapshot={data ?? createEmptyFinanceSnapshot()} />
     </PageContainer>
   );
 }

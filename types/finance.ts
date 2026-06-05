@@ -19,6 +19,25 @@ export type MoneyByCurrency = {
   amount: number;
 };
 
+export type DefaultCurrencySource = "saved" | "wallet_inferred" | "fallback";
+
+export type UserPreferences = {
+  default_currency: CurrencyCode;
+  default_currency_source: DefaultCurrencySource;
+};
+
+export type ExchangeRateProvider = "frankfurter";
+
+export type ExchangeRate = {
+  provider: ExchangeRateProvider;
+  base_currency: CurrencyCode;
+  quote_currency: CurrencyCode;
+  requested_date: string;
+  rate_date: string;
+  rate: number;
+  fetched_at: string;
+};
+
 export type CategoryTreeNode = Category & {
   children: CategoryTreeNode[];
   depth: number;
@@ -128,4 +147,6 @@ export type FinanceSnapshot = {
   schedules: TransactionSchedule[];
   transactions: Transaction[];
   allocations: WalletAllocation[];
+  preferences: UserPreferences;
+  exchange_rates: ExchangeRate[];
 };

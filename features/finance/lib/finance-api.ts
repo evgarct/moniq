@@ -9,6 +9,7 @@ import type {
   TransactionEntryInput,
   TransactionInput,
   TransactionScheduleInput,
+  UserPreferencesInput,
   WalletAllocationInput,
   WalletInput,
 } from "@/types/finance-schemas";
@@ -353,6 +354,17 @@ export async function deleteWalletAllocationRequest(allocationId: string): Promi
   const response = await fetchWithTimeout(`/api/allocations/${allocationId}`, {
     method: "DELETE",
     credentials: "include",
+  });
+
+  return parseJsonResponse<FinanceSnapshot>(response);
+}
+
+export async function updateUserPreferencesRequest(values: UserPreferencesInput): Promise<FinanceSnapshot> {
+  const response = await fetchWithTimeout("/api/settings/preferences", {
+    method: "PATCH",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(values),
   });
 
   return parseJsonResponse<FinanceSnapshot>(response);

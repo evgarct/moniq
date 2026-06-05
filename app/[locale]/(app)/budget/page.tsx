@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { EmptyState } from "@/components/empty-state";
 import { PageContainer } from "@/components/page-container";
 import { BudgetView } from "@/features/budget/components/budget-view";
+import { createEmptyFinanceSnapshot } from "@/features/finance/lib/empty-snapshot";
 import { useFinanceData } from "@/features/finance/hooks/use-finance-data";
 
 export default function BudgetPage() {
@@ -31,6 +32,6 @@ export default function BudgetPage() {
   }
 
   return (
-    <BudgetView snapshot={data ?? { accounts: [], categories: [], schedules: [], transactions: [], allocations: [] }} />
+    <BudgetView snapshot={data ?? createEmptyFinanceSnapshot()} />
   );
 }

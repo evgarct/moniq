@@ -25,6 +25,7 @@ import {
   financeSnapshotQueryKey,
   updateCategoryRequest,
 } from "@/features/finance/lib/finance-api";
+import { createEmptyFinanceSnapshot } from "@/features/finance/lib/empty-snapshot";
 import { TransactionFormSheet, type TransactionFormSubmitPayload } from "@/features/transactions/components/transaction-form-sheet";
 import { useTransactionActions } from "@/features/transactions/hooks/use-transaction-actions";
 import type { Category, FinanceSnapshot, Transaction, TransactionSchedule } from "@/types/finance";
@@ -32,13 +33,7 @@ import type { CategoryInput } from "@/types/finance-schemas";
 import { useFinanceData } from "@/features/finance/hooks/use-finance-data";
 import { useRouter } from "@/i18n/navigation";
 
-const emptySnapshot: FinanceSnapshot = {
-  accounts: [],
-  categories: [],
-  schedules: [],
-  transactions: [],
-  allocations: [],
-};
+const emptySnapshot = createEmptyFinanceSnapshot();
 
 export function TransactionsView({
   snapshot: snapshotProp,

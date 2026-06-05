@@ -237,6 +237,10 @@ export const walletAllocationInputSchema = z.object({
   target_amount: data.kind === "goal_targeted" ? (data.target_amount ?? null) : null,
 }));
 
+export const userPreferencesInputSchema = z.object({
+  default_currency: z.enum(SUPPORTED_CURRENCY_CODES),
+});
+
 export type WalletInput = z.output<typeof walletInputSchema>;
 export type WalletInputValues = z.input<typeof walletInputSchema>;
 export type CategoryInput = z.output<typeof categoryInputSchema>;
@@ -252,3 +256,4 @@ export type TransactionScheduleInputValues = z.input<typeof transactionScheduleI
 export type TransactionScheduleStateInput = z.output<typeof transactionScheduleStateInputSchema>;
 export type WalletAllocationInput = z.output<typeof walletAllocationInputSchema>;
 export type WalletAllocationInputValues = z.input<typeof walletAllocationInputSchema>;
+export type UserPreferencesInput = z.output<typeof userPreferencesInputSchema>;
