@@ -4,6 +4,8 @@ import { getTransactionAnalyticsAmount, getTransactionPrimaryAccount } from "@/f
 import type { CurrencyCode } from "@/types/currency";
 import type { ExchangeRate, Transaction } from "@/types/finance";
 
+const BRIDGE_CURRENCY: CurrencyCode = "EUR";
+
 export type MoneyConversionResult =
   | {
       status: "converted";
@@ -66,6 +68,57 @@ function findBestRate(
   return candidates[0] ?? null;
 }
 
+function getCurrencyToBridgeMultiplier(
+  exchangeRates: ExchangeRate[],
+  currency: CurrencyCode,
+  requestedDate: string,
+) {
+  if (currency === BRIDGE_CURRENCY) {
+    return {
+      multiplier: 1,
+      rate: null,
+    };
+  }
+
+  const rate = findBestRate(exchangeRates, currency, BRIDGE_CURRENCY, requestedDate);
+
+  if (!rate) {
+    return null;
+  }
+
+  return {
+    multiplier: rate.base_currency === currency ? rate.rate : 1 / rate.rate,
+    rate,
+  };
+}
+
+function findBridgeConversion(
+  exchangeRates: ExchangeRate[],
+  sourceCurrency: CurrencyCode,
+  targetCurrency: CurrencyCode,
+  requestedDate: string,
+) {
+  const sourceToBridge = getCurrencyToBridgeMultiplier(exchangeRates, sourceCurrency, requestedDate);
+  const targetToBridge = getCurrencyToBridgeMultiplier(exchangeRates, targetCurrency, requestedDate);
+
+  if (!sourceToBridge || !targetToBridge) {
+    return null;
+  }
+
+  const rateReferences = [sourceToBridge.rate, targetToBridge.rate].filter((rate): rate is ExchangeRate => Boolean(rate));
+  const requestedDates = rateReferences.map((rate) => rate.requested_date).sort();
+  const rateDates = rateReferences.map((rate) => rate.rate_date).sort();
+  const fetchedDates = rateReferences.map((rate) => rate.fetched_at).sort();
+
+  return {
+    rate: sourceToBridge.multiplier / targetToBridge.multiplier,
+    requested_date: requestedDates[0] ?? requestedDate,
+    rate_date: rateDates[0] ?? requestedDate,
+    fetched_at: fetchedDates[0] ?? "",
+    provider: "frankfurter" as const,
+  };
+}
+
 export function convertMoney(options: {
   amount: number;
   sourceCurrency: CurrencyCode;
@@ -90,12 +143,32 @@ export function convertMoney(options: {
   );
 
   if (!rate) {
+    const bridgeConversion = findBridgeConversion(
+      options.exchangeRates,
+      options.sourceCurrency,
+      options.targetCurrency,
+      options.requestedDate,
+    );
+
+    if (!bridgeConversion) {
+      return {
+        status: "missing_rate",
+        amount: options.amount,
+        source_currency: options.sourceCurrency,
+        target_currency: options.targetCurrency,
+        requested_date: options.requestedDate,
+      };
+    }
+
     return {
-      status: "missing_rate",
-      amount: options.amount,
+      status: "converted",
+      amount: options.amount * bridgeConversion.rate,
       source_currency: options.sourceCurrency,
       target_currency: options.targetCurrency,
-      requested_date: options.requestedDate,
+      rate: bridgeConversion.rate,
+      rate_date: bridgeConversion.rate_date,
+      requested_date: bridgeConversion.requested_date,
+      provider: bridgeConversion.provider,
     };
   }
 

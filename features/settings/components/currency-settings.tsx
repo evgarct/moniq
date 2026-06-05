@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { CircleDollarSign } from "lucide-react";
 
 import { Surface, SurfaceDescription, SurfaceEyebrow, SurfaceHeader } from "@/components/surface";
@@ -28,9 +28,8 @@ type CurrencySettingsProps = {
   walletCurrencies: CurrencyCode[];
 };
 
-function getCurrencyLabel(currency: CurrencyCode) {
-  const meta = SUPPORTED_CURRENCIES.find((item) => item.code === currency);
-  return meta ? `${meta.code} · ${meta.name}` : currency;
+function getCurrencyLabel(currency: CurrencyCode, displayNames: Intl.DisplayNames | null) {
+  return `${currency} · ${displayNames?.of(currency) ?? currency}`;
 }
 
 export function CurrencySettings({
@@ -39,6 +38,7 @@ export function CurrencySettings({
   walletCurrencies,
 }: CurrencySettingsProps) {
   const t = useTranslations("settings.currency");
+  const locale = useLocale();
   const queryClient = useQueryClient();
   const [defaultCurrency, setDefaultCurrency] = useState<CurrencyCode>(initialDefaultCurrency);
   const [savedCurrency, setSavedCurrency] = useState<CurrencyCode>(initialDefaultCurrency);
@@ -50,6 +50,13 @@ export function CurrencySettings({
     () => Array.from(new Set(walletCurrencies)),
     [walletCurrencies],
   );
+  const currencyDisplayNames = useMemo(() => {
+    if (typeof Intl.DisplayNames === "undefined") {
+      return null;
+    }
+
+    return new Intl.DisplayNames([locale], { type: "currency" });
+  }, [locale]);
   const secondaryCurrencyOptions = useMemo(
     () => SUPPORTED_CURRENCIES.map((currency) => currency.code).filter((code) => !walletCurrencyOptions.includes(code)),
     [walletCurrencyOptions],
@@ -100,7 +107,7 @@ export function CurrencySettings({
                       <SelectLabel>{t("walletCurrencies")}</SelectLabel>
                       {walletCurrencyOptions.map((currency) => (
                         <SelectItem key={currency} value={currency}>
-                          {getCurrencyLabel(currency)}
+                          {getCurrencyLabel(currency, currencyDisplayNames)}
                         </SelectItem>
                       ))}
                     </SelectGroup>
@@ -110,7 +117,7 @@ export function CurrencySettings({
                     <SelectLabel>{t("otherCurrencies")}</SelectLabel>
                     {secondaryCurrencyOptions.map((currency) => (
                       <SelectItem key={currency} value={currency}>
-                        {getCurrencyLabel(currency)}
+                        {getCurrencyLabel(currency, currencyDisplayNames)}
                       </SelectItem>
                     ))}
                   </SelectGroup>

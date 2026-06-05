@@ -22,6 +22,15 @@ const rates: ExchangeRate[] = [
     rate: 0.92,
     fetched_at: "2026-06-01T15:00:00Z",
   },
+  {
+    provider: "frankfurter",
+    base_currency: "EUR",
+    quote_currency: "USD",
+    requested_date: "2026-06-04",
+    rate_date: "2026-06-04",
+    rate: 1.1,
+    fetched_at: "2026-06-04T15:00:00Z",
+  },
 ];
 
 describe("exchange rate conversion", () => {
@@ -85,6 +94,23 @@ describe("exchange rate conversion", () => {
     expect(result).toMatchObject({
       status: "converted",
       amount: 24.5,
+      requested_date: "2026-06-04",
+    });
+  });
+
+  it("triangulates supported non-EUR pairs through EUR bridge rates", () => {
+    const result = convertMoney({
+      amount: 24.5,
+      sourceCurrency: "CZK",
+      targetCurrency: "USD",
+      requestedDate: "2026-06-04",
+      exchangeRates: rates,
+    });
+
+    expect(result.status).toBe("converted");
+    expect(result.amount).toBeCloseTo(1.1);
+    expect(result).toMatchObject({
+      rate_date: "2026-06-04",
       requested_date: "2026-06-04",
     });
   });

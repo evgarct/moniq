@@ -45,6 +45,9 @@ export async function getCachedExchangeRates(options: {
   sinceDate?: string;
 }): Promise<ExchangeRate[]> {
   const quoteCurrencies = buildRelevantCurrencyPairs(options.defaultCurrency, options.currencies);
+  const bridgeCurrencies = quoteCurrencies.length
+    ? Array.from(new Set([options.defaultCurrency, ...quoteCurrencies])).filter((currency) => currency !== "EUR")
+    : [];
 
   if (!quoteCurrencies.length) {
     return [];
@@ -63,22 +66,38 @@ export async function getCachedExchangeRates(options: {
     .in("base_currency", quoteCurrencies)
     .eq("quote_currency", options.defaultCurrency)
     .eq("provider", FRANKFURTER_PROVIDER);
+  const bridge = supabase
+    .from("fx_rates")
+    .select("provider, base_currency, quote_currency, requested_date, rate_date, rate, fetched_at")
+    .eq("provider", FRANKFURTER_PROVIDER)
+    .eq("base_currency", "EUR")
+    .in("quote_currency", bridgeCurrencies);
 
   if (options.sinceDate) {
     direct.gte("requested_date", options.sinceDate);
     inverse.gte("requested_date", options.sinceDate);
+    bridge.gte("requested_date", options.sinceDate);
   }
 
-  const [{ data: directRows, error: directError }, { data: inverseRows, error: inverseError }] = await Promise.all([
+  const [
+    { data: directRows, error: directError },
+    { data: inverseRows, error: inverseError },
+    { data: bridgeRows, error: bridgeError },
+  ] = await Promise.all([
     direct.order("requested_date", { ascending: false }),
     inverse.order("requested_date", { ascending: false }),
+    bridge.order("requested_date", { ascending: false }),
   ]);
 
-  if (directError || inverseError) {
+  if (directError || inverseError || bridgeError) {
     throw new Error("Unable to load exchange rates.");
   }
 
-  return [...((directRows ?? []) as FxRateRow[]), ...((inverseRows ?? []) as FxRateRow[])].map(mapExchangeRate);
+  return [
+    ...((directRows ?? []) as FxRateRow[]),
+    ...((inverseRows ?? []) as FxRateRow[]),
+    ...((bridgeRows ?? []) as FxRateRow[]),
+  ].map(mapExchangeRate);
 }
 
 async function upsertProviderRates(rates: FxProviderRate[]) {
