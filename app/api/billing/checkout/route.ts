@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type Stripe from "stripe";
 import { z } from "zod";
 
 import { localizedErrorResponse } from "@/app/api/_lib/error-response";
@@ -17,15 +18,26 @@ function getOrigin(request: Request) {
 
 async function getOrCreateStripeCustomer(user: { id: string; email?: string | null }) {
   const service = createServiceClient();
-  const { data: entitlement } = await service
+  const { data: entitlement, error: entitlementError } = await service
     .from("user_billing_entitlements")
-    .select("stripe_customer_id")
+    .select("stripe_customer_id, stripe_subscription_id, trial_end")
     .eq("user_id", user.id)
     .maybeSingle();
+  if (entitlementError) {
+    throw new Error(entitlementError.message);
+  }
 
-  const existingCustomerId = (entitlement as { stripe_customer_id?: string | null } | null)?.stripe_customer_id;
+  const existing = entitlement as {
+    stripe_customer_id?: string | null;
+    stripe_subscription_id?: string | null;
+    trial_end?: string | null;
+  } | null;
+  const existingCustomerId = existing?.stripe_customer_id;
   if (existingCustomerId) {
-    return existingCustomerId;
+    return {
+      customerId: existingCustomerId,
+      hasUsedTrial: Boolean(existing?.stripe_subscription_id || existing?.trial_end),
+    };
   }
 
   const stripe = getStripe();
@@ -34,7 +46,7 @@ async function getOrCreateStripeCustomer(user: { id: string; email?: string | nu
     metadata: { user_id: user.id },
   });
 
-  await service.from("user_billing_entitlements").upsert(
+  const { error } = await service.from("user_billing_entitlements").upsert(
     {
       user_id: user.id,
       stripe_customer_id: customer.id,
@@ -42,8 +54,11 @@ async function getOrCreateStripeCustomer(user: { id: string; email?: string | nu
     },
     { onConflict: "user_id" },
   );
+  if (error) {
+    throw new Error(error.message);
+  }
 
-  return customer.id;
+  return { customerId: customer.id, hasUsedTrial: false };
 }
 
 export async function POST(request: Request) {
@@ -62,8 +77,14 @@ export async function POST(request: Request) {
     const locale = (body.locale ?? routing.defaultLocale) as AppLocale;
     const origin = getOrigin(request);
     const stripe = getStripe();
-    const customerId = await getOrCreateStripeCustomer(user);
+    const { customerId, hasUsedTrial } = await getOrCreateStripeCustomer(user);
     const settingsUrl = `${origin}/${locale}/settings`;
+    const subscriptionData: Stripe.Checkout.SessionCreateParams.SubscriptionData = {
+      metadata: { user_id: user.id },
+    };
+    if (!hasUsedTrial) {
+      subscriptionData.trial_period_days = 30;
+    }
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
@@ -71,10 +92,7 @@ export async function POST(request: Request) {
       client_reference_id: user.id,
       line_items: [{ price: getMoniqStripePriceId(), quantity: 1 }],
       payment_method_collection: "always",
-      subscription_data: {
-        trial_period_days: 30,
-        metadata: { user_id: user.id },
-      },
+      subscription_data: subscriptionData,
       metadata: { user_id: user.id },
       success_url: `${settingsUrl}?billing=success`,
       cancel_url: `${settingsUrl}?billing=cancelled`,

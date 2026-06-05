@@ -36,28 +36,32 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid Stripe signature." }, { status: 400 });
   }
 
-  switch (event.type) {
-    case "checkout.session.completed":
-      await upsertEntitlementFromCheckoutSession(event.data.object as Stripe.Checkout.Session);
-      break;
-    case "customer.subscription.created":
-    case "customer.subscription.updated":
-    case "customer.subscription.deleted":
-    case "customer.subscription.paused":
-    case "customer.subscription.resumed":
-      await handleSubscriptionEvent(event.data.object as Stripe.Subscription);
-      break;
-    case "invoice.paid":
-    case "invoice.payment_failed": {
-      const invoice = event.data.object as Stripe.Invoice;
-      const subscriptionId = getInvoiceSubscriptionId(invoice);
-      if (subscriptionId) {
-        await handleSubscriptionEvent(await stripe.subscriptions.retrieve(subscriptionId));
+  try {
+    switch (event.type) {
+      case "checkout.session.completed":
+        await upsertEntitlementFromCheckoutSession(event.data.object as Stripe.Checkout.Session);
+        break;
+      case "customer.subscription.created":
+      case "customer.subscription.updated":
+      case "customer.subscription.deleted":
+      case "customer.subscription.paused":
+      case "customer.subscription.resumed":
+        await handleSubscriptionEvent(event.data.object as Stripe.Subscription);
+        break;
+      case "invoice.paid":
+      case "invoice.payment_failed": {
+        const invoice = event.data.object as Stripe.Invoice;
+        const subscriptionId = getInvoiceSubscriptionId(invoice);
+        if (subscriptionId) {
+          await handleSubscriptionEvent(await stripe.subscriptions.retrieve(subscriptionId));
+        }
+        break;
       }
-      break;
+      default:
+        break;
     }
-    default:
-      break;
+  } catch {
+    return NextResponse.json({ error: "Webhook sync failed." }, { status: 500 });
   }
 
   return NextResponse.json({ received: true });

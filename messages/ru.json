@@ -1090,6 +1090,8 @@
       "actions": {
         "start": "Start trial",
         "starting": "Starting...",
+        "subscribe": "Subscribe",
+        "subscribing": "Opening...",
         "manage": "Manage billing",
         "openingPortal": "Opening..."
       },

@@ -45,6 +45,7 @@ export function BillingSettings({ entitlement }: BillingSettingsProps) {
   const trialEnd = formatDate(entitlement?.trial_end ?? null, locale);
   const isBlocked = state === "blocked";
   const canManage = Boolean(entitlement?.stripe_customer_id);
+  const hasUsedTrial = Boolean(entitlement?.stripe_subscription_id || entitlement?.trial_end);
 
   const description = useMemo(() => {
     if (state === "always_paid") return t("state.alwaysPaid");
@@ -99,7 +100,9 @@ export function BillingSettings({ entitlement }: BillingSettingsProps) {
             <div className="flex flex-wrap gap-2">
               {isBlocked ? (
                 <Button type="button" onClick={startCheckout} disabled={status === "checkout"}>
-                  {status === "checkout" ? t("actions.starting") : t("actions.start")}
+                  {status === "checkout"
+                    ? t(hasUsedTrial ? "actions.subscribing" : "actions.starting")
+                    : t(hasUsedTrial ? "actions.subscribe" : "actions.start")}
                 </Button>
               ) : null}
               {canManage && state !== "always_paid" ? (
