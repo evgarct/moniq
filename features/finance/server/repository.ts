@@ -5,6 +5,8 @@ import { addDays, differenceInCalendarDays, format, parseISO, startOfToday, subM
 import { validateAccountValues } from "@/features/accounts/lib/account-state";
 import { validateCategoryHierarchy } from "@/features/categories/lib/category-tree";
 import { getFinanceSnapshotScheduleHorizon } from "@/features/finance/server/snapshot-horizon";
+import { resolveUserPreferences } from "@/features/finance/lib/preferences";
+import { getCachedExchangeRates } from "@/features/finance/server/fx-repository";
 import { generateScheduleOccurrences } from "@/features/transactions/lib/transaction-schedules";
 import { validateTransactionRelationships } from "@/features/transactions/lib/transaction-utils";
 import { recordPerformanceEvent } from "@/lib/performance/server";
@@ -18,7 +20,7 @@ import type {
   WalletAllocationInput,
   WalletInput,
 } from "@/types/finance-schemas";
-import type { Account, Category, FinanceSnapshot, Transaction, TransactionSchedule, WalletAllocation, WalletAllocationKind } from "@/types/finance";
+import type { Account, Category, FinanceSnapshot, Transaction, TransactionSchedule, UserPreferences, WalletAllocation, WalletAllocationKind } from "@/types/finance";
 
 type WalletRow = {
   id: string;
@@ -92,6 +94,10 @@ type TransactionScheduleRow = {
   allocation_id: string | null;
   created_at: string;
   updated_at: string;
+};
+
+type UserPreferenceRow = {
+  default_currency: CurrencyCode;
 };
 
 function mapWallet(row: WalletRow): Account {
@@ -207,12 +213,51 @@ function normalizeFinanceRepositoryError(error: { message?: string } | null | un
   if (
     lowerMessage.includes("finance_categories") ||
     lowerMessage.includes("finance_transactions") ||
+    lowerMessage.includes("user_preferences") ||
+    lowerMessage.includes("fx_rates") ||
     lowerMessage.includes("column")
   ) {
     return "Supabase schema is out of date. Run `npx supabase db push` and reload the app.";
   }
 
   return message;
+}
+
+export async function getUserPreferencesWithDefault(
+  userId: string,
+  accounts: Pick<Account, "currency">[],
+): Promise<UserPreferences> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("user_preferences")
+    .select("default_currency")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(normalizeFinanceRepositoryError(error));
+  }
+
+  return resolveUserPreferences((data as UserPreferenceRow | null)?.default_currency, accounts);
+}
+
+export async function updateUserPreferences(values: { default_currency: CurrencyCode }) {
+  const { supabase, user } = await getAuthenticatedSupabase();
+  const { error } = await supabase
+    .from("user_preferences")
+    .upsert(
+      {
+        user_id: user.id,
+        default_currency: values.default_currency,
+      },
+      { onConflict: "user_id" },
+    );
+
+  if (error) {
+    throw new Error(normalizeFinanceRepositoryError(error));
+  }
+
+  return getFinanceSnapshot();
 }
 
 async function getAuthenticatedSupabase() {
@@ -594,12 +639,26 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
     transactions: mappedTransactions.length,
     allocations: earlyMappedAllocations.length,
   });
+
+  phaseStartedAt = performance.now();
+  const preferences = await getUserPreferencesWithDefault(user.id, mappedAccounts);
+  const exchangeRates = await getCachedExchangeRates({
+    defaultCurrency: preferences.default_currency,
+    currencies: mappedAccounts.map((account) => account.currency),
+    sinceDate: transactionCutoff,
+  });
+  recordSnapshotPhase(user.id, "preferences_fx", phaseStartedAt, {
+    default_currency: preferences.default_currency,
+    exchange_rates: exchangeRates.length,
+  });
+
   recordSnapshotPhase(user.id, "total", snapshotStartedAt, {
     accounts: mappedAccounts.length,
     categories: mappedCategories.length,
     schedules: validatedSchedules.length,
     transactions: mappedTransactions.length,
     allocations: earlyMappedAllocations.length,
+    exchange_rates: exchangeRates.length,
   });
 
   return {
@@ -608,6 +667,8 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
     schedules: validatedSchedules,
     transactions: mappedTransactions,
     allocations: earlyMappedAllocations,
+    preferences,
+    exchange_rates: exchangeRates,
   };
 }
 

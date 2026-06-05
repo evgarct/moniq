@@ -2,8 +2,11 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, within } from "storybook/test";
 
 import { McpSettings } from "@/features/settings/components/mcp-settings";
+import { CurrencySettings } from "@/features/settings/components/currency-settings";
 import { PageContainer } from "@/components/page-container";
+import { AppProviders } from "@/components/providers/app-providers";
 import { makeFinanceSnapshot, StoryWorkspace, withPathname } from "@/stories/fixtures/story-data";
+import type { CurrencyCode } from "@/types/currency";
 
 makeFinanceSnapshot(); // ensure fixtures load
 
@@ -25,15 +28,27 @@ const sampleKeys = [
 ];
 
 function SettingsPageTemplate({ keys }: { keys: typeof sampleKeys }) {
+  const snapshot = makeFinanceSnapshot();
+  const walletCurrencies = Array.from(new Set(snapshot.accounts.map((account) => account.currency))) as CurrencyCode[];
+
   return (
-    <StoryWorkspace pathname="/settings">
-      <PageContainer className="max-w-2xl">
-        <div className="mb-6">
-          <h1 className="text-xl font-semibold text-foreground">Settings</h1>
-        </div>
-        <McpSettings initialKeys={keys} />
-      </PageContainer>
-    </StoryWorkspace>
+    <AppProviders>
+      <StoryWorkspace pathname="/settings">
+        <PageContainer className="max-w-2xl">
+          <div className="mb-6">
+            <h1 className="text-xl font-semibold text-foreground">Settings</h1>
+          </div>
+          <div className="flex flex-col gap-8">
+            <CurrencySettings
+              initialDefaultCurrency={snapshot.preferences.default_currency}
+              initialDefaultCurrencySource={snapshot.preferences.default_currency_source}
+              walletCurrencies={walletCurrencies}
+            />
+            <McpSettings initialKeys={keys} />
+          </div>
+        </PageContainer>
+      </StoryWorkspace>
+    </AppProviders>
   );
 }
 
@@ -54,6 +69,7 @@ export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("Settings")).toBeInTheDocument();
+    await expect(canvas.getByText("Default currency")).toBeInTheDocument();
     await expect(canvas.getByText("Claude MCP Connector")).toBeInTheDocument();
     await expect(canvas.getByText("My laptop")).toBeInTheDocument();
   },

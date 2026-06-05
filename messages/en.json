@@ -38,6 +38,11 @@
         "load": "Unable to load finance data.",
         "schemaOutOfDate": "Supabase schema is out of date. Run `npx supabase db push` and reload the app."
       },
+      "fx": {
+        "load": "Unable to load exchange rates.",
+        "save": "Unable to save exchange rates.",
+        "refresh": "Unable to refresh exchange rates."
+      },
       "imports": {
         "load": "Unable to load imported transactions.",
         "upload": "Unable to import CSV file.",
@@ -61,6 +66,9 @@
         "create": "Unable to create wallet.",
         "update": "Unable to update wallet.",
         "delete": "Unable to delete wallet."
+      },
+      "settings": {
+        "preferencesUpdate": "Unable to update settings."
       },
       "category": {
         "create": "Unable to create category.",
@@ -853,6 +861,23 @@
   },
   "settings": {
     "title": "Settings",
+    "currency": {
+      "eyebrow": "Preferences",
+      "title": "Default currency",
+      "description": "Budgets and future reports can convert wallet activity into this currency.",
+      "fieldLabel": "Currency",
+      "walletCurrencies": "Wallet currencies",
+      "otherCurrencies": "Other supported currencies",
+      "source": {
+        "saved": "Saved as your default currency.",
+        "wallet_inferred": "Inferred from your existing wallets until you save a choice.",
+        "fallback": "Using the app default until you save a choice."
+      },
+      "save": "Save currency",
+      "saving": "Saving...",
+      "saved": "Default currency saved.",
+      "saveError": "Unable to save default currency."
+    },
     "mcp": {
       "title": "Claude MCP Connector",
       "description": "Connect Claude to Moniq so it can send transaction batches for review. Paste a bank screenshot or statement into Claude and ask it to submit transactions to Moniq.",

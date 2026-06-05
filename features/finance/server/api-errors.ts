@@ -1,9 +1,12 @@
 const FINANCE_ERROR_KEYS = {
   Unauthorized: "common.errors.unauthorized",
   "Unable to load finance data.": "common.errors.finance.load",
+  "Unable to load exchange rates.": "common.errors.fx.load",
+  "Unable to save exchange rates.": "common.errors.fx.save",
   "Unable to create wallet.": "common.errors.wallet.create",
   "Unable to update wallet.": "common.errors.wallet.update",
   "Unable to delete wallet.": "common.errors.wallet.delete",
+  "Unable to update settings.": "common.errors.settings.preferencesUpdate",
   "Unable to create category.": "common.errors.category.create",
   "Unable to update category.": "common.errors.category.update",
   "Unable to delete category.": "common.errors.category.delete",

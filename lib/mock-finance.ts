@@ -235,6 +235,11 @@ export const mockFinanceSnapshot: FinanceSnapshot = {
   schedules: [],
   transactions: mockTransactions.sort((a, b) => a.occurred_at.localeCompare(b.occurred_at)).reverse(),
   allocations: [],
+  preferences: {
+    default_currency: "CZK",
+    default_currency_source: "wallet_inferred",
+  },
+  exchange_rates: [],
 };
 
 function makeTransaction(values: {

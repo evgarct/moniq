@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 
 import { EmptyState } from "@/components/empty-state";
 import { PageContainer } from "@/components/page-container";
+import { createEmptyFinanceSnapshot } from "@/features/finance/lib/empty-snapshot";
 import { useFinanceData } from "@/features/finance/hooks/use-finance-data";
 import { TodayView } from "@/features/today/components/today-view";
 
@@ -32,7 +33,7 @@ export default function TodayPage() {
 
   return (
     <div className="h-full">
-      <TodayView snapshot={data ?? { accounts: [], categories: [], schedules: [], transactions: [], allocations: [] }} />
+      <TodayView snapshot={data ?? createEmptyFinanceSnapshot()} />
     </div>
   );
 }
