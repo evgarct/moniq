@@ -1,11 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useRef } from "react";
 import { isBefore, parseISO, startOfDay, startOfToday } from "date-fns";
 import { CheckCircle2, Pause, Pencil, Play, Repeat, SkipForward, Trash2 } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
-import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
 
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 import { MoneyAmount } from "@/components/money-amount";
@@ -13,41 +19,6 @@ import { getTransactionKindMeta, TransactionKindIndicator } from "@/features/tra
 import { calDate, formatMoneyNumber, getCurrencySymbol } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import type { Transaction } from "@/types/finance";
-
-function ContextMenuItem({
-  children,
-  onClick,
-  variant = "default",
-}: {
-  children: React.ReactNode;
-  onClick?: () => void;
-  variant?: "default" | "destructive";
-}) {
-  return (
-    <div
-      role="menuitem"
-      tabIndex={0}
-      className={cn(
-        "relative flex cursor-default items-center gap-1.5 rounded-[var(--radius-control)] px-2 py-1.5 text-sm outline-hidden select-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-        variant === "destructive" &&
-          "text-destructive hover:bg-destructive/10 hover:text-destructive focus:bg-destructive/10 focus:text-destructive",
-      )}
-      onClick={onClick}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onClick?.();
-        }
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
-function ContextMenuSeparator() {
-  return <div role="separator" className="-mx-1 my-1 h-px bg-border" />;
-}
 
 function isEncouragedTransaction(transaction: Transaction) {
   return transaction.kind === "income";
@@ -172,7 +143,7 @@ export function TransactionRow({
 }) {
   const t = useTranslations("transactions");
   const formatDate = useFormatter();
-  const [contextAnchor, setContextAnchor] = useState<{ x: number; y: number } | null>(null);
+  const suppressClickUntil = useRef(0);
 
   const isRecurring = Boolean(transaction.schedule_id && transaction.schedule);
   const isPlanned = transaction.status === "planned";
@@ -202,62 +173,40 @@ export function TransactionRow({
   const interactive = Boolean(onClick);
 
   function activateRow() {
+    if (Date.now() < suppressClickUntil.current) return;
     onClick?.(transaction);
   }
 
-  function handleContextMenu(event: React.MouseEvent) {
-    if (!hasContextActions) return;
-    event.preventDefault();
-    event.stopPropagation();
-    setContextAnchor({ x: event.clientX, y: Math.max(event.clientY - 6, 0) });
-  }
-
-  function closeContext() {
-    setContextAnchor(null);
-  }
-
-  const contextMenu = hasContextActions ? (
-    <PopoverPrimitive.Root
-      open={contextAnchor !== null}
-      onOpenChange={(open) => {
-        if (!open) closeContext();
-      }}
-    >
-      <PopoverPrimitive.Trigger
-        nativeButton={false}
-        render={
-          <div
-            className="pointer-events-none fixed h-px w-px"
-            style={contextAnchor ? { left: contextAnchor.x, top: contextAnchor.y } : { left: -9999, top: -9999 }}
-          />
-        }
-      />
-      <PopoverPrimitive.Portal>
-        <PopoverPrimitive.Positioner className="isolate z-50" align="start" side="bottom" sideOffset={0}>
-          <PopoverPrimitive.Popup
-            onClick={(e) => e.stopPropagation()}
-            className="z-50 min-w-52 origin-(--transform-origin) overflow-hidden rounded-[var(--radius-floating)] bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10 outline-none duration-100 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95"
-          >
+  function withContextMenu(row: React.ReactElement) {
+    if (!hasContextActions) return row;
+    return (
+      <ContextMenu
+        onOpenChange={(open) => {
+          if (open) suppressClickUntil.current = Date.now() + 700;
+        }}
+      >
+        <ContextMenuTrigger render={row} />
+        <ContextMenuContent className="min-w-52 rounded-[var(--radius-floating)]">
             {canMarkPaid ? (
-              <ContextMenuItem onClick={() => { onMarkPaid!(transaction); closeContext(); }}>
+              <ContextMenuItem onClick={() => onMarkPaid!(transaction)}>
                 <CheckCircle2 />
                 {t("actions.markPaid")}
               </ContextMenuItem>
             ) : null}
             {canSkip ? (
-              <ContextMenuItem onClick={() => { onSkipOccurrence!(transaction); closeContext(); }}>
+              <ContextMenuItem onClick={() => onSkipOccurrence!(transaction)}>
                 <SkipForward />
                 {t("actions.skipOccurrence")}
               </ContextMenuItem>
             ) : null}
             {onEditOccurrence ? (
-              <ContextMenuItem onClick={() => { onEditOccurrence(transaction); closeContext(); }}>
+              <ContextMenuItem onClick={() => onEditOccurrence(transaction)}>
                 <Pencil />
                 {isRecurring ? t("actions.editOccurrence") : t("actions.edit")}
               </ContextMenuItem>
             ) : null}
             {isRecurring && onEditSeries ? (
-              <ContextMenuItem onClick={() => { onEditSeries(transaction); closeContext(); }}>
+              <ContextMenuItem onClick={() => onEditSeries(transaction)}>
                 <Pencil />
                 {t("actions.editSeries")}
               </ContextMenuItem>
@@ -267,13 +216,13 @@ export function TransactionRow({
               <>
                 <ContextMenuSeparator />
                 {onToggleScheduleState ? (
-                  <ContextMenuItem onClick={() => { onToggleScheduleState(transaction); closeContext(); }}>
+                  <ContextMenuItem onClick={() => onToggleScheduleState(transaction)}>
                     {schedulePaused ? <Play /> : <Pause />}
                     {schedulePaused ? t("actions.resumeSeries") : t("actions.pauseSeries")}
                   </ContextMenuItem>
                 ) : null}
                 {onDeleteSeries ? (
-                  <ContextMenuItem variant="destructive" onClick={() => { onDeleteSeries(transaction); closeContext(); }}>
+                  <ContextMenuItem variant="destructive" onClick={() => onDeleteSeries(transaction)}>
                     <Trash2 />
                     {t("actions.deleteSeries")}
                   </ContextMenuItem>
@@ -284,20 +233,19 @@ export function TransactionRow({
             {!isRecurring && onDeleteTransaction ? (
               <>
                 <ContextMenuSeparator />
-                <ContextMenuItem variant="destructive" onClick={() => { onDeleteTransaction(transaction); closeContext(); }}>
+                <ContextMenuItem variant="destructive" onClick={() => onDeleteTransaction(transaction)}>
                   <Trash2 />
                   {t("actions.delete")}
                 </ContextMenuItem>
               </>
             ) : null}
-          </PopoverPrimitive.Popup>
-        </PopoverPrimitive.Positioner>
-      </PopoverPrimitive.Portal>
-    </PopoverPrimitive.Root>
-  ) : null;
+        </ContextMenuContent>
+      </ContextMenu>
+    );
+  }
 
   if (variant === "board") {
-    return (
+    return withContextMenu(
       <div
         className={cn(
           "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-t border-white/12 px-1 py-3 text-[#f4f8f7]",
@@ -306,7 +254,6 @@ export function TransactionRow({
           className,
         )}
         onClick={interactive ? activateRow : undefined}
-        onContextMenu={handleContextMenu}
         onKeyDown={
           interactive
             ? (event) => {
@@ -353,12 +300,11 @@ export function TransactionRow({
             </div>
           ) : null}
         </div>
-        {contextMenu}
       </div>
     );
   }
 
-  return (
+  return withContextMenu(
     <div
       className={cn(
         "group flex items-center gap-2.5 rounded-[var(--radius-control)] px-2 py-1.5 transition-[background-color] select-none",
@@ -368,7 +314,6 @@ export function TransactionRow({
         className,
       )}
       onClick={interactive ? activateRow : undefined}
-      onContextMenu={handleContextMenu}
       onKeyDown={
         interactive
           ? (event) => {
@@ -449,7 +394,6 @@ export function TransactionRow({
 
       {action ? <div className="shrink-0">{action}</div> : null}
 
-      {contextMenu}
     </div>
   );
 }

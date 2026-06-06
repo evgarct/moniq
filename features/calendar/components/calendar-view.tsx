@@ -130,14 +130,13 @@ export function CalendarView({ snapshot }: { snapshot: FinanceSnapshot }) {
               onDeleteTransaction={(selectedTransaction) => {
                 transactionActions.deleteTransactionOptimistic(selectedTransaction.id);
               }}
-              onDeleteSeries={async (selectedTransaction) => {
+              onDeleteSeries={(selectedTransaction) => {
                 if (!selectedTransaction.schedule_id) return;
-                try {
-                  await transactionActions.deleteSchedule(selectedTransaction.schedule_id);
-                  setActionError(null);
-                } catch (error) {
-                  setActionError(error instanceof Error ? error.message : transactionViewT("deleteError"));
-                }
+                transactionActions.deleteSchedule(selectedTransaction.schedule_id, {
+                  onError: (error) =>
+                    setActionError(error instanceof Error ? error.message : transactionViewT("deleteError")),
+                });
+                setActionError(null);
               }}
               onMarkPaid={(selectedTransaction) => {
                 transactionActions.markPaidOptimistic(selectedTransaction.id);
@@ -145,17 +144,17 @@ export function CalendarView({ snapshot }: { snapshot: FinanceSnapshot }) {
               onSkipOccurrence={(selectedTransaction) => {
                 transactionActions.skipOccurrenceOptimistic(selectedTransaction.id);
               }}
-              onToggleScheduleState={async (selectedTransaction) => {
+              onToggleScheduleState={(selectedTransaction) => {
                 if (!selectedTransaction.schedule_id || !selectedTransaction.schedule) return;
-                try {
-                  await transactionActions.setScheduleState(
-                    selectedTransaction.schedule_id,
-                    selectedTransaction.schedule.state === "paused" ? "active" : "paused",
-                  );
-                  setActionError(null);
-                } catch (error) {
-                  setActionError(error instanceof Error ? error.message : transactionViewT("saveError"));
-                }
+                transactionActions.setScheduleState(
+                  selectedTransaction.schedule_id,
+                  selectedTransaction.schedule.state === "paused" ? "active" : "paused",
+                  {
+                    onError: (error) =>
+                      setActionError(error instanceof Error ? error.message : transactionViewT("saveError")),
+                  },
+                );
+                setActionError(null);
               }}
             />
           </FinanceBoardPanel>
@@ -171,25 +170,23 @@ export function CalendarView({ snapshot }: { snapshot: FinanceSnapshot }) {
         categories={snapshot.categories}
         allocations={snapshot.allocations}
         onOpenChange={setSheetOpen}
-        onSubmit={async (payload: TransactionFormSubmitPayload) => {
-          try {
-            if (payload.kind === "transaction" && editingTransaction) {
-              await transactionActions.updateTransaction(editingTransaction.id, payload.values);
-              if (payload.rescheduleFrom) {
-                await transactionActions.rescheduleFromDate(
-                  payload.rescheduleFrom.scheduleId,
-                  payload.rescheduleFrom.originalDate,
-                  payload.rescheduleFrom.newDate,
-                );
-              }
-            } else if (payload.kind === "schedule" && editingSchedule) {
-              await transactionActions.updateSchedule(editingSchedule.id, payload.values);
-            }
-            setActionError(null);
-          } catch (error) {
+        onSubmit={(payload: TransactionFormSubmitPayload) => {
+          const onError = (error: unknown) =>
             setActionError(error instanceof Error ? error.message : transactionViewT("saveError"));
-            throw error;
+          if (payload.kind === "transaction" && editingTransaction) {
+            transactionActions.updateTransaction(editingTransaction.id, payload.values, { onError });
+            if (payload.rescheduleFrom) {
+              transactionActions.rescheduleFromDate(
+                payload.rescheduleFrom.scheduleId,
+                payload.rescheduleFrom.originalDate,
+                payload.rescheduleFrom.newDate,
+                { onError },
+              );
+            }
+          } else if (payload.kind === "schedule" && editingSchedule) {
+            transactionActions.updateSchedule(editingSchedule.id, payload.values, { onError });
           }
+          setActionError(null);
         }}
       />
     </>

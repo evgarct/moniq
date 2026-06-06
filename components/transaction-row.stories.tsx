@@ -95,7 +95,7 @@ export const Default: Story = {
   name: "Default",
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText("Monthly salary")).toBeInTheDocument();
+    await expect(canvas.getByText(snapshot.transactions[0].category!.name)).toBeInTheDocument();
   },
 };
 

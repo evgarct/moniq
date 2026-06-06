@@ -18,8 +18,9 @@
 5. The repository expands active recurring schedules into generated planned occurrences inside a rolling horizon before returning the finance snapshot.
 6. CSV uploads go through `/api/banking/import-preview` and `/api/banking/upload`, which parse the file, map columns, and persist draft import rows.
 7. MCP clients call `/api/mcp` to read finance context, create pending transaction batches, edit/reject pending draft rows, or create/update/delete confirmed ledger transactions through ownership-checked RPCs.
-8. UI mutations call wallet/allocation/category/transaction/import API routes and receive the updated snapshot back.
-9. TanStack Query replaces the cached snapshot, so the UI stays in sync without client-side mock state.
+8. Finance UI mutations are submitted through `FinanceMutationCoordinator`. Each command projects its result into the TanStack Query snapshot immediately, then calls the existing API route in the background.
+9. The coordinator keeps the last confirmed server snapshot and reapplies queued commands after every response. A failed command is removed without reverting later optimistic work; successful responses replace temporary `optimistic:*` entities with the canonical server snapshot.
+10. Banking inbox and import mutations remain outside the finance command queue because they operate on draft records rather than the confirmed finance snapshot.
 
 ## Feature modules
 

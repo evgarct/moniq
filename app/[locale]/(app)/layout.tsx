@@ -38,7 +38,7 @@ export default async function AuthenticatedLayout({
 
   return (
     <div className="h-dvh w-screen overflow-hidden bg-background">
-      <div className="grid h-full min-h-0 w-full pb-[calc(84px+env(safe-area-inset-bottom))] lg:grid-cols-[76px_minmax(0,1fr)] lg:pb-0">
+      <div className="grid h-full min-h-0 w-full lg:grid-cols-[76px_minmax(0,1fr)]">
         <AppSidebar user={user} onSignOut={signOut} />
         <div className="min-h-0 min-w-0 overflow-hidden bg-background">
           <main className="h-full min-h-0 overflow-hidden lg:h-screen">
