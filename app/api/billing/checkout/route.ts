@@ -72,7 +72,7 @@ export async function POST(request: Request) {
   try {
     const body = checkoutSchema.parse(await request.json().catch(() => ({})));
     const locale = (body.locale ?? routing.defaultLocale) as AppLocale;
-    const origin = getAppUrl();
+    const origin = getAppUrl(new URL(request.url).origin);
     const stripe = getStripe();
     const { customerId, hasUsedTrial } = await getOrCreateStripeCustomer(user);
     const settingsUrl = `${origin}/${locale}/settings`;

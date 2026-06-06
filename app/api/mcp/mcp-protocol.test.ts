@@ -66,6 +66,23 @@ describe("MCP authentication metadata", () => {
       'Bearer realm="moniq", resource_metadata="https://moniq.fyi/.well-known/oauth-protected-resource"',
     );
   });
+
+  it("advertises the current deployment when no app URL is configured", () => {
+    const originalAppUrl = process.env.NEXT_PUBLIC_APP_URL;
+    delete process.env.NEXT_PUBLIC_APP_URL;
+
+    try {
+      expect(getMcpWwwAuthenticate("https://preview.example.dev")).toBe(
+        'Bearer realm="moniq", resource_metadata="https://preview.example.dev/.well-known/oauth-protected-resource"',
+      );
+    } finally {
+      if (originalAppUrl === undefined) {
+        delete process.env.NEXT_PUBLIC_APP_URL;
+      } else {
+        process.env.NEXT_PUBLIC_APP_URL = originalAppUrl;
+      }
+    }
+  });
 });
 
 describe("MCP initialize", () => {

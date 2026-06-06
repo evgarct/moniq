@@ -38,8 +38,8 @@ export async function OPTIONS() {
 // or Claude.ai rejects the server as unreachable ("Method Not Allowed").
 // We don't push server-initiated events, so the stream stays idle until the
 // client disconnects or Vercel's function timeout closes it.
-export function getMcpWwwAuthenticate() {
-  return `Bearer realm="moniq", resource_metadata="${getMcpResourceMetadataUrl()}"`;
+export function getMcpWwwAuthenticate(currentOrigin?: string) {
+  return `Bearer realm="moniq", resource_metadata="${getMcpResourceMetadataUrl(currentOrigin)}"`;
 }
 
 const TRANSACTION_KINDS = ["income", "expense", "transfer", "debt_payment"] as const;
@@ -111,7 +111,10 @@ export async function GET(request: Request) {
   if (!auth) {
     return new Response(null, {
       status: 401,
-      headers: { ...CORS_HEADERS, "WWW-Authenticate": getMcpWwwAuthenticate() },
+      headers: {
+        ...CORS_HEADERS,
+        "WWW-Authenticate": getMcpWwwAuthenticate(new URL(request.url).origin),
+      },
     });
   }
 
@@ -2751,7 +2754,13 @@ export async function POST(request: Request) {
   if (!auth) {
     return NextResponse.json(
       { jsonrpc: "2.0", id: null, error: { code: -32001, message: t("mcp.errors.unauthorizedApiKey") } },
-      { status: 401, headers: { ...CORS_HEADERS, "WWW-Authenticate": getMcpWwwAuthenticate() } },
+      {
+        status: 401,
+        headers: {
+          ...CORS_HEADERS,
+          "WWW-Authenticate": getMcpWwwAuthenticate(new URL(request.url).origin),
+        },
+      },
     );
   }
 

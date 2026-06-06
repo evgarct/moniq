@@ -152,7 +152,13 @@ function ConfigSnippet({ host }: { host: string }) {
 // Main component
 // ---------------------------------------------------------------------------
 
-export function McpSettings({ initialKeys }: { initialKeys: ApiKey[] }) {
+export function McpSettings({
+  initialKeys,
+  appUrl,
+}: {
+  initialKeys: ApiKey[];
+  appUrl?: string;
+}) {
   const t = useTranslations("settings.mcp");
   const [keys, setKeys] = useState<ApiKey[]>(initialKeys);
   const [newKeyName, setNewKeyName] = useState("");
@@ -160,7 +166,7 @@ export function McpSettings({ initialKeys }: { initialKeys: ApiKey[] }) {
   const [newKey, setNewKey] = useState<NewKeyResult | null>(null);
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [host] = useState(getAppUrl);
+  const [host] = useState(() => getAppUrl(appUrl));
 
   async function createKey(e: React.FormEvent) {
     e.preventDefault();

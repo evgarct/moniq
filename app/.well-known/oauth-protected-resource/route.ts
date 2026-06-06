@@ -8,12 +8,13 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
-export async function GET() {
-  const base = getAppUrl();
+export async function GET(request: Request) {
+  const requestOrigin = new URL(request.url).origin;
+  const base = getAppUrl(requestOrigin);
 
   return NextResponse.json(
     {
-      resource: getMcpUrl(),
+      resource: getMcpUrl(requestOrigin),
       authorization_servers: [base],
     },
     { headers: CORS_HEADERS },

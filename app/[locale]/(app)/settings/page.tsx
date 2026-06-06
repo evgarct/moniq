@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import { redirect } from "@/i18n/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PageContainer } from "@/components/page-container";
@@ -9,6 +10,7 @@ import { getBillingEntitlementForUser } from "@/lib/billing/server";
 import type { AppLocale } from "@/i18n/routing";
 import type { CurrencyCode } from "@/types/currency";
 import { getTranslations } from "next-intl/server";
+import { getAppUrl } from "@/lib/app-url";
 
 export default async function SettingsPage({
   params,
@@ -17,6 +19,10 @@ export default async function SettingsPage({
 }) {
   const { locale } = await params;
   const t = await getTranslations("settings");
+  const headerStore = await headers();
+  const protocol = headerStore.get("x-forwarded-proto") ?? "http";
+  const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host");
+  const appUrl = getAppUrl(host ? `${protocol}://${host}` : undefined);
   const supabase = await createClient();
   const {
     data: { user },
@@ -54,7 +60,7 @@ export default async function SettingsPage({
           initialDefaultCurrencySource={preferences.default_currency_source}
           walletCurrencies={walletCurrencies}
         />
-        <McpSettings initialKeys={keys ?? []} />
+        <McpSettings initialKeys={keys ?? []} appUrl={appUrl} />
       </div>
     </PageContainer>
   );

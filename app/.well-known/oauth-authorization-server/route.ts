@@ -8,8 +8,8 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
-export async function GET() {
-  const base = getAppUrl();
+export async function GET(request: Request) {
+  const base = getAppUrl(new URL(request.url).origin);
 
   return NextResponse.json(
     {

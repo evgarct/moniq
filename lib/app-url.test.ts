@@ -28,9 +28,19 @@ describe("canonical app URL", () => {
     );
   });
 
+  it("preserves the current deployment origin when provided", () => {
+    delete process.env.NEXT_PUBLIC_APP_URL;
+
+    expect(getAppUrl("https://preview.example.dev/")).toBe("https://preview.example.dev");
+    expect(getMcpUrl("http://localhost:3008")).toBe("http://localhost:3008/api/mcp");
+    expect(getMcpResourceMetadataUrl("https://preview.example.dev")).toBe(
+      "https://preview.example.dev/.well-known/oauth-protected-resource",
+    );
+  });
+
   it("normalizes a configured app URL", () => {
     process.env.NEXT_PUBLIC_APP_URL = "https://preview.moniq.fyi/";
 
-    expect(getAppUrl()).toBe("https://preview.moniq.fyi");
+    expect(getAppUrl("http://localhost:3008")).toBe("https://preview.moniq.fyi");
   });
 });
