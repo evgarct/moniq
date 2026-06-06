@@ -4,6 +4,9 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --breakpoint-sm: 64rem;
+  --breakpoint-md: 64rem;
+  --breakpoint-lg: 64rem;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
@@ -143,9 +146,16 @@
     text-rendering: optimizeLegibility;
   }
 
-  @media (display-mode: standalone) and (max-width: 1023px) {
-    .mobile-standalone-shell {
+  @media (max-width: 1023px) {
+    .mobile-shell {
       padding-top: env(safe-area-inset-top);
+    }
+
+    .mobile-nav-scroll-clearance::after {
+      display: block;
+      height: calc(76px + env(safe-area-inset-bottom));
+      flex: none;
+      content: "";
     }
   }
 

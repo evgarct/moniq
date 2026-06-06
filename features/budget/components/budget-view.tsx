@@ -272,7 +272,7 @@ export function BudgetView({ snapshot }: { snapshot: FinanceSnapshot }) {
           {/* Expenses — flex-[3]: takes most of the vertical space */}
           <div className="flex min-h-0 flex-[3] flex-col border-b border-border/40 px-4 sm:px-6 lg:px-7">
             <SectionHeader title={t("sections.expensesTitle")} nodes={expenseNodes} />
-            <div className="flex-1 overflow-y-auto pb-3 [scroll-padding-bottom:1rem]">
+            <div className="mobile-nav-scroll-clearance flex-1 overflow-y-auto pb-3 [scroll-padding-bottom:calc(76px+env(safe-area-inset-bottom))] lg:[scroll-padding-bottom:1rem]">
               {expenseNodes.length ? (
                 <div className={cn(
                   "-mx-2 grid",
@@ -296,7 +296,7 @@ export function BudgetView({ snapshot }: { snapshot: FinanceSnapshot }) {
           {/* Income — flex-[2]: smaller, but still scrollable */}
           <div className="flex min-h-0 flex-[2] flex-col px-4 sm:px-6 lg:px-7">
             <SectionHeader title={t("sections.incomeTitle")} nodes={incomeNodes} />
-            <div className="flex-1 overflow-y-auto pb-3 [scroll-padding-bottom:1rem]">
+            <div className="mobile-nav-scroll-clearance flex-1 overflow-y-auto pb-3 [scroll-padding-bottom:calc(76px+env(safe-area-inset-bottom))] lg:[scroll-padding-bottom:1rem]">
               {incomeNodes.length ? (
                 <div className={cn(
                   "-mx-2 grid",
@@ -321,7 +321,7 @@ export function BudgetView({ snapshot }: { snapshot: FinanceSnapshot }) {
         {/* Right: category detail — scrollable, only when selected */}
         {selectedNode && (
           <div className="flex min-h-0 flex-1 flex-col">
-            <div className="flex-1 overflow-y-auto px-4 py-5 [scroll-padding-bottom:1rem] sm:px-6 lg:px-7">
+            <div className="mobile-nav-scroll-clearance flex-1 overflow-y-auto px-4 py-5 [scroll-padding-bottom:calc(76px+env(safe-area-inset-bottom))] sm:px-6 lg:px-7 lg:[scroll-padding-bottom:1rem]">
               <CategoryDetail
                 node={selectedNode}
                 transactions={selectedTransactions}

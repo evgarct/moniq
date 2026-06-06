@@ -272,7 +272,7 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
           </div>
         ) : null}
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scroll-padding-bottom:1rem]">
+        <div className="mobile-nav-scroll-clearance min-h-0 flex-1 overflow-y-auto overscroll-contain [scroll-padding-bottom:calc(76px+env(safe-area-inset-bottom))] lg:[scroll-padding-bottom:1rem]">
           {mobileListEmpty ? (
             <div className="flex h-full items-center justify-center px-6 py-12">
               <EmptyState title={selectedDate ? t("board.selectedEmpty") : t("board.empty")} description="" />
@@ -325,7 +325,7 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
             title={t("view.title")}
             actions={calendarNav}
           />
-          <div className="flex-1 overflow-y-auto overscroll-contain px-2.5 pt-4 pb-6 sm:px-[26px] lg:px-[30px]">
+          <div className="mobile-nav-scroll-clearance flex-1 overflow-y-auto overscroll-contain px-2.5 pt-4 pb-6 sm:px-[26px] lg:px-[30px]">
             {calendarGrid}
           </div>
         </section>
@@ -357,7 +357,7 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
             </div>
           ) : null}
 
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          <div className="mobile-nav-scroll-clearance min-h-0 flex-1 overflow-y-auto overscroll-contain">
             {dayTransactionsList}
           </div>
         </section>

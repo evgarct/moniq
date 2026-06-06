@@ -91,7 +91,7 @@ export function MobileBottomNav({
   return (
     <div
       data-mobile-nav
-      className="z-50 flex shrink-0 justify-center bg-background px-2 pt-1 lg:hidden"
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-2 pt-1 lg:hidden"
       style={{
         paddingBottom: "max(4px, env(safe-area-inset-bottom))",
         paddingLeft: "max(10px, env(safe-area-inset-left))",
@@ -99,10 +99,11 @@ export function MobileBottomNav({
       }}
     >
       <nav
-        className="grid h-[60px] w-full max-w-[460px] grid-cols-5 items-center rounded-[calc(var(--radius-floating)+8px)] bg-popover/88 px-1.5 text-[9px] text-muted-foreground shadow-[0_8px_24px_rgba(28,22,17,0.14)] backdrop-blur-2xl supports-[backdrop-filter]:bg-popover/76"
+        className="pointer-events-auto grid h-[60px] w-full max-w-[460px] grid-cols-5 items-center rounded-[calc(var(--radius-floating)+8px)] px-1.5 text-[9px] text-muted-foreground shadow-[0_8px_24px_rgba(28,22,17,0.14)]"
         style={{
-          backdropFilter: "saturate(160%) blur(20px)",
-          WebkitBackdropFilter: "saturate(160%) blur(20px)",
+          background: "color-mix(in oklab, var(--popover) 1%, transparent)",
+          backdropFilter: "saturate(100%) blur(4px)",
+          WebkitBackdropFilter: "saturate(100%) blur(4px)",
         }}
       >
         {navigation.map((item) => {
