@@ -283,9 +283,9 @@ export function TransactionFormSheet({
   return (
     <Sheet open={open} onOpenChange={(next) => { setPendingPayload(null); onOpenChange(next); }}>
       <SheetContent
-        side="right"
+        side="responsive"
         showCloseButton={false}
-        className="w-full gap-0 border-l-0 bg-background p-0 sm:top-6 sm:right-0 sm:h-[calc(100vh-3rem)] sm:w-[42rem] sm:max-w-none sm:border-0"
+        className="gap-0 border-0 bg-background p-0 sm:max-w-none"
       >
         <TransactionFormProvider
           open={open}

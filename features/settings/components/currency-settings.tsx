@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
 import { CircleDollarSign } from "lucide-react";
 
@@ -17,10 +16,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { financeSnapshotQueryKey, updateUserPreferencesRequest } from "@/features/finance/lib/finance-api";
+import { useFinanceActions } from "@/features/finance/hooks/use-finance-actions";
 import { SUPPORTED_CURRENCIES } from "@/types/currency";
 import type { CurrencyCode } from "@/types/currency";
-import type { DefaultCurrencySource, FinanceSnapshot } from "@/types/finance";
+import type { DefaultCurrencySource } from "@/types/finance";
 
 type CurrencySettingsProps = {
   initialDefaultCurrency: CurrencyCode;
@@ -39,7 +38,7 @@ export function CurrencySettings({
 }: CurrencySettingsProps) {
   const t = useTranslations("settings.currency");
   const locale = useLocale();
-  const queryClient = useQueryClient();
+  const financeActions = useFinanceActions();
   const [defaultCurrency, setDefaultCurrency] = useState<CurrencyCode>(initialDefaultCurrency);
   const [savedCurrency, setSavedCurrency] = useState<CurrencyCode>(initialDefaultCurrency);
   const [source, setSource] = useState<DefaultCurrencySource>(initialDefaultCurrencySource);
@@ -63,20 +62,22 @@ export function CurrencySettings({
   );
   const isDirty = defaultCurrency !== savedCurrency;
 
-  async function saveDefaultCurrency() {
+  function saveDefaultCurrency() {
     setStatus("saving");
     setError(null);
-
-    try {
-      const snapshot = await updateUserPreferencesRequest({ default_currency: defaultCurrency });
-      queryClient.setQueryData<FinanceSnapshot>(financeSnapshotQueryKey, snapshot);
-      setSavedCurrency(defaultCurrency);
-      setSource("saved");
-      setStatus("saved");
-    } catch (saveError) {
-      setStatus("error");
-      setError(saveError instanceof Error ? saveError.message : t("saveError"));
-    }
+    financeActions.updatePreferences(
+      { default_currency: defaultCurrency },
+      {
+        onError(saveError) {
+          setDefaultCurrency(savedCurrency);
+          setStatus("error");
+          setError(saveError instanceof Error ? saveError.message : t("saveError"));
+        },
+      },
+    );
+    setSavedCurrency(defaultCurrency);
+    setSource("saved");
+    setStatus("saved");
   }
 
   return (

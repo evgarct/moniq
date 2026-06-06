@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { addDays, formatISO, subDays } from "date-fns";
-import { expect, within } from "storybook/test";
+import { expect, userEvent, within } from "storybook/test";
 
 import { TodayView } from "@/features/today/components/today-view";
 import { makeFinanceSnapshot, StoryWorkspace, withPathname } from "@/stories/fixtures/story-data";
@@ -67,10 +67,31 @@ export const MobileUpcomingWindow: Story = {
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByRole("heading", { name: "Next 3 days" })).toBeInTheDocument();
+    await expect(canvas.getByRole("heading", { name: "Today and next 3 days" })).toBeInTheDocument();
     await expect(canvas.getAllByText("Tomorrow insurance").length).toBeGreaterThan(0);
-    await expect(canvas.queryByText("Overdue transfer")).not.toBeInTheDocument();
+    await expect(canvas.getAllByText("Overdue transfer").length).toBeGreaterThan(0);
     await expect(canvas.queryByText("Future subscription")).not.toBeInTheDocument();
+  },
+};
+
+export const MobileCalendarOpen: Story = {
+  parameters: {
+    ...withPathname("/today"),
+    layout: "fullscreen",
+    viewport: { defaultViewport: "mobile2" },
+  },
+  render: () => (
+    <StoryWorkspace pathname="/today">
+      <div className="h-screen">
+        <TodayView snapshot={mobileSnapshot} />
+      </div>
+    </StoryWorkspace>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const toggle = canvas.getByRole("button", { name: "Show calendar" });
+    await userEvent.click(toggle);
+    await expect(canvas.getByRole("button", { name: "Hide calendar" })).toHaveAttribute("aria-expanded", "true");
   },
 };
 
@@ -83,11 +104,16 @@ function makeMobileWindowSnapshot(): FinanceSnapshot {
     makeStoryTransaction(template, "story-tomorrow-insurance", "Tomorrow insurance", addDays(today, 1)),
     makeStoryTransaction(template, "story-future-subscription", "Future subscription", addDays(today, 4)),
   ];
+  const paidToday = {
+    ...makeStoryTransaction(template, "story-paid-today", "Paid today", today),
+    status: "paid" as const,
+  };
 
   return {
     ...base,
     transactions: [
       ...plannedWindow,
+      paidToday,
       ...base.transactions.filter((tx) => tx.status !== "planned"),
     ],
   };

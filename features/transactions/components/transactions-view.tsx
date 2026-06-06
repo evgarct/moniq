@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -19,17 +18,11 @@ import { CategoryDeleteSheet } from "@/features/categories/components/category-d
 import { CategoryFormSheet } from "@/features/categories/components/category-form-sheet";
 import { CategoryWorkspace } from "@/features/categories/components/category-workspace";
 import { buildCategoryTree, flattenCategoryTree } from "@/features/categories/lib/category-tree";
-import {
-  createCategoryRequest,
-  deleteCategoryRequest,
-  financeSnapshotQueryKey,
-  updateCategoryRequest,
-} from "@/features/finance/lib/finance-api";
+import { useFinanceActions } from "@/features/finance/hooks/use-finance-actions";
 import { createEmptyFinanceSnapshot } from "@/features/finance/lib/empty-snapshot";
 import { TransactionFormSheet, type TransactionFormSubmitPayload } from "@/features/transactions/components/transaction-form-sheet";
 import { useTransactionActions } from "@/features/transactions/hooks/use-transaction-actions";
 import type { Category, FinanceSnapshot, Transaction, TransactionSchedule } from "@/types/finance";
-import type { CategoryInput } from "@/types/finance-schemas";
 import { useFinanceData } from "@/features/finance/hooks/use-finance-data";
 import { useRouter } from "@/i18n/navigation";
 
@@ -47,9 +40,9 @@ export function TransactionsView({
   const categoriesT = useTranslations("categories.view");
   const router = useRouter();
   const searchParams = useSearchParams();
-  const queryClient = useQueryClient();
   const { data } = useFinanceData({ enabled: !snapshotProp });
   const snapshot = snapshotProp ?? data ?? emptySnapshot;
+  const financeActions = useFinanceActions();
   const transactionActions = useTransactionActions();
   const [actionError, setActionError] = useState<string | null>(null);
   const [categorySheetOpen, setCategorySheetOpen] = useState(false);
@@ -62,28 +55,6 @@ export function TransactionsView({
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [editingSchedule, setEditingSchedule] = useState<TransactionSchedule | null>(null);
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
-
-  const setSnapshot = (nextSnapshot: FinanceSnapshot) => {
-    queryClient.setQueryData(financeSnapshotQueryKey, nextSnapshot);
-  };
-
-  const categoryMutation = useMutation({
-    mutationFn: async ({ mode, categoryId, values }: { mode: "add" | "edit"; categoryId?: string; values: CategoryInput }) =>
-      mode === "add" ? createCategoryRequest(values) : updateCategoryRequest(categoryId!, values),
-    onSuccess: (nextSnapshot) => {
-      setSnapshot(nextSnapshot);
-      setActionError(null);
-    },
-  });
-
-  const deleteCategoryMutation = useMutation({
-    mutationFn: async ({ categoryId, replacementCategoryId }: { categoryId: string; replacementCategoryId: string | null }) =>
-      deleteCategoryRequest(categoryId, replacementCategoryId),
-    onSuccess: (nextSnapshot) => {
-      setSnapshot(nextSnapshot);
-      setActionError(null);
-    },
-  });
 
   const categoryTree = useMemo(() => buildCategoryTree(snapshot.categories, snapshot.transactions), [snapshot.categories, snapshot.transactions]);
   const flatCategoryTree = useMemo(() => flattenCategoryTree(categoryTree), [categoryTree]);
@@ -180,17 +151,17 @@ export function TransactionsView({
           onSkipOccurrence={(selectedTransaction) => {
             transactionActions.skipOccurrenceOptimistic(selectedTransaction.id);
           }}
-          onToggleScheduleState={async (selectedTransaction) => {
+          onToggleScheduleState={(selectedTransaction) => {
             if (!selectedTransaction.schedule_id || !selectedTransaction.schedule) return;
-            try {
-              await transactionActions.setScheduleState(
-                selectedTransaction.schedule_id,
-                selectedTransaction.schedule.state === "paused" ? "active" : "paused",
-              );
-              setActionError(null);
-            } catch (error) {
-              setActionError(error instanceof Error ? error.message : t("view.saveError"));
-            }
+            transactionActions.setScheduleState(
+              selectedTransaction.schedule_id,
+              selectedTransaction.schedule.state === "paused" ? "active" : "paused",
+              {
+                onError: (error) =>
+                  setActionError(error instanceof Error ? error.message : t("view.saveError")),
+              },
+            );
+            setActionError(null);
           }}
           fallback={
             <Surface tone="panel" padding="lg" className="min-h-[560px] border border-black/5">
@@ -244,17 +215,17 @@ export function TransactionsView({
                   onSkipOccurrence={(selectedTransaction) => {
                     transactionActions.skipOccurrenceOptimistic(selectedTransaction.id);
                   }}
-                  onToggleScheduleState={async (selectedTransaction) => {
+                  onToggleScheduleState={(selectedTransaction) => {
                     if (!selectedTransaction.schedule_id || !selectedTransaction.schedule) return;
-                    try {
-                      await transactionActions.setScheduleState(
-                        selectedTransaction.schedule_id,
-                        selectedTransaction.schedule.state === "paused" ? "active" : "paused",
-                      );
-                      setActionError(null);
-                    } catch (error) {
-                      setActionError(error instanceof Error ? error.message : t("view.saveError"));
-                    }
+                    transactionActions.setScheduleState(
+                      selectedTransaction.schedule_id,
+                      selectedTransaction.schedule.state === "paused" ? "active" : "paused",
+                      {
+                        onError: (error) =>
+                          setActionError(error instanceof Error ? error.message : t("view.saveError")),
+                      },
+                    );
+                    setActionError(null);
                   }}
                 />
               </div>
@@ -269,17 +240,18 @@ export function TransactionsView({
         category={editingCategory}
         categories={snapshot.categories}
         onOpenChange={setCategorySheetOpen}
-        onSubmit={async (values) => {
-          try {
-            await categoryMutation.mutateAsync({
-              mode: categorySheetMode,
-              categoryId: editingCategory?.id || undefined,
-              values,
-            });
-          } catch (error) {
-            setActionError(error instanceof Error ? error.message : categoriesT("saveError"));
-            throw error;
-          }
+        onSubmit={(values) => {
+          const completion = financeActions.saveCategory(
+            categorySheetMode,
+            values,
+            editingCategory?.id || undefined,
+            {
+              onError: (error) =>
+                setActionError(error instanceof Error ? error.message : categoriesT("saveError")),
+            },
+          );
+          setActionError(null);
+          return completion;
         }}
       />
 
@@ -294,21 +266,18 @@ export function TransactionsView({
             setDeletingCategory(null);
           }
         }}
-        onSubmit={async (replacementCategoryId) => {
+        onSubmit={(replacementCategoryId) => {
           if (!deletingCategory) {
             return;
           }
 
-          try {
-            await deleteCategoryMutation.mutateAsync({
-              categoryId: deletingCategory.id,
-              replacementCategoryId,
-            });
-            setDeletingCategory(null);
-          } catch (error) {
-            setActionError(error instanceof Error ? error.message : categoriesT("deleteError"));
-            throw error;
-          }
+          const completion = financeActions.deleteCategory(deletingCategory.id, replacementCategoryId, {
+            onError: (error) =>
+              setActionError(error instanceof Error ? error.message : categoriesT("deleteError")),
+          });
+          setDeletingCategory(null);
+          setActionError(null);
+          return completion;
         }}
       />
 
@@ -330,35 +299,32 @@ export function TransactionsView({
           }
         }}
         onSubmit={async (payload: TransactionFormSubmitPayload) => {
+          const onError = (error: unknown) =>
+            setActionError(error instanceof Error ? error.message : t("view.saveError"));
+          const completions: Promise<void>[] = [];
           if (payload.kind === "entry" || payload.kind === "entry-batch") {
-            transactionActions.createEntry(payload.values).catch((error) => {
-              setActionError(error instanceof Error ? error.message : t("view.saveError"));
-            });
+            completions.push(transactionActions.createEntry(payload.values, { onError }));
           } else if (payload.kind === "transaction") {
             if (!editingTransaction) throw new Error(t("view.saveError"));
-            transactionActions.updateTransactionOptimistic(editingTransaction.id, payload.values);
+            completions.push(
+              transactionActions.updateTransactionOptimistic(editingTransaction.id, payload.values, { onError }),
+            );
             if (payload.rescheduleFrom) {
-              try {
-                await transactionActions.rescheduleFromDate(
+              completions.push(
+                transactionActions.rescheduleFromDate(
                   payload.rescheduleFrom.scheduleId,
                   payload.rescheduleFrom.originalDate,
                   payload.rescheduleFrom.newDate,
-                );
-              } catch (error) {
-                setActionError(error instanceof Error ? error.message : t("view.saveError"));
-                throw error;
-              }
+                  { onError },
+                ),
+              );
             }
           } else {
             if (!editingSchedule) throw new Error(t("view.saveError"));
-            try {
-              await transactionActions.updateSchedule(editingSchedule.id, payload.values);
-            } catch (error) {
-              setActionError(error instanceof Error ? error.message : t("view.saveError"));
-              throw error;
-            }
+            completions.push(transactionActions.updateSchedule(editingSchedule.id, payload.values, { onError }));
           }
           setActionError(null);
+          await Promise.all(completions);
           if (shouldOpenNewTransaction) router.replace(basePath);
         }}
       />

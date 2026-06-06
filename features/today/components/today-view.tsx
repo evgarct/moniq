@@ -1,6 +1,6 @@
 "use client";
 
-import { addDays, addMonths, format, isSameDay, isSameMonth, startOfToday } from "date-fns";
+import { addMonths, format, isSameDay, isSameMonth, startOfToday } from "date-fns";
 import { CalendarDays, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
@@ -13,13 +13,9 @@ import { Button } from "@/components/ui/button";
 import { TransactionAddButton } from "@/features/transactions/components/transaction-add-button";
 import { TransactionFormSheet, type TransactionFormSubmitPayload } from "@/features/transactions/components/transaction-form-sheet";
 import { useTransactionActions } from "@/features/transactions/hooks/use-transaction-actions";
-import { isVisibleTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
+import { selectTodayAgenda } from "@/features/today/lib/today-agenda";
 import { calDate } from "@/lib/formatters";
 import type { FinanceSnapshot, Transaction } from "@/types/finance";
-
-function sortAscending(transactions: Transaction[]) {
-  return [...transactions].sort((a, b) => a.occurred_at.localeCompare(b.occurred_at));
-}
 
 export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
   const t = useTranslations("today");
@@ -36,37 +32,15 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
   const [sheetMode, setSheetMode] = useState<"add" | "edit-transaction" | "edit-schedule">("add");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [initialKind, setInitialKind] = useState<Transaction["kind"]>("expense");
-  const [mobileView, setMobileView] = useState<"list" | "calendar">("list");
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
-  const visible = useMemo(
-    () => snapshot.transactions.filter((tx) => isVisibleTransactionStatus(tx.status)),
-    [snapshot.transactions],
-  );
-
-  const todayStr = format(today, "yyyy-MM-dd");
-  const upcomingWindowEndStr = format(addDays(today, 2), "yyyy-MM-dd");
-
-  // Default agenda: planned operations due from today through the next two days.
   const { plannedTransactions, paidTransactions } = useMemo(() => {
-    if (selectedDate) {
-      const dateStr = format(selectedDate, "yyyy-MM-dd");
-      return {
-        plannedTransactions: sortAscending(visible.filter((tx) => tx.status === "planned" && tx.occurred_at === dateStr)),
-        paidTransactions: sortAscending(visible.filter((tx) => tx.status !== "planned" && tx.occurred_at === dateStr)),
-      };
-    }
+    const agenda = selectTodayAgenda(snapshot.transactions, today, selectedDate);
     return {
-      plannedTransactions: sortAscending(
-        visible.filter(
-          (tx) =>
-            tx.status === "planned" &&
-            tx.occurred_at >= todayStr &&
-            tx.occurred_at <= upcomingWindowEndStr,
-        ),
-      ),
-      paidTransactions: [] as Transaction[],
+      plannedTransactions: agenda.planned,
+      paidTransactions: agenda.paid,
     };
-  }, [selectedDate, todayStr, upcomingWindowEndStr, visible]);
+  }, [selectedDate, snapshot.transactions, today]);
 
   const initialDate = selectedDate ? format(selectedDate, "yyyy-MM-dd") : null;
 
@@ -81,14 +55,13 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
   const mobileListPaid = paidTransactions;
   const mobileListEmpty = mobileListPlanned.length === 0 && mobileListPaid.length === 0;
 
-  function handleSelectDate(date: Date, switchToList?: boolean) {
+  function handleSelectDate(date: Date) {
     const isDeselecting = selectedDate && isSameDay(date, selectedDate);
     if (isDeselecting) {
       setSelectedDate(null);
     } else {
       setSelectedDate(date);
       if (!isSameMonth(date, month)) setMonth(date);
-      if (switchToList) setMobileView("list");
     }
   }
 
@@ -101,33 +74,31 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
   }
 
   async function handleSubmit(payload: TransactionFormSubmitPayload) {
+    const onError = (error: unknown) => {
+      setActionError(error instanceof Error ? error.message : transactionViewT("saveError"));
+    };
+    const completions: Promise<void>[] = [];
     if (payload.kind === "entry" || payload.kind === "entry-batch") {
-      transactionActions.createEntry(payload.values).catch((error) => {
-        setActionError(error instanceof Error ? error.message : transactionViewT("saveError"));
-      });
+      completions.push(transactionActions.createEntry(payload.values, { onError }));
     } else if (payload.kind === "transaction" && editingTransaction) {
-      transactionActions.updateTransactionOptimistic(editingTransaction.id, payload.values);
+      completions.push(
+        transactionActions.updateTransactionOptimistic(editingTransaction.id, payload.values, { onError }),
+      );
       if (payload.rescheduleFrom) {
-        try {
-          await transactionActions.rescheduleFromDate(
+        completions.push(
+          transactionActions.rescheduleFromDate(
             payload.rescheduleFrom.scheduleId,
             payload.rescheduleFrom.originalDate,
             payload.rescheduleFrom.newDate,
-          );
-        } catch (error) {
-          setActionError(error instanceof Error ? error.message : transactionViewT("saveError"));
-          throw error;
-        }
+            { onError },
+          ),
+        );
       }
     } else if (payload.kind === "schedule" && editingSeries) {
-      try {
-        await transactionActions.updateSchedule(editingSeries.id, payload.values);
-      } catch (error) {
-        setActionError(error instanceof Error ? error.message : transactionViewT("saveError"));
-        throw error;
-      }
+      completions.push(transactionActions.updateSchedule(editingSeries.id, payload.values, { onError }));
     }
     setActionError(null);
+    await Promise.all(completions);
   }
 
   const sharedListProps = {
@@ -165,17 +136,17 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
     onSkipOccurrence(tx: Transaction) {
       transactionActions.skipOccurrenceOptimistic(tx.id);
     },
-    async onToggleScheduleState(tx: Transaction) {
+    onToggleScheduleState(tx: Transaction) {
       if (!tx.schedule_id || !tx.schedule) return;
-      try {
-        await transactionActions.setScheduleState(
-          tx.schedule_id,
-          tx.schedule.state === "paused" ? "active" : "paused",
-        );
-        setActionError(null);
-      } catch (error) {
-        setActionError(error instanceof Error ? error.message : transactionViewT("saveError"));
-      }
+      transactionActions.setScheduleState(
+        tx.schedule_id,
+        tx.schedule.state === "paused" ? "active" : "paused",
+        {
+          onError: (error) =>
+            setActionError(error instanceof Error ? error.message : transactionViewT("saveError")),
+        },
+      );
+      setActionError(null);
     },
   };
 
@@ -249,138 +220,100 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
 
   return (
     <>
-      {/* ── Mobile: two-mode layout ──────────────────────────────────────── */}
+      {/* ── Mobile: agenda with collapsible calendar ─────────────────────── */}
       <div className="flex h-full flex-col lg:hidden">
-        {mobileView === "list" ? (
-          <>
-            {/* Mobile date header */}
-            <PageHeader
-              title={panelLabel}
-              actions={
-                <>
-                  {selectedDate ? (
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      className="rounded-[var(--radius-control)] text-muted-foreground hover:bg-[#ece8e1] hover:text-foreground"
-                      onClick={() => setSelectedDate(null)}
-                    >
-                      <X className="size-4" />
-                    </Button>
-                  ) : null}
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    className="rounded-[var(--radius-control)] text-muted-foreground hover:bg-[#ece8e1] hover:text-foreground"
-                    onClick={() => setMobileView("calendar")}
-                  >
-                    <CalendarDays className="size-4" />
-                  </Button>
-                  <TransactionAddButton onSelect={openAdd} variant="icon" />
-                </>
-              }
-            />
-
-            {actionError ? (
-              <div className="mx-5 mt-3 shrink-0 rounded-[var(--radius-control)] border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                {actionError}
-              </div>
-            ) : null}
-
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-              {mobileListEmpty ? (
-                <div className="flex h-full items-center justify-center px-6 py-12">
-                  <EmptyState title={t("board.empty")} description="" />
-                </div>
-              ) : (
-                <>
-                  {mobileListPlanned.length > 0 ? (
-                    <>
-                      <div className="px-[18px] pb-1 pt-4 sm:px-[34px]">
-                        <p className="type-h5">
-                          {t("board.tabPlanned")}
-                        </p>
-                      </div>
-                      <div className="px-2.5 pb-3 sm:px-[26px]">
-                        <TransactionList
-                          transactions={mobileListPlanned}
-                          emptyMessage=""
-                          groupByDate={!selectedDate}
-                          showDate={false}
-                          {...sharedListProps}
-                        />
-                      </div>
-                    </>
-                  ) : null}
-                  {mobileListPaid.length > 0 ? (
-                    <div className="px-2.5 pb-4 pt-1 sm:px-[26px]">
-                      <TransactionList
-                        transactions={mobileListPaid}
-                        emptyMessage=""
-                        showDate={false}
-                        {...sharedListProps}
-                      />
-                    </div>
-                  ) : null}
-                </>
-              )}
-            </div>
-          </>
-        ) : (
-          <>
-            {/* Mobile calendar header */}
-            <div className="shrink-0 flex items-center gap-1 border-b border-border/30 bg-card px-3 py-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-0.5 rounded-[var(--radius-control)] text-muted-foreground hover:bg-[#ece8e1] hover:text-foreground"
-                onClick={() => { setMobileView("list"); setSelectedDate(null); }}
-              >
-                <ChevronLeft className="size-4" />
-                {t("view.title")}
-              </Button>
-              <div className="flex flex-1 items-center justify-center gap-0.5">
-                {calendarNav}
-              </div>
-              <TransactionAddButton onSelect={openAdd} variant="icon" />
-            </div>
-
-            {/* Calendar grid */}
-            <div className="shrink-0 border-b border-border/30 bg-card px-4 py-3">
-              <CalendarGrid
-                month={month}
-                selectedDate={selectedDate}
-                transactions={snapshot.transactions}
-                onSelectDate={(date) => handleSelectDate(date, true)}
-              />
-            </div>
-
-            {/* Selected day label + clear */}
-            {selectedDate ? (
-              <div className="shrink-0 flex items-center justify-between border-b border-border/25 px-5 py-2">
-                <p className="text-sm font-medium text-foreground truncate">{panelLabel}</p>
+        <PageHeader
+          title={panelLabel}
+          actions={
+            <>
+              {selectedDate ? (
                 <Button
                   variant="ghost"
-                  size="sm"
-                  className="shrink-0 rounded-[var(--radius-control)] text-muted-foreground hover:bg-[#ece8e1] hover:text-foreground"
+                  size="icon-sm"
+                  className="rounded-[var(--radius-control)] text-muted-foreground hover:bg-[#ece8e1] hover:text-foreground"
                   onClick={() => setSelectedDate(null)}
+                  aria-label={t("board.clearDay")}
                 >
-                  {t("board.clearDay")}
+                  <X />
                 </Button>
-              </div>
-            ) : null}
+              ) : null}
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="rounded-[var(--radius-control)] text-muted-foreground hover:bg-[#ece8e1] hover:text-foreground"
+                onClick={() => setCalendarOpen((open) => !open)}
+                aria-label={calendarOpen ? t("board.hideCalendar") : t("board.showCalendar")}
+                aria-expanded={calendarOpen}
+              >
+                <CalendarDays />
+              </Button>
+              <TransactionAddButton onSelect={openAdd} variant="icon" />
+            </>
+          }
+        />
 
-            {actionError ? (
-              <div className="mx-5 mt-3 shrink-0 rounded-[var(--radius-control)] border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                {actionError}
-              </div>
-            ) : null}
-
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-              {dayTransactionsList}
+        {calendarOpen ? (
+          <section className="shrink-0 border-b border-border/30 bg-card px-4 pb-3">
+            <div className="flex items-center justify-center gap-0.5 py-2">
+              {calendarNav}
             </div>
-          </>
-        )}
+            <CalendarGrid
+              month={month}
+              selectedDate={selectedDate}
+              transactions={snapshot.transactions}
+              onSelectDate={handleSelectDate}
+            />
+          </section>
+        ) : null}
+
+        {actionError ? (
+          <div className="mx-5 mt-3 shrink-0 rounded-[var(--radius-control)] border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {actionError}
+          </div>
+        ) : null}
+
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[calc(104px+env(safe-area-inset-bottom))]">
+          {mobileListEmpty ? (
+            <div className="flex h-full items-center justify-center px-6 py-12">
+              <EmptyState title={selectedDate ? t("board.selectedEmpty") : t("board.empty")} description="" />
+            </div>
+          ) : (
+            <>
+              {mobileListPlanned.length > 0 ? (
+                <>
+                  <div className="px-[18px] pb-1 pt-4 sm:px-[34px]">
+                    <p className="type-h5">{t("board.tabPlanned")}</p>
+                  </div>
+                  <div className="px-2.5 pb-3 sm:px-[26px]">
+                    <TransactionList
+                      transactions={mobileListPlanned}
+                      emptyMessage=""
+                      groupByDate={!selectedDate}
+                      showDate={false}
+                      {...sharedListProps}
+                    />
+                  </div>
+                </>
+              ) : null}
+              {mobileListPaid.length > 0 ? (
+                <>
+                  <div className="px-[18px] pb-1 pt-2 sm:px-[34px]">
+                    <p className="type-h5">{t("board.tabPaid")}</p>
+                  </div>
+                  <div className="px-2.5 pb-4 sm:px-[26px]">
+                    <TransactionList
+                      transactions={mobileListPaid}
+                      emptyMessage=""
+                      groupByDate={false}
+                      showDate={false}
+                      {...sharedListProps}
+                    />
+                  </div>
+                </>
+              ) : null}
+            </>
+          )}
+        </div>
       </div>
 
       {/* ── Desktop: two-column layout ───────────────────────────────────── */}

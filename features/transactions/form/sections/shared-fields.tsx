@@ -6,8 +6,8 @@ import { useTranslations } from "next-intl";
 
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { FlatDatePicker, FieldMessage, FormPickerRow, FormSplitRow } from "@/components/form-primitives";
-import { cn } from "@/lib/utils";
 
 import { useTransactionFormContext } from "../context";
 import type { TransactionFormInputs } from "../types";
@@ -45,30 +45,26 @@ export function SharedFields({
               control={control}
               name="status"
               render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange} disabled={mode === "edit-schedule"}>
-                  <SelectTrigger
-                    className={cn(
-                      "h-auto w-auto border-0 bg-transparent px-0 py-0 text-right type-body-14 font-medium shadow-none outline-none focus:outline-none focus-visible:border-transparent focus-visible:ring-0 data-[popup-open]:opacity-90",
-                      field.value === "paid" ? "text-foreground" : "text-muted-foreground",
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "inline-flex items-center gap-1.5",
-                        field.value === "paid" ? "text-foreground" : "text-muted-foreground",
-                      )}
-                    >
-                      {field.value === "paid" ? <CheckCircle2 className="size-4" /> : <Clock3 className="size-4" />}
-                      <span>{field.value === "paid" ? t("status.paid") : t("status.planned")}</span>
-                    </span>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectItem value="paid">{t("status.paid")}</SelectItem>
-                      <SelectItem value="planned">{t("status.planned")}</SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
+                <ToggleGroup
+                  value={[field.value]}
+                  onValueChange={(value) => {
+                    const next = value[0];
+                    if (next === "planned" || next === "paid") field.onChange(next);
+                  }}
+                  disabled={mode === "edit-schedule"}
+                  variant="outline"
+                  size="sm"
+                  aria-label={t("fields.status")}
+                >
+                  <ToggleGroupItem value="planned" aria-label={t("status.planned")}>
+                    <Clock3 data-icon="inline-start" />
+                    {t("status.planned")}
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="paid" aria-label={t("status.paid")}>
+                    <CheckCircle2 data-icon="inline-start" />
+                    {t("status.paid")}
+                  </ToggleGroupItem>
+                </ToggleGroup>
               )}
             />
           ) : null

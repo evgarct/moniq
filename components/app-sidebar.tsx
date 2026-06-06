@@ -96,7 +96,7 @@ export function MobileBottomNav({
       }}
     >
       <nav
-        className="grid h-[62px] w-full max-w-[460px] grid-cols-5 items-center rounded-[calc(var(--radius-floating)+8px)] border border-border/55 bg-popover/82 px-1.5 text-[9px] text-muted-foreground shadow-[0_8px_22px_rgba(28,22,17,0.12)] ring-1 ring-background/70 backdrop-blur-2xl supports-[backdrop-filter]:bg-popover/72"
+        className="grid h-[62px] w-full max-w-[460px] grid-cols-5 items-center rounded-[calc(var(--radius-floating)+14px)] bg-popover/82 px-1.5 text-[9px] text-muted-foreground shadow-[0_10px_28px_rgba(28,22,17,0.16)] backdrop-blur-2xl supports-[backdrop-filter]:bg-popover/72"
         style={{
           backdropFilter: "saturate(160%) blur(20px)",
           WebkitBackdropFilter: "saturate(160%) blur(20px)",

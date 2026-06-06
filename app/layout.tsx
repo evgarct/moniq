@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono, PT_Serif } from "next/font/google";
 import { getLocale } from "next-intl/server";
 import { Analytics } from "@vercel/analytics/next";
@@ -36,6 +36,14 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#fafaf7",
+  colorScheme: "light",
+};
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -49,9 +57,6 @@ export default async function RootLayout({
       data-scroll-behavior="smooth"
       className={`${inter.variable} ${jetBrainsMono.variable} ${ptSerif.variable} h-full antialiased`}
     >
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-      </head>
       <body className="min-h-full bg-background font-sans text-foreground">
         <TooltipProvider>
           <WebVitalsReporter />
