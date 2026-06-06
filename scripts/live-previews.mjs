@@ -14,23 +14,26 @@ const appPort = 3008;
 const storybookPort = 6008;
 const appUrl = `http://localhost:${appPort}/en/today`;
 const storybookUrl = `http://localhost:${storybookPort}`;
+const forceRestart = process.argv.includes("--restart");
 
 await mkdir(artifactsDir, { recursive: true });
 
-await stopPort(appPort);
-await stopPort(storybookPort);
-
-spawnDetached(
-  localBin("next"),
-  ["dev", "--hostname", "0.0.0.0", "--port", String(appPort)],
-  appLog,
-);
-
-spawnDetached(
-  localBin("storybook"),
-  ["dev", "-p", String(storybookPort), "--host", "0.0.0.0", "--ci"],
-  storybookLog,
-);
+const appReused = await ensurePreview({
+  url: appUrl,
+  allowedStatuses: [200, 307],
+  port: appPort,
+  command: localBin("next"),
+  args: ["dev", "--hostname", "0.0.0.0", "--port", String(appPort)],
+  logPath: appLog,
+});
+const storybookReused = await ensurePreview({
+  url: storybookUrl,
+  allowedStatuses: [200],
+  port: storybookPort,
+  command: localBin("storybook"),
+  args: ["dev", "-p", String(storybookPort), "--host", "0.0.0.0", "--ci"],
+  logPath: storybookLog,
+});
 
 const appStatus = await waitForHttp(appUrl, [200, 307], 60_000);
 const storybookStatus = await waitForHttp(storybookUrl, [200], 60_000);
@@ -41,14 +44,16 @@ const payload = {
   app: {
     url: appUrl,
     status: appStatus,
+    reused: appReused,
     log: appLog,
   },
   storybook: {
     url: storybookUrl,
     status: storybookStatus,
+    reused: storybookReused,
     log: storybookLog,
   },
-  note: "These preview URLs are stable. Restart the live servers in place instead of allocating new ports.",
+  note: "These preview URLs are stable. Healthy servers are reused so HMR and browser sessions stay intact.",
 };
 
 await writeFile(currentJsonPath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
@@ -69,6 +74,16 @@ await writeFile(
 );
 
 console.log(JSON.stringify(payload, null, 2));
+
+async function ensurePreview({ url, allowedStatuses, port, command, args, logPath }) {
+  if (!forceRestart && await isHttpReady(url, allowedStatuses)) {
+    return true;
+  }
+
+  await stopPort(port);
+  spawnDetached(command, args, logPath);
+  return false;
+}
 
 async function stopPort(port) {
   if (process.platform === "win32") {
@@ -163,6 +178,18 @@ async function waitForHttp(url, allowedStatuses, timeoutMs) {
   }
 
   throw lastError ?? new Error(`Timed out waiting for ${url}`);
+}
+
+async function isHttpReady(url, allowedStatuses) {
+  try {
+    const response = await fetch(url, {
+      method: "HEAD",
+      redirect: "manual",
+    });
+    return allowedStatuses.includes(response.status);
+  } catch {
+    return false;
+  }
 }
 
 function sleep(ms) {

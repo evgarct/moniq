@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "preview:live": "node scripts/live-previews.mjs",
-    "preview:refresh": "npm run preview:live",
+    "preview:refresh": "node scripts/live-previews.mjs --restart",
     "lint": "eslint",
     "test:unit": "vitest run --config vitest.unit.config.ts",
     "test:e2e:setup": "node scripts/ensure-e2e-user.mjs",
