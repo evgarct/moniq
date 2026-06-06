@@ -10,7 +10,7 @@ vi.mock("@/lib/supabase/anon", () => ({
   }),
 }));
 
-import { getMcpTools, OPTIONS, POST } from "./route";
+import { getMcpTools, getMcpWwwAuthenticate, OPTIONS, POST } from "./route";
 
 const AUTH_HEADERS = {
   Authorization: "Bearer mnq_test",
@@ -57,6 +57,14 @@ describe("MCP CORS", () => {
     expect(response.headers.get("Access-Control-Allow-Methods")).toContain("POST");
     expect(response.headers.get("Access-Control-Allow-Headers")).toContain("Authorization");
     expect(response.headers.get("Access-Control-Allow-Headers")).toContain("Mcp-Session-Id");
+  });
+});
+
+describe("MCP authentication metadata", () => {
+  it("advertises the official resource metadata URL", () => {
+    expect(getMcpWwwAuthenticate()).toBe(
+      'Bearer realm="moniq", resource_metadata="https://moniq.fyi/.well-known/oauth-protected-resource"',
+    );
   });
 });
 

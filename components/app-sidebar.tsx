@@ -18,7 +18,6 @@ import {
 } from "@tabler/icons-react";
 import { motion } from "framer-motion";
 
-import type { AuthUser } from "@/types/auth";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { LogoutButton } from "@/features/auth/components/logout-button";
 import {
@@ -38,11 +37,15 @@ const navigation = [
   { href: "/budget",   labelKey: "budget",    icon: IconCreditCard,  iconFilled: IconCreditCardFilled },
 ] as const;
 
+type ShellUser = {
+  email?: string | null;
+};
+
 export function AppSidebar({
   user,
   onSignOut,
 }: {
-  user: AuthUser;
+  user: ShellUser;
   onSignOut: () => Promise<void>;
 }) {
   const navT = useTranslations("navigation");
@@ -79,7 +82,7 @@ export function MobileBottomNav({
   user,
   onSignOut,
 }: {
-  user: AuthUser;
+  user: ShellUser;
   onSignOut: () => Promise<void>;
 }) {
   const navT = useTranslations("navigation");
@@ -88,15 +91,15 @@ export function MobileBottomNav({
   return (
     <div
       data-mobile-nav
-      className="fixed inset-x-0 z-50 flex justify-center lg:hidden"
+      className="z-50 flex shrink-0 justify-center bg-background px-2 pt-1 lg:hidden"
       style={{
-        bottom: "calc(env(safe-area-inset-bottom) + 18px)",
+        paddingBottom: "max(4px, env(safe-area-inset-bottom))",
         paddingLeft: "max(10px, env(safe-area-inset-left))",
         paddingRight: "max(10px, env(safe-area-inset-right))",
       }}
     >
       <nav
-        className="grid h-[62px] w-full max-w-[460px] grid-cols-5 items-center rounded-[calc(var(--radius-floating)+14px)] bg-popover/82 px-1.5 text-[9px] text-muted-foreground shadow-[0_10px_28px_rgba(28,22,17,0.16)] backdrop-blur-2xl supports-[backdrop-filter]:bg-popover/72"
+        className="grid h-[60px] w-full max-w-[460px] grid-cols-5 items-center rounded-[calc(var(--radius-floating)+8px)] bg-popover/88 px-1.5 text-[9px] text-muted-foreground shadow-[0_8px_24px_rgba(28,22,17,0.14)] backdrop-blur-2xl supports-[backdrop-filter]:bg-popover/76"
         style={{
           backdropFilter: "saturate(160%) blur(20px)",
           WebkitBackdropFilter: "saturate(160%) blur(20px)",
@@ -143,7 +146,7 @@ function UserNavMenu({
   onSignOut,
   mobile,
 }: {
-  user: AuthUser;
+  user: ShellUser;
   onSignOut: () => Promise<void>;
   mobile: boolean;
 }) {

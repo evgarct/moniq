@@ -1,12 +1,8 @@
-import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
-
 import { signOut } from "@/features/auth/actions";
 import { createClient } from "@/lib/supabase/server";
 import { AppSidebar, MobileBottomNav } from "@/components/app-sidebar";
 import { redirect } from "@/i18n/navigation";
 import type { AppLocale } from "@/i18n/routing";
-import { getFinanceSnapshot } from "@/features/finance/server/repository";
-import { financeSnapshotQueryKey } from "@/features/finance/lib/finance-keys";
 
 export default async function AuthenticatedLayout({
   children,
@@ -18,38 +14,29 @@ export default async function AuthenticatedLayout({
   const { locale } = await params;
   const validLocale = locale as AppLocale;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: claimData } = await supabase.auth.getClaims();
+  const claims = claimData?.claims;
 
-  if (!user) {
+  if (!claims?.sub) {
     return redirect({ href: "/login", locale: validLocale });
   }
 
-  const queryClient = new QueryClient();
-  try {
-    await queryClient.prefetchQuery({
-      queryKey: financeSnapshotQueryKey,
-      queryFn: getFinanceSnapshot,
-    });
-  } catch {
-    // prefetch failed — client will fetch on demand
-  }
+  const shellUser = {
+    email: typeof claims.email === "string" ? claims.email : null,
+  };
 
   return (
-    <div className="h-dvh w-screen overflow-hidden bg-background">
-      <div className="grid h-full min-h-0 w-full lg:grid-cols-[76px_minmax(0,1fr)]">
-        <AppSidebar user={user} onSignOut={signOut} />
+    <div className="mobile-standalone-shell grid h-dvh w-screen grid-rows-[minmax(0,1fr)_auto] overflow-hidden bg-background lg:block">
+      <div className="grid min-h-0 w-full lg:h-full lg:grid-cols-[76px_minmax(0,1fr)]">
+        <AppSidebar user={shellUser} onSignOut={signOut} />
         <div className="min-h-0 min-w-0 overflow-hidden bg-background">
           <main className="h-full min-h-0 overflow-hidden lg:h-screen">
-            <HydrationBoundary state={dehydrate(queryClient)}>
-              {children}
-            </HydrationBoundary>
+            {children}
           </main>
         </div>
       </div>
 
-      <MobileBottomNav user={user} onSignOut={signOut} />
+      <MobileBottomNav user={shellUser} onSignOut={signOut} />
     </div>
   );
 }

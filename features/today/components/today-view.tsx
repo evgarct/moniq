@@ -272,7 +272,7 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
           </div>
         ) : null}
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[calc(104px+env(safe-area-inset-bottom))]">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scroll-padding-bottom:1rem]">
           {mobileListEmpty ? (
             <div className="flex h-full items-center justify-center px-6 py-12">
               <EmptyState title={selectedDate ? t("board.selectedEmpty") : t("board.empty")} description="" />

@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { Bot, Copy, Check, Plus, Trash2, Key } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Surface, SurfaceDescription, SurfaceEyebrow, SurfaceHeader } from "@/components/surface";
+import { getAppUrl } from "@/lib/app-url";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -159,10 +160,7 @@ export function McpSettings({ initialKeys }: { initialKeys: ApiKey[] }) {
   const [newKey, setNewKey] = useState<NewKeyResult | null>(null);
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [host] = useState(() =>
-    process.env.NEXT_PUBLIC_APP_URL ??
-    (typeof window !== "undefined" ? window.location.origin : ""),
-  );
+  const [host] = useState(getAppUrl);
 
   async function createKey(e: React.FormEvent) {
     e.preventDefault();

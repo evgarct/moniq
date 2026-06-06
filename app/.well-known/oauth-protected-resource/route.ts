@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { getAppUrl, getMcpUrl } from "@/lib/app-url";
+
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
@@ -7,11 +9,11 @@ const CORS_HEADERS = {
 };
 
 export async function GET() {
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const base = getAppUrl();
 
   return NextResponse.json(
     {
-      resource: `${base}/api/mcp`,
+      resource: getMcpUrl(),
       authorization_servers: [base],
     },
     { headers: CORS_HEADERS },

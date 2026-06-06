@@ -14,6 +14,7 @@ import {
   type CategorySpendingPeriodInput,
 } from "@/features/finance/lib/category-spending-report";
 import { getRequestTranslator } from "@/i18n/translator";
+import { getMcpResourceMetadataUrl } from "@/lib/app-url";
 import { createAnonClient } from "@/lib/supabase/anon";
 import type { CurrencyCode } from "@/types/currency";
 import type { Account, Category, Transaction } from "@/types/finance";
@@ -37,8 +38,9 @@ export async function OPTIONS() {
 // or Claude.ai rejects the server as unreachable ("Method Not Allowed").
 // We don't push server-initiated events, so the stream stays idle until the
 // client disconnects or Vercel's function timeout closes it.
-const WWW_AUTHENTICATE =
-  'Bearer realm="moniq", resource_metadata="https://moniq.safronov.dev/.well-known/oauth-protected-resource"';
+export function getMcpWwwAuthenticate() {
+  return `Bearer realm="moniq", resource_metadata="${getMcpResourceMetadataUrl()}"`;
+}
 
 const TRANSACTION_KINDS = ["income", "expense", "transfer", "debt_payment"] as const;
 const DIRECT_TRANSACTION_STATUSES = ["paid", "planned"] as const;
@@ -109,7 +111,7 @@ export async function GET(request: Request) {
   if (!auth) {
     return new Response(null, {
       status: 401,
-      headers: { ...CORS_HEADERS, "WWW-Authenticate": WWW_AUTHENTICATE },
+      headers: { ...CORS_HEADERS, "WWW-Authenticate": getMcpWwwAuthenticate() },
     });
   }
 
@@ -2749,7 +2751,7 @@ export async function POST(request: Request) {
   if (!auth) {
     return NextResponse.json(
       { jsonrpc: "2.0", id: null, error: { code: -32001, message: t("mcp.errors.unauthorizedApiKey") } },
-      { status: 401, headers: { ...CORS_HEADERS, "WWW-Authenticate": WWW_AUTHENTICATE } },
+      { status: 401, headers: { ...CORS_HEADERS, "WWW-Authenticate": getMcpWwwAuthenticate() } },
     );
   }
 

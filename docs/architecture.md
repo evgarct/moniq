@@ -11,8 +11,8 @@
 
 ## Data flow
 
-1. The browser loads a page inside the authenticated app shell.
-2. `useFinanceData()` fetches `/api/finance/snapshot`.
+1. The browser loads the authenticated app shell after a lightweight Supabase claims check; the layout does not prefetch the finance snapshot.
+2. Once the shell is visible, `useFinanceData()` fetches `/api/finance/snapshot` and each page renders its own shape-matched loading state.
 3. The route handler calls the server repository with the current Supabase SSR session.
 4. The repository reads `wallets`, `wallet_allocations`, `finance_categories`, `finance_transaction_schedules`, and `finance_transactions` through RLS.
 5. The repository expands active recurring schedules into generated planned occurrences inside a rolling horizon before returning the finance snapshot.
