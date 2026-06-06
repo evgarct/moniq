@@ -287,7 +287,7 @@ export function InboxView() {
           </div>
 
           <div
-            className="min-h-0 flex-1 overflow-auto px-3 py-2 [scroll-padding-bottom:1rem] sm:px-6 sm:py-4 lg:px-7"
+            className="mobile-nav-scroll-clearance min-h-0 flex-1 overflow-auto px-3 py-2 [scroll-padding-bottom:calc(76px+env(safe-area-inset-bottom))] sm:px-6 sm:py-4 lg:px-7 lg:[scroll-padding-bottom:1rem]"
             onScroll={(event) => setLeftPanelScrolled(event.currentTarget.scrollTop > 0)}
           >
             {isLoading ? (

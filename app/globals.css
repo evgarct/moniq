@@ -150,6 +150,13 @@
     .mobile-shell {
       padding-top: env(safe-area-inset-top);
     }
+
+    .mobile-nav-scroll-clearance::after {
+      display: block;
+      height: calc(76px + env(safe-area-inset-bottom));
+      flex: none;
+      content: "";
+    }
   }
 
   button,
