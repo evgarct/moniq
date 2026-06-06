@@ -10,7 +10,7 @@ vi.mock("@/lib/supabase/anon", () => ({
   }),
 }));
 
-import { getMcpTools, OPTIONS, POST } from "./route";
+import { getMcpTools, getMcpWwwAuthenticate, OPTIONS, POST } from "./route";
 
 const AUTH_HEADERS = {
   Authorization: "Bearer mnq_test",
@@ -57,6 +57,31 @@ describe("MCP CORS", () => {
     expect(response.headers.get("Access-Control-Allow-Methods")).toContain("POST");
     expect(response.headers.get("Access-Control-Allow-Headers")).toContain("Authorization");
     expect(response.headers.get("Access-Control-Allow-Headers")).toContain("Mcp-Session-Id");
+  });
+});
+
+describe("MCP authentication metadata", () => {
+  it("advertises the official resource metadata URL", () => {
+    expect(getMcpWwwAuthenticate()).toBe(
+      'Bearer realm="moniq", resource_metadata="https://moniq.fyi/.well-known/oauth-protected-resource"',
+    );
+  });
+
+  it("advertises the current deployment when no app URL is configured", () => {
+    const originalAppUrl = process.env.NEXT_PUBLIC_APP_URL;
+    delete process.env.NEXT_PUBLIC_APP_URL;
+
+    try {
+      expect(getMcpWwwAuthenticate("https://preview.example.dev")).toBe(
+        'Bearer realm="moniq", resource_metadata="https://preview.example.dev/.well-known/oauth-protected-resource"',
+      );
+    } finally {
+      if (originalAppUrl === undefined) {
+        delete process.env.NEXT_PUBLIC_APP_URL;
+      } else {
+        process.env.NEXT_PUBLIC_APP_URL = originalAppUrl;
+      }
+    }
   });
 });
 

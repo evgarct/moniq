@@ -19,12 +19,14 @@ type CookieToSet = {
 };
 
 export async function proxy(request: NextRequest) {
-  const locale = request.nextUrl.pathname.split("/")[1];
+  const pathnameLocale = request.nextUrl.pathname.split("/")[1];
+  const hasLocale = routing.locales.includes(pathnameLocale as (typeof routing.locales)[number]);
+  const locale = hasLocale ? pathnameLocale : routing.defaultLocale;
   const localizedPathname = request.nextUrl.pathname;
   const internalPathname = stripLocaleFromPathname(localizedPathname);
   const i18nResponse = handleI18nRouting(request);
 
-  if (!routing.locales.includes(locale as (typeof routing.locales)[number])) {
+  if (!hasLocale && localizedPathname !== "/") {
     return i18nResponse;
   }
 
@@ -61,10 +63,16 @@ export async function proxy(request: NextRequest) {
     },
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const isAuthenticated = Boolean(user);
+  const { data: claimData } = await supabase.auth.getClaims();
+  const claims = claimData?.claims;
+  const isAuthenticated = Boolean(claims?.sub);
+
+  if (localizedPathname === "/" || internalPathname === "/") {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = `/${locale}/${isAuthenticated ? "today" : "login"}`;
+    redirectUrl.search = "";
+    return applyCookies(NextResponse.redirect(redirectUrl));
+  }
 
   if (!isAuthenticated && !isPublicPath(internalPathname)) {
     const redirectUrl = request.nextUrl.clone();

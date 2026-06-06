@@ -6,14 +6,11 @@ import { getStripe } from "@/lib/billing/stripe";
 import { createServiceClient } from "@/lib/supabase/service";
 import { createClient } from "@/lib/supabase/server";
 import { routing, type AppLocale } from "@/i18n/routing";
+import { getAppUrl } from "@/lib/app-url";
 
 const portalSchema = z.object({
   locale: z.enum(["en", "ru"]).optional(),
 });
-
-function getOrigin(request: Request) {
-  return process.env.NEXT_PUBLIC_APP_URL ?? new URL(request.url).origin;
-}
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -43,7 +40,7 @@ export async function POST(request: Request) {
 
     const session = await getStripe().billingPortal.sessions.create({
       customer: customerId,
-      return_url: `${getOrigin(request)}/${locale}/settings`,
+      return_url: `${getAppUrl(new URL(request.url).origin)}/${locale}/settings`,
     });
 
     return NextResponse.json({ url: session.url });

@@ -7,14 +7,11 @@ import { getMoniqStripePriceId, getStripe } from "@/lib/billing/stripe";
 import { createServiceClient } from "@/lib/supabase/service";
 import { createClient } from "@/lib/supabase/server";
 import { routing, type AppLocale } from "@/i18n/routing";
+import { getAppUrl } from "@/lib/app-url";
 
 const checkoutSchema = z.object({
   locale: z.enum(["en", "ru"]).optional(),
 });
-
-function getOrigin(request: Request) {
-  return process.env.NEXT_PUBLIC_APP_URL ?? new URL(request.url).origin;
-}
 
 async function getOrCreateStripeCustomer(user: { id: string; email?: string | null }) {
   const service = createServiceClient();
@@ -75,7 +72,7 @@ export async function POST(request: Request) {
   try {
     const body = checkoutSchema.parse(await request.json().catch(() => ({})));
     const locale = (body.locale ?? routing.defaultLocale) as AppLocale;
-    const origin = getOrigin(request);
+    const origin = getAppUrl(new URL(request.url).origin);
     const stripe = getStripe();
     const { customerId, hasUsedTrial } = await getOrCreateStripeCustomer(user);
     const settingsUrl = `${origin}/${locale}/settings`;

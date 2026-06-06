@@ -32,7 +32,7 @@ Important:
 
 ## MCP Connection
 
-- Server URL: `https://<moniq-app-host>/api/mcp`
+- Server URL: `https://moniq.fyi/api/mcp`
 - Auth:
   - Claude OAuth can connect from Moniq Settings.
   - Manual MCP clients use `Authorization: Bearer <Moniq MCP API key>`.

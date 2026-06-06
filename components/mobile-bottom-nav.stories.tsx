@@ -4,27 +4,35 @@ import { expect, within } from "storybook/test";
 import { MobileBottomNav } from "@/components/app-sidebar";
 import { noopAsyncAction, storyUser, withPathname } from "@/stories/fixtures/story-data";
 
-const PhoneFrame = ({ Story }: { Story: React.ComponentType }) => (
-  /*
-   * translate(0) → new containing block so position:fixed is scoped here.
-   * The <style> tag forces the nav visible because Tailwind's lg:hidden would
-   * hide it at the Storybook iframe width (>1024px).
-   */
+const PhoneFrame = ({
+  Story,
+  shortContent = false,
+}: {
+  Story: React.ComponentType;
+  shortContent?: boolean;
+}) => (
   <div
-    className="relative mx-auto h-dvh w-[393px] overflow-hidden bg-[#fafaf7]"
-    style={{ transform: "translate(0)" }}
+    className="mx-auto grid h-dvh w-[393px] grid-rows-[minmax(0,1fr)_auto] overflow-hidden bg-background"
   >
     <style>{`[data-mobile-nav] { display: flex !important; }`}</style>
-    <div className="absolute inset-0 overflow-y-auto px-4 pt-6 pb-32">
+    <div className="min-h-0 overflow-y-auto px-4 pt-6">
       <div className="mb-4 px-1">
         <p className="type-body-12 text-muted-foreground">iPhone-width preview</p>
-        <h1 className="type-h4">Bottom navigation spacing</h1>
+        <h1 className="type-h4">
+          {shortContent ? "Everything fits without scrolling" : "Bottom navigation spacing"}
+        </h1>
       </div>
-      <div className="mb-3 h-[200px] rounded-[var(--radius-surface)] bg-card" />
-      <div className="mb-3 h-[120px] rounded-[var(--radius-surface)] bg-secondary" />
-      <div className="mb-3 h-[160px] rounded-[var(--radius-surface)] bg-card" />
-      <div className="mb-3 h-[120px] rounded-[var(--radius-surface)] bg-secondary" />
-      <div className="h-[80px] rounded-[var(--radius-surface)] bg-card" />
+      {shortContent ? (
+        <div className="h-[160px] rounded-[var(--radius-surface)] bg-card" />
+      ) : (
+        <>
+          <div className="mb-3 h-[200px] rounded-[var(--radius-surface)] bg-card" />
+          <div className="mb-3 h-[120px] rounded-[var(--radius-surface)] bg-secondary" />
+          <div className="mb-3 h-[160px] rounded-[var(--radius-surface)] bg-card" />
+          <div className="mb-3 h-[120px] rounded-[var(--radius-surface)] bg-secondary" />
+          <div className="h-[80px] rounded-[var(--radius-surface)] bg-card" />
+        </>
+      )}
     </div>
     <Story />
   </div>
@@ -42,7 +50,12 @@ const meta = {
     viewport: { defaultViewport: "mobile1" },
   },
   decorators: [
-    (Story) => <PhoneFrame Story={Story} />,
+    (Story, context) => (
+      <PhoneFrame
+        Story={Story}
+        shortContent={Boolean(context.parameters.shortContent)}
+      />
+    ),
   ],
 } satisfies Meta<typeof MobileBottomNav>;
 
@@ -67,4 +80,11 @@ export const BudgetActive: Story = {
 
 export const InboxActive: Story = {
   parameters: withPathname("/inbox"),
+};
+
+export const ShortContentWithoutOverflow: Story = {
+  parameters: {
+    ...withPathname("/accounts"),
+    shortContent: true,
+  },
 };

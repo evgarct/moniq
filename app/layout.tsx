@@ -7,6 +7,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { AppProviders } from "@/components/providers/app-providers";
 import { WebVitalsReporter } from "@/components/providers/web-vitals";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { CANONICAL_APP_URL } from "@/lib/app-url";
 
 import "./globals.css";
 
@@ -27,12 +28,33 @@ const ptSerif = PT_Serif({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(CANONICAL_APP_URL),
   title: "Moniq",
-  manifest: "/manifest.json",
+  description: "A calm personal finance workspace for balances, plans, and transactions.",
+  applicationName: "Moniq",
+  manifest: "/manifest.webmanifest",
+  alternates: {
+    canonical: "/",
+  },
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon-192.png", type: "image/png", sizes: "192x192" },
+      { url: "/icon-512.png", type: "image/png", sizes: "512x512" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: "Moniq",
+  },
+  openGraph: {
+    type: "website",
+    url: CANONICAL_APP_URL,
+    title: "Moniq",
+    description: "A calm personal finance workspace for balances, plans, and transactions.",
+    siteName: "Moniq",
   },
 };
 

@@ -1,4 +1,19 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "redirects": [
+    {
+      "source": "/:path*",
+      "destination": "https://moniq.fyi/:path*",
+      "permanent": true,
+      "has": [
+        {
+          "type": "header",
+          "key": "host",
+          "value": "moniq.safronov.dev"
+        }
+      ]
+    }
+  ],
   "crons": [
     {
       "path": "/api/fx/rates/refresh",

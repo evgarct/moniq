@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Moniq</title>
+  <rect width="512" height="512" rx="112" fill="#191919"/>
+  <path d="M144 176h224" fill="none" stroke="#fafaf7" stroke-linecap="round" stroke-width="34"/>
+  <path d="M180 176c0 86 28 144 76 168 48-24 76-82 76-168" fill="none" stroke="#fafaf7" stroke-linecap="round" stroke-linejoin="round" stroke-width="34"/>
+  <circle cx="256" cy="176" r="28" fill="#cc785c"/>
+</svg>
