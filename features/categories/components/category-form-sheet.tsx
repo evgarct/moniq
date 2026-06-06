@@ -42,7 +42,7 @@ export function CategoryFormSheet({
     description: z.string().trim().max(600, t("validation.descriptionMax")).nullable().optional(),
     icon: z.string().trim().max(48, t("validation.iconMax")).nullable().optional(),
     type: z.enum(["income", "expense"]),
-    parent_id: z.string().uuid().nullable().optional(),
+    parent_id: z.string().trim().min(1).nullable().optional(),
   });
   const form = useForm<CategoryFormInputs, undefined, CategoryFormValues>({
     resolver: zodResolver(categoryFormSchema),

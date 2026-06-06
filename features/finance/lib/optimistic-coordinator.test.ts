@@ -17,7 +17,7 @@ describe("FinanceMutationCoordinator", () => {
       },
     });
 
-    coordinator.execute({
+    const completion = coordinator.execute({
       id: "one",
       apply: (current) => ({ ...current, categories: [{ id: "optimistic" } as never] }),
       request: () => request,
@@ -25,6 +25,7 @@ describe("FinanceMutationCoordinator", () => {
 
     expect(snapshot.categories).toHaveLength(1);
     resolveRequest({ ...createEmptyFinanceSnapshot(), categories: [{ id: "server" } as never] });
+    await completion;
     await vi.waitFor(() => expect(snapshot.categories[0]?.id).toBe("server"));
   });
 
@@ -75,7 +76,7 @@ describe("FinanceMutationCoordinator", () => {
       },
     });
 
-    coordinator.execute({
+    const failedCompletion = coordinator.execute({
       id: "failed",
       apply: (current) => ({ ...current, categories: [...current.categories, { id: "failed" } as never] }),
       request: async () => {
@@ -88,6 +89,62 @@ describe("FinanceMutationCoordinator", () => {
       request: async () => ({ ...createEmptyFinanceSnapshot(), categories: [{ id: "kept" } as never] }),
     });
 
+    await expect(failedCompletion).rejects.toThrow("failed");
     await vi.waitFor(() => expect(snapshot.categories.map((category) => category.id)).toEqual(["kept"]));
+  });
+
+  it("reconciles optimistic IDs before a dependent request runs", async () => {
+    let snapshot = createEmptyFinanceSnapshot();
+    let resolveCreate!: (value: typeof snapshot) => void;
+    const createRequest = new Promise<typeof snapshot>((resolve) => {
+      resolveCreate = resolve;
+    });
+    const dependentRequest = vi.fn(async (resolvedParentId: string) => ({
+      ...createEmptyFinanceSnapshot(),
+      categories: [
+        { id: "server-parent" } as never,
+        { id: "server-child", parent_id: resolvedParentId } as never,
+      ],
+    }));
+    const coordinator = new FinanceMutationCoordinator({
+      read: () => snapshot,
+      write: (next) => {
+        snapshot = next;
+      },
+    });
+
+    coordinator.execute({
+      id: "create-parent",
+      apply: (current) => ({
+        ...current,
+        categories: [...current.categories, { id: "optimistic:category:1" } as never],
+      }),
+      request: () => createRequest,
+      reconcile: () => [["optimistic:category:1", "server-parent"]],
+    });
+    const dependentCompletion = coordinator.execute({
+      id: "create-child",
+      apply: (current, resolveId) => ({
+        ...current,
+        categories: [
+          ...current.categories,
+          { id: "optimistic:category:2", parent_id: resolveId("optimistic:category:1") } as never,
+        ],
+      }),
+      request: (resolveId) =>
+        dependentRequest(resolveId("optimistic:category:1") as string),
+    });
+
+    expect(snapshot.categories[1]?.parent_id).toBe("optimistic:category:1");
+    expect(dependentRequest).not.toHaveBeenCalled();
+
+    resolveCreate({
+      ...createEmptyFinanceSnapshot(),
+      categories: [{ id: "server-parent" } as never],
+    });
+    await dependentCompletion;
+
+    expect(dependentRequest).toHaveBeenCalledWith("server-parent");
+    expect(snapshot.categories[1]?.parent_id).toBe("server-parent");
   });
 });

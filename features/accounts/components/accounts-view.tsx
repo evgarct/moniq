@@ -139,11 +139,12 @@ export function AccountsView({
     if (walletSheetMode === "edit" && editingAccount) {
       setSelectedAccountId(editingAccount.id);
     }
-    financeActions.saveWallet(walletSheetMode, values, editingAccount?.id, {
+    const completion = financeActions.saveWallet(walletSheetMode, values, editingAccount?.id, {
       onError: (error) =>
         setActionError(error instanceof Error ? error.message : t("messages.saveWalletError")),
     });
     setActionError(null);
+    return completion;
   }
 
   function handleDeleteWallet(account: Account) {
@@ -396,23 +397,29 @@ export function AccountsView({
         categories={categories}
         allocations={allocations}
         onOpenChange={setTransactionSheetOpen}
-        onSubmit={(payload: TransactionFormSubmitPayload) => {
+        onSubmit={async (payload: TransactionFormSubmitPayload) => {
           const onError = (error: unknown) =>
             setActionError(error instanceof Error ? error.message : tr("transactions.view.saveError"));
+          const completions: Promise<void>[] = [];
           if (payload.kind === "entry" || payload.kind === "entry-batch") {
-            transactionActions.createEntry(payload.values, { onError });
+            completions.push(transactionActions.createEntry(payload.values, { onError }));
           } else if (payload.kind === "transaction" && editingTransaction) {
-            transactionActions.updateTransactionOptimistic(editingTransaction.id, payload.values, { onError });
+            completions.push(
+              transactionActions.updateTransactionOptimistic(editingTransaction.id, payload.values, { onError }),
+            );
             if (payload.rescheduleFrom) {
-              transactionActions.rescheduleFromDate(
-                payload.rescheduleFrom.scheduleId,
-                payload.rescheduleFrom.originalDate,
-                payload.rescheduleFrom.newDate,
-                { onError },
+              completions.push(
+                transactionActions.rescheduleFromDate(
+                  payload.rescheduleFrom.scheduleId,
+                  payload.rescheduleFrom.originalDate,
+                  payload.rescheduleFrom.newDate,
+                  { onError },
+                ),
               );
             }
           }
           setActionError(null);
+          await Promise.all(completions);
         }}
       />
 
@@ -431,7 +438,7 @@ export function AccountsView({
         allocation={editingAllocation}
         onOpenChange={setGoalSheetOpen}
         onSubmit={(values) => {
-          financeActions.saveAllocation(
+          const completion = financeActions.saveAllocation(
             goalSheetMode,
             values,
             goalWalletId ?? undefined,
@@ -442,6 +449,7 @@ export function AccountsView({
             },
           );
           setActionError(null);
+          return completion;
         }}
       />
     </>

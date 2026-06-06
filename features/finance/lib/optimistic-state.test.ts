@@ -2,12 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import { createEmptyFinanceSnapshot } from "@/features/finance/lib/empty-snapshot";
 import {
+  addTransactionEntry,
   applyPaidTransactionEffect,
   removeTransaction,
   setTransactionStatus,
   updateTransaction,
 } from "@/features/finance/lib/optimistic-state";
 import type { Account, Transaction } from "@/types/finance";
+import type { TransactionEntryInput } from "@/types/finance-schemas";
 
 const source = { id: "source", balance: 1000 } as Account;
 const destination = { id: "destination", balance: 200 } as Account;
@@ -21,6 +23,38 @@ const paidTransfer = {
 } as Transaction;
 
 describe("optimistic finance state", () => {
+  it("keeps caller-provided optimistic transaction IDs stable", () => {
+    const snapshot = {
+      ...createEmptyFinanceSnapshot(),
+      accounts: [source],
+      categories: [{ id: "category" } as never],
+    };
+    const next = addTransactionEntry(
+      snapshot,
+      {
+        title: "Planned expense",
+        note: null,
+        occurred_at: "2026-06-06",
+        status: "planned",
+        kind: "expense",
+        amount: 25,
+        destination_amount: null,
+        fx_rate: null,
+        principal_amount: null,
+        interest_amount: null,
+        extra_principal_amount: null,
+        category_id: "category",
+        source_account_id: "source",
+        destination_account_id: null,
+        allocation_id: null,
+        recurrence: null,
+      } satisfies TransactionEntryInput,
+      ["optimistic:transaction:stable"],
+    );
+
+    expect(next.transactions[0]?.id).toBe("optimistic:transaction:stable");
+  });
+
   it("mirrors the paid transaction balance trigger", () => {
     const accounts = applyPaidTransactionEffect([source, destination], paidTransfer, 1);
     expect(accounts.find((account) => account.id === source.id)?.balance).toBe(900);

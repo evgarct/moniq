@@ -77,22 +77,28 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
     const onError = (error: unknown) => {
       setActionError(error instanceof Error ? error.message : transactionViewT("saveError"));
     };
+    const completions: Promise<void>[] = [];
     if (payload.kind === "entry" || payload.kind === "entry-batch") {
-      transactionActions.createEntry(payload.values, { onError });
+      completions.push(transactionActions.createEntry(payload.values, { onError }));
     } else if (payload.kind === "transaction" && editingTransaction) {
-      transactionActions.updateTransactionOptimistic(editingTransaction.id, payload.values, { onError });
+      completions.push(
+        transactionActions.updateTransactionOptimistic(editingTransaction.id, payload.values, { onError }),
+      );
       if (payload.rescheduleFrom) {
-        transactionActions.rescheduleFromDate(
-          payload.rescheduleFrom.scheduleId,
-          payload.rescheduleFrom.originalDate,
-          payload.rescheduleFrom.newDate,
-          { onError },
+        completions.push(
+          transactionActions.rescheduleFromDate(
+            payload.rescheduleFrom.scheduleId,
+            payload.rescheduleFrom.originalDate,
+            payload.rescheduleFrom.newDate,
+            { onError },
+          ),
         );
       }
     } else if (payload.kind === "schedule" && editingSeries) {
-      transactionActions.updateSchedule(editingSeries.id, payload.values, { onError });
+      completions.push(transactionActions.updateSchedule(editingSeries.id, payload.values, { onError }));
     }
     setActionError(null);
+    await Promise.all(completions);
   }
 
   const sharedListProps = {

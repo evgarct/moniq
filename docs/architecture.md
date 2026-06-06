@@ -19,7 +19,7 @@
 6. CSV uploads go through `/api/banking/import-preview` and `/api/banking/upload`, which parse the file, map columns, and persist draft import rows.
 7. MCP clients call `/api/mcp` to read finance context, create pending transaction batches, edit/reject pending draft rows, or create/update/delete confirmed ledger transactions through ownership-checked RPCs.
 8. Finance UI mutations are submitted through `FinanceMutationCoordinator`. Each command projects its result into the TanStack Query snapshot immediately, then calls the existing API route in the background.
-9. The coordinator keeps the last confirmed server snapshot and reapplies queued commands after every response. A failed command is removed without reverting later optimistic work; successful responses replace temporary `optimistic:*` entities with the canonical server snapshot.
+9. The coordinator keeps the last confirmed server snapshot and reapplies queued commands after every response. A failed command is removed without reverting later optimistic work; successful creates register `optimistic:*` to server ID aliases before dependent commands run. Each command also returns a completion promise so forms can retain entered values when persistence fails.
 10. Banking inbox and import mutations remain outside the finance command queue because they operate on draft records rather than the confirmed finance snapshot.
 
 ## Feature modules

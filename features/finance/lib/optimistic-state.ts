@@ -98,8 +98,12 @@ export function makeOptimisticTransaction(
   };
 }
 
-export function addTransaction(snapshot: FinanceSnapshot, values: TransactionInput) {
-  const transaction = makeOptimisticTransaction(snapshot, values);
+export function addTransaction(
+  snapshot: FinanceSnapshot,
+  values: TransactionInput,
+  id?: string,
+) {
+  const transaction = makeOptimisticTransaction(snapshot, values, id);
   return {
     ...snapshot,
     accounts: applyPaidTransactionEffect(snapshot.accounts, transaction, 1),
@@ -110,9 +114,13 @@ export function addTransaction(snapshot: FinanceSnapshot, values: TransactionInp
 export function addTransactionEntry(
   snapshot: FinanceSnapshot,
   input: TransactionEntryInput | TransactionEntryBatchInput,
+  optimisticIds?: string[],
 ) {
   const entries = "entries" in input ? input.entries : [input];
-  return entries.reduce((current, entry) => addTransaction(current, entry), snapshot);
+  return entries.reduce(
+    (current, entry, index) => addTransaction(current, entry, optimisticIds?.[index]),
+    snapshot,
+  );
 }
 
 export function updateTransaction(snapshot: FinanceSnapshot, transactionId: string, values: TransactionInput) {
@@ -303,6 +311,7 @@ export function saveWallet(
   mode: "add" | "edit",
   values: WalletInput,
   walletId?: string,
+  optimisticId?: string,
 ) {
   if (mode === "edit" && walletId) {
     const account = snapshot.accounts.find((item) => item.id === walletId);
@@ -326,7 +335,7 @@ export function saveWallet(
   }
 
   const account: Account = {
-    id: createOptimisticId("wallet"),
+    id: optimisticId ?? createOptimisticId("wallet"),
     user_id: snapshot.accounts[0]?.user_id ?? "optimistic",
     name: values.name,
     type: values.type,
@@ -366,6 +375,7 @@ export function saveCategory(
   mode: "add" | "edit",
   values: CategoryInput,
   categoryId?: string,
+  optimisticId?: string,
 ) {
   if (mode === "edit" && categoryId) {
     const existing = snapshot.categories.find((category) => category.id === categoryId);
@@ -380,7 +390,7 @@ export function saveCategory(
     };
   }
   const category: Category = {
-    id: createOptimisticId("category"),
+    id: optimisticId ?? createOptimisticId("category"),
     user_id: snapshot.categories[0]?.user_id ?? "optimistic",
     name: values.name,
     description: values.description ?? null,
@@ -418,6 +428,7 @@ export function saveAllocation(
   values: WalletAllocationInput,
   walletId?: string,
   allocationId?: string,
+  optimisticId?: string,
 ) {
   if (mode === "edit" && allocationId) {
     return {
@@ -430,7 +441,7 @@ export function saveAllocation(
     };
   }
   const allocation: WalletAllocation = {
-    id: createOptimisticId("allocation"),
+    id: optimisticId ?? createOptimisticId("allocation"),
     user_id: snapshot.accounts[0]?.user_id ?? "optimistic",
     wallet_id: walletId ?? "",
     name: values.name,
