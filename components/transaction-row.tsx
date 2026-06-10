@@ -308,8 +308,8 @@ export function TransactionRow({
     <div
       className={cn(
         "group flex items-center gap-2.5 rounded-[var(--radius-control)] px-2 py-1.5 transition-[background-color] select-none",
-        interactive && "cursor-pointer hover:bg-[#f3efe9] active:bg-[#ece8e1]",
-        hasContextActions && !interactive && "hover:bg-[#f8f5f1]",
+        interactive && "cursor-pointer hover:bg-secondary/50 active:bg-secondary/70",
+        hasContextActions && !interactive && "hover:bg-secondary/30",
         isPlanned && "opacity-70",
         className,
       )}

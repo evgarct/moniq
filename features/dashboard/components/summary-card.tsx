@@ -18,7 +18,7 @@ export function SummaryCard({
           <div key={currencySummary.currency} className="space-y-3 border-b border-border/70 pb-4 last:border-b-0 last:pb-0">
             <p className="text-sm text-muted-foreground">{currencySummary.currency}</p>
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="rounded-lg border border-border bg-background px-4 py-3">
+              <div className="rounded-[var(--radius-surface)] border border-border bg-background px-4 py-3">
                 <p className="text-sm text-muted-foreground">{t("income")}</p>
                 <MoneyAmount
                   amount={currencySummary.income}
@@ -28,7 +28,7 @@ export function SummaryCard({
                   className="mt-2 text-xl font-semibold"
                 />
               </div>
-              <div className="rounded-lg border border-border bg-background px-4 py-3">
+              <div className="rounded-[var(--radius-surface)] border border-border bg-background px-4 py-3">
                 <p className="text-sm text-muted-foreground">{t("expenses")}</p>
                 <MoneyAmount
                   amount={currencySummary.expenses}

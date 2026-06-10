@@ -53,7 +53,7 @@ export function CalendarView({ snapshot }: { snapshot: FinanceSnapshot }) {
               <Button
                 variant="ghost"
                 size="icon-sm"
-                className="rounded-md border border-white/10 bg-white/4 text-[#dceeed] hover:bg-white/10 hover:text-white"
+                className="rounded-[var(--radius-control)] border border-white/10 bg-white/4 text-[#dceeed] hover:bg-white/10 hover:text-white"
                 onClick={() => setMonth((value) => addMonths(value, -1))}
               >
                 <ChevronLeft />
@@ -61,7 +61,7 @@ export function CalendarView({ snapshot }: { snapshot: FinanceSnapshot }) {
               <Button
                 variant="ghost"
                 size="sm"
-                className="rounded-md border border-white/10 bg-white/4 px-3 text-[#dceeed] hover:bg-white/10 hover:text-white"
+                className="rounded-[var(--radius-control)] border border-white/10 bg-white/4 px-3 text-[#dceeed] hover:bg-white/10 hover:text-white"
                 onClick={() => {
                   const today = startOfToday();
                   setMonth(today);
@@ -73,7 +73,7 @@ export function CalendarView({ snapshot }: { snapshot: FinanceSnapshot }) {
               <Button
                 variant="ghost"
                 size="icon-sm"
-                className="rounded-md border border-white/10 bg-white/4 text-[#dceeed] hover:bg-white/10 hover:text-white"
+                className="rounded-[var(--radius-control)] border border-white/10 bg-white/4 text-[#dceeed] hover:bg-white/10 hover:text-white"
                 onClick={() => setMonth((value) => addMonths(value, 1))}
               >
                 <ChevronRight />
@@ -99,14 +99,14 @@ export function CalendarView({ snapshot }: { snapshot: FinanceSnapshot }) {
             title={t("board.dayAgenda")}
             subtitle={t("board.dayDescription")}
             actions={
-              <div className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-[#dceeed]">
+              <div className="rounded-[var(--radius-control)] border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-[#dceeed]">
                 {formatDate.dateTime(calDate(selectedDate), { month: "long", day: "numeric" })}
               </div>
             }
             className="min-h-0"
           >
             {actionError ? (
-              <div className="mb-3 rounded-lg border border-[#b85b44]/60 bg-[#5c3328]/40 px-3 py-2 text-sm text-[#ffd2c7]">
+              <div className="mb-3 rounded-[var(--radius-control)] border border-[#b85b44]/60 bg-[#5c3328]/40 px-3 py-2 text-sm text-[#ffd2c7]">
                 {actionError}
               </div>
             ) : null}

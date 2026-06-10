@@ -183,30 +183,35 @@ export function CsvBatchSection({
           <div className="flex items-center gap-1 shrink-0">
             <Button
               size="sm"
-              className="h-8 text-xs"
+              className="text-xs"
               disabled={confirmMutation.isPending}
               onClick={() => void confirmMutation.mutateAsync(transactions.map((tx) => tx.id))}
             >
               {confirmMutation.isPending ? "…" : t("inbox.confirmAll")}
             </Button>
-            <button
+            <Button
               type="button"
-              className="flex size-10 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-secondary hover:text-destructive disabled:opacity-50"
+              variant="ghost"
+              size="icon-sm"
+              className="text-muted-foreground hover:text-destructive"
               disabled={deleteBatchMutation.isPending}
               aria-label={t("upload.deleteBatch")}
               onClick={() => void deleteBatchMutation.mutateAsync(batch.id)}
             >
               <Trash2 className="h-3.5 w-3.5" />
-            </button>
+            </Button>
           </div>
 
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon-sm"
             onClick={() => setExpanded((v) => !v)}
-            className="rounded-control p-1 text-muted-foreground hover:text-foreground shrink-0"
+            className="shrink-0 text-muted-foreground"
+            aria-label={t(expanded ? "inbox.collapse" : "inbox.expand")}
           >
             {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </button>
+          </Button>
         </div>
 
         {/* Error */}
@@ -250,32 +255,38 @@ export function CsvBatchSection({
                     clearCategoryLabel={t("inbox.selectCategory")}
                     actions={
                       <>
-                        <button
+                        <Button
                           type="button"
+                          variant="ghost"
+                          size="icon-sm"
                           onClick={() => setEditingId(tx.id)}
-                          className="flex size-10 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                          className="text-muted-foreground"
                           aria-label={t("inbox.merchantLabel")}
                         >
                           <PencilLine className="h-3.5 w-3.5" />
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           type="button"
+                          variant="ghost"
+                          size="icon-sm"
                           disabled={confirmMutation.isPending}
                           onClick={() => void confirmMutation.mutateAsync([tx.id])}
-                          className="flex size-10 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-secondary hover:text-emerald-700 disabled:opacity-50"
+                          className="text-muted-foreground hover:text-emerald-700"
                           aria-label={t("inbox.confirmOne")}
                         >
                           <Check className="h-3.5 w-3.5" />
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           type="button"
+                          variant="ghost"
+                          size="icon-sm"
                           disabled={deleteTxMutation.isPending}
                           onClick={() => void deleteTxMutation.mutateAsync(tx.id)}
-                          className="flex size-10 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-secondary hover:text-destructive disabled:opacity-50"
+                          className="text-muted-foreground hover:text-destructive"
                           aria-label={t("inbox.deleteOne")}
                         >
                           <X className="h-3.5 w-3.5" />
-                        </button>
+                        </Button>
                       </>
                     }
                   />

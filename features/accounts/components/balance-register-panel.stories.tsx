@@ -65,7 +65,7 @@ export const WalletFocused: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getAllByText(selectedAccount.name)[0]).toBeInTheDocument();
-    await expect(canvas.getByRole("button", { name: "Show all wallets" })).toBeInTheDocument();
+    await expect(canvas.getByRole("button", { name: "Date range" })).toBeInTheDocument();
   },
 };
 

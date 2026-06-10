@@ -13,7 +13,7 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <div className="h-[720px] w-[88px] overflow-hidden bg-[#ece8e4]">
+      <div className="h-[720px] w-[88px] overflow-hidden bg-background">
         <Story />
       </div>
     ),
@@ -29,6 +29,7 @@ export const AccountsActive: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByLabelText(/open profile menu/i)).toBeInTheDocument();
+    await expect(canvas.getAllByRole("link", { name: /balance/i })).toHaveLength(1);
   },
 };
 

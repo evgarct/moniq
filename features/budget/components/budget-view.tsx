@@ -40,7 +40,7 @@ function CategoryTile({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex flex-col items-center gap-2 rounded-md px-2 py-3 text-center transition-colors focus:outline-none",
+        "flex flex-col items-center gap-2 rounded-[var(--radius-control)] px-2 py-3 text-center transition-colors focus:outline-none",
         "hover:bg-secondary/50",
         isSelected && "bg-secondary/60",
       )}
@@ -247,7 +247,7 @@ export function BudgetView({ snapshot }: { snapshot: FinanceSnapshot }) {
           <button
             type="button"
             onClick={() => { setMonth(today); setSelectedCategoryId(null); }}
-            className="type-body-14 rounded-md px-2 py-1 font-medium text-foreground transition-colors hover:bg-secondary/50"
+            className="type-body-14 rounded-[var(--radius-control)] px-2 py-1 font-medium text-foreground transition-colors hover:bg-secondary/50"
           >
             {formatDate.dateTime(calDate(month), { month: "long", year: "numeric" })}
           </button>

@@ -42,6 +42,23 @@ Moniq is a restrained product UI, not a marketing surface. It should feel like a
 - Center modals for ordinary create/edit forms.
 - One-off control styles when `components/ui`, shared form primitives, or `Surface` already cover the pattern.
 
+## Design decision gate
+
+Use this order for every new visual decision:
+
+1. Reuse an existing product pattern from the UI Playbook or the Balance story.
+2. Compose an existing `components/ui` or shared feature primitive.
+3. Extend a design token or shared primitive when the need repeats.
+4. Add feature-local styling only when the concept is genuinely unique and document why.
+
+Ordinary product UI must use semantic color tokens and the Moniq radius scale. Raw palettes are reserved for explicitly documented data-visualization or committed workspace scenes such as the finance board; they are not a shortcut for controls, navigation, forms, or status treatment.
+
+Interactive controls use at least a 44px target below `lg` and 40px at desktop widths. Icon-only controls require one accurate accessible name and a visible tooltip. Do not duplicate the label with an additional hidden tooltip node.
+
+The mobile shell is the same product language at a smaller viewport. It uses warm opaque surfaces, semantic selected states, and tokenized borders/radii. Do not introduce glassmorphism, floating gradient decoration, or a separate mobile brand treatment.
+
+Run `npm run check:design-system` before completing UI work. The guard scans runtime product code for copied warm-neutral hex values, generic Tailwind radii, and decorative glassmorphism.
+
 ## Money display
 
 **Rule: currency symbol always after the number, with a small gap.**

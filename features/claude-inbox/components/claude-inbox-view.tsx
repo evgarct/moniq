@@ -190,13 +190,15 @@ function BatchSection({
           </div>
         )}
 
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="icon-sm"
           onClick={() => setExpanded((v) => !v)}
-          className="rounded-control p-1 text-muted-foreground hover:text-foreground"
+          className="text-muted-foreground"
+          aria-label={expanded ? t("batch.collapse") : t("batch.expand")}
         >
-          {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-        </button>
+          {expanded ? <ChevronUp /> : <ChevronDown />}
+        </Button>
       </div>
 
       {/* Error */}
@@ -252,24 +254,28 @@ function BatchSection({
                     actions={
                       isPending ? (
                         <>
-                          <button
+                          <Button
                             type="button"
+                            variant="ghost"
+                            size="icon-sm"
                             onClick={() => void patchItem(item.id, { status: "approved" })}
                             disabled={savingItemId === item.id}
-                            className="rounded-control p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-emerald-700 disabled:opacity-50"
+                            className="text-muted-foreground hover:text-foreground"
                             aria-label={t("item.approve")}
                           >
-                            <Check className="h-3.5 w-3.5" />
-                          </button>
-                          <button
+                            <Check />
+                          </Button>
+                          <Button
                             type="button"
+                            variant="ghost"
+                            size="icon-sm"
                             onClick={() => void patchItem(item.id, { status: "rejected" })}
                             disabled={savingItemId === item.id}
-                            className="rounded-control p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-destructive disabled:opacity-50"
+                            className="text-muted-foreground hover:text-destructive"
                             aria-label={t("item.reject")}
                           >
-                            <X className="h-3.5 w-3.5" />
-                          </button>
+                            <X />
+                          </Button>
                         </>
                       ) : undefined
                     }

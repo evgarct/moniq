@@ -42,7 +42,7 @@ export function BalanceRegisterHeader({
 }: BalanceRegisterHeaderProps) {
   const t = useTranslations("accounts");
   const actionButtonClassName =
-    "shrink-0 rounded-md bg-transparent text-muted-foreground hover:bg-[#ece8e1] hover:text-foreground active:bg-[#e6e1d9]";
+    "shrink-0 bg-transparent text-muted-foreground hover:bg-secondary/70 hover:text-foreground active:bg-secondary";
 
   return (
     <div

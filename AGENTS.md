@@ -52,6 +52,11 @@ Right: category shown as plain muted text below the transaction title.
 - Ghost: `Button variant="ghost"`. In-row or low-emphasis actions.
 - Never use bright colors (`bg-blue-*`, `bg-indigo-*`, etc.) for buttons. Use the token system.
 - Icon-only buttons require `aria-label` and a Tooltip.
+- Shared interactive controls must provide at least a 44px target below `lg` and 40px at desktop widths.
+
+## Design guard
+- Run `npm run check:design-system` before completing UI work. Runtime product UI must use semantic warm-neutral tokens, Moniq radius tokens, and opaque mobile surfaces.
+- Raw palettes are allowed only inside explicitly documented data-visualization or committed workspace scenes. Do not use them for ordinary controls, navigation, forms, or statuses.
 
 ## Colors for data
 - Do not use Tailwind semantic colors (blue, green, indigo) for income/expense or category highlights.

@@ -43,7 +43,7 @@ export function TransactionAddButton({
             <Button
               variant="ghost"
               size="icon-sm"
-              className="rounded-[var(--radius-control)] text-muted-foreground hover:bg-[#ece8e1] hover:text-foreground"
+              className="text-muted-foreground hover:bg-secondary/70 hover:text-foreground"
               aria-label={displayLabel}
             />
           ) : (

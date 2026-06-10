@@ -90,7 +90,7 @@ export function CategoryCascadePicker({
           <button
             type="button"
             className={cn(
-              "flex w-full items-center justify-between gap-2 rounded-md px-0 py-0 text-left text-sm outline-none",
+              "flex w-full items-center justify-between gap-2 rounded-[var(--radius-control)] px-0 py-0 text-left text-sm outline-none",
               triggerClassName,
             )}
           />

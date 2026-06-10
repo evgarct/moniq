@@ -58,7 +58,7 @@ export function CategoryDeleteSheet({
 
         <div className="flex flex-1 flex-col p-4">
           <div className="space-y-4">
-            <div className="rounded-xl border border-border bg-muted/40 px-4 py-3">
+            <div className="rounded-[var(--radius-surface)] border border-border bg-muted/40 px-4 py-3">
               <p className="flex items-center gap-2 text-sm font-medium text-foreground">
                 <CategoryIcon icon={category?.icon} glyphClassName="text-foreground" />
                 <span>{category?.name}</span>

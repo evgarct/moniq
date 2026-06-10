@@ -146,7 +146,6 @@ export const Reference: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("Balance Panel Contract")).toBeInTheDocument();
     await expect(canvas.getByText("Canonical Left Panel")).toBeInTheDocument();
-    await expect(canvas.getByText("Travel Credit Card")).toBeInTheDocument();
-    await expect(canvas.getByText("Show all wallets")).toBeInTheDocument();
+    await expect(canvas.getAllByText("Travel Credit Card").length).toBeGreaterThan(1);
   },
 };

@@ -29,7 +29,7 @@ export function CalendarCell({
       type="button"
       onClick={() => onSelect(date)}
       className={cn(
-        "group flex flex-col items-start gap-1.5 rounded-lg px-2 py-2 text-left transition-colors outline-none",
+        "group flex flex-col items-start gap-1.5 rounded-[var(--radius-control)] px-2 py-2 text-left transition-colors outline-none",
         selected && !today
           ? "bg-foreground/6 outline outline-1 outline-foreground/10"
           : selected && today
