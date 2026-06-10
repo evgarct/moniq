@@ -155,7 +155,7 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
       <Button
         variant="ghost"
         size="icon-sm"
-        className="rounded-[var(--radius-control)] text-muted-foreground hover:bg-[#ece8e1] hover:text-foreground"
+        className="text-muted-foreground hover:bg-secondary/70 hover:text-foreground"
         onClick={() => setMonth((m) => addMonths(m, -1))}
       >
         <ChevronLeft className="size-4" />
@@ -163,14 +163,14 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
       <button
         type="button"
         onClick={() => { setMonth(today); setSelectedDate(null); }}
-        className="rounded-[var(--radius-control)] px-2.5 py-1 text-sm font-medium text-foreground transition-colors hover:bg-[#ece8e1]"
+        className="px-2.5 text-sm font-medium text-foreground hover:bg-secondary/70"
       >
         {formatDate.dateTime(calDate(month), { month: "long", year: "numeric" })}
       </button>
       <Button
         variant="ghost"
         size="icon-sm"
-        className="rounded-[var(--radius-control)] text-muted-foreground hover:bg-[#ece8e1] hover:text-foreground"
+        className="text-muted-foreground hover:bg-secondary/70 hover:text-foreground"
         onClick={() => setMonth((m) => addMonths(m, 1))}
       >
         <ChevronRight className="size-4" />
@@ -230,7 +230,7 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  className="rounded-[var(--radius-control)] text-muted-foreground hover:bg-[#ece8e1] hover:text-foreground"
+                  className="text-muted-foreground hover:bg-secondary/70 hover:text-foreground"
                   onClick={() => setSelectedDate(null)}
                   aria-label={t("board.clearDay")}
                 >
@@ -240,7 +240,7 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
               <Button
                 variant="ghost"
                 size="icon-sm"
-                className="rounded-[var(--radius-control)] text-muted-foreground hover:bg-[#ece8e1] hover:text-foreground"
+                className="text-muted-foreground hover:bg-secondary/70 hover:text-foreground"
                 onClick={() => setCalendarOpen((open) => !open)}
                 aria-label={calendarOpen ? t("board.hideCalendar") : t("board.showCalendar")}
                 aria-expanded={calendarOpen}
@@ -340,7 +340,7 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="rounded-[var(--radius-control)] text-muted-foreground hover:bg-[#ece8e1] hover:text-foreground"
+                    className="text-muted-foreground hover:bg-secondary/70 hover:text-foreground"
                     onClick={() => setSelectedDate(null)}
                   >
                     {t("board.clearDay")}

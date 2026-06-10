@@ -79,7 +79,7 @@ function MappingField({
         value={mapping[field.key] ?? "__none__"}
         onValueChange={(v) => onChange(field.key, v === "__none__" ? null : v)}
       >
-        <SelectTrigger size="sm" className="w-full rounded-[10px] bg-background shadow-none">
+        <SelectTrigger size="sm" className="w-full bg-background shadow-none">
           <SelectValue>{selectedLabel ?? t("mapping.selectColumn")}</SelectValue>
         </SelectTrigger>
         <SelectContent>
@@ -187,14 +187,14 @@ export function CsvUploadSheet({
         <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-5 py-5">
           {/* Error */}
           {error && (
-            <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
+            <div className="rounded-[var(--radius-control)] border border-destructive/20 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
               {error}
             </div>
           )}
 
           {/* Dropzone */}
           <div
-            className={`cursor-pointer rounded-xl border-2 border-dashed px-4 py-8 text-center transition-colors ${
+            className={`cursor-pointer rounded-[var(--radius-surface)] border-2 border-dashed px-4 py-8 text-center transition-colors ${
               dragActive ? "border-foreground/40 bg-muted/30" : "border-border bg-background/70"
             }`}
             onClick={() => document.getElementById("csv-file-sheet")?.click()}
@@ -238,7 +238,7 @@ export function CsvUploadSheet({
                 value={effectiveWalletId}
                 onValueChange={(v) => setSelectedWalletId(v ?? "")}
               >
-                <SelectTrigger size="sm" className="w-full rounded-[10px] bg-background shadow-none">
+                <SelectTrigger size="sm" className="w-full bg-background shadow-none">
                   <SelectValue>{selectedWalletName}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
@@ -313,7 +313,7 @@ export function CsvUploadSheet({
               )}
 
               {showPreview && (
-                <div className="overflow-auto rounded-xl border border-border/70 bg-background/70 text-xs">
+                <div className="overflow-auto rounded-[var(--radius-surface)] border border-border/70 bg-background/70 text-xs">
                   <table className="min-w-full text-left">
                     <thead className="border-b border-border/70 bg-muted/20">
                       <tr>

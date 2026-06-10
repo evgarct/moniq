@@ -54,7 +54,7 @@ export function GoalsPanel({
             type="button"
             variant="ghost"
             size="icon-sm"
-            className="shrink-0 rounded-md bg-transparent text-muted-foreground hover:bg-[#ece8e1] hover:text-foreground active:bg-[#e6e1d9]"
+            className="shrink-0 bg-transparent text-muted-foreground hover:bg-secondary/70 hover:text-foreground active:bg-secondary"
             aria-label={t("actions.add")}
             onClick={onAdd}
           >
@@ -92,7 +92,7 @@ export function GoalsPanel({
           return (
             <div
               key={allocation.id}
-              className="group rounded-sm px-1.5 py-1.5 transition-colors hover:bg-[#ece8e1] sm:px-2.5 sm:py-2.5"
+              className="group rounded-[var(--radius-tight)] px-1.5 py-1.5 transition-colors hover:bg-secondary/70 sm:px-2.5 sm:py-2.5"
             >
               <div className="grid grid-cols-[minmax(0,1fr)_minmax(96px,auto)] items-center gap-2 sm:gap-3">
                 <div className="flex min-w-0 items-center gap-2 sm:gap-2.5">
@@ -111,7 +111,7 @@ export function GoalsPanel({
                         type="button"
                         variant="ghost"
                         size="icon-sm"
-                        className="size-8 shrink-0 rounded-[var(--radius-control)] bg-transparent text-muted-foreground hover:bg-[#e6e1d9] hover:text-foreground"
+                        className="shrink-0 bg-transparent text-muted-foreground hover:bg-secondary hover:text-foreground"
                         aria-label={t("actions.edit", { name: allocation.name })}
                         onClick={() => onEdit(allocation)}
                       >
@@ -123,7 +123,7 @@ export function GoalsPanel({
                         type="button"
                         variant="ghost"
                         size="icon-sm"
-                        className="size-8 shrink-0 rounded-[var(--radius-control)] bg-transparent text-muted-foreground hover:bg-[#e6e1d9] hover:text-destructive"
+                        className="shrink-0 bg-transparent text-muted-foreground hover:bg-secondary hover:text-destructive"
                         aria-label={t("actions.delete", { name: allocation.name })}
                         onClick={() => onDelete(allocation)}
                       >

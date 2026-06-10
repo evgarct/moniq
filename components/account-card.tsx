@@ -95,8 +95,8 @@ export function AccountCard({
       className={cn(
         "relative rounded-sm transition-[background-color,color]",
         selected
-          ? "bg-[#e6e1d9] text-foreground"
-          : "bg-transparent hover:bg-[#ece8e1] active:bg-[#e6e1d9]",
+          ? "bg-secondary text-foreground"
+          : "bg-transparent hover:bg-secondary/70 active:bg-secondary",
       )}
     >
       <div className="px-1.5 py-1.5 sm:px-2.5 sm:py-2.5">
@@ -204,7 +204,7 @@ export function AccountCard({
                     <div
                       key={allocation.id}
                       onContextMenu={(event) => handleAllocationContextMenu(event, allocation)}
-                      className="group rounded-[var(--radius-tight)] py-1 transition-colors hover:bg-[#ece8e1]"
+                      className="group rounded-[var(--radius-tight)] py-1 transition-colors hover:bg-secondary/70"
                     >
                       <div className="grid grid-cols-[minmax(0,1fr)_minmax(104px,auto)] items-center gap-3">
                         <div className="flex min-w-0 items-center gap-1.5">
@@ -279,12 +279,12 @@ export function AccountCard({
               />
             }
           />
-          <DropdownMenuContent className="w-40 rounded-xl p-1.5" side="right" align="start" sideOffset={6} alignOffset={-6}>
+          <DropdownMenuContent className="w-40 rounded-[var(--radius-floating)] p-1.5" side="right" align="start" sideOffset={6} alignOffset={-6}>
             {contextMenu.kind === "allocation" ? (
               <>
                 {onEditGoal ? (
                   <DropdownMenuItem
-                    className="rounded-lg px-2 py-2 text-[13px]"
+                    className="rounded-[var(--radius-control)] px-2 py-2 text-[13px]"
                     onClick={() => onEditGoal(contextMenu.allocation)}
                   >
                     <Pencil className="h-4 w-4" />
@@ -293,7 +293,7 @@ export function AccountCard({
                 ) : null}
                 {onDeleteGoal ? (
                   <DropdownMenuItem
-                    className="rounded-lg px-2 py-2 text-[13px]"
+                    className="rounded-[var(--radius-control)] px-2 py-2 text-[13px]"
                     variant="destructive"
                     onClick={() => onDeleteGoal(contextMenu.allocation)}
                   >
@@ -305,14 +305,14 @@ export function AccountCard({
             ) : (
               <>
                 {onAddGoal ? (
-                  <DropdownMenuItem className="rounded-lg px-2 py-2 text-[13px]" onClick={onAddGoal}>
+                  <DropdownMenuItem className="rounded-[var(--radius-control)] px-2 py-2 text-[13px]" onClick={onAddGoal}>
                     <PlusCircle className="h-4 w-4" />
                     {t("actions.addGoal")}
                   </DropdownMenuItem>
                 ) : null}
                 {onAdjustBalance ? (
                   <DropdownMenuItem
-                    className="rounded-lg px-2 py-2 text-[13px]"
+                    className="rounded-[var(--radius-control)] px-2 py-2 text-[13px]"
                     onClick={() => {
                       const rawValue = window.prompt(t("actions.adjustBalancePrompt"), String(account.balance));
                       if (rawValue === null) return;
@@ -325,14 +325,14 @@ export function AccountCard({
                   </DropdownMenuItem>
                 ) : null}
                 {onEdit ? (
-                  <DropdownMenuItem className="rounded-lg px-2 py-2 text-[13px]" onClick={() => onEdit(account)}>
+                  <DropdownMenuItem className="rounded-[var(--radius-control)] px-2 py-2 text-[13px]" onClick={() => onEdit(account)}>
                     <PencilLine className="h-4 w-4" />
                     {t("actions.editWallet")}
                   </DropdownMenuItem>
                 ) : null}
                 {onDelete ? (
                   <DropdownMenuItem
-                    className="rounded-lg px-2 py-2 text-[13px]"
+                    className="rounded-[var(--radius-control)] px-2 py-2 text-[13px]"
                     variant="destructive"
                     onClick={() => onDelete(account)}
                   >

@@ -242,7 +242,7 @@ export function DateRangePicker({
             <Button
               type="button"
               variant="ghost"
-              className="h-8 w-auto max-w-full justify-start rounded-md bg-transparent px-2.5 text-[13px] font-medium text-foreground hover:bg-[#ece8e1] active:bg-[#e6e1d9]"
+              className="h-10 w-auto max-w-full justify-start bg-transparent px-2.5 text-sm font-medium text-foreground hover:bg-secondary/70 active:bg-secondary"
               aria-expanded={open}
               aria-label={triggerAriaLabel}
             />
@@ -257,7 +257,7 @@ export function DateRangePicker({
         <PopoverContent
           align="start"
           sideOffset={8}
-          className="w-fit max-w-[92vw] rounded-md p-0 sm:align-end"
+          className="w-fit max-w-[92vw] rounded-[var(--radius-floating)] p-0 sm:align-end"
         >
           <div className="grid items-center gap-2 px-4 py-4 sm:grid-cols-[auto_104px]">
             <div className="w-fit self-center">
@@ -269,7 +269,7 @@ export function DateRangePicker({
                         type="button"
                         variant="ghost"
                         size="icon-sm"
-                        className="absolute left-0 top-1/2 -translate-y-1/2 rounded-md bg-transparent text-muted-foreground hover:bg-[#ece8e1] hover:text-foreground active:bg-[#e6e1d9]"
+                        className="absolute left-0 top-1/2 -translate-y-1/2 bg-transparent text-muted-foreground hover:bg-secondary/70 hover:text-foreground active:bg-secondary"
                         aria-label={tr("common.actions.previous")}
                       />
                     }
@@ -296,7 +296,7 @@ export function DateRangePicker({
                         type="button"
                         variant="ghost"
                         size="icon-sm"
-                        className="absolute right-0 top-1/2 -translate-y-1/2 rounded-md bg-transparent text-muted-foreground hover:bg-[#ece8e1] hover:text-foreground active:bg-[#e6e1d9]"
+                        className="absolute right-0 top-1/2 -translate-y-1/2 bg-transparent text-muted-foreground hover:bg-secondary/70 hover:text-foreground active:bg-secondary"
                         aria-label={tr("common.actions.next")}
                       />
                     }
@@ -324,7 +324,7 @@ export function DateRangePicker({
                   classNames={{
                     month_caption: "hidden",
                   }}
-                  className="rounded-md [--cell-size:1.875rem]"
+                  className="rounded-[var(--radius-control)] [--cell-size:1.875rem]"
                   aria-label={triggerAriaLabel}
                 />
               ) : (
@@ -341,7 +341,7 @@ export function DateRangePicker({
                   classNames={{
                     month_caption: "hidden",
                   }}
-                  className="rounded-md [--cell-size:1.875rem]"
+                  className="rounded-[var(--radius-control)] [--cell-size:1.875rem]"
                   aria-label={triggerAriaLabel}
                 />
               )}
@@ -353,7 +353,7 @@ export function DateRangePicker({
                   key={preset.key}
                   type="button"
                   variant="ghost"
-                  className="h-7 justify-start rounded-md px-2 text-[12px] font-normal text-foreground hover:bg-[#ece8e1] active:bg-[#e6e1d9]"
+                  className="h-10 justify-start px-2 text-sm font-normal text-foreground hover:bg-secondary/70 active:bg-secondary"
                   onClick={() => applyRange(preset.range)}
                 >
                   {preset.label}

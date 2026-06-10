@@ -98,7 +98,7 @@ function MappingField({
         {field.required ? " *" : ""}
       </FieldLabel>
       <Select value={mapping[field.key] ?? "__none__"} onValueChange={(value) => onChange(field.key, value === "__none__" ? null : value)}>
-      <SelectTrigger size="sm" className="w-full rounded-[10px] bg-background shadow-none">
+      <SelectTrigger size="sm" className="w-full bg-background shadow-none">
         <SelectValue>{selectedColumnLabel ?? t("mapping.selectColumn")}</SelectValue>
       </SelectTrigger>
         <SelectContent>
@@ -225,7 +225,7 @@ export function BankingView() {
   const [showAdvancedMapping, setShowAdvancedMapping] = useState(false);
   const [showPreviewRows, setShowPreviewRows] = useState(false);
   const actionButtonClassName =
-    "rounded-md bg-transparent text-muted-foreground hover:bg-[#ece8e1] hover:text-foreground active:bg-[#e6e1d9]";
+    "bg-transparent text-muted-foreground hover:bg-secondary/70 hover:text-foreground active:bg-secondary";
 
   const setSnapshot = (snapshot: NonNullable<typeof data>) => {
     queryClient.setQueryData(bankingSnapshotQueryKey, snapshot);
@@ -420,7 +420,7 @@ export function BankingView() {
               </div>
 
               {actionError ? (
-                <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                <div className="rounded-[var(--radius-control)] border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
                   {actionError}
                 </div>
               ) : null}
@@ -428,8 +428,8 @@ export function BankingView() {
               <div className="space-y-4 px-1.5 sm:px-2.5">
                 <div
                   className={cn(
-                    "cursor-pointer rounded-lg border border-dashed px-4 py-6 text-center transition-colors",
-                    dragActive ? "border-foreground/40 bg-[#f3efe9]" : "border-border/80 bg-background/70",
+                    "cursor-pointer rounded-[var(--radius-surface)] border border-dashed px-4 py-6 text-center transition-colors",
+                    dragActive ? "border-foreground/40 bg-secondary/50" : "border-border/80 bg-background/70",
                   )}
                   onClick={() => document.getElementById("csv-file")?.click()}
                   onDragOver={(event) => {
@@ -471,7 +471,7 @@ export function BankingView() {
                   <Field>
                     <FieldLabel>{t("upload.fields.wallet")}</FieldLabel>
                     <Select value={effectiveWalletId} onValueChange={(value) => setSelectedWalletId(value ?? "")}>
-                    <SelectTrigger size="sm" className="w-full rounded-[10px] bg-background shadow-none">
+                    <SelectTrigger size="sm" className="w-full bg-background shadow-none">
                       <SelectValue>{selectedWalletName}</SelectValue>
                     </SelectTrigger>
                       <SelectContent>

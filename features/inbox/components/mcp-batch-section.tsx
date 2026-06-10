@@ -144,28 +144,33 @@ export function McpBatchSection({
         {!isFinalised && (
           <div className="flex items-center gap-1 shrink-0">
             {pendingCount > 0 && (
-              <Button size="sm" onClick={approveAll} disabled={approvingAll} className="h-8 text-xs">
+              <Button size="sm" onClick={approveAll} disabled={approvingAll} className="text-xs">
                 {approvingAll ? t("batch.approving") : t("batch.approveAll")}
               </Button>
             )}
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-sm"
               onClick={rejectBatch}
-              className="flex size-10 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-secondary hover:text-destructive"
+              className="text-muted-foreground hover:text-destructive"
               aria-label={t("batch.reject")}
             >
               <X className="h-3.5 w-3.5" />
-            </button>
+            </Button>
           </div>
         )}
 
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="icon-sm"
           onClick={() => setExpanded((v) => !v)}
-          className="rounded-control p-1 text-muted-foreground hover:text-foreground shrink-0"
+          className="shrink-0 text-muted-foreground"
+          aria-label={t(expanded ? "batch.collapse" : "batch.expand")}
         >
           {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-        </button>
+        </Button>
       </div>
 
       {/* Error */}
@@ -224,24 +229,28 @@ export function McpBatchSection({
                     actions={
                       isPending ? (
                         <>
-                          <button
+                          <Button
                             type="button"
+                            variant="ghost"
+                            size="icon-sm"
                             onClick={() => void patchItem(item.id, { status: "approved" })}
                             disabled={savingItemId === item.id}
-                            className="flex size-10 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-secondary hover:text-emerald-700 disabled:opacity-50"
+                            className="text-muted-foreground hover:text-emerald-700"
                             aria-label={t("item.approve")}
                           >
                             <Check className="h-3.5 w-3.5" />
-                          </button>
-                          <button
+                          </Button>
+                          <Button
                             type="button"
+                            variant="ghost"
+                            size="icon-sm"
                             onClick={() => void patchItem(item.id, { status: "rejected" })}
                             disabled={savingItemId === item.id}
-                            className="flex size-10 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-secondary hover:text-destructive disabled:opacity-50"
+                            className="text-muted-foreground hover:text-destructive"
                             aria-label={t("item.reject")}
                           >
                             <X className="h-3.5 w-3.5" />
-                          </button>
+                          </Button>
                         </>
                       ) : undefined
                     }

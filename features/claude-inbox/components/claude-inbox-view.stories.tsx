@@ -164,7 +164,7 @@ export const ApprovedBatch: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("March statement")).toBeInTheDocument();
-    await expect(canvas.getByText("Approved")).toBeInTheDocument();
+    await expect(canvas.getAllByText("Approved")).toHaveLength(2);
   },
 };
 
@@ -179,7 +179,7 @@ export const RejectedBatch: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("Duplicate upload")).toBeInTheDocument();
-    await expect(canvas.getByText("Rejected")).toBeInTheDocument();
+    await expect(canvas.getAllByText("Rejected")).toHaveLength(2);
   },
 };
 

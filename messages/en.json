@@ -992,6 +992,8 @@
     "batch": {
       "items": "{count, plural, one {# transaction} other {# transactions}}",
       "defaultTitle": "Batch from Claude",
+      "expand": "Expand batch",
+      "collapse": "Collapse batch",
       "approveAll": "Approve all",
       "reject": "Reject batch",
       "approving": "Approving...",
@@ -1108,6 +1110,8 @@
       "confirmAll": "Confirm all",
       "confirmOne": "Confirm",
       "deleteOne": "Delete draft",
+      "expand": "Expand batch",
+      "collapse": "Collapse batch",
       "emptyTitle": "Inbox is clear",
       "emptyDescription": "Upload another CSV file to import the next batch."
     },

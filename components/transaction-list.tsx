@@ -131,9 +131,9 @@ export function TransactionList({
 
   if (!visibleTransactions.length) {
     return variant === "board" ? (
-      <div className="rounded-xl border border-dashed border-white/14 px-4 py-8 text-sm text-[#7fa0a4]">{emptyMessage}</div>
+      <div className="rounded-[var(--radius-surface)] border border-dashed border-white/14 px-4 py-8 text-sm text-[#7fa0a4]">{emptyMessage}</div>
     ) : (
-      <div className="type-body-14 rounded-lg border border-dashed border-border px-4 py-8 text-muted-foreground">{emptyMessage}</div>
+      <div className="type-body-14 rounded-[var(--radius-surface)] border border-dashed border-border px-4 py-8 text-muted-foreground">{emptyMessage}</div>
     );
   }
 

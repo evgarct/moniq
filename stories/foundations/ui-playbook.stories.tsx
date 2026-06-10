@@ -5,11 +5,13 @@ import {
   ArrowLeftRight,
   BanknoteArrowDown,
   BanknoteArrowUp,
+  Check,
   CreditCard,
   Landmark,
   PiggyBank,
   Plus,
   Wallet,
+  X,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -51,22 +53,12 @@ function RuleCard({
   body: string;
   variant?: "neutral" | "do" | "dont";
 }) {
-  const accent =
-    variant === "do"
-      ? "border-l-[3px] border-l-green-500/60"
-      : variant === "dont"
-        ? "border-l-[3px] border-l-destructive/60"
-        : "";
   return (
-    <div className={`radius-surface bg-background/80 p-4 ${accent}`}>
-      <p className="type-h6">
-        {variant === "do" && (
-          <span className="mr-1.5 text-green-600">✓</span>
-        )}
-        {variant === "dont" && (
-          <span className="mr-1.5 text-destructive">✕</span>
-        )}
-        {label}
+    <div className="radius-surface border border-border/50 bg-background/80 p-4">
+      <p className="type-h6 flex items-center gap-1.5">
+        {variant === "do" ? <Check className="size-4 text-foreground" /> : null}
+        {variant === "dont" ? <X className="size-4 text-destructive" /> : null}
+        <span>{label}</span>
       </p>
       <p className="type-body-12 mt-1.5">{body}</p>
     </div>
@@ -87,7 +79,7 @@ function DemoRow({
   currency?: CurrencyCode;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-[10px] px-2 py-2.5 transition-colors hover:bg-secondary/50">
+    <div className="flex items-center gap-3 rounded-[var(--radius-control)] px-2 py-2.5 transition-colors hover:bg-secondary/50">
       <Icon className="h-[18px] w-[18px] shrink-0 text-muted-foreground" strokeWidth={1.75} />
       <div className="min-w-0 flex-1">
         <p className="type-h6 truncate">{label}</p>
@@ -768,8 +760,8 @@ const meta = {
 
               <div className="grid gap-3">
                 <RuleCard
-                  label="Hit areas are at least 40px"
-                  body="Dense row actions may look quiet, but the interactive target must be size-10 or have a non-overlapping pseudo hit area. Never ship size-5 or size-6 click targets."
+                  label="Hit areas are 44px on mobile, 40px on desktop"
+                  body="Shared buttons use an 11-unit target below lg and a 10-unit target on desktop. Dense row actions may look quiet, but never ship size-5 or size-6 click targets."
                   variant="do"
                 />
                 <RuleCard
@@ -799,6 +791,11 @@ const meta = {
               <RuleCard
                 label="Token radii on controls"
                 body="Dropdown rows, icon actions, and floating menus use radius-control or radius-floating. Do not reintroduce rounded-2xl or rounded-3xl."
+                variant="do"
+              />
+              <RuleCard
+                label="Design drift is a lint failure"
+                body="Run npm run check:design-system. Runtime product UI cannot copy warm-neutral hex values, use generic Tailwind radii, or introduce decorative glassmorphism."
                 variant="do"
               />
             </div>

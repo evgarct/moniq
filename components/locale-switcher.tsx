@@ -31,7 +31,7 @@ export function LocaleSwitcher() {
             type="button"
             variant={item === locale ? "secondary" : "ghost"}
             size="sm"
-            className="rounded-xl"
+            className="rounded-[var(--radius-control)]"
             onClick={() => switchLocale(item)}
           >
             {t(item)}

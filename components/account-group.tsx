@@ -54,7 +54,7 @@ export function AccountGroup({
                   <Button
                     variant="ghost"
                     size="icon-sm"
-                    className="rounded-md bg-transparent text-muted-foreground hover:bg-[#ece8e1] hover:text-foreground active:bg-[#e6e1d9]"
+                    className="bg-transparent text-muted-foreground hover:bg-secondary/70 hover:text-foreground active:bg-secondary"
                     aria-label={`Add ${title} wallet`}
                   />
                 }

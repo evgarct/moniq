@@ -50,14 +50,14 @@ export function TransactionRowActions({
             <Button
               variant="ghost"
               size="icon"
-              className={variant === "board" ? "size-8 rounded-md text-[#86a9aa] hover:bg-white/8 hover:text-white" : undefined}
+              className={variant === "board" ? "text-[#86a9aa] hover:bg-white/8 hover:text-white" : undefined}
               aria-label={t("menu")}
             >
               <MoreHorizontal />
             </Button>
           }
         />
-        <DropdownMenuContent align="end" className="w-56 rounded-xl">
+        <DropdownMenuContent align="end" className="w-56 rounded-[var(--radius-floating)]">
           <DropdownMenuGroup>
             {canMarkPaid ? (
               <DropdownMenuItem onClick={() => onMarkPaid(transaction)}>

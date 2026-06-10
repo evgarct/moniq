@@ -88,7 +88,7 @@ export function AccountsView({
   const hasAccounts = accounts.length > 0;
   const registerTitle = selectedAccount ? selectedAccount.name : t("view.activity");
   const toolbarButtonClassName =
-    "rounded-md bg-transparent text-muted-foreground hover:bg-[#ece8e1] hover:text-foreground active:bg-[#e6e1d9]";
+    "bg-transparent text-muted-foreground hover:bg-secondary/70 hover:text-foreground active:bg-secondary";
 
   const isDesktopViewport = () =>
     typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches;
@@ -190,7 +190,7 @@ export function AccountsView({
                         <Button
                           variant="ghost"
                           size="icon-sm"
-                          className="shrink-0 rounded-md bg-transparent text-muted-foreground hover:bg-[#ece8e1] hover:text-foreground active:bg-[#e6e1d9]"
+                          className="shrink-0 bg-transparent text-muted-foreground hover:bg-secondary/70 hover:text-foreground active:bg-secondary"
                           aria-label={walletsEditMode ? copy("view.editModeDescription") : t("view.description")}
                         />
                       }
@@ -216,7 +216,7 @@ export function AccountsView({
                           size="icon-sm"
                           className={cn(
                             toolbarButtonClassName,
-                            showMinorUnits && "bg-[#e6e1d9] text-foreground",
+                            showMinorUnits && "bg-secondary text-foreground",
                           )}
                           aria-label={showMinorUnits ? copy("view.hideMinorUnits") : copy("view.showMinorUnits")}
                           aria-pressed={showMinorUnits}
@@ -239,7 +239,7 @@ export function AccountsView({
                           size="icon-sm"
                           className={cn(
                             toolbarButtonClassName,
-                            walletsEditMode && "bg-[#e6e1d9] text-foreground",
+                            walletsEditMode && "bg-secondary text-foreground",
                           )}
                           aria-label={walletsEditMode ? t("view.finishWalletEditing") : t("view.addWallet")}
                           aria-pressed={walletsEditMode}
@@ -264,7 +264,7 @@ export function AccountsView({
               ) : null}
 
               {actionError ? (
-                <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                <div className="rounded-[var(--radius-control)] border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
                   {actionError}
                 </div>
               ) : null}

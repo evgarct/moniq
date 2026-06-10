@@ -55,13 +55,13 @@ export function AuthForm({ mode, action }: AuthFormProps) {
           <input type="hidden" name="next" value={next} />
 
           {message ? (
-            <div className="rounded-lg border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
+            <div className="rounded-[var(--radius-control)] border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
               {message}
             </div>
           ) : null}
 
           {state.error ? (
-            <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+            <div className="rounded-[var(--radius-control)] border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
               {state.error}
             </div>
           ) : null}

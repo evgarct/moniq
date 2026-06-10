@@ -51,12 +51,12 @@ function NewKeyBanner({ rawKey }: { rawKey: string }) {
   }
 
   return (
-    <div className="border-l-2 border-amber-400 bg-amber-50/60 px-4 py-3 dark:bg-amber-950/30">
-      <p className="type-body-12 mb-2 font-medium text-amber-800 dark:text-amber-200">
+    <div className="rounded-[var(--radius-control)] border border-border bg-secondary/60 px-4 py-3">
+      <p className="type-body-12 mb-2 font-medium text-foreground">
         {t("rawKeyNotice")}
       </p>
       <div className="flex items-center gap-2">
-        <code className="flex-1 truncate font-mono text-[12px] text-amber-900 dark:text-amber-100">
+        <code className="type-body-12 flex-1 truncate font-mono text-foreground">
           {rawKey}
         </code>
         <Button size="sm" variant="outline" onClick={copyKey} className="shrink-0">
@@ -89,14 +89,16 @@ function McpUrlSnippet({ host }: { host: string }) {
       <p className="type-body-12 mb-1 text-muted-foreground">{t("mcpUrlLabel")}</p>
       <div className="flex items-center gap-2 rounded-control bg-secondary px-4 py-3">
         <code className="flex-1 truncate font-mono text-[12px] text-foreground">{url}</code>
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="icon-sm"
           onClick={copyUrl}
-          className="shrink-0 rounded-control p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          className="shrink-0 text-muted-foreground"
           aria-label={t("copyUrl")}
         >
-          {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-        </button>
+          {copied ? <Check /> : <Copy />}
+        </Button>
       </div>
     </div>
   );
@@ -136,14 +138,16 @@ function ConfigSnippet({ host }: { host: string }) {
       <pre className="overflow-x-auto rounded-control bg-secondary px-4 py-3 text-[12px] leading-relaxed text-foreground">
         {snippet}
       </pre>
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="icon-sm"
         onClick={copySnippet}
-        className="absolute right-2 top-7 rounded-control p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        className="absolute right-2 top-7 text-muted-foreground"
         aria-label={t("copyKey")}
       >
-        {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-      </button>
+        {copied ? <Check /> : <Copy />}
+      </Button>
     </div>
   );
 }
@@ -321,15 +325,17 @@ export function McpSettings({
                     )}
                   </p>
                 </div>
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="icon-sm"
                   onClick={() => revokeKey(key.id)}
                   disabled={revokingId === key.id}
-                  className="rounded-control p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+                  className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                   aria-label={t("revokeKey")}
                 >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                  <Trash2 />
+                </Button>
               </div>
             ))}
           </div>

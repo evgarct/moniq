@@ -67,6 +67,7 @@ export const TodayActive: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByLabelText(/open profile menu/i)).toBeInTheDocument();
+    await expect(canvas.getByRole("link", { name: /today/i })).toHaveClass("bg-secondary");
   },
 };
 

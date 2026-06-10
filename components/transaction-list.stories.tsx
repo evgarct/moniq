@@ -128,8 +128,8 @@ export const BalanceLedger: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText("Monthly salary")).toBeInTheDocument();
-    await expect(canvas.getByText("Move cash for Moscow trip")).toBeInTheDocument();
+    await expect(canvas.getAllByText("Salary")[0]).toBeInTheDocument();
+    await expect(canvas.getByText("Apr 6, 2026")).toBeInTheDocument();
   },
 };
 
