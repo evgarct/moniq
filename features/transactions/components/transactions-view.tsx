@@ -241,7 +241,7 @@ export function TransactionsView({
         categories={snapshot.categories}
         onOpenChange={setCategorySheetOpen}
         onSubmit={(values) => {
-          const completion = financeActions.saveCategory(
+          financeActions.saveCategory(
             categorySheetMode,
             values,
             editingCategory?.id || undefined,
@@ -251,7 +251,6 @@ export function TransactionsView({
             },
           );
           setActionError(null);
-          return completion;
         }}
       />
 
@@ -271,13 +270,12 @@ export function TransactionsView({
             return;
           }
 
-          const completion = financeActions.deleteCategory(deletingCategory.id, replacementCategoryId, {
+          financeActions.deleteCategory(deletingCategory.id, replacementCategoryId, {
             onError: (error) =>
               setActionError(error instanceof Error ? error.message : categoriesT("deleteError")),
           });
           setDeletingCategory(null);
           setActionError(null);
-          return completion;
         }}
       />
 
@@ -298,33 +296,27 @@ export function TransactionsView({
             router.replace(basePath);
           }
         }}
-        onSubmit={async (payload: TransactionFormSubmitPayload) => {
+        onSubmit={(payload: TransactionFormSubmitPayload) => {
           const onError = (error: unknown) =>
             setActionError(error instanceof Error ? error.message : t("view.saveError"));
-          const completions: Promise<void>[] = [];
           if (payload.kind === "entry" || payload.kind === "entry-batch") {
-            completions.push(transactionActions.createEntry(payload.values, { onError }));
+            transactionActions.createEntry(payload.values, { onError });
           } else if (payload.kind === "transaction") {
             if (!editingTransaction) throw new Error(t("view.saveError"));
-            completions.push(
-              transactionActions.updateTransactionOptimistic(editingTransaction.id, payload.values, { onError }),
-            );
+            transactionActions.updateTransactionOptimistic(editingTransaction.id, payload.values, { onError });
             if (payload.rescheduleFrom) {
-              completions.push(
-                transactionActions.rescheduleFromDate(
-                  payload.rescheduleFrom.scheduleId,
-                  payload.rescheduleFrom.originalDate,
-                  payload.rescheduleFrom.newDate,
-                  { onError },
-                ),
+              transactionActions.rescheduleFromDate(
+                payload.rescheduleFrom.scheduleId,
+                payload.rescheduleFrom.originalDate,
+                payload.rescheduleFrom.newDate,
+                { onError },
               );
             }
           } else {
             if (!editingSchedule) throw new Error(t("view.saveError"));
-            completions.push(transactionActions.updateSchedule(editingSchedule.id, payload.values, { onError }));
+            transactionActions.updateSchedule(editingSchedule.id, payload.values, { onError });
           }
           setActionError(null);
-          await Promise.all(completions);
           if (shouldOpenNewTransaction) router.replace(basePath);
         }}
       />

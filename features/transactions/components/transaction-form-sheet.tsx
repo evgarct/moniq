@@ -97,15 +97,12 @@ function TransactionFormInner() {
   const KindIcon = KIND_ICONS[kind];
   const title = getFormTitle(t, mode);
 
-  const handleSubmit = form.handleSubmit(async (values) => {
+  const handleSubmit = form.handleSubmit((values) => {
     const payload = buildSubmitPayload(values, mode, accounts, categories);
     if (!payload) return;
-    try {
-      await onSubmit(payload);
+    const submitted = onSubmit(payload);
+    if (submitted !== false) {
       onOpenChange(false);
-    } catch (error) {
-      if (error instanceof Error && error.message === "__reschedule_pending__") return;
-      throw error;
     }
   });
 
@@ -239,12 +236,12 @@ export function TransactionFormSheet({
   transactions?: Transaction[];
   allocations?: WalletAllocation[];
   onOpenChange: (open: boolean) => void;
-  onSubmit: (payload: TransactionFormSubmitPayload) => Promise<void> | void;
+  onSubmit: (payload: TransactionFormSubmitPayload) => void;
 }) {
   const [pendingPayload, setPendingPayload] = useState<(TransactionFormSubmitPayload & { kind: "transaction" }) | null>(null);
 
   // Intercept submissions for scheduled occurrence edits where the date changed
-  const wrappedOnSubmit = async (payload: TransactionFormSubmitPayload) => {
+  const wrappedOnSubmit = (payload: TransactionFormSubmitPayload) => {
     if (
       payload.kind === "transaction" &&
       transaction?.schedule_id &&
@@ -252,20 +249,20 @@ export function TransactionFormSheet({
       payload.values.occurred_at !== transaction.occurred_at
     ) {
       setPendingPayload(payload);
-      // Throw so TransactionFormInner doesn't call onOpenChange(false)
-      throw new Error("__reschedule_pending__");
+      return false;
     }
-    await onSubmit(payload);
+    onSubmit(payload);
+    return true;
   };
 
-  const handleOnlyThis = async () => {
+  const handleOnlyThis = () => {
     if (!pendingPayload) return;
     setPendingPayload(null);
-    await onSubmit(pendingPayload);
+    onSubmit(pendingPayload);
     onOpenChange(false);
   };
 
-  const handleAllFollowing = async () => {
+  const handleAllFollowing = () => {
     if (!pendingPayload || !transaction?.schedule_id) return;
     const payload: TransactionFormSubmitPayload = {
       ...pendingPayload,
@@ -276,7 +273,7 @@ export function TransactionFormSheet({
       },
     };
     setPendingPayload(null);
-    await onSubmit(payload);
+    onSubmit(payload);
     onOpenChange(false);
   };
 

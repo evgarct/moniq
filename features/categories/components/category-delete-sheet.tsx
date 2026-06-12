@@ -35,7 +35,7 @@ export function CategoryDeleteSheet({
   replacementOptions: Category[];
   transactionCount: number;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (replacementCategoryId: string | null) => Promise<void> | void;
+  onSubmit: (replacementCategoryId: string | null) => void;
 }) {
   const t = useTranslations("categories.delete");
   const defaultReplacement = useMemo(
@@ -91,8 +91,8 @@ export function CategoryDeleteSheet({
               variant="default"
               className="w-full bg-rose-600 text-white hover:bg-rose-700"
               disabled={transactionCount > 0 && !replacementCategoryId}
-              onClick={async () => {
-                await onSubmit(transactionCount > 0 ? replacementCategoryId : null);
+              onClick={() => {
+                onSubmit(transactionCount > 0 ? replacementCategoryId : null);
                 onOpenChange(false);
               }}
             >
