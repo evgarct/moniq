@@ -32,6 +32,9 @@ Calm, editorial, restrained, and operational. The product should feel like a qui
 - Rows are the primary language for repeated data. Avoid card-per-item layouts, chips, icon badges, and colored metadata containers.
 - Surfaces are for major regions only. Use the shared `Surface` primitive instead of rebuilding shadows, borders, or rounded containers locally.
 - Forms should feel spatial and focused. Structured create/edit flows belong in sheets; confirmation decisions can use dialogs.
+- Deterministic, reversible mutations are optimistic by default. After client validation, close the form and show the result immediately while persistence continues in the background.
+- Background persistence failures roll back the optimistic result and surface a localized toast. Do not reopen the form automatically.
+- Block the interface only when the client cannot predict the result, such as file parsing/upload, authentication, or an external integration response.
 - Copy must be localized through `next-intl` and stay direct. Avoid explanatory UI copy when the structure already teaches the action.
 
 ## Anti-References

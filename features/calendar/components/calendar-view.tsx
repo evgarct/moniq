@@ -170,29 +170,23 @@ export function CalendarView({ snapshot }: { snapshot: FinanceSnapshot }) {
         categories={snapshot.categories}
         allocations={snapshot.allocations}
         onOpenChange={setSheetOpen}
-        onSubmit={async (payload: TransactionFormSubmitPayload) => {
+        onSubmit={(payload: TransactionFormSubmitPayload) => {
           const onError = (error: unknown) =>
             setActionError(error instanceof Error ? error.message : transactionViewT("saveError"));
-          const completions: Promise<void>[] = [];
           if (payload.kind === "transaction" && editingTransaction) {
-            completions.push(
-              transactionActions.updateTransaction(editingTransaction.id, payload.values, { onError }),
-            );
+            transactionActions.updateTransaction(editingTransaction.id, payload.values, { onError });
             if (payload.rescheduleFrom) {
-              completions.push(
-                transactionActions.rescheduleFromDate(
-                  payload.rescheduleFrom.scheduleId,
-                  payload.rescheduleFrom.originalDate,
-                  payload.rescheduleFrom.newDate,
-                  { onError },
-                ),
+              transactionActions.rescheduleFromDate(
+                payload.rescheduleFrom.scheduleId,
+                payload.rescheduleFrom.originalDate,
+                payload.rescheduleFrom.newDate,
+                { onError },
               );
             }
           } else if (payload.kind === "schedule" && editingSchedule) {
-            completions.push(transactionActions.updateSchedule(editingSchedule.id, payload.values, { onError }));
+            transactionActions.updateSchedule(editingSchedule.id, payload.values, { onError });
           }
           setActionError(null);
-          await Promise.all(completions);
         }}
       />
     </>

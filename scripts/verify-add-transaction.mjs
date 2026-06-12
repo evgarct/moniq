@@ -53,11 +53,38 @@ async function main() {
   const password = requiredEnv("MONIQ_E2E_PASSWORD", "E2E_USER_PASSWORD");
   const targetPath = "/en/accounts";
   const marker = `E2E add transaction ${Date.now()}`;
+  const rollbackMarker = `E2E rollback transaction ${Date.now()}`;
 
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
   const consoleErrors = [];
   const failedRequests = [];
+  let transactionRequestMode = "delay";
+  let resolveDelayedRequest;
+  const delayedRequestStarted = new Promise((resolve) => {
+    resolveDelayedRequest = resolve;
+  });
+
+  await page.route("**/api/transactions", async (route) => {
+    if (route.request().method() !== "POST") {
+      await route.continue();
+      return;
+    }
+
+    if (transactionRequestMode === "fail") {
+      await new Promise((resolve) => setTimeout(resolve, 1_500));
+      await route.fulfill({
+        status: 500,
+        contentType: "application/json",
+        body: JSON.stringify({ error: "Forced optimistic rollback." }),
+      });
+      return;
+    }
+
+    resolveDelayedRequest();
+    await new Promise((resolve) => setTimeout(resolve, 10_000));
+    await route.continue();
+  });
 
   page.on("console", (message) => {
     if (message.type() === "error") {
@@ -79,16 +106,54 @@ async function main() {
     await page.locator("#transaction-line-amount-0").fill("13.37");
     await page.locator("#transaction-note").fill(marker);
 
+    const persistedResponse = page.waitForResponse(
+      (response) =>
+        response.request().method() === "POST" &&
+        new URL(response.url()).pathname === "/api/transactions",
+      { timeout: 20_000 },
+    );
     await page.getByRole("button", { name: "Save transaction" }).click();
+    await delayedRequestStarted;
+    await page.getByRole("button", { name: "Save transaction" }).waitFor({
+      state: "detached",
+      timeout: 1_000,
+    });
+    await page.getByText(marker, { exact: false }).waitFor({ timeout: 1_000 });
+    await persistedResponse;
     await page.getByText(marker, { exact: false }).waitFor({ timeout: 20_000 });
 
-    const blockingFailures = failedRequests.filter((entry) => !entry.includes("__nextjs_original-stack-frames"));
+    transactionRequestMode = "fail";
+    await page.getByRole("button", { name: "Add transaction" }).first().click();
+    await page.getByRole("button", { name: "Save transaction" }).waitFor({ timeout: 10_000 });
+    await selectExpenseCategory(page);
+    await page.locator("#transaction-line-amount-0").fill("7.11");
+    await page.locator("#transaction-note").fill(rollbackMarker);
+    await page.getByRole("button", { name: "Save transaction" }).click();
+    await page.getByText(rollbackMarker, { exact: false }).waitFor({ timeout: 1_000 });
+    await page.getByText(rollbackMarker, { exact: false }).waitFor({
+      state: "detached",
+      timeout: 10_000,
+    });
+    await page
+      .getByLabel("Notifications alt+T")
+      .getByText("Forced optimistic rollback.", { exact: true })
+      .waitFor({ timeout: 10_000 });
+
+    const blockingFailures = failedRequests.filter(
+      (entry) =>
+        !entry.includes("__nextjs_original-stack-frames") &&
+        !entry.includes("/api/transactions"),
+    );
     if (blockingFailures.length > 0) {
       throw new Error(`Failed browser requests while adding a transaction:\n${blockingFailures.join("\n")}`);
     }
 
-    if (consoleErrors.length > 0) {
-      throw new Error(`Console errors while adding a transaction:\n${consoleErrors.join("\n")}`);
+    const unexpectedConsoleErrors = consoleErrors.filter(
+      (message) =>
+        !message.includes("Failed to load resource: the server responded with a status of 500"),
+    );
+    if (unexpectedConsoleErrors.length > 0) {
+      throw new Error(`Console errors while adding a transaction:\n${unexpectedConsoleErrors.join("\n")}`);
     }
 
     console.log(`Add transaction verification passed: ${appUrl}/en/accounts (${marker})`);

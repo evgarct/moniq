@@ -27,7 +27,7 @@ export function GoalFormSheet({
   mode: "add" | "edit";
   allocation?: WalletAllocation | null;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (values: WalletAllocationInput) => Promise<void> | void;
+  onSubmit: (values: WalletAllocationInput) => void;
 }) {
   const t = useTranslations("accounts.goals.form");
   const goalFormSchema = z.object({
@@ -70,8 +70,8 @@ export function GoalFormSheet({
       onOpenChange={onOpenChange}
       title={mode === "add" ? t("addTitle") : t("editTitle")}
       submitLabel={mode === "add" ? t("submit.add") : t("submit.edit")}
-      onSubmit={form.handleSubmit(async (values) => {
-        await onSubmit(values);
+      onSubmit={form.handleSubmit((values) => {
+        onSubmit(values);
         onOpenChange(false);
       })}
     >

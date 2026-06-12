@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { FileUp, ChevronDown, ChevronUp, Trash2, Check, X, AlertCircle, PencilLine } from "lucide-react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
 import { DetailField, DetailFieldGrid } from "@/components/detail-field";
@@ -12,13 +11,7 @@ import { PendingTransactionRow } from "@/components/pending-transaction-row";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import {
-  bankingSnapshotQueryKey,
-  batchConfirmImportedTransactionsRequest,
-  deleteImportedTransactionRequest,
-  deleteImportBatchRequest,
-  updateImportedTransactionRequest,
-} from "@/features/banking/lib/banking-api";
+import { useBankingActions } from "@/features/banking/hooks/use-banking-actions";
 import type { Category, Account } from "@/types/finance";
 import type { TransactionImport, TransactionImportBatch } from "@/types/imports";
 
@@ -35,7 +28,7 @@ export function CsvEditSheet({
   transaction: TransactionImport | null;
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  onSave: (merchant_clean: string) => Promise<void>;
+  onSave: (merchant_clean: string) => void;
 }) {
   const t = useTranslations("imports");
   const commonT = useTranslations("common.actions");
@@ -82,9 +75,9 @@ export function CsvEditSheet({
             <div className="mt-auto flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => onOpenChange(false)}>{commonT("cancel")}</Button>
               <Button
-                onClick={async () => {
+                onClick={() => {
                   const next = draft.trim();
-                  if (next && next !== transaction.merchant_clean) await onSave(next);
+                  if (next && next !== transaction.merchant_clean) onSave(next);
                   onOpenChange(false);
                 }}
               >
@@ -116,38 +109,11 @@ export function CsvBatchSection({
   onFinalized?: () => void;
 }) {
   const t = useTranslations("imports");
-  const qc = useQueryClient();
+  const bankingActions = useBankingActions();
 
   const [expanded, setExpanded] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  const invalidateSnapshot = () => void qc.invalidateQueries({ queryKey: bankingSnapshotQueryKey });
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, values }: { id: string; values: Parameters<typeof updateImportedTransactionRequest>[1] }) =>
-      updateImportedTransactionRequest(id, values),
-    onSuccess: () => { invalidateSnapshot(); setError(null); },
-    onError: () => setError(t("feedback.updateFailed")),
-  });
-
-  const confirmMutation = useMutation({
-    mutationFn: batchConfirmImportedTransactionsRequest,
-    onSuccess: () => { invalidateSnapshot(); setError(null); onFinalized?.(); },
-    onError: () => setError(t("feedback.confirmFailed")),
-  });
-
-  const deleteTxMutation = useMutation({
-    mutationFn: deleteImportedTransactionRequest,
-    onSuccess: () => { invalidateSnapshot(); setError(null); },
-    onError: () => setError(t("feedback.deleteTransactionFailed")),
-  });
-
-  const deleteBatchMutation = useMutation({
-    mutationFn: deleteImportBatchRequest,
-    onSuccess: () => { invalidateSnapshot(); setError(null); onFinalized?.(); },
-    onError: () => setError(t("feedback.deleteFailed")),
-  });
 
   const walletOptions = wallets.filter((w) => w.type !== "debt");
 
@@ -184,19 +150,34 @@ export function CsvBatchSection({
             <Button
               size="sm"
               className="text-xs"
-              disabled={confirmMutation.isPending}
-              onClick={() => void confirmMutation.mutateAsync(transactions.map((tx) => tx.id))}
+              onClick={() => {
+                setError(null);
+                bankingActions.confirmTransactions(
+                  transactions.map((transaction) => transaction.id),
+                  {
+                    errorMessage: t("feedback.confirmFailed"),
+                    onError: () => setError(t("feedback.confirmFailed")),
+                    onSuccess: onFinalized,
+                  },
+                );
+              }}
             >
-              {confirmMutation.isPending ? "…" : t("inbox.confirmAll")}
+              {t("inbox.confirmAll")}
             </Button>
             <Button
               type="button"
               variant="ghost"
               size="icon-sm"
               className="text-muted-foreground hover:text-destructive"
-              disabled={deleteBatchMutation.isPending}
               aria-label={t("upload.deleteBatch")}
-              onClick={() => void deleteBatchMutation.mutateAsync(batch.id)}
+              onClick={() => {
+                setError(null);
+                bankingActions.deleteBatch(batch.id, {
+                  errorMessage: t("feedback.deleteFailed"),
+                  onError: () => setError(t("feedback.deleteFailed")),
+                  onSuccess: onFinalized,
+                });
+              }}
             >
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
@@ -240,16 +221,23 @@ export function CsvBatchSection({
                     occurredAt={tx.occurred_at}
                     categories={isTransfer ? [] : categoriesForKind}
                     resolvedCategoryId={tx.category_id}
-                    onCategoryChange={(id) =>
-                      void updateMutation.mutateAsync({ id: tx.id, values: { category_id: id } })
-                    }
+                    onCategoryChange={(id) => {
+                      setError(null);
+                      bankingActions.updateTransaction(tx.id, { category_id: id }, {
+                        errorMessage: t("feedback.updateFailed"),
+                        onError: () => setError(t("feedback.updateFailed")),
+                      });
+                    }}
                     accounts={walletOptions.map((w) => ({ id: w.id, name: w.name }))}
                     resolvedAccountId={tx.counterpart_wallet_id ?? null}
-                    onAccountChange={(id) =>
-                      void updateMutation.mutateAsync({ id: tx.id, values: { counterpart_wallet_id: id } })
-                    }
+                    onAccountChange={(id) => {
+                      setError(null);
+                      bankingActions.updateTransaction(tx.id, { counterpart_wallet_id: id }, {
+                        errorMessage: t("feedback.updateFailed"),
+                        onError: () => setError(t("feedback.updateFailed")),
+                      });
+                    }}
                     status="pending"
-                    saving={updateMutation.isPending}
                     selectCategoryPlaceholder={t("approval.selectCategory")}
                     noAccountPlaceholder={isTransfer ? t("approval.selectCounterpart") : undefined}
                     clearCategoryLabel={t("inbox.selectCategory")}
@@ -269,8 +257,14 @@ export function CsvBatchSection({
                           type="button"
                           variant="ghost"
                           size="icon-sm"
-                          disabled={confirmMutation.isPending}
-                          onClick={() => void confirmMutation.mutateAsync([tx.id])}
+                          onClick={() => {
+                            setError(null);
+                            bankingActions.confirmTransactions([tx.id], {
+                              errorMessage: t("feedback.confirmFailed"),
+                              onError: () => setError(t("feedback.confirmFailed")),
+                              onSuccess: onFinalized,
+                            });
+                          }}
                           className="text-muted-foreground hover:text-emerald-700"
                           aria-label={t("inbox.confirmOne")}
                         >
@@ -280,8 +274,13 @@ export function CsvBatchSection({
                           type="button"
                           variant="ghost"
                           size="icon-sm"
-                          disabled={deleteTxMutation.isPending}
-                          onClick={() => void deleteTxMutation.mutateAsync(tx.id)}
+                          onClick={() => {
+                            setError(null);
+                            bankingActions.deleteTransaction(tx.id, {
+                              errorMessage: t("feedback.deleteTransactionFailed"),
+                              onError: () => setError(t("feedback.deleteTransactionFailed")),
+                            });
+                          }}
                           className="text-muted-foreground hover:text-destructive"
                           aria-label={t("inbox.deleteOne")}
                         >
@@ -302,9 +301,13 @@ export function CsvBatchSection({
         transaction={editingTx}
         open={editingId !== null}
         onOpenChange={(open) => { if (!open) setEditingId(null); }}
-        onSave={async (merchant_clean) => {
+        onSave={(merchant_clean) => {
           if (!editingId) return;
-          await updateMutation.mutateAsync({ id: editingId, values: { merchant_clean } });
+          setError(null);
+          bankingActions.updateTransaction(editingId, { merchant_clean }, {
+            errorMessage: t("feedback.updateFailed"),
+            onError: () => setError(t("feedback.updateFailed")),
+          });
         }}
       />
     </>

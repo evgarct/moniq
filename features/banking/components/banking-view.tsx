@@ -18,13 +18,11 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   bankingSnapshotQueryKey,
-  batchConfirmImportedTransactionsRequest,
-  deleteImportedTransactionRequest,
-  deleteImportBatchRequest,
   fetchImportPreviewRequest,
-  updateImportedTransactionRequest,
   uploadMappedImportRequest,
 } from "@/features/banking/lib/banking-api";
+import { useBankingActions } from "@/features/banking/hooks/use-banking-actions";
+import type { ImportedTransactionPatch } from "@/features/banking/lib/optimistic-state";
 import { useBankingData } from "@/features/banking/hooks/use-banking-data";
 import { cn } from "@/lib/utils";
 import type { ImportColumnKey, ImportColumnMapping, ImportFilePreview, TransactionImport } from "@/types/imports";
@@ -129,7 +127,7 @@ export function ImportDetailSheet({
   t: ReturnType<typeof useTranslations<"imports">>;
   commonT: ReturnType<typeof useTranslations<"common.actions">>;
   onOpenChange: (open: boolean) => void;
-  onPatch: (values: { merchant_clean?: string }) => Promise<void>;
+  onPatch: (values: { merchant_clean?: string }) => void;
 }) {
   const [merchantDraft, setMerchantDraft] = useState(transaction?.merchant_clean ?? "");
 
@@ -190,10 +188,10 @@ export function ImportDetailSheet({
               </Button>
               <Button
                 type="button"
-                onClick={async () => {
+                onClick={() => {
                   const nextMerchant = merchantDraft.trim();
                   if (nextMerchant && nextMerchant !== currentMerchant) {
-                    await onPatch({ merchant_clean: nextMerchant });
+                    onPatch({ merchant_clean: nextMerchant });
                   }
                   onOpenChange(false);
                 }}
@@ -214,6 +212,7 @@ export function BankingView() {
   const commonT = useTranslations("common.actions");
   const format = useFormatter();
   const queryClient = useQueryClient();
+  const bankingActions = useBankingActions();
   const { data, error, isLoading } = useBankingData();
   const [editingImportId, setEditingImportId] = useState<string | null>(null);
   const [selectedWalletId, setSelectedWalletId] = useState<string>("");
@@ -262,50 +261,6 @@ export function BankingView() {
       setMapping(null);
       setShowAdvancedMapping(false);
       setShowPreviewRows(false);
-      setActionError(null);
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: ({
-      transactionId,
-      values,
-    }: {
-      transactionId: string;
-      values: {
-        merchant_clean?: string;
-        category_id?: string | null;
-        kind?: "expense" | "income" | "transfer" | "debt_payment";
-        wallet_id?: string;
-        counterpart_wallet_id?: string | null;
-      };
-    }) => updateImportedTransactionRequest(transactionId, values),
-    onSuccess: (snapshot) => {
-      setSnapshot(snapshot);
-      setActionError(null);
-    },
-  });
-
-  const confirmMutation = useMutation({
-    mutationFn: batchConfirmImportedTransactionsRequest,
-    onSuccess: (snapshot) => {
-      setSnapshot(snapshot);
-      setActionError(null);
-    },
-  });
-
-  const deleteTransactionMutation = useMutation({
-    mutationFn: deleteImportedTransactionRequest,
-    onSuccess: (snapshot) => {
-      setSnapshot(snapshot);
-      setActionError(null);
-    },
-  });
-
-  const deleteBatchMutation = useMutation({
-    mutationFn: deleteImportBatchRequest,
-    onSuccess: (snapshot) => {
-      setSnapshot(snapshot);
       setActionError(null);
     },
   });
@@ -621,16 +576,16 @@ export function BankingView() {
                                   size="icon-sm"
                                   className={actionButtonClassName}
                                   aria-label={t("upload.deleteBatch")}
-                                  disabled={deleteBatchMutation.isPending}
                                 />
                               }
-                              onClick={async (event) => {
+                              onClick={(event) => {
                                 event.stopPropagation();
-                                try {
-                                  await deleteBatchMutation.mutateAsync(batch.id);
-                                } catch (caughtError) {
-                                  setActionError(caughtError instanceof Error ? caughtError.message : t("feedback.deleteFailed"));
-                                }
+                                setActionError(null);
+                                bankingActions.deleteBatch(batch.id, {
+                                  errorMessage: t("feedback.deleteFailed"),
+                                  onError: (caughtError) =>
+                                    setActionError(caughtError instanceof Error ? caughtError.message : t("feedback.deleteFailed")),
+                                });
                               }}
                             >
                               <Trash2 />
@@ -698,12 +653,13 @@ export function BankingView() {
                         const categoriesForKind = categoryOptions.filter((c) => c.type === transaction.kind);
                         const walletAccountOptions = walletOptions.map((w) => ({ id: w.id, name: w.name }));
 
-                        async function patchTransaction(values: Parameters<typeof updateMutation.mutateAsync>[0]["values"]) {
-                          try {
-                            await updateMutation.mutateAsync({ transactionId: transaction.id, values });
-                          } catch (caughtError) {
-                            setActionError(caughtError instanceof Error ? caughtError.message : t("feedback.updateFailed"));
-                          }
+                        function patchTransaction(values: ImportedTransactionPatch) {
+                          setActionError(null);
+                          bankingActions.updateTransaction(transaction.id, values, {
+                            errorMessage: t("feedback.updateFailed"),
+                            onError: (caughtError) =>
+                              setActionError(caughtError instanceof Error ? caughtError.message : t("feedback.updateFailed")),
+                          });
                         }
 
                         if (isTransfer) {
@@ -739,13 +695,15 @@ export function BankingView() {
                                         size="icon-sm"
                                         className={actionButtonClassName}
                                         aria-label={commonT("delete")}
-                                        disabled={deleteTransactionMutation.isPending}
                                       />
                                     }
-                                    onClick={async () => {
-                                      try { await deleteTransactionMutation.mutateAsync(transaction.id); } catch (e) {
-                                        setActionError(e instanceof Error ? e.message : t("feedback.deleteTransactionFailed"));
-                                      }
+                                    onClick={() => {
+                                      setActionError(null);
+                                      bankingActions.deleteTransaction(transaction.id, {
+                                        errorMessage: t("feedback.deleteTransactionFailed"),
+                                        onError: (error) =>
+                                          setActionError(error instanceof Error ? error.message : t("feedback.deleteTransactionFailed")),
+                                      });
                                     }}
                                   >
                                     <Trash2 />
@@ -764,10 +722,13 @@ export function BankingView() {
                                         disabled={!isImportReadyForConfirmation(transaction)}
                                       />
                                     }
-                                    onClick={async () => {
-                                      try { await confirmMutation.mutateAsync([transaction.id]); } catch (e) {
-                                        setActionError(e instanceof Error ? e.message : t("feedback.confirmFailed"));
-                                      }
+                                    onClick={() => {
+                                      setActionError(null);
+                                      bankingActions.confirmTransactions([transaction.id], {
+                                        errorMessage: t("feedback.confirmFailed"),
+                                        onError: (error) =>
+                                          setActionError(error instanceof Error ? error.message : t("feedback.confirmFailed")),
+                                      });
                                     }}
                                   >
                                     <Check />
@@ -817,13 +778,15 @@ export function BankingView() {
                                         size="icon-sm"
                                         className={actionButtonClassName}
                                         aria-label={commonT("delete")}
-                                        disabled={deleteTransactionMutation.isPending}
                                       />
                                     }
-                                    onClick={async () => {
-                                      try { await deleteTransactionMutation.mutateAsync(transaction.id); } catch (e) {
-                                        setActionError(e instanceof Error ? e.message : t("feedback.deleteTransactionFailed"));
-                                      }
+                                    onClick={() => {
+                                      setActionError(null);
+                                      bankingActions.deleteTransaction(transaction.id, {
+                                        errorMessage: t("feedback.deleteTransactionFailed"),
+                                        onError: (error) =>
+                                          setActionError(error instanceof Error ? error.message : t("feedback.deleteTransactionFailed")),
+                                      });
                                     }}
                                   >
                                     <Trash2 />
@@ -859,10 +822,13 @@ export function BankingView() {
                                         disabled={!isImportReadyForConfirmation(transaction)}
                                       />
                                     }
-                                    onClick={async () => {
-                                      try { await confirmMutation.mutateAsync([transaction.id]); } catch (e) {
-                                        setActionError(e instanceof Error ? e.message : t("feedback.confirmFailed"));
-                                      }
+                                    onClick={() => {
+                                      setActionError(null);
+                                      bankingActions.confirmTransactions([transaction.id], {
+                                        errorMessage: t("feedback.confirmFailed"),
+                                        onError: (error) =>
+                                          setActionError(error instanceof Error ? error.message : t("feedback.confirmFailed")),
+                                      });
                                     }}
                                   >
                                     <Check />
@@ -890,20 +856,16 @@ export function BankingView() {
                   setEditingImportId(null);
                 }
               }}
-              onPatch={async (values) => {
+              onPatch={(values) => {
                 if (!editingImport) {
                   return;
                 }
-
-                try {
-                  await updateMutation.mutateAsync({
-                    transactionId: editingImport.id,
-                    values,
-                  });
-                } catch (caughtError) {
-                  setActionError(caughtError instanceof Error ? caughtError.message : t("feedback.updateFailed"));
-                  throw caughtError;
-                }
+                setActionError(null);
+                bankingActions.updateTransaction(editingImport.id, values, {
+                  errorMessage: t("feedback.updateFailed"),
+                  onError: (caughtError) =>
+                    setActionError(caughtError instanceof Error ? caughtError.message : t("feedback.updateFailed")),
+                });
               }}
             />
           </div>

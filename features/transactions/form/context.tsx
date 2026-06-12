@@ -30,7 +30,7 @@ export type TransactionFormContextValue = {
   transactions: Transaction[];
   allocations: WalletAllocation[];
   // callbacks
-  onSubmit: (payload: TransactionFormSubmitPayload) => Promise<void> | void;
+  onSubmit: (payload: TransactionFormSubmitPayload) => boolean | void;
   onOpenChange: (open: boolean) => void;
   // derived
   kind: Transaction["kind"];
@@ -182,7 +182,7 @@ export function TransactionFormProvider({
   categories: Category[];
   transactions?: Transaction[];
   allocations?: WalletAllocation[];
-  onSubmit: (payload: TransactionFormSubmitPayload) => Promise<void> | void;
+  onSubmit: (payload: TransactionFormSubmitPayload) => boolean | void;
   onOpenChange: (open: boolean) => void;
 }) {
   const t = useTranslations("transactions.form");

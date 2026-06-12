@@ -55,7 +55,7 @@ export function AccountFormSheet({
   account?: Account | null;
   initialType?: Account["type"];
   onOpenChange: (open: boolean) => void;
-  onSubmit: (values: AccountFormValues) => Promise<void> | void;
+  onSubmit: (values: AccountFormValues) => void;
 }) {
   const accountsT = useTranslations("accounts");
   const t = useTranslations("accounts.form");
@@ -123,8 +123,8 @@ export function AccountFormSheet({
       title={mode === "add" ? t("addTitle") : t("editTitle")}
       description={t("description")}
       submitLabel={mode === "add" ? t("submit.add") : t("submit.edit")}
-      onSubmit={form.handleSubmit(async (values) => {
-        await onSubmit({
+      onSubmit={form.handleSubmit((values) => {
+        onSubmit({
           ...values,
           credit_limit: values.type === "credit_card" ? values.credit_limit ?? null : null,
           currency: values.currency,

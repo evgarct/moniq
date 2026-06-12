@@ -22,6 +22,9 @@ Moniq is a restrained product UI, not a marketing surface. It should feel like a
 - Actions stay restrained: one filled primary action per surface, outline for escape/cancel, ghost for row-level or low-emphasis actions.
 - Forms are sheets when they collect structured data. Dialogs are for focused confirmations, not multi-field data entry.
 - Motion is tactile and short. Use named transitions for actual state changes; avoid `transition-all`, decorative choreography, and page-load performance theater.
+- Interaction feedback is immediate. Deterministic create, edit, delete, and state-change actions update local state in the same render cycle and persist in the background.
+- Forms close after successful client validation and command dispatch, not after the network response. Failed persistence rolls back state and uses a localized toast.
+- Loading states are reserved for operations whose result cannot be predicted locally, including file parsing/upload, authentication, and external integrations.
 
 ### Composition patterns to preserve
 

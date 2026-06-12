@@ -34,7 +34,7 @@ export function CategoryFormSheet({
   category?: Category | null;
   categories: Category[];
   onOpenChange: (open: boolean) => void;
-  onSubmit: (values: CategoryFormValues) => Promise<void> | void;
+  onSubmit: (values: CategoryFormValues) => void;
 }) {
   const t = useTranslations("categories.form");
   const categoryFormSchema = z.object({
@@ -75,8 +75,8 @@ export function CategoryFormSheet({
       title={mode === "add" ? t("addTitle") : t("editTitle")}
       description={t("description")}
       submitLabel={mode === "add" ? t("submit.add") : t("submit.edit")}
-      onSubmit={form.handleSubmit(async (values) => {
-        await onSubmit(values);
+      onSubmit={form.handleSubmit((values) => {
+        onSubmit(values);
         onOpenChange(false);
       })}
     >
