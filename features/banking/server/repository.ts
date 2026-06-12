@@ -581,7 +581,12 @@ export async function batchConfirmBankingTransactions(transactionIds: string[]) 
     await confirmSingleBankingTransaction(transactionId);
   }
 
-  return getBankingSnapshot();
+  const [banking, finance] = await Promise.all([
+    getBankingSnapshot(),
+    getFinanceSnapshot(),
+  ]);
+
+  return { banking, finance };
 }
 
 export async function deleteBankingTransaction(transactionId: string) {

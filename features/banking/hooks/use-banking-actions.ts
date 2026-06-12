@@ -11,22 +11,20 @@ import {
   deleteImportBatchRequest,
   updateImportedTransactionRequest,
 } from "@/features/banking/lib/banking-api";
+import { createDualQueueRequest } from "@/features/banking/lib/dual-queue-request";
 import {
   BankingMutationCoordinator,
   type BankingCommand,
 } from "@/features/banking/lib/optimistic-coordinator";
 import {
-  confirmImportedTransactions,
+  addImportedTransactionsToFinance,
+  confirmImportedTransactionsInBanking,
   deleteImportedTransaction,
   deleteImportBatch,
   type ImportedTransactionPatch,
   updateImportedTransaction,
 } from "@/features/banking/lib/optimistic-state";
-import {
-  fetchFinanceSnapshot,
-  financeSnapshotQueryKey,
-} from "@/features/finance/lib/finance-api";
-import type { FinanceSnapshot } from "@/types/finance";
+import { getFinanceMutationCoordinator } from "@/features/finance/lib/coordinator-registry";
 import type { TransactionImportSnapshot } from "@/types/imports";
 
 const coordinators = new WeakMap<QueryClient, BankingMutationCoordinator>();
@@ -38,12 +36,8 @@ function getCoordinator(queryClient: QueryClient) {
   const coordinator = new BankingMutationCoordinator({
     readBanking: () =>
       queryClient.getQueryData<TransactionImportSnapshot>(bankingSnapshotQueryKey),
-    readFinance: () =>
-      queryClient.getQueryData<FinanceSnapshot>(financeSnapshotQueryKey),
     writeBanking: (snapshot) =>
       queryClient.setQueryData(bankingSnapshotQueryKey, snapshot),
-    writeFinance: (snapshot) =>
-      queryClient.setQueryData(financeSnapshotQueryKey, snapshot),
   });
   coordinators.set(queryClient, coordinator);
   return coordinator;
@@ -58,6 +52,10 @@ type ActionOptions = {
 export function useBankingActions() {
   const queryClient = useQueryClient();
   const coordinator = useMemo(() => getCoordinator(queryClient), [queryClient]);
+  const financeCoordinator = useMemo(
+    () => getFinanceMutationCoordinator(queryClient),
+    [queryClient],
+  );
 
   function execute(command: Omit<BankingCommand, "id">, options: ActionOptions) {
     commandSequence += 1;
@@ -85,13 +83,9 @@ export function useBankingActions() {
     ) {
       execute(
         {
-          apply: (state) => ({
-            ...state,
-            banking: updateImportedTransaction(state.banking, transactionId, values),
-          }),
-          request: async () => ({
-            banking: await updateImportedTransactionRequest(transactionId, values),
-          }),
+          apply: (snapshot) =>
+            updateImportedTransaction(snapshot, transactionId, values),
+          request: () => updateImportedTransactionRequest(transactionId, values),
         },
         options,
       );
@@ -99,13 +93,8 @@ export function useBankingActions() {
     deleteTransaction(transactionId: string, options: ActionOptions) {
       execute(
         {
-          apply: (state) => ({
-            ...state,
-            banking: deleteImportedTransaction(state.banking, transactionId),
-          }),
-          request: async () => ({
-            banking: await deleteImportedTransactionRequest(transactionId),
-          }),
+          apply: (snapshot) => deleteImportedTransaction(snapshot, transactionId),
+          request: () => deleteImportedTransactionRequest(transactionId),
         },
         options,
       );
@@ -113,39 +102,55 @@ export function useBankingActions() {
     deleteBatch(batchId: string, options: ActionOptions) {
       execute(
         {
-          apply: (state) => ({
-            ...state,
-            banking: deleteImportBatch(state.banking, batchId),
-          }),
-          request: async () => ({
-            banking: await deleteImportBatchRequest(batchId),
-          }),
+          apply: (snapshot) => deleteImportBatch(snapshot, batchId),
+          request: () => deleteImportBatchRequest(batchId),
         },
         options,
       );
     },
     confirmTransactions(transactionIds: string[], options: ActionOptions) {
+      const banking = queryClient.getQueryData<TransactionImportSnapshot>(
+        bankingSnapshotQueryKey,
+      );
+      if (!banking) {
+        const error = new Error();
+        options.onError?.(error);
+        toast.error(options.errorMessage);
+        return;
+      }
+      const selected = banking?.draftTransactions.filter((transaction) =>
+        transactionIds.includes(transaction.id),
+      );
+      let confirmed:
+        | Awaited<ReturnType<typeof batchConfirmImportedTransactionsRequest>>
+        | undefined;
+      const startWhenBothQueuesAreReady = createDualQueueRequest(async () => {
+        confirmed = await batchConfirmImportedTransactionsRequest(transactionIds);
+        return confirmed;
+      });
+
+      commandSequence += 1;
+      const financeCompletion = financeCoordinator.execute({
+        id: `banking-finance-command:${commandSequence}`,
+        apply: (snapshot) => addImportedTransactionsToFinance(snapshot, selected),
+        request: async () => (await startWhenBothQueuesAreReady("finance")).finance,
+        reconcile: () =>
+          transactionIds.flatMap((transactionId) => {
+            const serverId = confirmed?.banking.confirmedTransactions.find(
+              (transaction) => transaction.id === transactionId,
+            )?.finance_transaction_id;
+            return serverId
+              ? [[`optimistic:import:${transactionId}`, serverId] as const]
+              : [];
+          }),
+      });
+      void financeCompletion.catch(() => undefined);
+
       execute(
         {
-          apply: (state) =>
-            state.finance
-              ? confirmImportedTransactions(state.banking, state.finance, transactionIds)
-              : {
-                  ...state,
-                  banking: {
-                    ...state.banking,
-                    draftTransactions: state.banking.draftTransactions.filter(
-                      (transaction) => !transactionIds.includes(transaction.id),
-                    ),
-                  },
-                },
-          request: async () => {
-            const banking = await batchConfirmImportedTransactionsRequest(transactionIds);
-            const finance = await fetchFinanceSnapshot().catch(() =>
-              queryClient.getQueryData<FinanceSnapshot>(financeSnapshotQueryKey),
-            );
-            return { banking, finance };
-          },
+          apply: (snapshot) =>
+            confirmImportedTransactionsInBanking(snapshot, transactionIds),
+          request: async () => (await startWhenBothQueuesAreReady("banking")).banking,
         },
         options,
       );

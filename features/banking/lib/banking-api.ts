@@ -6,6 +6,7 @@ import { hasLocale } from "next-intl";
 import { loadMessages } from "@/i18n/messages";
 import { reportFetchPerformance } from "@/lib/performance/client";
 import { routing, type AppLocale } from "@/i18n/routing";
+import type { FinanceSnapshot } from "@/types/finance";
 import type { ImportColumnMapping, ImportFilePreview, TransactionImportSnapshot } from "@/types/imports";
 
 export const bankingSnapshotQueryKey = ["banking-snapshot"] as const;
@@ -190,7 +191,10 @@ export async function batchConfirmImportedTransactionsRequest(transactionIds: st
     body: JSON.stringify({ transactionIds }),
   });
 
-  return parseJsonResponse<TransactionImportSnapshot>(response);
+  return parseJsonResponse<{
+    banking: TransactionImportSnapshot;
+    finance: FinanceSnapshot;
+  }>(response);
 }
 
 export async function deleteImportedTransactionRequest(transactionId: string) {

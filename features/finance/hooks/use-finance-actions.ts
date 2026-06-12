@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { useQueryClient, type QueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import {
@@ -15,7 +15,6 @@ import {
   deleteTransactionScheduleRequest,
   deleteWalletAllocationRequest,
   deleteWalletRequest,
-  financeSnapshotQueryKey,
   markTransactionPaidRequest,
   rescheduleTransactionSeriesRequest,
   setTransactionScheduleStateRequest,
@@ -47,14 +46,13 @@ import {
   updateTransaction,
 } from "@/features/finance/lib/optimistic-state";
 import {
-  FinanceMutationCoordinator,
   type FinanceCommand,
   type ResolveFinanceId,
 } from "@/features/finance/lib/optimistic-coordinator";
+import { getFinanceMutationCoordinator } from "@/features/finance/lib/coordinator-registry";
 import type {
   Account,
   Category,
-  FinanceSnapshot,
   Transaction,
   TransactionSchedule,
   WalletAllocation,
@@ -70,19 +68,7 @@ import type {
   WalletInput,
 } from "@/types/finance-schemas";
 
-const coordinators = new WeakMap<QueryClient, FinanceMutationCoordinator>();
 let commandSequence = 0;
-
-function getCoordinator(queryClient: QueryClient) {
-  const existing = coordinators.get(queryClient);
-  if (existing) return existing;
-  const coordinator = new FinanceMutationCoordinator({
-    read: () => queryClient.getQueryData<FinanceSnapshot>(financeSnapshotQueryKey),
-    write: (snapshot) => queryClient.setQueryData(financeSnapshotQueryKey, snapshot),
-  });
-  coordinators.set(queryClient, coordinator);
-  return coordinator;
-}
 
 type ActionOptions = {
   errorMessage?: string;
@@ -151,7 +137,10 @@ function transactionMatchesInput(transaction: Transaction, values: TransactionEn
 
 export function useFinanceActions() {
   const queryClient = useQueryClient();
-  const coordinator = useMemo(() => getCoordinator(queryClient), [queryClient]);
+  const coordinator = useMemo(
+    () => getFinanceMutationCoordinator(queryClient),
+    [queryClient],
+  );
 
   function execute(command: Omit<FinanceCommand, "id">, options?: ActionOptions) {
     commandSequence += 1;

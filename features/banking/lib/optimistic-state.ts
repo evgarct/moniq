@@ -136,6 +136,40 @@ function toFinanceInput(transaction: TransactionImport): TransactionInput {
   };
 }
 
+export function addImportedTransactionsToFinance(
+  finance: FinanceSnapshot,
+  transactions: TransactionImport[],
+) {
+  return transactions.reduce((nextFinance, transaction) => {
+    const optimisticId = `optimistic:import:${transaction.id}`;
+    return addTransaction(nextFinance, toFinanceInput(transaction), optimisticId);
+  }, finance);
+}
+
+export function confirmImportedTransactionsInBanking(
+  banking: TransactionImportSnapshot,
+  transactionIds: string[],
+) {
+  const selectedIds = new Set(transactionIds);
+  const confirmed = banking.draftTransactions
+    .filter((transaction) => selectedIds.has(transaction.id))
+    .map((transaction) => ({
+      ...transaction,
+      status: "confirmed" as const,
+      finance_transaction_id: `optimistic:import:${transaction.id}`,
+      finance_transaction: null,
+      updated_at: new Date().toISOString(),
+    }));
+
+  return {
+    ...banking,
+    draftTransactions: banking.draftTransactions.filter(
+      (transaction) => !selectedIds.has(transaction.id),
+    ),
+    confirmedTransactions: [...confirmed, ...banking.confirmedTransactions],
+  };
+}
+
 export function confirmImportedTransactions(
   banking: TransactionImportSnapshot,
   finance: FinanceSnapshot,
@@ -145,29 +179,9 @@ export function confirmImportedTransactions(
   const selected = banking.draftTransactions.filter((transaction) =>
     selectedIds.has(transaction.id),
   );
-  let nextFinance = finance;
-  const confirmed = selected.map((transaction) => {
-    const optimisticId = `optimistic:import:${transaction.id}`;
-    nextFinance = addTransaction(nextFinance, toFinanceInput(transaction), optimisticId);
-    const financeTransaction =
-      nextFinance.transactions.find((item) => item.id === optimisticId) ?? null;
-    return {
-      ...transaction,
-      status: "confirmed" as const,
-      finance_transaction_id: optimisticId,
-      finance_transaction: financeTransaction,
-      updated_at: new Date().toISOString(),
-    };
-  });
 
   return {
-    banking: {
-      ...banking,
-      draftTransactions: banking.draftTransactions.filter(
-        (transaction) => !selectedIds.has(transaction.id),
-      ),
-      confirmedTransactions: [...confirmed, ...banking.confirmedTransactions],
-    },
-    finance: nextFinance,
+    banking: confirmImportedTransactionsInBanking(banking, transactionIds),
+    finance: addImportedTransactionsToFinance(finance, selected),
   };
 }

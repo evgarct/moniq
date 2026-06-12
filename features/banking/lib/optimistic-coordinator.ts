@@ -1,15 +1,9 @@
-import type { FinanceSnapshot } from "@/types/finance";
 import type { TransactionImportSnapshot } from "@/types/imports";
-
-export type BankingCommandResult = {
-  banking: TransactionImportSnapshot;
-  finance?: FinanceSnapshot;
-};
 
 export type BankingCommand = {
   id: string;
-  apply: (state: BankingCommandResult) => BankingCommandResult;
-  request: () => Promise<BankingCommandResult>;
+  apply: (snapshot: TransactionImportSnapshot) => TransactionImportSnapshot;
+  request: () => Promise<TransactionImportSnapshot>;
   onError?: (error: unknown) => void;
 };
 
@@ -20,13 +14,11 @@ type PendingCommand = BankingCommand & {
 
 type CoordinatorOptions = {
   readBanking: () => TransactionImportSnapshot | undefined;
-  readFinance: () => FinanceSnapshot | undefined;
   writeBanking: (snapshot: TransactionImportSnapshot) => void;
-  writeFinance: (snapshot: FinanceSnapshot) => void;
 };
 
 export class BankingMutationCoordinator {
-  private confirmed: BankingCommandResult | undefined;
+  private confirmed: TransactionImportSnapshot | undefined;
   private pending: PendingCommand[] = [];
   private processing = false;
 
@@ -49,7 +41,7 @@ export class BankingMutationCoordinator {
       return completion;
     }
 
-    this.confirmed ??= { banking, finance: this.options.readFinance() };
+    this.confirmed ??= banking;
     this.pending.push({ ...command, resolve: resolveCompletion, reject: rejectCompletion });
     this.publish();
     void this.process();
@@ -59,13 +51,10 @@ export class BankingMutationCoordinator {
   private publish() {
     if (!this.confirmed) return;
     const next = this.pending.reduce(
-      (state, command) => command.apply(state),
+      (snapshot, command) => command.apply(snapshot),
       this.confirmed,
     );
-    this.options.writeBanking(next.banking);
-    if (next.finance) {
-      this.options.writeFinance(next.finance);
-    }
+    this.options.writeBanking(next);
   }
 
   private async process() {
@@ -76,10 +65,7 @@ export class BankingMutationCoordinator {
       const command = this.pending[0];
       try {
         const next = await command.request();
-        this.confirmed = {
-          banking: next.banking,
-          finance: next.finance ?? this.confirmed?.finance,
-        };
+        this.confirmed = next;
         command.resolve();
       } catch (error) {
         command.onError?.(error);
@@ -91,9 +77,6 @@ export class BankingMutationCoordinator {
     }
 
     this.processing = false;
-    const banking = this.options.readBanking();
-    this.confirmed = banking
-      ? { banking, finance: this.options.readFinance() }
-      : undefined;
+    this.confirmed = this.options.readBanking();
   }
 }
