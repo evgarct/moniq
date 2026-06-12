@@ -8,9 +8,10 @@ import {
 } from "lucide-react";
 import {
   IconCalendar,
+  IconCreditCard,
   IconMail,
   IconScale,
-  IconCreditCard,
+  IconUser,
 } from "@tabler/icons-react";
 
 import { LocaleSwitcher } from "@/components/locale-switcher";
@@ -95,7 +96,7 @@ export function MobileBottomNav({
       }}
     >
       <nav
-        className="pointer-events-auto grid h-[60px] w-full max-w-[460px] grid-cols-5 items-center rounded-[var(--radius-floating)] border border-border/70 bg-popover px-1.5 text-xs text-muted-foreground"
+        className="pointer-events-auto grid h-[60px] w-full max-w-[460px] grid-cols-5 items-center rounded-[var(--radius-floating)] border border-border/70 bg-popover px-1.5 py-1.5 text-xs text-muted-foreground"
       >
         {navigation.map((item) => {
           const active = pathname === item.href;
@@ -158,7 +159,11 @@ function UserNavMenu({
         <DropdownMenuTrigger
           render={mobile ? trigger : <TooltipTrigger render={trigger} />}
         >
-          <UserRound className={mobile ? "size-[22px] shrink-0" : "size-5"} />
+          {mobile ? (
+            <IconUser className="size-[22px] shrink-0" />
+          ) : (
+            <UserRound className="size-5" />
+          )}
           {mobile ? (
             <span className="max-w-full truncate leading-none">{navT("profile")}</span>
           ) : null}

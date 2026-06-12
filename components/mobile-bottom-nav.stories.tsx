@@ -66,8 +66,20 @@ export const TodayActive: Story = {
   parameters: withPathname("/today"),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    const nav = canvasElement.querySelector("[data-mobile-nav] nav");
+    const activeLink = canvas.getByRole("link", { name: /today/i });
+
     await expect(canvas.getByLabelText(/open profile menu/i)).toBeInTheDocument();
-    await expect(canvas.getByRole("link", { name: /today/i })).toHaveClass("bg-secondary");
+    await expect(activeLink).toHaveClass("bg-secondary");
+    await expect(nav).not.toBeNull();
+
+    const navRect = nav!.getBoundingClientRect();
+    const activeRect = activeLink.getBoundingClientRect();
+    const verticalInset = activeRect.top - navRect.top;
+
+    await expect(activeRect.height).toBeGreaterThanOrEqual(44);
+    await expect(verticalInset).toBeGreaterThanOrEqual(5);
+    await expect(navRect.bottom - activeRect.bottom).toBeGreaterThanOrEqual(5);
   },
 };
 
