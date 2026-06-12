@@ -10,7 +10,7 @@ const meta = {
   title: "Pages/Budget",
   render: () => (
     <StoryWorkspace pathname="/budget">
-      <div className="h-screen">
+      <div className="h-full">
         <BudgetView snapshot={snapshot} />
       </div>
     </StoryWorkspace>

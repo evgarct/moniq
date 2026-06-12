@@ -25,8 +25,9 @@ Right: a flat row with icon + label + muted sub-text + right-aligned amount.
 Right: category shown as plain muted text below the transaction title.
 
 ## Core visual identity
-- **Warm neutrals carry everything.** Use `bg-background` (#fafaf7), `bg-card` (#f0f0eb), `bg-secondary` (#e5e4df). Avoid bright brand color fills on surfaces.
-- **The `Surface` component** is the only approved container primitive. Three tones: `canvas` (base workspace), `panel` (primary work area, default), `floating` (tools, popovers). Never replicate its styles inline.
+- **Warm neutrals carry everything.** Surface elevation uses `base` (#e5e4df), `raised` (#f0f0eb), and `floating` (#fafaf7). Higher surfaces are lighter. Avoid bright brand color fills on surfaces.
+- **The `Surface` component** is the only approved container primitive. Three tones: `base` (system/workspace), `raised` (primary work area, default), `floating` (tools, popovers). Never replicate its styles inline.
+- **Structural panel seams use elevation, not borders.** For split views, keep the left region on `base` and render the right region as `raised` with the shared directional shadow. Borders remain valid for controls and semantic separators inside a region.
 - **Surface composition**: Inside a `Surface`, use `SurfaceHeader`, `SurfaceEyebrow`, `SurfaceTitle`, and `SurfaceDescription` for section headings before adding feature-local heading markup.
 - **Typography**: Use the four heading classes (`type-h1`–`type-h4` for serif editorial, `type-h5`–`type-h6` for UI), `type-body-14`, `type-body-12`. Do not use arbitrary font sizes like `text-[15px]`.
 - **Radius**: Always use `radius-tight` / `radius-control` / `radius-surface` / `radius-floating`. Do not write `rounded-2xl`, `rounded-3xl`, or any arbitrary `rounded-[Xpx]` value outside the Surface component.
@@ -34,7 +35,7 @@ Right: category shown as plain muted text below the transaction title.
 
 ## Building a new screen
 1. Wrap the page content in the inner content area — no new shell wrappers.
-2. Open with a `Surface tone="panel" padding="lg"` containing the section header: eyebrow (ALL-CAPS 12px tracked) + `type-h2` heading + optional `type-body-14` subtext.
+2. Open with a `Surface tone="raised" padding="lg"` containing the section header: eyebrow (ALL-CAPS 12px tracked) + `type-h2` heading + optional `type-body-14` subtext.
 3. Use `gap-6` or `gap-8` between top-level Surface blocks. Use `gap-4`–`gap-5` inside a Surface. Use `gap-1`–`gap-3` between rows.
 4. For any screen listing items with a detail/register view, use the two-panel grid: `grid-cols-[280px_minmax(0,1fr)]`. Left = inventory, right = register/detail.
 5. Every list or register needs an `EmptyState` component.
@@ -103,6 +104,7 @@ Right: category shown as plain muted text below the transaction title.
 - For any visual/UI design, redesign, polish, critique, audit, or interface implementation work in this repo, use the installed `impeccable` skill first, then apply the Moniq design-system rules and `shadcn` workflow as the repo-specific authority.
 - For UI work in this repo, use `chrome-devtools` against the verified local preview when available to inspect live layout, interaction states, console errors, and network behavior before concluding a visual fix is correct. Do not rely only on static screenshots when the issue involves hover, focus, selection, auth redirects, or runtime rendering. For screenshots specifically, always prefer `mcp__chrome-devtools__take_screenshot` (instant, no access grant needed) over `mcp__computer-use__screenshot`. If devtools MCP returns "already running", try calling the tool anyway — it often works despite the error; if it returns a black screen, call `navigate_page` first.
 - This repo intentionally uses one mobile layout for every viewport below `1024px`. Tailwind `sm` and `md` breakpoints are normalized to `lg` in `app/globals.css`; do not introduce intermediate tablet layout variants unless the product breakpoint strategy is explicitly changed.
+- In the mobile app shell, reserve safe areas with a flex-column container and size the workspace through `min-h-0 flex-1`. Do not place an `h-full` workspace inside a padded `h-dvh` shell because the safe-area padding will overflow the viewport.
 - For Playwright E2E, UI smoke, authenticated browser-flow, or visual browser verification work in this repo, use the installed QASkills Playwright E2E instruction pack at `C:\Users\PC\.codex\instructions\playwright-e2e\SKILL.md` when it is available. Apply its user-centric selector and isolation guidance, but keep Moniq-specific preview, seeded-auth, Windows/PowerShell, and Storybook rules authoritative when they differ.
 - In this repo, do not sign off a Storybook or UI fix until the touched story/page has been opened in DevTools and checked for console errors introduced by the change, especially hydration warnings, nested interactive elements, and `next-intl` environment fallbacks.
 - In this repo, when checking Storybook console output for a touched story, prefer the isolated `iframe.html?id=<story-id>&viewMode=story` URL in DevTools so Storybook manager/addon console noise is not mistaken for component runtime issues.

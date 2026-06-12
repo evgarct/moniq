@@ -45,7 +45,7 @@ export function CalendarView({ snapshot }: { snapshot: FinanceSnapshot }) {
 
   return (
     <>
-      <FinanceBoardShell className="h-full">
+      <FinanceBoardShell className="h-full bg-surface-raised lg:bg-surface-base">
         <FinanceBoardHeader
           title={formatDate.dateTime(calDate(month), { month: "long", year: "numeric" })}
           actions={
@@ -53,7 +53,7 @@ export function CalendarView({ snapshot }: { snapshot: FinanceSnapshot }) {
               <Button
                 variant="ghost"
                 size="icon-sm"
-                className="rounded-[var(--radius-control)] border border-white/10 bg-white/4 text-[#dceeed] hover:bg-white/10 hover:text-white"
+                className="text-muted-foreground hover:bg-secondary/70 hover:text-foreground"
                 onClick={() => setMonth((value) => addMonths(value, -1))}
               >
                 <ChevronLeft />
@@ -61,7 +61,7 @@ export function CalendarView({ snapshot }: { snapshot: FinanceSnapshot }) {
               <Button
                 variant="ghost"
                 size="sm"
-                className="rounded-[var(--radius-control)] border border-white/10 bg-white/4 px-3 text-[#dceeed] hover:bg-white/10 hover:text-white"
+                className="px-3 text-muted-foreground hover:bg-secondary/70 hover:text-foreground"
                 onClick={() => {
                   const today = startOfToday();
                   setMonth(today);
@@ -73,7 +73,7 @@ export function CalendarView({ snapshot }: { snapshot: FinanceSnapshot }) {
               <Button
                 variant="ghost"
                 size="icon-sm"
-                className="rounded-[var(--radius-control)] border border-white/10 bg-white/4 text-[#dceeed] hover:bg-white/10 hover:text-white"
+                className="text-muted-foreground hover:bg-secondary/70 hover:text-foreground"
                 onClick={() => setMonth((value) => addMonths(value, 1))}
               >
                 <ChevronRight />
@@ -82,8 +82,8 @@ export function CalendarView({ snapshot }: { snapshot: FinanceSnapshot }) {
           }
         />
 
-        <div className="grid h-[calc(100%-73px)] min-h-0 lg:grid-cols-[minmax(0,1.35fr)_360px]">
-          <div className="min-h-0 border-b border-white/10 px-5 py-4 lg:border-b-0 lg:border-r">
+        <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1.35fr)_360px]">
+          <div className="min-h-0 px-5 py-4">
             <CalendarGrid
               month={month}
               selectedDate={selectedDate}
@@ -99,21 +99,20 @@ export function CalendarView({ snapshot }: { snapshot: FinanceSnapshot }) {
             title={t("board.dayAgenda")}
             subtitle={t("board.dayDescription")}
             actions={
-              <div className="rounded-[var(--radius-control)] border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-[#dceeed]">
+              <div className="type-body-12 px-2 py-1">
                 {formatDate.dateTime(calDate(selectedDate), { month: "long", day: "numeric" })}
               </div>
             }
             className="min-h-0"
           >
             {actionError ? (
-              <div className="mb-3 rounded-[var(--radius-control)] border border-[#b85b44]/60 bg-[#5c3328]/40 px-3 py-2 text-sm text-[#ffd2c7]">
+              <div className="mb-3 rounded-[var(--radius-control)] border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
                 {actionError}
               </div>
             ) : null}
             <TransactionList
               transactions={selectedTransactions}
               emptyMessage={t("board.empty")}
-              variant="board"
               onEditOccurrence={(selectedTransaction) => {
                 setSheetMode("edit-transaction");
                 setEditingTransaction(selectedTransaction);

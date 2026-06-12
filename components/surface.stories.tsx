@@ -26,7 +26,7 @@ const meta = {
   title: "Atoms/Surface",
   component: Surface,
   args: {
-    tone: "panel",
+    tone: "raised",
     padding: "lg",
     children: null,
   },
@@ -44,11 +44,11 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-export const Panel: Story = {};
+export const Raised: Story = {};
 
-export const Canvas: Story = {
+export const Base: Story = {
   args: {
-    tone: "canvas",
+    tone: "base",
   },
 };
 

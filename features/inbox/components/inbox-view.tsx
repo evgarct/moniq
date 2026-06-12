@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Bot, FileUp, Info, Upload } from "lucide-react";
 
 import { EmptyState } from "@/components/empty-state";
+import { WorkspaceSurface } from "@/components/surface";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -222,8 +223,12 @@ export function InboxView() {
 
   return (
     <>
-      <div className="grid h-full min-h-0 w-full grid-cols-1 lg:grid-cols-[360px_minmax(0,1fr)]">
-        <section className="flex min-h-0 flex-col overflow-hidden border-b border-border/40 bg-card lg:border-r lg:border-b-0 lg:border-r-border/25">
+      <div className="grid h-full min-h-0 w-full grid-cols-1 bg-surface-base lg:grid-cols-[360px_minmax(0,1fr)]">
+        <WorkspaceSurface
+          as="section"
+          elevation="base"
+          className="flex min-h-0 flex-col overflow-hidden bg-surface-raised lg:bg-surface-base"
+        >
           <div
             className={cn(
               "bg-card/96 backdrop-blur transition-shadow supports-[backdrop-filter]:bg-card/88",
@@ -341,12 +346,12 @@ export function InboxView() {
               </div>
             )}
           </div>
-        </section>
+        </WorkspaceSurface>
 
-        <section className="hidden min-h-0 flex-col bg-background lg:flex">
+        <WorkspaceSurface as="section" elevation="raised" className="hidden min-h-0 flex-col lg:flex">
           <div
             className={cn(
-              "sticky top-0 z-10 bg-background/94 backdrop-blur transition-shadow supports-[backdrop-filter]:bg-background/84",
+              "sticky top-0 z-10 bg-surface-raised/94 backdrop-blur transition-shadow supports-[backdrop-filter]:bg-surface-raised/84",
               rightPanelScrolled && "shadow-[0_10px_24px_-22px_rgba(28,22,17,0.75)]",
             )}
           >
@@ -363,7 +368,7 @@ export function InboxView() {
           >
             {renderSelectedSection(activeEntry)}
           </div>
-        </section>
+        </WorkspaceSurface>
       </div>
 
       <Sheet open={mobileDetailsOpen} onOpenChange={setMobileDetailsOpen}>

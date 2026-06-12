@@ -9,6 +9,7 @@ import { BudgetBarChart } from "@/features/budget/components/budget-bar-chart";
 import { BudgetMonthAnalysisSheet } from "@/features/budget/components/budget-month-analysis-sheet";
 import { CategoryIcon } from "@/components/category-icon";
 import { MoneyAmount } from "@/components/money-amount";
+import { WorkspaceSurface } from "@/components/surface";
 import { TransactionList } from "@/components/transaction-list";
 import { Button } from "@/components/ui/button";
 import { getCategoryDescendantIds } from "@/features/categories/lib/category-tree";
@@ -226,7 +227,7 @@ export function BudgetView({ snapshot }: { snapshot: FinanceSnapshot }) {
   }, [selectedCategoryId, monthTransactions, snapshot.categories]);
 
   return (
-    <div className="flex h-full flex-col overflow-hidden">
+    <WorkspaceSurface elevation="raised" className="flex h-full flex-col overflow-hidden lg:bg-surface-base lg:shadow-none">
 
       {/* Chart + month nav — fixed height, never scrolls */}
       <div className="shrink-0 border-b border-border/40 px-4 pb-4 pt-5 sm:px-6 lg:px-7">
@@ -262,12 +263,12 @@ export function BudgetView({ snapshot }: { snapshot: FinanceSnapshot }) {
       </div>
 
       {/* Content area — fills rest of viewport */}
-      <div className="flex min-h-0 flex-1">
+      <div className="flex min-h-0 flex-1 bg-surface-base">
 
         {/* Left: categories — always visible */}
         <div className={cn(
           "flex min-h-0 flex-col",
-          selectedNode ? "hidden lg:flex lg:w-[340px] xl:w-[400px] lg:border-r lg:border-border/40" : "flex-1",
+          selectedNode ? "hidden lg:flex lg:w-[340px] xl:w-[400px]" : "flex-1",
         )}>
           {/* Expenses — flex-[3]: takes most of the vertical space */}
           <div className="flex min-h-0 flex-[3] flex-col border-b border-border/40 px-4 sm:px-6 lg:px-7">
@@ -320,7 +321,7 @@ export function BudgetView({ snapshot }: { snapshot: FinanceSnapshot }) {
 
         {/* Right: category detail — scrollable, only when selected */}
         {selectedNode && (
-          <div className="flex min-h-0 flex-1 flex-col">
+          <WorkspaceSurface elevation="raised" className="flex min-h-0 flex-1 flex-col">
             <div className="mobile-nav-scroll-clearance flex-1 overflow-y-auto px-4 py-5 [scroll-padding-bottom:calc(76px+env(safe-area-inset-bottom))] sm:px-6 lg:px-7 lg:[scroll-padding-bottom:1rem]">
               <CategoryDetail
                 node={selectedNode}
@@ -328,7 +329,7 @@ export function BudgetView({ snapshot }: { snapshot: FinanceSnapshot }) {
                 emptyMessage={t("category.noTransactions")}
               />
             </div>
-          </div>
+          </WorkspaceSurface>
         )}
 
       </div>
@@ -340,6 +341,6 @@ export function BudgetView({ snapshot }: { snapshot: FinanceSnapshot }) {
           if (!open) setSelectedMonthReport(null);
         }}
       />
-    </div>
+    </WorkspaceSurface>
   );
 }

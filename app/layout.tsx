@@ -62,7 +62,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#fafaf7",
+  themeColor: "#e5e4df",
   colorScheme: "light",
 };
 
@@ -79,7 +79,7 @@ export default async function RootLayout({
       data-scroll-behavior="smooth"
       className={`${inter.variable} ${jetBrainsMono.variable} ${ptSerif.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-background font-sans text-foreground">
+      <body className="min-h-full bg-surface-base font-sans text-foreground">
         <TooltipProvider>
           <WebVitalsReporter />
           <AppProviders>{children}</AppProviders>

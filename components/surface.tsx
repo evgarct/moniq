@@ -3,8 +3,15 @@ import { cn } from "@/lib/utils";
 type SurfaceProps = {
   children: React.ReactNode;
   className?: string;
-  tone?: "canvas" | "panel" | "floating";
+  tone?: "base" | "raised" | "floating" | "canvas" | "panel";
   padding?: "none" | "sm" | "md" | "lg";
+};
+
+type WorkspaceSurfaceProps = {
+  as?: "div" | "section";
+  children: React.ReactNode;
+  className?: string;
+  elevation?: "base" | "raised";
 };
 
 type SurfaceHeaderProps = {
@@ -19,9 +26,11 @@ type SurfaceTextProps = {
 };
 
 const toneClasses: Record<NonNullable<SurfaceProps["tone"]>, string> = {
-  canvas: "bg-background",
-  panel: "bg-card shadow-[inset_0_1px_0_rgba(255,255,255,0.65)]",
-  floating: "border border-border/70 bg-popover shadow-[0_10px_30px_rgba(15,23,42,0.06)]",
+  base: "surface-base",
+  raised: "surface-raised",
+  floating: "surface-floating",
+  canvas: "surface-base",
+  panel: "surface-raised",
 };
 
 const paddingClasses: Record<NonNullable<SurfaceProps["padding"]>, string> = {
@@ -34,7 +43,7 @@ const paddingClasses: Record<NonNullable<SurfaceProps["padding"]>, string> = {
 export function Surface({
   children,
   className,
-  tone = "panel",
+  tone = "raised",
   padding = "md",
 }: SurfaceProps) {
   return (
@@ -48,6 +57,26 @@ export function Surface({
     >
       {children}
     </div>
+  );
+}
+
+export function WorkspaceSurface({
+  as: Component = "div",
+  children,
+  className,
+  elevation = "base",
+}: WorkspaceSurfaceProps) {
+  return (
+    <Component
+      data-surface-elevation={elevation}
+      className={cn(
+        "min-h-0 min-w-0",
+        elevation === "base" ? "surface-base" : "surface-raised",
+        className,
+      )}
+    >
+      {children}
+    </Component>
   );
 }
 

@@ -6,6 +6,7 @@ import { Eye, EyeOff, Info, WalletCards } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { AccountList } from "@/components/account-list";
+import { WorkspaceSurface } from "@/components/surface";
 import { TransactionList } from "@/components/transaction-list";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -169,8 +170,12 @@ export function AccountsView({
 
   return (
     <>
-      <div className="grid h-full w-full grid-cols-1 lg:grid-cols-[400px_minmax(0,1fr)]">
-        <section className="flex min-h-0 flex-col overflow-hidden border-b border-border/40 bg-card lg:border-r lg:border-b-0 lg:border-r-border/25">
+      <div className="grid h-full w-full grid-cols-1 bg-surface-base lg:grid-cols-[400px_minmax(0,1fr)]">
+        <WorkspaceSurface
+          as="section"
+          elevation="base"
+          className="flex min-h-0 flex-col overflow-hidden bg-surface-raised lg:bg-surface-base"
+        >
           <div
             className={cn(
               "bg-card/96 backdrop-blur transition-shadow supports-[backdrop-filter]:bg-card/88",
@@ -310,7 +315,7 @@ export function AccountsView({
               onDeleteGoal={(allocation) => deleteGoalOptimistic(allocation.id)}
             />
           </div>
-        </section>
+        </WorkspaceSurface>
 
         <BalanceRegisterPanel
           selectedAccount={selectedAccount}

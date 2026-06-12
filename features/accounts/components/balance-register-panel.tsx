@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { TransactionList } from "@/components/transaction-list";
+import { WorkspaceSurface } from "@/components/surface";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -47,7 +48,7 @@ export function BalanceRegisterHeader({
   return (
     <div
       className={cn(
-        "sticky top-0 z-10 bg-background/94 backdrop-blur transition-shadow supports-[backdrop-filter]:bg-background/84",
+        "sticky top-0 z-10 bg-surface-raised/94 backdrop-blur transition-shadow supports-[backdrop-filter]:bg-surface-raised/84",
         scrolled && "shadow-[0_10px_24px_-22px_rgba(28,22,17,0.75)]",
         className,
       )}
@@ -186,7 +187,11 @@ export function BalanceRegisterPanel({
     : tr("common.empty.noTransactionsYet");
 
   return (
-    <section className={cn("hidden min-h-0 flex-col bg-background lg:flex", className)}>
+    <WorkspaceSurface
+      as="section"
+      elevation="raised"
+      className={cn("hidden min-h-0 flex-col lg:flex", className)}
+    >
       <div
         className="min-h-0 flex-1 overflow-auto"
         onScroll={(event) => setScrolled(event.currentTarget.scrollTop > 0)}
@@ -218,6 +223,6 @@ export function BalanceRegisterPanel({
           />
         </div>
       </div>
-    </section>
+    </WorkspaceSurface>
   );
 }

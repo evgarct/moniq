@@ -352,7 +352,7 @@ function ImportApprovalListStory() {
     <StoryWorkspace pathname="/en/imports">
       <PageContainer className="h-full overflow-hidden px-0 py-0 sm:px-0">
         <div className="grid h-full w-full grid-cols-1 lg:grid-cols-[400px_minmax(0,1fr)]">
-          <section className="border-r border-border/25 bg-card" />
+          <section className="bg-surface-base" />
           <section className="min-h-0 bg-background">
             <div className="h-full px-3 pt-4 pb-3 sm:px-6 sm:pt-7 sm:pb-5 lg:px-7 lg:pt-8 lg:pb-6">
               <TransactionList

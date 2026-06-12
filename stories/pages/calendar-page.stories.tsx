@@ -2,16 +2,18 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, within } from "storybook/test";
 
 import { CalendarView } from "@/features/calendar/components/calendar-view";
-import { makeFinanceSnapshot, withPathname } from "@/stories/fixtures/story-data";
+import { makeFinanceSnapshot, StoryWorkspace, withPathname } from "@/stories/fixtures/story-data";
 
 const snapshot = makeFinanceSnapshot();
 
 const meta = {
   title: "Pages/Calendar",
   render: () => (
-    <div className="min-h-screen bg-[#0f2530] p-6">
-      <CalendarView snapshot={snapshot} />
-    </div>
+    <StoryWorkspace pathname="/calendar">
+      <div className="h-full">
+        <CalendarView snapshot={snapshot} />
+      </div>
+    </StoryWorkspace>
   ),
   parameters: {
     ...withPathname("/calendar"),

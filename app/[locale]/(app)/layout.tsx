@@ -26,10 +26,10 @@ export default async function AuthenticatedLayout({
   };
 
   return (
-    <div className="mobile-shell h-dvh w-screen overflow-hidden bg-background">
-      <div className="grid h-full min-h-0 w-full lg:grid-cols-[76px_minmax(0,1fr)]">
+    <div className="mobile-shell flex h-dvh w-screen flex-col overflow-hidden bg-surface-base">
+      <div className="grid min-h-0 w-full flex-1 overflow-hidden lg:grid-cols-[76px_minmax(0,1fr)]">
         <AppSidebar user={shellUser} onSignOut={signOut} />
-        <div className="min-h-0 min-w-0 overflow-hidden bg-background">
+        <div className="app-workspace-frame">
           <main className="h-full min-h-0 overflow-hidden lg:h-screen">
             {children}
           </main>

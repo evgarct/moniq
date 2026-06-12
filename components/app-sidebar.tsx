@@ -49,7 +49,7 @@ export function AppSidebar({
   const pathname = usePathname();
 
   return (
-    <aside className="hidden h-full border-r border-sidebar-border bg-sidebar px-3 py-4 text-sidebar-foreground lg:flex lg:flex-col lg:items-center">
+    <aside className="hidden h-full bg-sidebar px-3 py-4 text-sidebar-foreground lg:flex lg:flex-col lg:items-center">
       <nav className="mt-2 flex flex-1 flex-col items-center gap-3">
         {navigation.map((item) => {
           const Icon = item.icon;

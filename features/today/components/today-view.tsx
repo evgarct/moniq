@@ -8,6 +8,7 @@ import { useFormatter, useTranslations } from "next-intl";
 import { CalendarGrid } from "@/components/calendar-grid";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
+import { WorkspaceSurface } from "@/components/surface";
 import { TransactionList } from "@/components/transaction-list";
 import { Button } from "@/components/ui/button";
 import { TransactionAddButton } from "@/features/transactions/components/transaction-add-button";
@@ -215,7 +216,7 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
   return (
     <>
       {/* ── Mobile: agenda with collapsible calendar ─────────────────────── */}
-      <div className="flex h-full flex-col lg:hidden">
+      <WorkspaceSurface elevation="raised" className="flex h-full flex-col lg:hidden">
         <PageHeader
           title={panelLabel}
           actions={
@@ -308,13 +309,13 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
             </>
           )}
         </div>
-      </div>
+      </WorkspaceSurface>
 
       {/* ── Desktop: two-column layout ───────────────────────────────────── */}
-      <div className="hidden h-full w-full lg:grid lg:grid-cols-[minmax(520px,1.1fr)_minmax(0,1fr)]">
+      <div className="hidden h-full w-full bg-surface-base lg:grid lg:grid-cols-[minmax(520px,1.1fr)_minmax(0,1fr)]">
 
         {/* Left: calendar */}
-        <section className="flex min-h-0 flex-col overflow-hidden border-r border-border/40 bg-card">
+        <WorkspaceSurface as="section" elevation="base" className="flex min-h-0 flex-col overflow-hidden">
           <PageHeader
             title={t("view.title")}
             actions={calendarNav}
@@ -322,10 +323,10 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
           <div className="mobile-nav-scroll-clearance flex-1 overflow-y-auto overscroll-contain px-2.5 pt-4 pb-6 sm:px-[26px] lg:px-[30px]">
             {calendarGrid}
           </div>
-        </section>
+        </WorkspaceSurface>
 
         {/* Right: planned + paid */}
-        <section className="flex min-h-0 flex-col overflow-hidden">
+        <WorkspaceSurface as="section" elevation="raised" className="flex min-h-0 flex-col overflow-hidden">
           <PageHeader
             title={panelLabel}
             actions={
@@ -354,7 +355,7 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
           <div className="mobile-nav-scroll-clearance min-h-0 flex-1 overflow-y-auto overscroll-contain">
             {dayTransactionsList}
           </div>
-        </section>
+        </WorkspaceSurface>
       </div>
 
       <TransactionFormSheet

@@ -9,6 +9,7 @@ import { useFormatter, useTranslations } from "next-intl";
 import { EmptyState } from "@/components/empty-state";
 import { DetailField, DetailFieldGrid } from "@/components/detail-field";
 import { PageContainer } from "@/components/page-container";
+import { WorkspaceSurface } from "@/components/surface";
 import { PendingTransactionRow } from "@/components/pending-transaction-row";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
@@ -343,8 +344,12 @@ export function BankingView() {
 
   return (
     <PageContainer className="h-full overflow-hidden px-0 py-0 sm:px-0">
-      <div className="grid h-full w-full grid-cols-1 lg:grid-cols-[400px_minmax(0,1fr)]">
-        <section className="flex min-h-0 flex-col overflow-auto border-b border-border/40 bg-card lg:overflow-hidden lg:border-r lg:border-b-0 lg:border-r-border/25">
+      <div className="grid h-full w-full grid-cols-1 bg-surface-base lg:grid-cols-[400px_minmax(0,1fr)]">
+        <WorkspaceSurface
+          as="section"
+          elevation="base"
+          className="flex min-h-0 flex-col overflow-auto bg-surface-raised lg:overflow-hidden lg:bg-surface-base"
+        >
           <div className="shrink-0 bg-card/96 backdrop-blur supports-[backdrop-filter]:bg-card/88">
             <div className="flex flex-col gap-4 px-3 pt-4 pb-3 sm:px-6 sm:pt-7 sm:pb-5 lg:px-7 lg:pt-8 lg:pb-6">
               <div className="flex items-start justify-between gap-3 px-1.5 sm:items-center sm:px-2.5">
@@ -602,10 +607,10 @@ export function BankingView() {
               </div>
             </div>
           </div>
-        </section>
+        </WorkspaceSurface>
 
-        <section className="hidden min-h-0 flex-col bg-background lg:flex">
-          <div className="sticky top-0 z-10 bg-background/94 backdrop-blur supports-[backdrop-filter]:bg-background/84">
+        <WorkspaceSurface as="section" elevation="raised" className="hidden min-h-0 flex-col lg:flex">
+          <div className="sticky top-0 z-10 bg-surface-raised/94 backdrop-blur supports-[backdrop-filter]:bg-surface-raised/84">
             <div className="px-3 pt-4 pb-3 sm:px-6 sm:pt-7 sm:pb-5 lg:px-7 lg:pt-8 lg:pb-6">
               <div className="flex items-start justify-between gap-3 px-1.5 sm:px-2.5">
                 <div className="flex min-w-0 items-center gap-2.5">
@@ -869,7 +874,7 @@ export function BankingView() {
               }}
             />
           </div>
-        </section>
+        </WorkspaceSurface>
       </div>
     </PageContainer>
   );

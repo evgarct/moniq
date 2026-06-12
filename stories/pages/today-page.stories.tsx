@@ -13,7 +13,7 @@ const meta = {
   title: "Pages/Today",
   render: () => (
     <StoryWorkspace pathname="/today">
-      <div className="h-screen">
+      <div className="h-full">
         <TodayView snapshot={snapshot} />
       </div>
     </StoryWorkspace>
@@ -45,7 +45,7 @@ export const MobileList: Story = {
   },
   render: () => (
     <StoryWorkspace pathname="/today">
-      <div className="h-screen">
+      <div className="h-full">
         <TodayView snapshot={snapshot} />
       </div>
     </StoryWorkspace>
@@ -60,7 +60,7 @@ export const MobileUpcomingWindow: Story = {
   },
   render: () => (
     <StoryWorkspace pathname="/today">
-      <div className="h-screen">
+      <div className="h-full">
         <TodayView snapshot={mobileSnapshot} />
       </div>
     </StoryWorkspace>
@@ -82,7 +82,7 @@ export const MobileCalendarOpen: Story = {
   },
   render: () => (
     <StoryWorkspace pathname="/today">
-      <div className="h-screen">
+      <div className="h-full">
         <TodayView snapshot={mobileSnapshot} />
       </div>
     </StoryWorkspace>

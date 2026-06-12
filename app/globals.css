@@ -8,6 +8,9 @@
   --breakpoint-md: 64rem;
   --breakpoint-lg: 64rem;
   --color-background: var(--background);
+  --color-surface-base: var(--surface-base);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-floating: var(--surface-floating);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
@@ -55,6 +58,12 @@
 }
 
 :root {
+  --surface-base: #e5e4df;
+  --surface-raised: #f0f0eb;
+  --surface-floating: #fafaf7;
+  --shadow-surface-raised: -14px 0 36px -28px rgba(28, 22, 17, 0.42);
+  --shadow-surface-mobile: 0 -12px 32px -24px rgba(28, 22, 17, 0.4);
+  --shadow-surface-floating: 0 12px 32px rgba(28, 22, 17, 0.1);
   --background: #fafaf7;
   --foreground: #191919;
   --card: #f0f0eb;
@@ -97,6 +106,12 @@
 }
 
 .dark {
+  --surface-base: #191919;
+  --surface-raised: #262625;
+  --surface-floating: #30302e;
+  --shadow-surface-raised: -14px 0 36px -28px rgba(0, 0, 0, 0.72);
+  --shadow-surface-mobile: 0 -12px 32px -24px rgba(0, 0, 0, 0.72);
+  --shadow-surface-floating: 0 12px 32px rgba(0, 0, 0, 0.34);
   --background: #191919;
   --foreground: #f0f0eb;
   --card: #262625;
@@ -132,7 +147,7 @@
 
 @layer base {
   html {
-    @apply scroll-smooth bg-background font-sans;
+    @apply scroll-smooth bg-surface-base font-sans;
     min-height: 100%;
   }
 
@@ -141,19 +156,20 @@
   }
 
   body {
-    @apply h-screen overflow-hidden bg-background text-foreground;
+    @apply h-screen overflow-hidden bg-surface-base text-foreground;
     min-height: 100%;
     text-rendering: optimizeLegibility;
   }
 
   @media (max-width: 1023px) {
     .mobile-shell {
-      padding-top: env(safe-area-inset-top);
+      padding-top: calc(env(safe-area-inset-top) + 8px);
+      padding-bottom: env(safe-area-inset-bottom);
     }
 
     .mobile-nav-scroll-clearance::after {
       display: block;
-      height: calc(76px + env(safe-area-inset-bottom));
+      height: 76px;
       flex: none;
       content: "";
     }
@@ -177,6 +193,35 @@
 }
 
 @layer components {
+  .app-workspace-frame {
+    @apply h-full min-h-0 min-w-0 overflow-hidden bg-surface-raised;
+  }
+
+  .surface-base {
+    @apply bg-surface-base;
+  }
+
+  .surface-raised {
+    @apply bg-surface-raised;
+    box-shadow: var(--shadow-surface-raised);
+  }
+
+  .surface-floating {
+    @apply bg-surface-floating;
+    box-shadow: var(--shadow-surface-floating);
+  }
+
+  @media (max-width: 1023px) {
+    .app-workspace-frame {
+      border-radius: var(--radius-floating) var(--radius-floating) 0 0;
+      box-shadow: var(--shadow-surface-mobile);
+    }
+
+    .surface-raised {
+      box-shadow: none;
+    }
+  }
+
   .type-h1 {
     @apply font-heading text-[32px] leading-[1.05] tracking-[-0.035em] text-foreground;
   }

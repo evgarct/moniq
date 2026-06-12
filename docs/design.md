@@ -17,6 +17,8 @@ Moniq is a restrained product UI, not a marketing surface. It should feel like a
 - Repeated data is row language. Rows are flat, quiet, and grouped inside a shared region. Do not make card-per-row layouts, category chips, account type pills, status pills, or icon badges.
 - Icons are raw outline marks. Use Lucide or `CategoryIcon` inline at the established size and stroke, without colored circles, squares, badge backgrounds, or filled treatments.
 - `Surface` is the only container primitive for major regions. Do not recreate surface radius, shadow, tone, or padding locally unless extending `Surface` itself.
+- Surface elevation follows one physical model: `base` is `#e5e4df`, `raised` is `#f0f0eb`, and `floating` is `#fafaf7`. Higher layers are lighter and cast a tokenized shadow onto lower layers.
+- Structural panel seams use elevation, never `border-left`, `border-right`, or divider borders. Borders remain valid for controls and semantic separators inside a region.
 - Typography stays on the product scale. Use `type-h1` through `type-h6`, `type-body-14`, and `type-body-12`; avoid arbitrary text sizes in feature code.
 - Radius and shadow stay tokenized. Use radius variables/classes and existing UI primitives; do not introduce new `rounded-*` or `shadow-*` styling for ordinary product UI.
 - Actions stay restrained: one filled primary action per surface, outline for escape/cancel, ghost for row-level or low-emphasis actions.
@@ -28,8 +30,9 @@ Moniq is a restrained product UI, not a marketing surface. It should feel like a
 
 ### Composition patterns to preserve
 
-- New simple screens open with a `Surface tone="panel" padding="lg"` containing `SurfaceHeader`, `SurfaceEyebrow`, `SurfaceTitle`, and optional `SurfaceDescription`.
+- New simple screens open with a `Surface tone="raised" padding="lg"` containing `SurfaceHeader`, `SurfaceEyebrow`, `SurfaceTitle`, and optional `SurfaceDescription`.
 - Full-bleed workspace views such as Balance, Budget, and Calendar own the whole `main` area and should not be wrapped in an outer page card.
+- On mobile, the system status and home-indicator safe areas use the base surface. The full-width raised workspace starts after a small top gap without side gutters.
 - Inventory/detail screens use the two-panel grid: left inventory around 280px, right register/detail filling the remaining space.
 - Lists and registers need an `EmptyState`; metadata is plain muted text near the primary label.
 - Money must be rendered with `MoneyAmount` unless a shared-grid multi-amount layout is explicitly required.

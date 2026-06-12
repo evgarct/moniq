@@ -81,8 +81,8 @@ const meta = {
                 body="Account icons stay as plain inline outline marks. They support recognition, but never turn into bordered chips or filled badges."
               />
               <PrincipleBlock
-                title="Mobile follow-up"
-                body="On mobile, Balance shows the inventory panel first. Register activity opens as a full-screen follow-up surface with a back action."
+                title="Mobile elevation"
+                body="The system status and home areas stay on the darker base. The full-width workspace begins below a small top gap as a lighter raised surface."
               />
             </div>
           </div>
@@ -104,7 +104,7 @@ const meta = {
         </Surface>
 
         <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
-          <Surface tone="panel" padding="md" className="border border-black/5">
+          <Surface tone="base" padding="md">
             <div className="space-y-4">
               <div className="px-1.5">
                 <p className="type-body-12 text-muted-foreground">Canonical Left Panel</p>
@@ -118,7 +118,7 @@ const meta = {
             </div>
           </Surface>
 
-          <Surface tone="panel" padding="none" className="overflow-hidden border border-black/5">
+          <Surface tone="raised" padding="none" className="overflow-hidden">
             <BalanceRegisterPanel
               selectedAccount={creditCard}
               transactions={creditRegister}

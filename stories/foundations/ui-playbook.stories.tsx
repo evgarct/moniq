@@ -104,7 +104,7 @@ const meta = {
       <div className="flex min-h-screen flex-col gap-8 p-6">
 
         {/* ── 1. Screen anatomy ─────────────────────────────────────────────── */}
-        <Surface tone="panel" padding="lg" className="border border-black/5">
+        <Surface tone="raised" padding="lg">
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               UI Playbook
@@ -139,7 +139,7 @@ const meta = {
         </Surface>
 
         {/* ── 2. Section header pattern ─────────────────────────────────────── */}
-        <Surface tone="panel" padding="lg" className="border border-black/5">
+        <Surface tone="raised" padding="lg">
           <div className="space-y-5">
             <SectionHeader
               eyebrow="Pattern · Section Header"
@@ -169,32 +169,32 @@ const meta = {
         </Surface>
 
         {/* ── 3. Surface stack ──────────────────────────────────────────────── */}
-        <Surface tone="panel" padding="lg" className="border border-black/5">
+        <Surface tone="raised" padding="lg">
           <div className="space-y-5">
             <SectionHeader
               eyebrow="Pattern · Surface Stack"
-              heading="Canvas → Panel → Floating"
-              sub="Three tones, three depths. Never skip a level or add extra shadow tiers. The workspace sits on canvas, work regions on panel, tools on floating."
+              heading="Base → Raised → Floating"
+              sub="Three tones, three depths. Higher surfaces are lighter and cast a shadow onto the darker layer below. Structural panel seams never use borders."
             />
 
             <div className="grid gap-4 md:grid-cols-3">
-              <Surface tone="canvas" padding="lg" className="min-h-36 border border-black/5">
-                <p className="type-h6">Canvas</p>
-                <p className="type-body-12 mt-1.5">bg-background · no shadow · base workspace layer</p>
+              <Surface tone="base" padding="lg" className="min-h-36">
+                <p className="type-h6">Base</p>
+                <p className="type-body-12 mt-1.5">#e5e4df · no shadow · system and workspace layer</p>
                 <p className="type-body-12 mt-3 text-muted-foreground">
                   Page backgrounds, inert wrappers, sidebar content areas.
                 </p>
               </Surface>
-              <Surface tone="panel" padding="lg" className="min-h-36 border border-black/5">
-                <p className="type-h6">Panel</p>
-                <p className="type-body-12 mt-1.5">bg-card · inset top highlight · primary work area</p>
+              <Surface tone="raised" padding="lg" className="min-h-36">
+                <p className="type-h6">Raised</p>
+                <p className="type-body-12 mt-1.5">#f0f0eb · directional shadow · primary work area</p>
                 <p className="type-body-12 mt-3 text-muted-foreground">
                   Content sections, account list, transaction register, dashboards.
                 </p>
               </Surface>
               <Surface tone="floating" padding="lg" className="min-h-36">
                 <p className="type-h6">Floating</p>
-                <p className="type-body-12 mt-1.5">bg-popover · border · drop shadow · tool layer</p>
+                <p className="type-body-12 mt-1.5">#fafaf7 · drop shadow · tool layer</p>
                 <p className="type-body-12 mt-3 text-muted-foreground">
                   Dropdowns, quick-add menus, popovers, contextual sheets.
                 </p>
@@ -209,7 +209,7 @@ const meta = {
         </Surface>
 
         {/* ── 4. Two-panel layout ───────────────────────────────────────────── */}
-        <Surface tone="panel" padding="lg" className="border border-black/5">
+        <Surface tone="raised" padding="lg">
           <div className="space-y-5">
             <SectionHeader
               eyebrow="Pattern · Two-Panel Layout"
@@ -217,9 +217,9 @@ const meta = {
               sub="The Balance page uses this layout. Any screen that lists items on the left and shows activity or detail on the right should follow this exact grid. Left min-width 280px, right takes remaining space."
             />
 
-            <div className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
+            <div className="grid overflow-hidden xl:grid-cols-[280px_minmax(0,1fr)]">
               {/* Left */}
-              <Surface tone="panel" padding="md" className="border border-black/5">
+              <Surface tone="base" padding="md" className="rounded-none">
                 <div className="space-y-4">
                   <div className="px-1">
                     <p className="type-body-12 text-muted-foreground">Left panel</p>
@@ -239,7 +239,7 @@ const meta = {
               </Surface>
 
               {/* Right */}
-              <Surface tone="panel" padding="md" className="border border-black/5">
+              <Surface tone="raised" padding="md" className="rounded-none">
                 <div className="space-y-4">
                   <div className="flex items-start justify-between gap-3 px-1">
                     <div>
@@ -862,7 +862,7 @@ export const Reference: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("UI Playbook")).toBeInTheDocument();
-    await expect(canvas.getByRole("heading", { name: "Canvas → Panel → Floating" })).toBeInTheDocument();
+    await expect(canvas.getByRole("heading", { name: "Base → Raised → Floating" })).toBeInTheDocument();
     await expect(canvas.getByRole("heading", { name: "Rows are quiet. The group does the talking." })).toBeInTheDocument();
     await expect(canvas.getByRole("heading", { name: "Four kinds. One visual weight — except income." })).toBeInTheDocument();
     await expect(canvas.getByRole("heading", { name: "Small controls still need deliberate motion and real hit areas." })).toBeInTheDocument();
