@@ -29,6 +29,7 @@ async function main() {
   const email = requiredEnv("MONIQ_E2E_EMAIL", "E2E_USER_EMAIL");
   const password = requiredEnv("MONIQ_E2E_PASSWORD", "E2E_USER_PASSWORD");
   const targetPath = process.env.MONIQ_E2E_PATH ?? "/en/inbox";
+  const expectedHeading = process.env.MONIQ_E2E_HEADING ?? "Inbox";
 
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
@@ -56,7 +57,7 @@ async function main() {
     await page.waitForURL(new RegExp(`${targetPath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:[?#].*)?$`), {
       timeout: 20_000,
     });
-    await page.locator("h1").getByText("Inbox", { exact: true }).waitFor({ timeout: 10_000 });
+    await page.locator("h1").getByText(expectedHeading, { exact: true }).waitFor({ timeout: 10_000 });
 
     if (consoleErrors.length > 0) {
       throw new Error(`Console errors after login:\n${consoleErrors.join("\n")}`);

@@ -146,6 +146,7 @@
     "imports": "Imports",
     "inboxPage": "Inbox",
     "budget": "Budget",
+    "reports": "Reports",
     "calendar": "Calendar",
     "today": "Today",
     "transactions": "Transactions",
@@ -866,6 +867,69 @@
       "from": "from",
       "goodMove": "You earned it",
       "overdue": "Overdue"
+    }
+  },
+  "reports": {
+    "projectedBalance": {
+      "loading": {
+        "title": "Loading projected balance",
+        "description": "Fetching accounts, planned transactions, and exchange rates."
+      },
+      "error": {
+        "title": "Unable to load projected balance",
+        "description": "The report data could not be loaded."
+      },
+      "eyebrow": "Reports",
+      "title": "Projected balance",
+      "description": "See how planned transactions change selected account balances over time.",
+      "defaultSeriesName": "All accounts",
+      "actions": {
+        "manageSeries": "Manage lines"
+      },
+      "period": {
+        "endDate": "Forecast through",
+        "months": "{count, plural, one {# month} other {# months}}"
+      },
+      "chart": {
+        "ariaLabel": "Projected account balance chart. Use the left and right arrow keys to inspect dates.",
+        "selectedDate": "Projected balances for {date}"
+      },
+      "details": {
+        "eyebrow": "Selected date",
+        "operations": "Planned operations",
+        "noOperations": "No planned operations on this date."
+      },
+      "operationKinds": {
+        "income": "Income",
+        "expense": "Expense",
+        "transfer": "Transfer",
+        "debt_payment": "Debt payment"
+      },
+      "missingRate": {
+        "title": "Some lines cannot be calculated",
+        "description": "{series}: no {source} to {target} exchange rate for {account}."
+      },
+      "empty": {
+        "title": "Add accounts first",
+        "description": "Projected balance needs at least one account with a current balance."
+      },
+      "noSeries": {
+        "title": "No report lines available",
+        "description": "Open line settings and select at least one account with available exchange rates."
+      },
+      "editor": {
+        "title": "Report lines",
+        "description": "Combine accounts into up to five independent lines. An account may appear in more than one line.",
+        "seriesLabel": "Line {number}",
+        "defaultSeriesName": "Line {number}",
+        "name": "Name",
+        "namePlaceholder": "For example, Personal accounts",
+        "accounts": "Accounts",
+        "addSeries": "Add line",
+        "moveUp": "Move line up",
+        "moveDown": "Move line down",
+        "remove": "Remove line"
+      }
     }
   },
   "settings": {

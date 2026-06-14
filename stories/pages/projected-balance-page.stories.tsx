@@ -1,0 +1,170 @@
+import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { addDays, format } from "date-fns";
+import { expect, within } from "storybook/test";
+
+import { ProjectedBalanceView } from "@/features/reports/components/projected-balance-view";
+import { makeFinanceSnapshot } from "@/stories/fixtures/story-data";
+import type { ExchangeRate, Transaction } from "@/types/finance";
+
+const snapshot = makeFinanceSnapshot();
+const today = new Date();
+const source = snapshot.accounts[0];
+const destination = snapshot.accounts[1] ?? snapshot.accounts[0];
+const storyExchangeRates: ExchangeRate[] = [
+  {
+    provider: "frankfurter",
+    base_currency: "EUR",
+    quote_currency: "CZK",
+    requested_date: format(today, "yyyy-MM-dd"),
+    rate_date: format(today, "yyyy-MM-dd"),
+    rate: 25,
+    fetched_at: today.toISOString(),
+  },
+  {
+    provider: "frankfurter",
+    base_currency: "RUB",
+    quote_currency: "CZK",
+    requested_date: format(today, "yyyy-MM-dd"),
+    rate_date: format(today, "yyyy-MM-dd"),
+    rate: 0.28,
+    fetched_at: today.toISOString(),
+  },
+];
+
+const plannedTransactions: Transaction[] = source && destination
+  ? [
+      {
+        id: "projected-rent",
+        user_id: source.user_id,
+        title: "Rent",
+        note: null,
+        occurred_at: format(addDays(today, 5), "yyyy-MM-dd"),
+        created_at: today.toISOString(),
+        status: "planned",
+        kind: "expense",
+        amount: 18_000,
+        destination_amount: null,
+        fx_rate: null,
+        principal_amount: null,
+        interest_amount: null,
+        extra_principal_amount: null,
+        category_id: null,
+        source_account_id: source.id,
+        destination_account_id: null,
+        schedule_id: null,
+        schedule_occurrence_date: null,
+        is_schedule_override: false,
+        category: null,
+        source_account: source,
+        destination_account: null,
+        schedule: null,
+        allocation_id: null,
+        allocation: null,
+      },
+      {
+        id: "projected-salary",
+        user_id: source.user_id,
+        title: "Salary",
+        note: null,
+        occurred_at: format(addDays(today, 12), "yyyy-MM-dd"),
+        created_at: today.toISOString(),
+        status: "planned",
+        kind: "income",
+        amount: 52_000,
+        destination_amount: null,
+        fx_rate: null,
+        principal_amount: null,
+        interest_amount: null,
+        extra_principal_amount: null,
+        category_id: null,
+        source_account_id: null,
+        destination_account_id: source.id,
+        schedule_id: null,
+        schedule_occurrence_date: null,
+        is_schedule_override: false,
+        category: null,
+        source_account: null,
+        destination_account: source,
+        schedule: null,
+        allocation_id: null,
+        allocation: null,
+      },
+    ]
+  : [];
+
+const reportSnapshot = {
+  ...snapshot,
+  transactions: [...snapshot.transactions, ...plannedTransactions],
+  exchange_rates: storyExchangeRates,
+};
+
+const meta = {
+  title: "Pages/ProjectedBalance",
+  component: ProjectedBalanceView,
+  parameters: {
+    layout: "fullscreen",
+    nextjs: {
+      navigation: {
+        pathname: "/reports/projected-balance",
+      },
+    },
+  },
+  decorators: [
+    (Story) => (
+      <div className="h-screen bg-background">
+        <Story />
+      </div>
+    ),
+  ],
+} satisfies Meta<typeof ProjectedBalanceView>;
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const Default: Story = {
+  args: {
+    snapshot: reportSnapshot,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("heading", { name: "Projected balance" })).toBeInTheDocument();
+    await expect(canvas.getByRole("button", { name: "Manage lines" })).toBeInTheDocument();
+  },
+};
+
+export const EditorOpen: Story = {
+  args: {
+    snapshot: reportSnapshot,
+    initialEditorOpen: true,
+  },
+};
+
+export const Empty: Story = {
+  args: {
+    snapshot: {
+      ...reportSnapshot,
+      accounts: [],
+      transactions: [],
+    },
+  },
+};
+
+export const NoPlannedTransactions: Story = {
+  args: {
+    snapshot: {
+      ...reportSnapshot,
+      transactions: reportSnapshot.transactions.filter(
+        (transaction) => transaction.status !== "planned",
+      ),
+    },
+  },
+};
+
+export const MissingExchangeRate: Story = {
+  args: {
+    snapshot: {
+      ...reportSnapshot,
+      exchange_rates: [],
+    },
+  },
+};
