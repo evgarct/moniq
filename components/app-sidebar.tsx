@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import {
   IconCalendar,
+  IconChartLine,
   IconCreditCard,
   IconMail,
   IconScale,
@@ -19,6 +20,7 @@ import { LogoutButton } from "@/features/auth/components/logout-button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -29,9 +31,9 @@ import { cn } from "@/lib/utils";
 
 const navigation = [
   { href: "/today",    labelKey: "today",     icon: IconCalendar },
-  { href: "/inbox",    labelKey: "inboxPage", icon: IconMail },
   { href: "/accounts", labelKey: "balance",   icon: IconScale },
   { href: "/budget",   labelKey: "budget",    icon: IconCreditCard },
+  { href: "/reports",  labelKey: "reports",   icon: IconChartLine },
 ] as const;
 
 type ShellUser = {
@@ -53,7 +55,7 @@ export function AppSidebar({
       <nav className="mt-2 flex flex-1 flex-col items-center gap-3">
         {navigation.map((item) => {
           const Icon = item.icon;
-          const active = pathname === item.href;
+          const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const label = navT(item.labelKey as any);
 
@@ -99,7 +101,7 @@ export function MobileBottomNav({
         className="pointer-events-auto grid h-[60px] w-full max-w-[460px] grid-cols-5 items-center rounded-[var(--radius-floating)] border border-border/70 bg-popover px-1.5 py-1.5 text-xs text-muted-foreground"
       >
         {navigation.map((item) => {
-          const active = pathname === item.href;
+          const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = item.icon;
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const label = navT(item.labelKey as any);
@@ -184,13 +186,22 @@ function UserNavMenu({
             <LocaleSwitcher />
           </div>
           <DropdownMenuSeparator />
-          <DropdownMenuItem
-            className="rounded-[var(--radius-control)] px-2 py-2"
-            render={<Link href="/settings" />}
-          >
-            <Settings2 />
-            {t("common.actions.settings")}
-          </DropdownMenuItem>
+          <DropdownMenuGroup>
+            <DropdownMenuItem
+              className="rounded-[var(--radius-control)] px-2 py-2"
+              render={<Link href="/inbox" />}
+            >
+              <IconMail />
+              {navT("inboxPage")}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="rounded-[var(--radius-control)] px-2 py-2"
+              render={<Link href="/settings" />}
+            >
+              <Settings2 />
+              {t("common.actions.settings")}
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
           <div className="px-1 py-1">
             <LogoutButton
               action={onSignOut}
