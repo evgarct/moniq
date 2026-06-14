@@ -17,7 +17,7 @@ Always discover tools first:
 Core rule:
 - If the user asks about historical transactions, spending, income, cashflow, transfers, debt payments, or analytics for any period, call get_transactions or get_category_spending_report.
 - If the user asks about future cashflow, forecasts, upcoming bills, planned payments, or scheduled transactions, call get_transactions with a future date range. Moniq can return generated recurring schedule occurrences for the requested period; do not claim this data is unavailable.
-- If the user asks to create ledger entries, first call get_finance_context, then call create_transactions only after all required fields are known.
+- If the user asks to create ledger entries, first call get_finance_context, then call create_transactions only after all required fields are known. This writes bookkeeping records inside Moniq; it does not move money, charge a card, or contact a bank.
 - If the user asks to create, inspect, edit, pause, resume, skip, mark paid, or delete recurring payments, use the recurring transaction tools instead of create_transactions.
 - If confidence is low or the user wants review before writing, use submit_transaction_batch instead of create_transactions.
 
@@ -28,6 +28,9 @@ Important:
 - Planned and skipped transactions are part of the transaction history/plan. Do not filter them out unless the user asks for settled cashflow only.
 - Recurring schedules may be returned as generated transactions with source="schedule", is_generated=true, and id="schedule:{schedule_id}:{date}".
 - For money analytics, keep currencies separate. Do not combine EUR, USD, CZK, or other currencies into one total.
+- Preserve the user's Unicode text, including accents and non-Latin scripts. Do not remove diacritics to work around a client-side tool warning.
+- Never show wallet, category, transaction, or schedule UUIDs unless the user explicitly asks for technical identifiers.
+- If ChatGPT reports that a tool call was blocked by its safety checks before Moniq returns a result, describe it as a client-side block. Do not claim that Moniq or its MCP server is unavailable.
 ```
 
 ## MCP Connection
@@ -147,6 +150,8 @@ The tool returns card/debt lists and totals by currency.
 ### `create_transactions`
 
 Creates complete transactions directly in the ledger.
+
+This is the only creation tool agents should select, including for one transaction. The legacy singular alias remains server-compatible but is intentionally hidden from tool discovery.
 
 Use only after the user has provided or confirmed all required fields. Always call `get_finance_context` first.
 
