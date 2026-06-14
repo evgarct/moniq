@@ -186,6 +186,25 @@ export function convertMoney(options: {
   };
 }
 
+export function getCurrenciesMissingExchangeRates(options: {
+  currencies: CurrencyCode[];
+  targetCurrency: CurrencyCode;
+  requestedDate: string;
+  exchangeRates: ExchangeRate[];
+}) {
+  return Array.from(new Set(options.currencies)).filter((currency) => {
+    if (currency === options.targetCurrency) return false;
+
+    return convertMoney({
+      amount: 1,
+      sourceCurrency: currency,
+      targetCurrency: options.targetCurrency,
+      requestedDate: options.requestedDate,
+      exchangeRates: options.exchangeRates,
+    }).status === "missing_rate";
+  });
+}
+
 export function convertTransactionAnalyticsAmount(options: {
   transaction: Transaction;
   targetCurrency: CurrencyCode;

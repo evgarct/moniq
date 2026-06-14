@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Account, ExchangeRate, Transaction } from "@/types/finance";
 
-import { buildProjectedBalanceReport } from "./projected-balance";
+import { buildProjectedBalanceReport, createProjectedBalanceSeries } from "./projected-balance";
 
 const now = new Date("2026-06-14T12:00:00Z");
 
@@ -92,6 +92,33 @@ function build(options: {
 }
 
 describe("projected balance report", () => {
+  it("builds either one merged line or one line per selected account", () => {
+    const first = account("first", 1_000);
+    const second = account("second", 500);
+
+    expect(createProjectedBalanceSeries({
+      accounts: [first, second],
+      accountIds: [first.id, second.id],
+      merged: true,
+      mergedName: "Selected accounts",
+    })).toEqual([{
+      id: "merged-accounts",
+      name: "Selected accounts",
+      accountIds: [first.id, second.id],
+    }]);
+
+    expect(createProjectedBalanceSeries({
+      accounts: [first, second],
+      accountIds: [second.id],
+      merged: false,
+      mergedName: "Selected accounts",
+    })).toEqual([{
+      id: second.id,
+      name: second.name,
+      accountIds: [second.id],
+    }]);
+  });
+
   it("applies planned income and expense at the end of their day", () => {
     const wallet = account("wallet", 1_000);
     const report = build({

@@ -1,26 +1,11 @@
 import type { Account } from "@/types/finance";
 
-import {
-  resolveProjectedBalancePeriod,
-  type ProjectedBalanceSeriesConfig,
-} from "./projected-balance";
+import { resolveProjectedBalancePeriod } from "./projected-balance";
 
-const MAX_SERIES = 5;
-const MAX_NAME_LENGTH = 60;
-
-function encodeBase64Url(value: string) {
-  const bytes = new TextEncoder().encode(value);
-  let binary = "";
-
-  for (const byte of bytes) {
-    binary += String.fromCharCode(byte);
-  }
-
-  return btoa(binary)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/g, "");
-}
+export type ProjectedBalanceSelection = {
+  accountIds: string[];
+  merged: boolean;
+};
 
 function decodeBase64Url(value: string) {
   const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
@@ -30,75 +15,53 @@ function decodeBase64Url(value: string) {
   return new TextDecoder().decode(bytes);
 }
 
-export function encodeProjectedBalanceSeries(series: ProjectedBalanceSeriesConfig) {
-  return encodeBase64Url(JSON.stringify({
-    id: series.id,
-    name: series.name,
-    accountIds: series.accountIds,
-  }));
-}
+function parseLegacySeriesAccountIds(values: string[]) {
+  const accountIds: string[] = [];
 
-function parseSeries(value: string): ProjectedBalanceSeriesConfig | null {
-  try {
-    const parsed = JSON.parse(decodeBase64Url(value)) as Record<string, unknown>;
+  for (const value of values) {
+    try {
+      const parsed = JSON.parse(decodeBase64Url(value)) as Record<string, unknown>;
+      if (!Array.isArray(parsed.accountIds)) continue;
 
-    if (
-      typeof parsed.id !== "string" ||
-      typeof parsed.name !== "string" ||
-      !Array.isArray(parsed.accountIds)
-    ) {
-      return null;
+      for (const accountId of parsed.accountIds) {
+        if (typeof accountId === "string") accountIds.push(accountId);
+      }
+    } catch {
+      // Ignore obsolete or malformed report state.
     }
-
-    return {
-      id: parsed.id.slice(0, 80),
-      name: parsed.name.trim().slice(0, MAX_NAME_LENGTH),
-      accountIds: parsed.accountIds.filter(
-        (accountId): accountId is string => typeof accountId === "string",
-      ),
-    };
-  } catch {
-    return null;
   }
+
+  return accountIds;
 }
 
-export function createDefaultProjectedBalanceSeries(
+export function createDefaultProjectedBalanceSelection(
   accounts: Pick<Account, "id">[],
-  name: string,
-): ProjectedBalanceSeriesConfig[] {
-  return [{
-    id: "all-accounts",
-    name,
+): ProjectedBalanceSelection {
+  return {
     accountIds: accounts.map((account) => account.id),
-  }];
+    merged: true,
+  };
 }
 
 export function parseProjectedBalanceUrlState(options: {
   searchParams: Pick<URLSearchParams, "get" | "getAll">;
   accounts: Pick<Account, "id">[];
-  defaultSeriesName: string;
   now?: Date;
 }) {
   const validAccountIds = new Set(options.accounts.map((account) => account.id));
-  const seenSeriesIds = new Set<string>();
-  const parsedSeries = options.searchParams
-    .getAll("series")
-    .slice(0, MAX_SERIES)
-    .flatMap((value) => {
-      const series = parseSeries(value);
-      if (!series || !series.id || !series.name || seenSeriesIds.has(series.id)) return [];
-
-      const accountIds = Array.from(
-        new Set(series.accountIds.filter((accountId) => validAccountIds.has(accountId))),
-      );
-      if (!accountIds.length) return [];
-
-      seenSeriesIds.add(series.id);
-      return [{ ...series, accountIds }];
-    });
-  const series = parsedSeries.length
-    ? parsedSeries
-    : createDefaultProjectedBalanceSeries(options.accounts, options.defaultSeriesName);
+  const requestedAccountIds = [
+    ...options.searchParams.getAll("account"),
+    ...parseLegacySeriesAccountIds(options.searchParams.getAll("series")),
+  ];
+  const accountIds = Array.from(
+    new Set(requestedAccountIds.filter((accountId) => validAccountIds.has(accountId))),
+  );
+  const selection = accountIds.length
+    ? {
+        accountIds,
+        merged: options.searchParams.get("merged") !== "false",
+      }
+    : createDefaultProjectedBalanceSelection(options.accounts);
   const period = resolveProjectedBalancePeriod({
     endDate: options.searchParams.get("end"),
     now: options.now,
@@ -106,19 +69,20 @@ export function parseProjectedBalanceUrlState(options: {
 
   return {
     endDate: period.end_date,
-    series,
+    selection,
   };
 }
 
 export function buildProjectedBalanceSearchParams(options: {
   endDate: string;
-  series: ProjectedBalanceSeriesConfig[];
+  selection: ProjectedBalanceSelection;
 }) {
   const params = new URLSearchParams();
   params.set("end", options.endDate);
+  params.set("merged", String(options.selection.merged));
 
-  for (const series of options.series.slice(0, MAX_SERIES)) {
-    params.append("series", encodeProjectedBalanceSeries(series));
+  for (const accountId of options.selection.accountIds) {
+    params.append("account", accountId);
   }
 
   return params;

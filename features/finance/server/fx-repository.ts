@@ -2,7 +2,13 @@ import "server-only";
 
 import { format, startOfToday } from "date-fns";
 
-import { fetchFrankfurterRates, FRANKFURTER_PROVIDER, type FxProviderRate } from "@/features/finance/server/fx-provider";
+import {
+  CURRENCY_API_PROVIDER,
+  fetchCurrencyApiRates,
+  fetchFrankfurterRates,
+  FRANKFURTER_PROVIDER,
+  type FxProviderRate,
+} from "@/features/finance/server/fx-provider";
 import { SUPPORTED_CURRENCY_CODES } from "@/lib/currencies";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -20,8 +26,12 @@ type FxRateRow = {
 };
 
 function mapExchangeRate(row: FxRateRow): ExchangeRate {
+  const provider = row.provider === CURRENCY_API_PROVIDER
+    ? CURRENCY_API_PROVIDER
+    : FRANKFURTER_PROVIDER;
+
   return {
-    provider: FRANKFURTER_PROVIDER,
+    provider,
     base_currency: row.base_currency,
     quote_currency: row.quote_currency,
     requested_date: row.requested_date,
@@ -57,7 +67,7 @@ export async function getCachedExchangeRates(options: {
   const direct = supabase
     .from("fx_rates")
     .select("provider, base_currency, quote_currency, requested_date, rate_date, rate, fetched_at")
-    .eq("provider", FRANKFURTER_PROVIDER)
+    .in("provider", [FRANKFURTER_PROVIDER, CURRENCY_API_PROVIDER])
     .eq("base_currency", options.defaultCurrency)
     .in("quote_currency", quoteCurrencies);
   const inverse = supabase
@@ -65,11 +75,11 @@ export async function getCachedExchangeRates(options: {
     .select("provider, base_currency, quote_currency, requested_date, rate_date, rate, fetched_at")
     .in("base_currency", quoteCurrencies)
     .eq("quote_currency", options.defaultCurrency)
-    .eq("provider", FRANKFURTER_PROVIDER);
+    .in("provider", [FRANKFURTER_PROVIDER, CURRENCY_API_PROVIDER]);
   const bridge = supabase
     .from("fx_rates")
     .select("provider, base_currency, quote_currency, requested_date, rate_date, rate, fetched_at")
-    .eq("provider", FRANKFURTER_PROVIDER)
+    .in("provider", [FRANKFURTER_PROVIDER, CURRENCY_API_PROVIDER])
     .eq("base_currency", "EUR")
     .in("quote_currency", bridgeCurrencies);
 
@@ -105,8 +115,20 @@ async function upsertProviderRates(rates: FxProviderRate[]) {
     return [];
   }
 
-  const supabase = createServiceClient();
   const now = new Date().toISOString();
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return rates.map((rate) => ({
+      provider: rate.provider,
+      base_currency: rate.base_currency,
+      quote_currency: rate.quote_currency,
+      requested_date: rate.requested_date,
+      rate_date: rate.rate_date,
+      rate: rate.rate,
+      fetched_at: now,
+    }));
+  }
+
+  const supabase = createServiceClient();
   const { data, error } = await supabase
     .from("fx_rates")
     .upsert(
@@ -139,13 +161,22 @@ export async function refreshExchangeRates(options: {
   requestedDate?: string;
 }) {
   const requestedDate = options.requestedDate ?? getTodayIsoDate();
-  const providerRates = await fetchFrankfurterRates({
+  const primaryRates = await fetchFrankfurterRates({
     baseCurrency: options.baseCurrency,
     quoteCurrencies: options.quoteCurrencies,
     requestedDate,
   });
+  const primaryQuotes = new Set(primaryRates.map((rate) => rate.quote_currency));
+  const fallbackQuotes = options.quoteCurrencies.filter((currency) => !primaryQuotes.has(currency));
+  const fallbackRates = fallbackQuotes.length
+    ? await fetchCurrencyApiRates({
+        baseCurrency: options.baseCurrency,
+        quoteCurrencies: fallbackQuotes,
+        requestedDate,
+      })
+    : [];
 
-  return upsertProviderRates(providerRates);
+  return upsertProviderRates([...primaryRates, ...fallbackRates]);
 }
 
 export async function refreshSupportedCurrencyRates(requestedDate = getTodayIsoDate()) {

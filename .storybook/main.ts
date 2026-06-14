@@ -1,4 +1,5 @@
 import type { StorybookConfig } from "@storybook/nextjs-vite";
+import { mergeConfig } from "vite";
 
 const config: StorybookConfig = {
   stories: [
@@ -15,6 +16,12 @@ const config: StorybookConfig = {
     name: "@storybook/nextjs-vite",
     options: {},
   },
+  viteFinal: async (config) =>
+    mergeConfig(config, {
+      optimizeDeps: {
+        include: ["@base-ui/react/switch"],
+      },
+    }),
 };
 
 export default config;
