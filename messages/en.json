@@ -1238,6 +1238,34 @@
       "draftHardDeleted": "Deleted draft transaction from Moniq Inbox.",
       "batchSubmittedTitle": "Batch submitted",
       "batchSubmitted": "{count, plural, one {Batch submitted successfully. # transaction is now in the Moniq Claude Inbox for review. Batch ID: {batchId}} other {Batch submitted successfully. # transactions are now in the Moniq Claude Inbox for review. Batch ID: {batchId}}}"
+    },
+    "widget": {
+      "locale": "en",
+      "numberLocale": "en-GB",
+      "transactions": "Transactions",
+      "balances": "Balances",
+      "report": "Category report",
+      "recurring": "Recurring transactions",
+      "result": "Moniq result",
+      "empty": "Nothing to show",
+      "more": "more",
+      "count": "Count",
+      "paid": "Paid",
+      "planned": "Planned",
+      "skipped": "Skipped",
+      "active": "Active",
+      "paused": "Paused",
+      "income": "Income",
+      "expense": "Expense",
+      "transfer": "Transfer",
+      "debtPayment": "Debt payment",
+      "daily": "Daily",
+      "weekly": "Weekly",
+      "monthly": "Monthly",
+      "yearly": "Yearly",
+      "principal": "principal",
+      "interest": "interest",
+      "extraPrincipal": "extra principal"
     }
   }
 }

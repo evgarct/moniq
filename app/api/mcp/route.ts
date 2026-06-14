@@ -24,6 +24,7 @@ import {
   MONIQ_WIDGET_URI,
   moniqWidgetHtml,
   moniqWidgetMeta,
+  type MoniqWidgetCopy,
 } from "./widget";
 
 // ---------------------------------------------------------------------------
@@ -60,6 +61,37 @@ type ReadTransactionStatus = (typeof READ_TRANSACTION_STATUSES)[number];
 type ScheduleFrequency = (typeof SCHEDULE_FREQUENCIES)[number];
 type ScheduleState = (typeof SCHEDULE_STATES)[number];
 type McpTranslator = (key: string, values?: Record<string, string | number | Date>) => string;
+
+function getMoniqWidgetCopy(t: McpTranslator): MoniqWidgetCopy {
+  return {
+    locale: t("mcp.widget.locale"),
+    numberLocale: t("mcp.widget.numberLocale"),
+    transactions: t("mcp.widget.transactions"),
+    balances: t("mcp.widget.balances"),
+    report: t("mcp.widget.report"),
+    recurring: t("mcp.widget.recurring"),
+    result: t("mcp.widget.result"),
+    empty: t("mcp.widget.empty"),
+    more: t("mcp.widget.more"),
+    count: t("mcp.widget.count"),
+    paid: t("mcp.widget.paid"),
+    planned: t("mcp.widget.planned"),
+    skipped: t("mcp.widget.skipped"),
+    active: t("mcp.widget.active"),
+    paused: t("mcp.widget.paused"),
+    income: t("mcp.widget.income"),
+    expense: t("mcp.widget.expense"),
+    transfer: t("mcp.widget.transfer"),
+    debt_payment: t("mcp.widget.debtPayment"),
+    daily: t("mcp.widget.daily"),
+    weekly: t("mcp.widget.weekly"),
+    monthly: t("mcp.widget.monthly"),
+    yearly: t("mcp.widget.yearly"),
+    principal: t("mcp.widget.principal"),
+    interest: t("mcp.widget.interest"),
+    extra: t("mcp.widget.extraPrincipal"),
+  };
+}
 
 type TransactionOperationItem = {
   id?: string;
@@ -1931,7 +1963,11 @@ function handleResourcesList(id: string | number | null): McpResponse {
   };
 }
 
-function handleResourcesRead(id: string | number | null, params?: Record<string, unknown>): McpResponse {
+function handleResourcesRead(
+  id: string | number | null,
+  t: McpTranslator,
+  params?: Record<string, unknown>,
+): McpResponse {
   const uri = typeof params?.uri === "string" ? params.uri : "";
   if (uri !== MONIQ_WIDGET_URI) {
     return { jsonrpc: "2.0", id, error: { code: -32602, message: `Unknown resource: ${uri}` } };
@@ -1945,7 +1981,7 @@ function handleResourcesRead(id: string | number | null, params?: Record<string,
         {
           uri: MONIQ_WIDGET_URI,
           mimeType: MONIQ_WIDGET_MIME_TYPE,
-          text: moniqWidgetHtml(),
+          text: moniqWidgetHtml(getMoniqWidgetCopy(t)),
           _meta: MONIQ_WIDGET_RESOURCE_META,
         },
       ],
@@ -2801,7 +2837,7 @@ async function dispatchMessage(msg: McpRequest, auth: { userId: string; keyHash:
       return handleResourcesList(id);
 
     case "resources/read":
-      return handleResourcesRead(id, msg.params);
+      return handleResourcesRead(id, t, msg.params);
 
     case "tools/call":
       return handleToolCall(id, (msg.params ?? {}) as Record<string, unknown>, auth, t);

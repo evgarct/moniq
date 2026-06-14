@@ -39,11 +39,11 @@ function setupAuth() {
   });
 }
 
-async function postMcp(body: unknown) {
+async function postMcp(body: unknown, headers: Record<string, string> = {}) {
   return POST(
     new Request("https://moniq.test/api/mcp", {
       method: "POST",
-      headers: AUTH_HEADERS,
+      headers: { ...AUTH_HEADERS, ...headers },
       body: JSON.stringify(body),
     }),
   );
@@ -472,6 +472,24 @@ describe("MCP tools", () => {
       mimeType: "text/html;profile=mcp-app",
     });
     expect(readBody.result.contents[0].text).toContain("ui/notifications/tool-result");
+  });
+
+  it("localizes the widget resource from the MCP request locale", async () => {
+    const response = await postMcp(
+      {
+        jsonrpc: "2.0",
+        id: "resource-ru",
+        method: "resources/read",
+        params: { uri: "ui://moniq/finance-result.html" },
+      },
+      { "Accept-Language": "ru" },
+    );
+    const body = await response.json();
+    const html = body.result.contents[0].text;
+
+    expect(html).toContain('"empty":"Нет данных"');
+    expect(html).toContain('"debt_payment":"Платёж по долгу"');
+    expect(html).not.toContain('"empty":"Nothing to show"');
   });
 
   it("returns finance context with category paths and selectable flags", async () => {

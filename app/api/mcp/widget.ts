@@ -20,9 +20,40 @@ export const MONIQ_WIDGET_RESOURCE_META = {
   },
 };
 
-export function moniqWidgetHtml() {
+export type MoniqWidgetCopy = {
+  locale: string;
+  numberLocale: string;
+  transactions: string;
+  balances: string;
+  report: string;
+  recurring: string;
+  result: string;
+  empty: string;
+  more: string;
+  count: string;
+  paid: string;
+  planned: string;
+  skipped: string;
+  active: string;
+  paused: string;
+  income: string;
+  expense: string;
+  transfer: string;
+  debt_payment: string;
+  daily: string;
+  weekly: string;
+  monthly: string;
+  yearly: string;
+  principal: string;
+  interest: string;
+  extra: string;
+};
+
+export function moniqWidgetHtml(copy: MoniqWidgetCopy) {
+  const serializedCopy = JSON.stringify(copy).replace(/</g, "\\u003c");
+
   return `<!doctype html>
-<html lang="en">
+<html lang="${copy.locale}">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -70,24 +101,20 @@ export function moniqWidgetHtml() {
     const api = window.openai || {};
     const MAX_ROWS = 8;
     let currentData = api.toolOutput || api.structuredContent || {};
-    const locale = String(api.locale || navigator.language || "en").toLowerCase().startsWith("ru") ? "ru" : "en";
-    const copy = {
-      en: { transactions: "Transactions", balances: "Balances", report: "Category report", recurring: "Recurring transactions", result: "Moniq result", empty: "Nothing to show", more: "more", paid: "Paid", planned: "Planned", skipped: "Skipped", active: "Active", paused: "Paused", income: "Income", expense: "Expense", transfer: "Transfer", debt_payment: "Debt payment", daily: "Daily", weekly: "Weekly", monthly: "Monthly", yearly: "Yearly", principal: "principal", interest: "interest", extra: "extra principal" },
-      ru: { transactions: "Транзакции", balances: "Балансы", report: "Отчёт по категориям", recurring: "Регулярные транзакции", result: "Результат Moniq", empty: "Нет данных", more: "ещё", paid: "Оплачено", planned: "Запланировано", skipped: "Пропущено", active: "Активно", paused: "Приостановлено", income: "Доход", expense: "Расход", transfer: "Перевод", debt_payment: "Платёж по долгу", daily: "Ежедневно", weekly: "Еженедельно", monthly: "Ежемесячно", yearly: "Ежегодно", principal: "основной долг", interest: "проценты", extra: "досрочно" }
-    }[locale];
+    const copy = ${serializedCopy};
 
     function text(value) { return value == null ? "" : String(value); }
     function escapeHtml(value) { return text(value).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch])); }
     function number(value, currency) {
       const amount = Number(value);
       if (!Number.isFinite(amount)) return "";
-      const formatted = new Intl.NumberFormat(locale === "ru" ? "ru-RU" : "en-US", { maximumFractionDigits: 2 }).format(amount);
+      const formatted = new Intl.NumberFormat(copy.numberLocale, { maximumFractionDigits: 2 }).format(amount);
       return currency ? formatted + " " + currency : formatted;
     }
     function date(value) {
       if (!value) return "";
       const parsed = new Date(String(value).slice(0, 10) + "T00:00:00Z");
-      return Number.isNaN(parsed.valueOf()) ? text(value) : new Intl.DateTimeFormat(locale === "ru" ? "ru-RU" : "en-GB").format(parsed);
+      return Number.isNaN(parsed.valueOf()) ? text(value) : new Intl.DateTimeFormat(copy.numberLocale).format(parsed);
     }
     function label(value) { return copy[value] || text(value).replace(/_/g, " "); }
     function accountText(item) {
@@ -119,9 +146,15 @@ export function moniqWidgetHtml() {
       if (Array.isArray(data.transactions)) return { title: copy.transactions, rows: data.transactions, summary: { count: data.transactions.length } };
       if (Array.isArray(data.schedules)) return { title: copy.recurring, rows: data.schedules, summary: { count: data.schedules.length } };
       if (Array.isArray(data.cards) || Array.isArray(data.debts)) return { title: copy.balances, rows: [...(data.cards || []), ...(data.debts || [])], summary: data.totals_by_currency };
-      if (Array.isArray(data.envelopes)) {
-        const rows = data.envelopes.flatMap((entry) => (entry.totals || []).map((total) => ({ title: entry.name, amount: total.amount, currency: total.currency })));
-        return { title: copy.report, rows, summary: data.summary };
+      if (
+        Array.isArray(data.envelopes)
+        || Array.isArray(data.income_categories)
+        || Array.isArray(data.uncategorized)
+      ) {
+        const categories = [...(data.envelopes || []), ...(data.income_categories || [])];
+        const rows = categories.flatMap((entry) => (entry.totals || []).map((total) => ({ title: entry.name, amount: total.amount, currency: total.currency })));
+        const uncategorizedRows = (data.uncategorized || []).flatMap((entry) => (entry.totals || []).map((total) => ({ title: label(entry.kind), amount: total.amount, currency: total.currency })));
+        return { title: copy.report, rows: [...rows, ...uncategorizedRows], summary: data.summary };
       }
       if (data.created || data.updated || data.deleted || data.schedule) {
         const rows = [data.created, data.updated, data.deleted, data.schedule].flatMap((value) => Array.isArray(value) ? value : value ? [value] : []);
@@ -137,8 +170,9 @@ export function moniqWidgetHtml() {
       message.hidden = !view.message;
       const summary = document.getElementById("summary");
       const summaryEntries = view.summary && typeof view.summary === "object" && !Array.isArray(view.summary)
-        ? Object.entries(view.summary).filter(([, value]) => typeof value === "string" || typeof value === "number")
+        ? Object.entries(view.summary).filter(([key, value]) => key !== "count" && (typeof value === "string" || typeof value === "number"))
         : [];
+      if (view.summary && typeof view.summary.count === "number") summaryEntries.unshift([copy.count, view.summary.count]);
       summary.innerHTML = summaryEntries.map(([key, value]) => '<span>' + escapeHtml(label(key)) + ': ' + escapeHtml(value) + '</span>').join("");
       summary.hidden = summaryEntries.length === 0;
       const rows = Array.isArray(view.rows) ? view.rows : [];
