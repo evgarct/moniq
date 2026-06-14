@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { convertMoney } from "@/features/finance/lib/exchange-rates";
+import {
+  convertMoney,
+  getCurrenciesMissingExchangeRates,
+} from "@/features/finance/lib/exchange-rates";
 import type { ExchangeRate } from "@/types/finance";
 
 const rates: ExchangeRate[] = [
@@ -34,6 +37,22 @@ const rates: ExchangeRate[] = [
 ];
 
 describe("exchange rate conversion", () => {
+  it("reports only currencies that cannot reach the target currency", () => {
+    expect(getCurrenciesMissingExchangeRates({
+      currencies: ["CZK", "EUR", "USD", "USD"],
+      targetCurrency: "CZK",
+      requestedDate: "2026-06-14",
+      exchangeRates: rates,
+    })).toEqual([]);
+
+    expect(getCurrenciesMissingExchangeRates({
+      currencies: ["CZK", "RUB", "RUB"],
+      targetCurrency: "CZK",
+      requestedDate: "2026-06-14",
+      exchangeRates: [],
+    })).toEqual(["RUB"]);
+  });
+
   it("returns same-currency amounts without a rate", () => {
     expect(
       convertMoney({

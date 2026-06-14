@@ -6,6 +6,8 @@ import type { ExchangeRateProvider } from "@/types/finance";
 
 export const FRANKFURTER_PROVIDER: ExchangeRateProvider = "frankfurter";
 const FRANKFURTER_API_URL = "https://api.frankfurter.dev/v2/rates";
+export const CURRENCY_API_PROVIDER: ExchangeRateProvider = "currency-api";
+const CURRENCY_API_URL = "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies";
 
 export type FxProviderRate = {
   provider: ExchangeRateProvider;
@@ -129,5 +131,53 @@ export async function fetchFrankfurterRates(options: {
         endpoint: FRANKFURTER_API_URL,
       },
     };
+  });
+}
+
+export async function fetchCurrencyApiRates(options: {
+  baseCurrency: CurrencyCode;
+  quoteCurrencies: CurrencyCode[];
+  requestedDate: string;
+  fetcher?: Fetcher;
+}): Promise<FxProviderRate[]> {
+  assertIsoDate(options.requestedDate);
+
+  const quoteCurrencies = Array.from(new Set(options.quoteCurrencies)).filter(
+    (currency) => currency !== options.baseCurrency,
+  );
+  if (!quoteCurrencies.length) return [];
+
+  const baseKey = options.baseCurrency.toLowerCase();
+  const url = `${CURRENCY_API_URL}/${baseKey}.json`;
+  const fetcher = options.fetcher ?? fetch;
+  const response = await fetcher(url);
+
+  if (!response.ok) {
+    throw new Error(`FX fallback provider request failed with ${response.status}.`);
+  }
+
+  const payload = await response.json() as Record<string, unknown>;
+  const rateDate = payload.date;
+  const rates = payload[baseKey];
+  if (typeof rateDate !== "string" || !rates || typeof rates !== "object") {
+    throw new Error("FX fallback provider returned an unexpected response.");
+  }
+  assertIsoDate(rateDate);
+
+  return quoteCurrencies.flatMap((quoteCurrency) => {
+    const rate = (rates as Record<string, unknown>)[quoteCurrency.toLowerCase()];
+    if (rate == null) return [];
+
+    return [{
+      provider: CURRENCY_API_PROVIDER,
+      base_currency: options.baseCurrency,
+      quote_currency: quoteCurrency,
+      requested_date: options.requestedDate,
+      rate_date: rateDate,
+      rate: normalizeRate(rate),
+      source_metadata: {
+        endpoint: CURRENCY_API_URL,
+      },
+    }];
   });
 }

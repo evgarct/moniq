@@ -1,7 +1,7 @@
 "use client";
 
 import { addMonths, format, parseISO } from "date-fns";
-import { AlertTriangle, SlidersHorizontal } from "lucide-react";
+import { ChevronDown, Info } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -9,111 +9,43 @@ import { useMemo, useState } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { MoneyAmount } from "@/components/money-amount";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { ProjectedBalanceAccountPicker } from "@/features/reports/components/projected-balance-account-picker";
 import { ProjectedBalanceChart } from "@/features/reports/components/projected-balance-chart";
-import { ProjectedBalanceSeriesEditor } from "@/features/reports/components/projected-balance-series-editor";
 import {
   buildProjectedBalanceReport,
-  resolveProjectedBalancePeriod,
-  type ProjectedBalanceSeries,
+  createProjectedBalanceSeries,
 } from "@/features/reports/lib/projected-balance";
 import {
   buildProjectedBalanceSearchParams,
   parseProjectedBalanceUrlState,
+  type ProjectedBalanceSelection,
 } from "@/features/reports/lib/projected-balance-url";
 import { calDate } from "@/lib/formatters";
 import type { FinanceSnapshot } from "@/types/finance";
 
 const PRESET_MONTHS = [1, 3, 6, 12, 18] as const;
-const SERIES_COLOR_CLASSES = [
-  "bg-chart-1",
-  "bg-chart-2",
-  "bg-chart-3",
-  "bg-chart-4",
-  "bg-chart-5",
-] as const;
 
-function replaceUrlState(endDate: string, series: Parameters<typeof buildProjectedBalanceSearchParams>[0]["series"]) {
-  const params = buildProjectedBalanceSearchParams({ endDate, series });
+function replaceUrlState(endDate: string, selection: ProjectedBalanceSelection) {
+  const params = buildProjectedBalanceSearchParams({ endDate, selection });
   window.history.replaceState(null, "", `?${params.toString()}`);
-}
-
-function SeriesDateDetail({
-  series,
-  selectedDate,
-  currency,
-}: {
-  series: ProjectedBalanceSeries;
-  selectedDate: string;
-  currency: FinanceSnapshot["preferences"]["default_currency"];
-}) {
-  const t = useTranslations("reports.projectedBalance");
-  const point = series.points.find((item) => item.date === selectedDate);
-  if (!point) return null;
-
-  return (
-    <section className="flex flex-col gap-3 border-t border-border/60 py-4 first:border-t-0">
-      <div className="flex items-baseline justify-between gap-4">
-        <h3 className="type-h6">{series.name}</h3>
-        <MoneyAmount
-          amount={point.balance}
-          currency={currency}
-          className="text-sm font-semibold tabular-nums"
-        />
-      </div>
-
-      <div className="flex flex-col gap-1">
-        {point.accounts.map((account) => (
-          <div
-            key={account.account_id}
-            className="flex items-center justify-between gap-4 rounded-[var(--radius-control)] px-2 py-2 hover:bg-secondary/50"
-          >
-            <div className="min-w-0">
-              <p className="type-body-14 truncate">{account.account_name}</p>
-              {account.native_currency !== currency ? (
-                <MoneyAmount
-                  amount={account.native_balance}
-                  currency={account.native_currency}
-                  tone="muted"
-                  className="type-body-12"
-                />
-              ) : null}
-            </div>
-            <MoneyAmount
-              amount={account.converted_balance}
-              currency={currency}
-              className="shrink-0 text-sm tabular-nums"
-            />
-          </div>
-        ))}
-      </div>
-
-      {point.operations.length ? (
-        <div className="flex flex-col gap-1 border-t border-border/40 pt-3">
-          <p className="type-body-12 px-2 font-medium text-muted-foreground">{t("details.operations")}</p>
-          {point.operations.map((operation) => (
-            <div key={operation.id} className="flex items-center justify-between gap-3 px-2 py-1.5">
-              <p className="type-body-12 min-w-0 truncate text-foreground">{operation.title}</p>
-              <p className="type-body-12 shrink-0 text-muted-foreground">
-                {t(`operationKinds.${operation.kind}`)}
-              </p>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="type-body-12 px-2 text-muted-foreground">{t("details.noOperations")}</p>
-      )}
-    </section>
-  );
 }
 
 export function ProjectedBalanceView({
   snapshot,
-  initialEditorOpen = false,
+  initialAccountPickerOpen = false,
 }: {
   snapshot: FinanceSnapshot;
-  initialEditorOpen?: boolean;
+  initialAccountPickerOpen?: boolean;
 }) {
   const t = useTranslations("reports.projectedBalance");
   const formatDate = useFormatter();
@@ -123,13 +55,22 @@ export function ProjectedBalanceView({
       parseProjectedBalanceUrlState({
         searchParams,
         accounts: snapshot.accounts,
-        defaultSeriesName: t("defaultSeriesName"),
       }),
-    [searchParams, snapshot.accounts, t],
+    [searchParams, snapshot.accounts],
   );
   const [endDate, setEndDate] = useState(initialState.endDate);
-  const [series, setSeries] = useState(initialState.series);
-  const [editorOpen, setEditorOpen] = useState(initialEditorOpen);
+  const [selection, setSelection] = useState(initialState.selection);
+  const [periodOpen, setPeriodOpen] = useState(false);
+  const series = useMemo(
+    () =>
+      createProjectedBalanceSeries({
+        accounts: snapshot.accounts,
+        accountIds: selection.accountIds,
+        merged: selection.merged,
+        mergedName: t("defaultSeriesName"),
+      }),
+    [selection, snapshot.accounts, t],
+  );
   const report = useMemo(
     () =>
       buildProjectedBalanceReport({
@@ -151,161 +92,127 @@ export function ProjectedBalanceView({
     const expected = format(addMonths(parseISO(report.start_date), months), "yyyy-MM-dd");
     return expected === endDate;
   });
+  const periodLabel = selectedPreset
+    ? t("period.months", { count: selectedPreset })
+    : formatDate.dateTime(calDate(endDate), { month: "short", year: "numeric" });
+
+  function updateSelection(nextSelection: ProjectedBalanceSelection) {
+    setSelection(nextSelection);
+    replaceUrlState(endDate, nextSelection);
+  }
+
+  function updatePeriod(months: number) {
+    if (!PRESET_MONTHS.includes(months as typeof PRESET_MONTHS[number])) return;
+    const nextEndDate = format(addMonths(parseISO(report.start_date), months), "yyyy-MM-dd");
+    setEndDate(nextEndDate);
+    setPeriodOpen(false);
+    replaceUrlState(nextEndDate, selection);
+  }
 
   if (!snapshot.accounts.length) {
     return (
-      <div className="h-full overflow-y-auto p-4 sm:p-6">
+      <div className="h-full overflow-x-hidden overflow-y-auto p-4 sm:p-6">
         <EmptyState title={t("empty.title")} description={t("empty.description")} />
       </div>
     );
   }
 
   return (
-    <div className="mobile-nav-scroll-clearance h-full overflow-y-auto pb-[calc(76px+env(safe-area-inset-bottom))] lg:pb-0">
-      <header className="border-b border-border/60 px-4 py-5 sm:px-6 lg:px-7">
-        <div className="flex flex-col gap-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p className="type-body-12 uppercase tracking-[0.18em] text-muted-foreground">{t("eyebrow")}</p>
-              <h1 className="type-h2 text-balance">{t("title")}</h1>
-              <p className="type-body-14 mt-1 max-w-2xl text-pretty text-muted-foreground">
-                {t("description")}
-              </p>
-            </div>
-            <Button variant="outline" onClick={() => setEditorOpen(true)}>
-              <SlidersHorizontal data-icon="inline-start" />
-              {t("actions.manageSeries")}
-            </Button>
+    <div className="mobile-nav-scroll-clearance h-full w-full max-w-full overflow-x-hidden overflow-y-auto pb-[calc(76px+env(safe-area-inset-bottom))] lg:pb-0">
+      <header className="border-b border-border/60 bg-card">
+        <div className="flex flex-col gap-3 px-4 pt-5 pb-4 sm:px-6 sm:pt-7 sm:pb-5 lg:flex-row lg:items-center lg:justify-between lg:px-7 lg:pt-8 lg:pb-6">
+          <div className="flex min-w-0 items-center gap-2">
+            <h1 className="font-heading text-[28px] leading-none tracking-[-0.035em] text-foreground sm:type-h1">
+              {t("title")}
+            </h1>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="shrink-0 bg-transparent text-muted-foreground hover:bg-secondary/70 hover:text-foreground active:bg-secondary"
+                    aria-label={t("description")}
+                  />
+                }
+              >
+                <Info className="size-4 translate-y-[2px]" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-72 text-balance">{t("description")}</TooltipContent>
+            </Tooltip>
           </div>
 
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div className="flex flex-col gap-2">
-              <label htmlFor="projected-balance-end" className="type-body-12 font-medium text-muted-foreground">
-                {t("period.endDate")}
-              </label>
-              <Input
-                id="projected-balance-end"
-                type="date"
-                min={report.start_date}
-                max={resolveProjectedBalancePeriod({ endDate: "2999-01-01" }).end_date}
-                value={endDate}
-                className="w-full sm:w-48"
-                onChange={(event) => {
-                  const nextEndDate = resolveProjectedBalancePeriod({ endDate: event.target.value }).end_date;
-                  setEndDate(nextEndDate);
-                  replaceUrlState(nextEndDate, series);
-                }}
-              />
-            </div>
+          <div className="flex min-w-0 items-center gap-1 overflow-x-auto lg:justify-end" role="toolbar" aria-label={t("title")}>
+            <ProjectedBalanceAccountPicker
+              accounts={snapshot.accounts}
+              selection={selection}
+              onSelectionChange={updateSelection}
+              initialOpen={initialAccountPickerOpen}
+            />
 
-            <ToggleGroup
-              value={selectedPreset ? [String(selectedPreset)] : []}
-              onValueChange={(value) => {
-                const months = Number(value[0]);
-                if (!PRESET_MONTHS.includes(months as typeof PRESET_MONTHS[number])) return;
-                const nextEndDate = format(addMonths(parseISO(report.start_date), months), "yyyy-MM-dd");
-                setEndDate(nextEndDate);
-                replaceUrlState(nextEndDate, series);
-              }}
-              variant="outline"
-              size="sm"
-              className="max-w-full overflow-x-auto"
-            >
-              {PRESET_MONTHS.map((months) => (
-                <ToggleGroupItem key={months} value={String(months)}>
-                  {t("period.months", { count: months })}
-                </ToggleGroupItem>
-              ))}
-            </ToggleGroup>
+            <DropdownMenu open={periodOpen} onOpenChange={setPeriodOpen}>
+              <DropdownMenuTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    className="shrink-0 bg-transparent text-muted-foreground hover:bg-secondary/70 hover:text-foreground"
+                  />
+                }
+              >
+                {periodLabel}
+                <ChevronDown data-icon="inline-end" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel>{t("period.label")}</DropdownMenuLabel>
+                  <DropdownMenuRadioGroup
+                    value={selectedPreset ? String(selectedPreset) : ""}
+                    onValueChange={(value) => updatePeriod(Number(value))}
+                  >
+                    {PRESET_MONTHS.map((months) => (
+                      <DropdownMenuRadioItem key={months} value={String(months)}>
+                        {t("period.months", { count: months })}
+                      </DropdownMenuRadioItem>
+                    ))}
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
 
-      <main className="flex flex-col">
-        {report.missing_rates.length ? (
-          <div className="border-b border-border/60 px-4 py-3 text-destructive sm:px-6 lg:px-7">
-            <div className="flex items-start gap-2">
-              <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
-              <div>
-                <p className="type-body-14 font-medium">{t("missingRate.title")}</p>
-                {report.missing_rates.map((missing) => (
-                  <p key={`${missing.series_id}-${missing.account_id}`} className="type-body-12">
-                    {t("missingRate.description", {
-                      series: missing.series_name,
-                      account: missing.account_name,
-                      source: missing.source_currency,
-                      target: missing.target_currency,
-                    })}
-                  </p>
-                ))}
-              </div>
-            </div>
-          </div>
-        ) : null}
-
-        {report.series.length ? (
-          <>
-            <section className="border-b border-border/60 px-2 pb-2 pt-4 sm:px-4 lg:px-5">
-              <div className="flex flex-col gap-1 px-2 sm:flex-row sm:flex-wrap sm:gap-x-6">
-                {report.series.map((item, index) => {
-                  const finalPoint = item.points.at(-1);
-                  return (
-                    <div key={item.id} className="flex items-center justify-between gap-4 py-2 sm:justify-start">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <span className={`h-0.5 w-5 shrink-0 ${SERIES_COLOR_CLASSES[index % SERIES_COLOR_CLASSES.length]}`} />
-                        <span className="type-body-14 truncate">{item.name}</span>
-                      </div>
-                      {finalPoint ? (
-                        <MoneyAmount
-                          amount={finalPoint.balance}
-                          currency={report.currency}
-                          className="text-sm font-medium tabular-nums"
-                        />
-                      ) : null}
-                    </div>
-                  );
-                })}
-              </div>
-              <ProjectedBalanceChart
-                report={report}
-                selectedDate={selectedDateInRange}
-                onSelectedDateChange={setSelectedDate}
-                ariaLabel={t("chart.ariaLabel")}
-              />
-            </section>
-
-            <section className="px-4 py-5 sm:px-6 lg:px-7">
-              <div className="mx-auto max-w-4xl">
-                <div className="mb-2 flex items-baseline justify-between gap-4">
-                  <div>
-                    <p className="type-body-12 uppercase tracking-[0.18em] text-muted-foreground">{t("details.eyebrow")}</p>
-                    <h2 className="type-h4">
-                      {formatDate.dateTime(calDate(selectedDateInRange), {
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      })}
-                    </h2>
-                  </div>
-                  <p className="type-body-12 text-muted-foreground">{report.currency}</p>
+      {report.series.length ? (
+        <main className="min-w-0 px-2 pt-4 pb-2 sm:px-4 lg:px-5">
+          <div className="flex min-w-0 flex-col gap-1 px-2 sm:flex-row sm:flex-wrap sm:gap-x-6">
+            {report.series.map((item) => {
+              const finalPoint = item.points.at(-1);
+              return (
+                <div key={item.id} className="flex min-w-0 items-center justify-between gap-4 py-2 sm:justify-start">
+                  <span className="type-body-14 min-w-0 truncate">{item.name}</span>
+                  {finalPoint ? (
+                    <MoneyAmount
+                      amount={finalPoint.balance}
+                      currency={report.currency}
+                      className="shrink-0 text-sm font-medium tabular-nums text-muted-foreground"
+                    />
+                  ) : null}
                 </div>
-                {report.series.map((item) => (
-                  <SeriesDateDetail
-                    key={item.id}
-                    series={item}
-                    selectedDate={selectedDateInRange}
-                    currency={report.currency}
-                  />
-                ))}
-              </div>
-            </section>
-          </>
-        ) : (
-          <div className="p-4 sm:p-6">
-            <EmptyState title={t("noSeries.title")} description={t("noSeries.description")} />
+              );
+            })}
           </div>
-        )}
-      </main>
+          <ProjectedBalanceChart
+            report={report}
+            selectedDate={selectedDateInRange}
+            onSelectedDateChange={setSelectedDate}
+            ariaLabel={t("chart.ariaLabel")}
+          />
+        </main>
+      ) : (
+        <div className="p-4 sm:p-6">
+          <EmptyState title={t("noSeries.title")} description={t("noSeries.description")} />
+        </div>
+      )}
 
       <p className="sr-only" aria-live="polite">
         {t("chart.selectedDate", {
@@ -316,18 +223,6 @@ export function ProjectedBalanceView({
           }),
         })}
       </p>
-
-      <ProjectedBalanceSeriesEditor
-        key={editorOpen ? `open-${series.map((item) => item.id).join("-")}` : "closed"}
-        open={editorOpen}
-        onOpenChange={setEditorOpen}
-        accounts={snapshot.accounts}
-        series={series}
-        onSave={(nextSeries) => {
-          setSeries(nextSeries);
-          replaceUrlState(endDate, nextSeries);
-        }}
-      />
     </div>
   );
 }

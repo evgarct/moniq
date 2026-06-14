@@ -26,7 +26,7 @@ export type UserPreferences = {
   default_currency_source: DefaultCurrencySource;
 };
 
-export type ExchangeRateProvider = "frankfurter";
+export type ExchangeRateProvider = "frankfurter" | "currency-api";
 
 export type ExchangeRate = {
   provider: ExchangeRateProvider;

@@ -12,18 +12,14 @@ The projected balance report is available at `/reports/projected-balance`.
 - Every point represents the end-of-day balance after that day's planned transactions.
 - The report supports up to 18 months because the finance snapshot materializes recurring occurrences through that horizon.
 
-Each configured line may contain one or more accounts, and an account may be reused in multiple lines. Lines are converted to `preferences.default_currency` with the existing exchange-rate helpers. Future dates use the latest available rate. A line is omitted entirely when any included account cannot be converted, so the UI never displays a partial aggregate.
+Users select the accounts included in the report. In merged mode, all selected accounts produce one line. With merged mode off, each selected account produces its own line. Every line is converted to `preferences.default_currency` with the existing exchange-rate helpers, and future dates use the latest available rate.
+
+When the finance snapshot does not contain a required currency pair, the report page requests a fresh rate from the authenticated FX refresh route. Frankfurter remains the primary provider; Currency API is the fallback for pairs omitted by Frankfurter. The refreshed rates are used immediately in the current report. When `SUPABASE_SERVICE_ROLE_KEY` is configured, they are also persisted in `fx_rates`.
 
 ## URL State
 
-The end date is stored as `end=YYYY-MM-DD`. Line definitions use repeated `series` parameters containing base64url JSON:
-
-```json
-{"id":"all-accounts","name":"All accounts","accountIds":["account-1"]}
-```
-
-Unknown account IDs are ignored. When all URL state is invalid, the report falls back to one line containing every available account and a six-month period.
+The end date is stored as `end=YYYY-MM-DD`. Selected accounts use repeated `account` parameters, and `merged=true|false` controls line composition. Unknown account IDs are ignored. Legacy `series` parameters are read once for existing deep links and replaced with the current format after the next interaction. When all URL state is invalid, the report falls back to every available account in merged mode with a six-month period.
 
 ## Chart
 
-The chart uses `lightweight-charts` directly with stepped line series, crosshair tracking, touch selection, and keyboard date navigation. Keep the TradingView attribution enabled when changing chart options.
+The chart uses `lightweight-charts` directly with stepped neutral line series, crosshair tracking, touch selection, and keyboard date navigation. Hovering, tapping, or dragging shows a tooltip with the selected date and line balances. Account and operation details are not rendered below the chart. Keep the TradingView attribution enabled when changing chart options.

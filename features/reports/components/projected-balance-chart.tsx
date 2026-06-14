@@ -13,17 +13,19 @@ import {
   type MouseEventParams,
   type Time,
 } from "lightweight-charts";
-import { useEffect, useRef } from "react";
+import { useFormatter } from "next-intl";
+import { useEffect, useRef, useState } from "react";
 
-import { formatMoneyNumber } from "@/lib/formatters";
+import { MoneyAmount } from "@/components/money-amount";
 import type { ProjectedBalanceReport } from "@/features/reports/lib/projected-balance";
+import { calDate } from "@/lib/formatters";
 
-const SERIES_COLOR_VARIABLES = [
-  "--chart-1",
-  "--chart-2",
-  "--chart-3",
-  "--chart-4",
+const NEUTRAL_LINE_VARIABLES = [
   "--chart-5",
+  "--chart-4",
+  "--muted-foreground",
+  "--border",
+  "--foreground",
 ] as const;
 
 function timeToDate(time: Time | undefined) {
@@ -37,10 +39,11 @@ function timeToDate(time: Time | undefined) {
   return `${day.year}-${String(day.month).padStart(2, "0")}-${String(day.day).padStart(2, "0")}`;
 }
 
-export function getProjectedBalanceSeriesColors(element: HTMLElement) {
-  const styles = getComputedStyle(element);
-  return SERIES_COLOR_VARIABLES.map((variable) => styles.getPropertyValue(variable).trim());
-}
+type ChartTooltip = {
+  date: string;
+  x: number;
+  y: number;
+};
 
 export function ProjectedBalanceChart({
   report,
@@ -53,10 +56,12 @@ export function ProjectedBalanceChart({
   onSelectedDateChange: (date: string) => void;
   ariaLabel: string;
 }) {
+  const format = useFormatter();
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const firstSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
   const onSelectedDateChangeRef = useRef(onSelectedDateChange);
+  const [tooltip, setTooltip] = useState<ChartTooltip | null>(null);
 
   useEffect(() => {
     onSelectedDateChangeRef.current = onSelectedDateChange;
@@ -67,10 +72,13 @@ export function ProjectedBalanceChart({
     if (!container || !report.series.length) return;
 
     const styles = getComputedStyle(container);
-    const colors = getProjectedBalanceSeriesColors(container);
     const textColor = styles.getPropertyValue("--muted-foreground").trim();
     const borderColor = styles.getPropertyValue("--border").trim();
     const foreground = styles.getPropertyValue("--foreground").trim();
+    const crosshairColor = styles.getPropertyValue("--chart-4").trim();
+    const lineColors = NEUTRAL_LINE_VARIABLES.map(
+      (variable) => styles.getPropertyValue(variable).trim(),
+    );
     const chart = createChart(container, {
       autoSize: true,
       height: 360,
@@ -81,17 +89,17 @@ export function ProjectedBalanceChart({
         attributionLogo: true,
       },
       grid: {
-        vertLines: { color: borderColor },
-        horzLines: { color: borderColor },
+        vertLines: { visible: false },
+        horzLines: { visible: false },
       },
       crosshair: {
         mode: CrosshairMode.Magnet,
         vertLine: {
-          color: foreground,
+          color: crosshairColor,
           labelBackgroundColor: foreground,
         },
         horzLine: {
-          color: borderColor,
+          color: crosshairColor,
           labelVisible: false,
         },
       },
@@ -116,10 +124,6 @@ export function ProjectedBalanceChart({
       trackingMode: {
         exitMode: TrackingModeExitMode.OnTouchEnd,
       },
-      localization: {
-        priceFormatter: (price: number) =>
-          formatMoneyNumber(price, report.currency, { showMinorUnits: false }),
-      },
     });
 
     chartRef.current = chart;
@@ -127,8 +131,8 @@ export function ProjectedBalanceChart({
 
     for (const [index, series] of report.series.entries()) {
       const line = chart.addSeries(LineSeries, {
-        color: colors[index % colors.length],
-        lineWidth: 2,
+        color: lineColors[index % lineColors.length],
+        lineWidth: index === 0 ? 2 : 1,
         lineType: LineType.WithSteps,
         pointMarkersVisible: false,
         priceLineVisible: false,
@@ -149,7 +153,17 @@ export function ProjectedBalanceChart({
 
     const handleCrosshairMove = (event: MouseEventParams) => {
       const date = timeToDate(event.time);
-      if (date) onSelectedDateChangeRef.current(date);
+      if (!date || !event.point) {
+        setTooltip(null);
+        return;
+      }
+
+      onSelectedDateChangeRef.current(date);
+      setTooltip({
+        date,
+        x: Math.max(8, Math.min(event.point.x + 14, container.clientWidth - 220)),
+        y: Math.max(8, Math.min(event.point.y + 14, container.clientHeight - 120)),
+      });
     };
 
     chart.subscribeCrosshairMove(handleCrosshairMove);
@@ -162,17 +176,13 @@ export function ProjectedBalanceChart({
     };
   }, [report]);
 
-  useEffect(() => {
-    const chart = chartRef.current;
-    const series = firstSeriesRef.current;
-    const point = report.series[0]?.points.find((item) => item.date === selectedDate);
-
-    if (chart && series && point) {
-      chart.setCrosshairPosition(point.balance, point.date, series);
-    }
-  }, [report, selectedDate]);
-
   const dates = report.series[0]?.points.map((point) => point.date) ?? [];
+  const tooltipPoints = tooltip
+    ? report.series.flatMap((series) => {
+        const point = series.points.find((item) => item.date === tooltip.date);
+        return point ? [{ series, point }] : [];
+      })
+    : [];
 
   return (
     <div
@@ -191,9 +201,42 @@ export function ProjectedBalanceChart({
         if (nextDate) {
           event.preventDefault();
           onSelectedDateChange(nextDate);
+          const chart = chartRef.current;
+          const series = firstSeriesRef.current;
+          const point = report.series[0]?.points.find((item) => item.date === nextDate);
+          if (chart && series && point) {
+            chart.setCrosshairPosition(point.balance, point.date, series);
+          }
         }
       }}
-      className="h-[300px] w-full touch-pan-y outline-none focus-visible:ring-2 focus-visible:ring-ring lg:h-[360px]"
-    />
+      className="relative h-[300px] w-full touch-none overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-ring lg:h-[360px]"
+    >
+      {tooltip ? (
+        <div
+          className="pointer-events-none absolute z-10 min-w-48 rounded-[var(--radius-floating)] bg-popover px-3 py-2 shadow-md ring-1 ring-foreground/10"
+          style={{ left: tooltip.x, top: tooltip.y }}
+        >
+          <p className="type-body-12 mb-1.5 text-muted-foreground">
+            {format.dateTime(calDate(tooltip.date), {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            })}
+          </p>
+          <div className="flex flex-col gap-1">
+            {tooltipPoints.map(({ series, point }) => (
+              <div key={series.id} className="flex items-baseline justify-between gap-4">
+                <span className="type-body-12 min-w-0 truncate text-foreground">{series.name}</span>
+                <MoneyAmount
+                  amount={point.balance}
+                  currency={report.currency}
+                  className="shrink-0 text-sm font-medium tabular-nums"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }

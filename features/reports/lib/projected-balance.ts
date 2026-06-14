@@ -12,6 +12,32 @@ export type ProjectedBalanceSeriesConfig = {
   accountIds: string[];
 };
 
+export function createProjectedBalanceSeries(options: {
+  accounts: Account[];
+  accountIds: string[];
+  merged: boolean;
+  mergedName: string;
+}): ProjectedBalanceSeriesConfig[] {
+  const selectedAccountIds = new Set(options.accountIds);
+  const selectedAccounts = options.accounts.filter((account) => selectedAccountIds.has(account.id));
+
+  if (options.merged) {
+    return selectedAccounts.length
+      ? [{
+          id: "merged-accounts",
+          name: options.mergedName,
+          accountIds: selectedAccounts.map((account) => account.id),
+        }]
+      : [];
+  }
+
+  return selectedAccounts.map((account) => ({
+    id: account.id,
+    name: account.name,
+    accountIds: [account.id],
+  }));
+}
+
 export type ProjectedBalanceAccountPoint = {
   account_id: string;
   account_name: string;

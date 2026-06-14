@@ -2,7 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-import { fetchFrankfurterRates } from "@/features/finance/server/fx-provider";
+import {
+  fetchCurrencyApiRates,
+  fetchFrankfurterRates,
+} from "@/features/finance/server/fx-provider";
 
 describe("Frankfurter FX provider", () => {
   it("maps v2 rows and keeps requested date separate from source rate date", async () => {
@@ -59,5 +62,37 @@ describe("Frankfurter FX provider", () => {
         fetcher,
       }),
     ).rejects.toThrow("Quote currency is not supported.");
+  });
+});
+
+describe("Currency API fallback provider", () => {
+  it("maps supported fallback rates", async () => {
+    const fetcher = vi.fn(async () =>
+      Response.json({
+        date: "2026-06-14",
+        czk: {
+          rub: 3.67,
+        },
+      }),
+    );
+
+    await expect(
+      fetchCurrencyApiRates({
+        baseCurrency: "CZK",
+        quoteCurrencies: ["RUB"],
+        requestedDate: "2026-06-14",
+        fetcher,
+      }),
+    ).resolves.toEqual([{
+      provider: "currency-api",
+      base_currency: "CZK",
+      quote_currency: "RUB",
+      requested_date: "2026-06-14",
+      rate_date: "2026-06-14",
+      rate: 3.67,
+      source_metadata: {
+        endpoint: "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies",
+      },
+    }]);
   });
 });

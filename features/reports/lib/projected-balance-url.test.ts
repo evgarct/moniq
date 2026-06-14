@@ -10,50 +10,74 @@ const accounts = [{ id: "wallet-1" }, { id: "wallet-2" }];
 const now = new Date("2026-06-14T12:00:00Z");
 
 describe("projected balance URL state", () => {
-  it("round-trips valid series and end date", () => {
+  it("round-trips selected accounts, merged mode, and end date", () => {
     const params = buildProjectedBalanceSearchParams({
       endDate: "2026-12-14",
-      series: [
-        { id: "one", name: "Primary", accountIds: ["wallet-1"] },
-        { id: "two", name: "Combined", accountIds: ["wallet-1", "wallet-2"] },
-      ],
+      selection: {
+        accountIds: ["wallet-1", "wallet-2"],
+        merged: false,
+      },
     });
 
     expect(
       parseProjectedBalanceUrlState({
         searchParams: params,
         accounts,
-        defaultSeriesName: "All accounts",
         now,
       }),
     ).toEqual({
       endDate: "2026-12-14",
-      series: [
-        { id: "one", name: "Primary", accountIds: ["wallet-1"] },
-        { id: "two", name: "Combined", accountIds: ["wallet-1", "wallet-2"] },
-      ],
+      selection: {
+        accountIds: ["wallet-1", "wallet-2"],
+        merged: false,
+      },
     });
   });
 
   it("removes unknown accounts and falls back when the URL is invalid", () => {
     const params = buildProjectedBalanceSearchParams({
       endDate: "2999-01-01",
-      series: [{ id: "missing", name: "Missing", accountIds: ["deleted"] }],
-    });
-    params.append("series", "not-base64");
-
-    const state = parseProjectedBalanceUrlState({
-      searchParams: params,
-      accounts,
-      defaultSeriesName: "All accounts",
-      now,
+      selection: {
+        accountIds: ["deleted"],
+        merged: false,
+      },
     });
 
-    expect(state.series).toEqual([{
-      id: "all-accounts",
+    expect(
+      parseProjectedBalanceUrlState({
+        searchParams: params,
+        accounts,
+        now,
+      }),
+    ).toEqual({
+      endDate: format(addMonths(now, 18), "yyyy-MM-dd"),
+      selection: {
+        accountIds: ["wallet-1", "wallet-2"],
+        merged: true,
+      },
+    });
+  });
+
+  it("migrates account ids from the previous series URL format", () => {
+    const legacySeries = btoa(JSON.stringify({
+      id: "all",
       name: "All accounts",
       accountIds: ["wallet-1", "wallet-2"],
-    }]);
-    expect(state.endDate).toBe(format(addMonths(now, 18), "yyyy-MM-dd"));
+    })).replace(/=+$/g, "");
+    const params = new URLSearchParams({
+      end: "2026-12-14",
+      series: legacySeries,
+    });
+
+    expect(
+      parseProjectedBalanceUrlState({
+        searchParams: params,
+        accounts,
+        now,
+      }).selection,
+    ).toEqual({
+      accountIds: ["wallet-1", "wallet-2"],
+      merged: true,
+    });
   });
 });

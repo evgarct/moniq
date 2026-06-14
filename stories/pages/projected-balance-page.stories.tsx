@@ -128,14 +128,15 @@ export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole("heading", { name: "Projected balance" })).toBeInTheDocument();
-    await expect(canvas.getByRole("button", { name: "Manage lines" })).toBeInTheDocument();
+    await expect(canvas.getByRole("button", { name: "All accounts" })).toBeInTheDocument();
+    await expect(canvas.getByRole("button", { name: "6 months" })).toBeInTheDocument();
   },
 };
 
-export const EditorOpen: Story = {
+export const AccountPickerOpen: Story = {
   args: {
     snapshot: reportSnapshot,
-    initialEditorOpen: true,
+    initialAccountPickerOpen: true,
   },
 };
 
@@ -160,11 +161,19 @@ export const NoPlannedTransactions: Story = {
   },
 };
 
-export const MissingExchangeRate: Story = {
+export const SeparateAccounts: Story = {
   args: {
-    snapshot: {
-      ...reportSnapshot,
-      exchange_rates: [],
+    snapshot: reportSnapshot,
+  },
+  parameters: {
+    nextjs: {
+      navigation: {
+        pathname: "/reports/projected-balance",
+        query: {
+          merged: "false",
+          account: reportSnapshot.accounts.map((account) => account.id),
+        },
+      },
     },
   },
 };
