@@ -18,6 +18,13 @@ import { getMcpResourceMetadataUrl } from "@/lib/app-url";
 import { createAnonClient } from "@/lib/supabase/anon";
 import type { CurrencyCode } from "@/types/currency";
 import type { Account, Category, Transaction } from "@/types/finance";
+import {
+  MONIQ_WIDGET_MIME_TYPE,
+  MONIQ_WIDGET_RESOURCE_META,
+  MONIQ_WIDGET_URI,
+  moniqWidgetHtml,
+  moniqWidgetMeta,
+} from "./widget";
 
 // ---------------------------------------------------------------------------
 // CORS — required for Claude.ai (browser-based MCP client)
@@ -47,9 +54,6 @@ const DIRECT_TRANSACTION_STATUSES = ["paid", "planned"] as const;
 const READ_TRANSACTION_STATUSES = ["paid", "planned", "skipped"] as const;
 const SCHEDULE_FREQUENCIES = ["daily", "weekly", "monthly", "yearly"] as const;
 const SCHEDULE_STATES = ["active", "paused"] as const;
-const TRANSACTION_RESULT_WIDGET_URI = "ui://moniq/transaction-result.html";
-const TRANSACTION_RESULT_MIME_TYPE = "text/html;profile=mcp-app";
-
 type TransactionKind = (typeof TRANSACTION_KINDS)[number];
 type DirectTransactionStatus = (typeof DIRECT_TRANSACTION_STATUSES)[number];
 type ReadTransactionStatus = (typeof READ_TRANSACTION_STATUSES)[number];
@@ -65,6 +69,16 @@ type TransactionOperationItem = {
   kind: string;
   status?: string;
   currency?: string | null;
+  destination_currency?: string | null;
+  note?: string | null;
+  category_path?: string | null;
+  category_name?: string | null;
+  source_account_name?: string | null;
+  destination_account_name?: string | null;
+  destination_amount?: number | null;
+  principal_amount?: number | null;
+  interest_amount?: number | null;
+  extra_principal_amount?: number | null;
 };
 
 type TransactionOperationSummary = {
@@ -358,6 +372,16 @@ function transactionOperationOutputSchema(title = "Moniq transaction result") {
             kind: { type: "string" },
             status: { type: "string" },
             currency: { type: ["string", "null"] },
+            destination_currency: { type: ["string", "null"] },
+            note: { type: ["string", "null"] },
+            category_path: { type: ["string", "null"] },
+            category_name: { type: ["string", "null"] },
+            source_account_name: { type: ["string", "null"] },
+            destination_account_name: { type: ["string", "null"] },
+            destination_amount: { type: ["number", "null"] },
+            principal_amount: { type: ["number", "null"] },
+            interest_amount: { type: ["number", "null"] },
+            extra_principal_amount: { type: ["number", "null"] },
           },
           required: ["title", "amount", "occurred_at", "kind"],
         },
@@ -367,14 +391,16 @@ function transactionOperationOutputSchema(title = "Moniq transaction result") {
   };
 }
 
-function transactionWidgetMeta(invoking: string, invoked: string) {
+function widgetOutputSchema(title: string) {
   return {
-    ui: { resourceUri: TRANSACTION_RESULT_WIDGET_URI },
-    "openai/outputTemplate": TRANSACTION_RESULT_WIDGET_URI,
-    "openai/widgetAccessible": true,
-    "openai/toolInvocation/invoking": invoking,
-    "openai/toolInvocation/invoked": invoked,
+    type: "object",
+    title,
+    additionalProperties: true,
   };
+}
+
+function transactionWidgetMeta(invoking: string, invoked: string) {
+  return moniqWidgetMeta(invoking, invoked);
 }
 
 function directTransactionInputSchema(title: string) {
@@ -462,6 +488,8 @@ function recurringToolAliases() {
       title: "List recurring transactions",
       description: "Alias of get_recurring_transaction_schedules. Read active and paused Moniq recurring transaction schedules.",
       annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+      _meta: moniqWidgetMeta("Reading recurring transactions", "Recurring transactions ready"),
+      outputSchema: widgetOutputSchema("Moniq recurring transactions"),
       inputSchema: {
         type: "object",
         title: "Recurring schedule filters",
@@ -480,6 +508,8 @@ function recurringToolAliases() {
       title: "Create recurring transaction",
       description: "Alias of create_recurring_transaction_schedule. Create a recurring Moniq transaction series.",
       annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
+      _meta: moniqWidgetMeta("Creating recurring transaction", "Recurring transaction created"),
+      outputSchema: widgetOutputSchema("Created recurring transaction"),
       inputSchema: recurringScheduleInputSchema("Recurring transaction"),
     },
     {
@@ -487,6 +517,8 @@ function recurringToolAliases() {
       title: "Update recurring transaction",
       description: "Alias of update_recurring_transaction_schedule. Replace a recurring transaction series template with a complete payload.",
       annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
+      _meta: moniqWidgetMeta("Updating recurring transaction", "Recurring transaction updated"),
+      outputSchema: widgetOutputSchema("Updated recurring transaction"),
       inputSchema: {
         type: "object",
         title: "Recurring transaction update",
@@ -503,6 +535,8 @@ function recurringToolAliases() {
       title: "Pause or resume recurring transaction",
       description: "Alias of set_recurring_transaction_schedule_state. Set a recurring series state to active or paused.",
       annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
+      _meta: moniqWidgetMeta("Changing recurring transaction state", "Recurring transaction state changed"),
+      outputSchema: widgetOutputSchema("Recurring transaction state"),
       inputSchema: {
         type: "object",
         title: "Recurring transaction state",
@@ -519,6 +553,8 @@ function recurringToolAliases() {
       title: "Delete recurring transaction",
       description: "Alias of delete_recurring_transaction_schedule. Delete a recurring series while preserving paid historical occurrences.",
       annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false, idempotentHint: false },
+      _meta: moniqWidgetMeta("Deleting recurring transaction", "Recurring transaction deleted"),
+      outputSchema: widgetOutputSchema("Deleted recurring transaction"),
       inputSchema: {
         type: "object",
         title: "Recurring transaction to delete",
@@ -534,6 +570,8 @@ function recurringToolAliases() {
       title: "Reschedule recurring transaction",
       description: "Alias of reschedule_recurring_transaction_series_from_occurrence. Shift this and following occurrences from a chosen occurrence date.",
       annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
+      _meta: moniqWidgetMeta("Rescheduling recurring series", "Recurring series rescheduled"),
+      outputSchema: widgetOutputSchema("Rescheduled recurring transaction"),
       inputSchema: {
         type: "object",
         title: "Recurring series reschedule",
@@ -551,6 +589,8 @@ function recurringToolAliases() {
       title: "Update recurring occurrence",
       description: "Alias of update_recurring_transaction_occurrence. Update one materialized or generated recurring occurrence.",
       annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
+      _meta: moniqWidgetMeta("Updating recurring occurrence", "Recurring occurrence updated"),
+      outputSchema: widgetOutputSchema("Updated recurring occurrence"),
       inputSchema: recurringOccurrenceActionSchema({
         title: "Recurring occurrence update",
         valueSchema: {
@@ -567,6 +607,8 @@ function recurringToolAliases() {
       title: "Mark recurring occurrence paid",
       description: "Alias of mark_recurring_transaction_occurrence_paid. Materialize a generated occurrence if needed, then mark it paid.",
       annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
+      _meta: moniqWidgetMeta("Marking recurring occurrence paid", "Recurring occurrence marked paid"),
+      outputSchema: widgetOutputSchema("Paid recurring occurrence"),
       inputSchema: recurringOccurrenceActionSchema({ title: "Recurring occurrence to pay" }),
     },
     {
@@ -574,6 +616,8 @@ function recurringToolAliases() {
       title: "Skip recurring occurrence",
       description: "Mark one recurring occurrence skipped so it remains hidden and does not regenerate.",
       annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false, idempotentHint: false },
+      _meta: moniqWidgetMeta("Skipping recurring occurrence", "Recurring occurrence skipped"),
+      outputSchema: widgetOutputSchema("Skipped recurring occurrence"),
       inputSchema: recurringOccurrenceActionSchema({ title: "Recurring occurrence to skip" }),
     },
     {
@@ -581,6 +625,8 @@ function recurringToolAliases() {
       title: "Delete recurring occurrence",
       description: "Alias of delete_recurring_transaction_occurrence. Mark one recurring occurrence skipped so it will not regenerate.",
       annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false, idempotentHint: false },
+      _meta: moniqWidgetMeta("Deleting recurring occurrence", "Recurring occurrence deleted"),
+      outputSchema: widgetOutputSchema("Deleted recurring occurrence"),
       inputSchema: recurringOccurrenceActionSchema({ title: "Recurring occurrence to delete" }),
     },
   ];
@@ -610,10 +656,8 @@ export function getMcpTools() {
           description:
             "Quickly read current Moniq balances for card-like wallets and debts only. Use this when the user asks for card balances, credit card debt, loans, mortgages, or total debts. Debit cards are cash wallets with cash_kind=debit_card; credit cards and debt wallets include outstanding_amount so you do not have to infer sign conventions.",
           annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
-          _meta: {
-            "openai/toolInvocation/invoking": "Checking balances",
-            "openai/toolInvocation/invoked": "Balances ready",
-          },
+          _meta: moniqWidgetMeta("Checking Moniq balances", "Moniq balances ready"),
+          outputSchema: widgetOutputSchema("Moniq card and debt balances"),
           inputSchema: {
             type: "object",
             properties: {},
@@ -626,10 +670,8 @@ export function getMcpTools() {
           description:
             "Read all Moniq transactions for an inclusive date range, including past paid transactions, planned/skipped entries, one-off future transactions, and generated recurring schedule occurrences. Use this for retrospective analytics and future cash-flow forecasting. Generated recurring occurrences are returned with source=schedule, is_generated=true, and stable synthetic IDs. When replying, use wallet and category names from the returned context instead of exposing raw UUIDs.",
           annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
-          _meta: {
-            "openai/toolInvocation/invoking": "Reading transactions",
-            "openai/toolInvocation/invoked": "Transactions ready",
-          },
+          _meta: moniqWidgetMeta("Reading Moniq transactions", "Moniq transactions ready"),
+          outputSchema: widgetOutputSchema("Moniq transactions"),
           inputSchema: {
             type: "object",
             title: "Transaction period",
@@ -680,11 +722,11 @@ export function getMcpTools() {
         },
         {
           name: "create_transactions",
-          title: "Create Moniq transactions",
+          title: "Add ledger transactions to Moniq",
           description:
-            "Create complete Moniq transactions directly in the ledger after you have clarified every required field with the user. Call get_finance_context first, then use exact wallet IDs and selectable category IDs from that context. Before calling, confirm the transaction count, dates, titles, amounts with currencies, wallet names, and category names in plain language. Do not show raw UUIDs to the user unless they ask for technical details. Ask the user for missing date, amount, kind, wallet, category, transfer destination, or debt-payment breakdown before calling this tool. Preserve useful source details in note; send null or omit note when no detail is known.",
+            "Add complete bookkeeping records to the user's private Moniq ledger after every required field is confirmed. This records financial history only: it does not transfer money, charge a card, contact a bank, or initiate any external payment. Call get_finance_context first, use exact wallet/category IDs, and confirm dates, titles, amounts with currencies, wallet names, and category names in plain language. Never expose raw UUIDs unless the user explicitly requests technical details.",
           annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
-          _meta: transactionWidgetMeta("Adding transactions", "Transactions added"),
+          _meta: transactionWidgetMeta("Adding records to Moniq", "Moniq records added"),
           outputSchema: transactionOperationOutputSchema("Created transactions"),
           inputSchema: {
             type: "object",
@@ -722,16 +764,6 @@ export function getMcpTools() {
             required: ["transactions"],
             additionalProperties: false,
           },
-        },
-        {
-          name: "create_transaction",
-          title: "Create Moniq transaction",
-          description:
-            "Create one complete Moniq transaction directly in the ledger. Call get_finance_context first, confirm the date, title, amount with currency, wallet names, and category name with the user, then send exact IDs.",
-          annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
-          _meta: transactionWidgetMeta("Adding transaction", "Transaction added"),
-          outputSchema: transactionOperationOutputSchema("Created transaction"),
-          inputSchema: directTransactionInputSchema("Transaction to add"),
         },
         {
           name: "update_transaction",
@@ -776,10 +808,8 @@ export function getMcpTools() {
           description:
             "Read Moniq recurring transaction schedules. Use this before editing, pausing, deleting, or explaining recurring payments. Include active and paused series unless the user asks for only one state.",
           annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
-          _meta: {
-            "openai/toolInvocation/invoking": "Reading recurring transactions",
-            "openai/toolInvocation/invoked": "Recurring transactions ready",
-          },
+          _meta: moniqWidgetMeta("Reading recurring transactions", "Recurring transactions ready"),
+          outputSchema: widgetOutputSchema("Moniq recurring transactions"),
           inputSchema: {
             type: "object",
             title: "Recurring schedule filters",
@@ -800,10 +830,8 @@ export function getMcpTools() {
           description:
             "Create a recurring Moniq transaction series. The start date is the first occurrence date. Call get_finance_context first and confirm amount, cadence, wallet names, category names, and start date with the user.",
           annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
-          _meta: {
-            "openai/toolInvocation/invoking": "Creating recurring transaction",
-            "openai/toolInvocation/invoked": "Recurring transaction created",
-          },
+          _meta: moniqWidgetMeta("Creating recurring transaction", "Recurring transaction created"),
+          outputSchema: widgetOutputSchema("Created recurring transaction"),
           inputSchema: recurringScheduleInputSchema("Recurring transaction"),
         },
         {
@@ -812,10 +840,8 @@ export function getMcpTools() {
           description:
             "Replace a recurring transaction series template after reading it first. Submit the complete updated schedule payload, not a partial patch.",
           annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
-          _meta: {
-            "openai/toolInvocation/invoking": "Updating recurring transaction",
-            "openai/toolInvocation/invoked": "Recurring transaction updated",
-          },
+          _meta: moniqWidgetMeta("Updating recurring transaction", "Recurring transaction updated"),
+          outputSchema: widgetOutputSchema("Updated recurring transaction"),
           inputSchema: {
             type: "object",
             title: "Recurring transaction update",
@@ -833,10 +859,8 @@ export function getMcpTools() {
           description:
             "Shift a recurring series from a specific occurrence onward by moving that occurrence to a new date. Use when the user wants this and following occurrences moved.",
           annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
-          _meta: {
-            "openai/toolInvocation/invoking": "Rescheduling recurring series",
-            "openai/toolInvocation/invoked": "Recurring series rescheduled",
-          },
+          _meta: moniqWidgetMeta("Rescheduling recurring series", "Recurring series rescheduled"),
+          outputSchema: widgetOutputSchema("Rescheduled recurring transaction"),
           inputSchema: {
             type: "object",
             title: "Recurring series reschedule",
@@ -855,10 +879,8 @@ export function getMcpTools() {
           description:
             "Update one occurrence of a recurring transaction. Use transaction_id for a materialized occurrence, or schedule_id plus occurrence_date for a generated occurrence.",
           annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
-          _meta: {
-            "openai/toolInvocation/invoking": "Updating recurring occurrence",
-            "openai/toolInvocation/invoked": "Recurring occurrence updated",
-          },
+          _meta: moniqWidgetMeta("Updating recurring occurrence", "Recurring occurrence updated"),
+          outputSchema: widgetOutputSchema("Updated recurring occurrence"),
           inputSchema: recurringOccurrenceActionSchema({
             title: "Recurring occurrence update",
             valueSchema: {
@@ -876,10 +898,8 @@ export function getMcpTools() {
           description:
             "Mark one recurring occurrence as paid. Generated occurrences are materialized before being marked paid.",
           annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
-          _meta: {
-            "openai/toolInvocation/invoking": "Marking recurring occurrence paid",
-            "openai/toolInvocation/invoked": "Recurring occurrence marked paid",
-          },
+          _meta: moniqWidgetMeta("Marking recurring occurrence paid", "Recurring occurrence marked paid"),
+          outputSchema: widgetOutputSchema("Paid recurring occurrence"),
           inputSchema: recurringOccurrenceActionSchema({ title: "Recurring occurrence to pay" }),
         },
         {
@@ -888,10 +908,8 @@ export function getMcpTools() {
           description:
             "Delete one recurring occurrence by marking it skipped so it will not regenerate. Use for a single missed/cancelled occurrence, not the whole series.",
           annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false, idempotentHint: false },
-          _meta: {
-            "openai/toolInvocation/invoking": "Deleting recurring occurrence",
-            "openai/toolInvocation/invoked": "Recurring occurrence deleted",
-          },
+          _meta: moniqWidgetMeta("Deleting recurring occurrence", "Recurring occurrence deleted"),
+          outputSchema: widgetOutputSchema("Deleted recurring occurrence"),
           inputSchema: recurringOccurrenceActionSchema({ title: "Recurring occurrence to delete" }),
         },
         {
@@ -900,10 +918,8 @@ export function getMcpTools() {
           description:
             "Set a recurring transaction series state to active or paused. Paused series keep existing history and stop future generation.",
           annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
-          _meta: {
-            "openai/toolInvocation/invoking": "Changing recurring transaction state",
-            "openai/toolInvocation/invoked": "Recurring transaction state changed",
-          },
+          _meta: moniqWidgetMeta("Changing recurring transaction state", "Recurring transaction state changed"),
+          outputSchema: widgetOutputSchema("Recurring transaction state"),
           inputSchema: {
             type: "object",
             title: "Recurring transaction state",
@@ -921,10 +937,8 @@ export function getMcpTools() {
           description:
             "Delete a recurring transaction series. Paid historical occurrences are preserved; future non-paid planned occurrences are removed.",
           annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false, idempotentHint: false },
-          _meta: {
-            "openai/toolInvocation/invoking": "Deleting recurring transaction",
-            "openai/toolInvocation/invoked": "Recurring transaction deleted",
-          },
+          _meta: moniqWidgetMeta("Deleting recurring transaction", "Recurring transaction deleted"),
+          outputSchema: widgetOutputSchema("Deleted recurring transaction"),
           inputSchema: {
             type: "object",
             title: "Recurring transaction to delete",
@@ -1111,10 +1125,8 @@ export function getMcpTools() {
           description:
             "Read Moniq category spending analytics for a period. Defaults to the last fully completed calendar month. Returns paid transactions grouped by root expense envelopes and income categories, with totals and percentages separated by currency.",
           annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
-          _meta: {
-            "openai/toolInvocation/invoking": "Building spending report",
-            "openai/toolInvocation/invoked": "Spending report ready",
-          },
+          _meta: moniqWidgetMeta("Building spending report", "Spending report ready"),
+          outputSchema: widgetOutputSchema("Moniq category spending report"),
           inputSchema: {
             type: "object",
             title: "Spending report period",
@@ -1151,10 +1163,8 @@ export function getMcpTools() {
           description:
             "Read Moniq monthly budget analytics for a period. Defaults to the last fully completed calendar month. Returns paid income and expenses by currency, root envelopes, category tree, percentages, uncategorized groups, and transaction detail.",
           annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
-          _meta: {
-            "openai/toolInvocation/invoking": "Building month analysis",
-            "openai/toolInvocation/invoked": "Month analysis ready",
-          },
+          _meta: moniqWidgetMeta("Building month analysis", "Month analysis ready"),
+          outputSchema: widgetOutputSchema("Moniq budget month analysis"),
           inputSchema: {
             type: "object",
             title: "Budget month analysis period",
@@ -1445,6 +1455,34 @@ async function handleGetTransactionsTool(
     };
   }
 
+  let widgetData = data;
+  if (isRecord(data) && Array.isArray(data.transactions)) {
+    const { data: contextData } = await db.rpc("mcp_get_finance_context", { p_key_hash: keyHash });
+    if (contextData) {
+      const context = sanitizeFinanceContext(contextData);
+      const wallets = new Map(context.wallets.map((wallet) => [String(wallet.id), wallet]));
+      const categories = new Map(context.categories.map((category) => [String(category.id), category]));
+      widgetData = {
+        ...data,
+        transactions: data.transactions.map((entry) => {
+          if (!isRecord(entry)) return entry;
+          const source = wallets.get(String(entry.source_account_id ?? ""));
+          const destination = wallets.get(String(entry.destination_account_id ?? ""));
+          const category = categories.get(String(entry.category_id ?? ""));
+          return {
+            ...entry,
+            source_account_name: entry.source_account_name ?? source?.name ?? null,
+            destination_account_name: entry.destination_account_name ?? destination?.name ?? null,
+            category_name: entry.category_name ?? category?.name ?? null,
+            category_path: category?.path ?? entry.category_name ?? null,
+            currency: entry.currency ?? source?.currency ?? destination?.currency ?? null,
+            destination_currency: destination?.currency ?? null,
+          };
+        }),
+      };
+    }
+  }
+
   return {
     jsonrpc: "2.0",
     id,
@@ -1452,10 +1490,10 @@ async function handleGetTransactionsTool(
       content: [
         {
           type: "text",
-          text: JSON.stringify(data, null, 2),
+          text: JSON.stringify(widgetData, null, 2),
         },
       ],
-      structuredContent: data,
+      structuredContent: widgetData,
     },
   };
 }
@@ -1881,99 +1919,21 @@ function handleResourcesList(id: string | number | null): McpResponse {
     result: {
       resources: [
         {
-          uri: TRANSACTION_RESULT_WIDGET_URI,
-          name: "moniq-transaction-result",
-          title: "Moniq transaction result",
-          description: "Shows Moniq transaction create, edit, and delete results.",
-          mimeType: TRANSACTION_RESULT_MIME_TYPE,
-          _meta: {
-            "openai/widgetDescription": "A compact Moniq result card for transaction changes.",
-            "openai/widgetPrefersBorder": true,
-            "openai/widgetCSP": {
-              connect_domains: [],
-              resource_domains: [],
-            },
-          },
+          uri: MONIQ_WIDGET_URI,
+          name: "moniq-finance-result",
+          title: "Moniq finance result",
+          description: "Shows compact, human-readable Moniq finance results.",
+          mimeType: MONIQ_WIDGET_MIME_TYPE,
+          _meta: MONIQ_WIDGET_RESOURCE_META,
         },
       ],
     },
   };
 }
 
-function transactionResultWidgetHtml() {
-  return `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    :root { color-scheme: light dark; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-    body { margin: 0; background: transparent; color: #262521; }
-    .wrap { padding: 14px; border: 1px solid rgba(64,64,62,.14); border-radius: 10px; background: #fafaf7; }
-    .eyebrow { margin: 0 0 4px; font-size: 11px; line-height: 1.3; letter-spacing: .08em; text-transform: uppercase; color: #77736b; font-weight: 650; }
-    h1 { margin: 0; font-size: 16px; line-height: 1.3; font-weight: 650; color: #262521; }
-    .message { margin: 6px 0 0; font-size: 13px; line-height: 1.45; color: #595650; }
-    .items { margin-top: 12px; border-top: 1px solid rgba(64,64,62,.12); }
-    .item { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px; padding: 9px 0; border-bottom: 1px solid rgba(64,64,62,.09); }
-    .item:last-child { border-bottom: 0; padding-bottom: 0; }
-    .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 600; color: #262521; }
-    .meta, .amount { font-size: 12px; color: #77736b; }
-    .amount { font-variant-numeric: tabular-nums; text-align: right; color: #262521; }
-    .counts { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; font-size: 12px; color: #77736b; }
-    @media (prefers-color-scheme: dark) {
-      body { color: #f4f1ea; }
-      .wrap { background: #1f1e1b; border-color: rgba(255,255,255,.12); }
-      h1, .name, .amount { color: #f4f1ea; }
-      .message, .meta, .counts, .eyebrow { color: #aaa49a; }
-      .items, .item { border-color: rgba(255,255,255,.1); }
-    }
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <p class="eyebrow">Moniq</p>
-    <h1 id="title">Transaction result</h1>
-    <p class="message" id="message"></p>
-    <div class="counts" id="counts"></div>
-    <div class="items" id="items"></div>
-  </div>
-  <script>
-    const api = window.openai || {};
-    const output = api.toolOutput || api.structuredContent || {};
-    const meta = api.toolResponseMetadata || {};
-    const data = output && Object.keys(output).length ? output : (meta.operationResult || {});
-    const title = typeof data.title === "string" ? data.title : "Transaction result";
-    const message = typeof data.message === "string" ? data.message : "";
-    document.getElementById("title").textContent = title;
-    document.getElementById("message").textContent = message;
-
-    const counts = data.counts && typeof data.counts === "object" ? data.counts : null;
-    if (counts) {
-      document.getElementById("counts").innerHTML = Object.entries(counts)
-        .map(([key, value]) => "<span>" + key.replace(/_/g, " ") + ": " + value + "</span>")
-        .join("");
-    }
-
-    const items = Array.isArray(data.items) ? data.items : [];
-    document.getElementById("items").innerHTML = items.slice(0, 6).map((item) => {
-      const amount = Number(item.amount);
-      const amountText = Number.isFinite(amount) ? amount.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "";
-      const currency = item.currency ? " " + item.currency : "";
-      const meta = [item.kind, item.occurred_at, item.status].filter(Boolean).join(" - ");
-      return '<div class="item"><div><div class="name">' + escapeHtml(item.title || "Transaction") + '</div><div class="meta">' + escapeHtml(meta) + '</div></div><div class="amount">' + escapeHtml(amountText + currency) + '</div></div>';
-    }).join("");
-
-    function escapeHtml(value) {
-      return String(value).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
-    }
-  </script>
-</body>
-</html>`;
-}
-
 function handleResourcesRead(id: string | number | null, params?: Record<string, unknown>): McpResponse {
   const uri = typeof params?.uri === "string" ? params.uri : "";
-  if (uri !== TRANSACTION_RESULT_WIDGET_URI) {
+  if (uri !== MONIQ_WIDGET_URI) {
     return { jsonrpc: "2.0", id, error: { code: -32602, message: `Unknown resource: ${uri}` } };
   }
 
@@ -1983,17 +1943,10 @@ function handleResourcesRead(id: string | number | null, params?: Record<string,
     result: {
       contents: [
         {
-          uri: TRANSACTION_RESULT_WIDGET_URI,
-          mimeType: TRANSACTION_RESULT_MIME_TYPE,
-          text: transactionResultWidgetHtml(),
-          _meta: {
-            "openai/widgetDescription": "A compact Moniq result card for transaction changes.",
-            "openai/widgetPrefersBorder": true,
-            "openai/widgetCSP": {
-              connect_domains: [],
-              resource_domains: [],
-            },
-          },
+          uri: MONIQ_WIDGET_URI,
+          mimeType: MONIQ_WIDGET_MIME_TYPE,
+          text: moniqWidgetHtml(),
+          _meta: MONIQ_WIDGET_RESOURCE_META,
         },
       ],
     },
@@ -2034,7 +1987,33 @@ function summarizeTransactionItem(item: unknown): TransactionOperationItem | nul
     kind,
     status: typeof item.status === "string" ? item.status : undefined,
     currency: typeof item.currency === "string" ? item.currency : item.currency === null ? null : undefined,
+    destination_currency: typeof item.destination_currency === "string" ? item.destination_currency : item.destination_currency === null ? null : undefined,
+    note: typeof item.note === "string" ? item.note : item.note === null ? null : undefined,
+    category_path: typeof item.category_path === "string" ? item.category_path : item.category_path === null ? null : undefined,
+    category_name: typeof item.category_name === "string" ? item.category_name : item.category_name === null ? null : undefined,
+    source_account_name: typeof item.source_account_name === "string" ? item.source_account_name : item.source_account_name === null ? null : undefined,
+    destination_account_name: typeof item.destination_account_name === "string" ? item.destination_account_name : item.destination_account_name === null ? null : undefined,
+    destination_amount: typeof item.destination_amount === "number" ? item.destination_amount : item.destination_amount === null ? null : undefined,
+    principal_amount: typeof item.principal_amount === "number" ? item.principal_amount : item.principal_amount === null ? null : undefined,
+    interest_amount: typeof item.interest_amount === "number" ? item.interest_amount : item.interest_amount === null ? null : undefined,
+    extra_principal_amount: typeof item.extra_principal_amount === "number" ? item.extra_principal_amount : item.extra_principal_amount === null ? null : undefined,
   };
+}
+
+async function loadTransactionWidgetItems(
+  keyHash: string,
+  ids: string[],
+): Promise<TransactionOperationItem[]> {
+  if (ids.length === 0) return [];
+
+  const db = createAnonClient();
+  const { data, error } = await db.rpc("mcp_get_transaction_widget_items", {
+    p_key_hash: keyHash,
+    p_transaction_ids: ids,
+  });
+  if (error || !Array.isArray(data)) return [];
+
+  return data.map(summarizeTransactionItem).filter((item): item is TransactionOperationItem => item !== null);
 }
 
 async function callRecurringRpc(
@@ -2055,7 +2034,18 @@ async function callRecurringRpc(
     };
   }
 
-  return successResponse(id, successText, data);
+  const structuredContent = isRecord(data)
+    ? { title: successText, message: successText, ...data }
+    : { title: successText, message: successText, result: data };
+
+  return {
+    jsonrpc: "2.0",
+    id,
+    result: {
+      content: [{ type: "text", text: successText }],
+      structuredContent,
+    },
+  };
 }
 
 async function handleGetRecurringSchedules(
@@ -2273,9 +2263,12 @@ async function handleCreateTransactions(
   }
 
   const created = Array.isArray(data) ? data.length : ((data as { created?: unknown[] }).created?.length ?? normalized.length);
-  const createdItems = isRecord(data) && Array.isArray(data.created)
+  let createdItems = isRecord(data) && Array.isArray(data.created)
     ? data.created.map(summarizeTransactionItem).filter((item): item is TransactionOperationItem => item !== null)
     : [];
+  const createdIds = createdItems.flatMap((item) => item.id ? [item.id] : []);
+  const enrichedItems = await loadTransactionWidgetItems(keyHash, createdIds);
+  if (enrichedItems.length === createdIds.length) createdItems = enrichedItems;
 
   return transactionOperationResponse(
     id,
@@ -2342,7 +2335,8 @@ async function handleUpdateTransaction(
     };
   }
 
-  const updated = isRecord(data) ? summarizeTransactionItem(data.updated) : null;
+  const enriched = await loadTransactionWidgetItems(keyHash, [transactionId]);
+  const updated = enriched[0] ?? (isRecord(data) ? summarizeTransactionItem(data.updated) : null);
   return transactionOperationResponse(
     id,
     {

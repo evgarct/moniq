@@ -132,7 +132,6 @@ describe("MCP tools", () => {
       "get_card_and_debt_balances",
       "get_transactions",
       "create_transactions",
-      "create_transaction",
       "update_transaction",
       "delete_transaction",
       "get_recurring_transaction_schedules",
@@ -339,16 +338,16 @@ describe("MCP tools", () => {
     const createTransactionsTool = getMcpTools().find((tool) => tool.name === "create_transactions");
 
     expect(createTransactionsTool).toMatchObject({
-      title: "Create Moniq transactions",
+      title: "Add ledger transactions to Moniq",
       annotations: {
         readOnlyHint: false,
         destructiveHint: false,
         openWorldHint: false,
       },
       _meta: {
-        "openai/outputTemplate": "ui://moniq/transaction-result.html",
-        "openai/toolInvocation/invoking": "Adding transactions",
-        "openai/toolInvocation/invoked": "Transactions added",
+        "openai/outputTemplate": "ui://moniq/finance-result.html",
+        "openai/toolInvocation/invoking": "Adding records to Moniq",
+        "openai/toolInvocation/invoked": "Moniq records added",
       },
       outputSchema: {
         title: "Created transactions",
@@ -370,6 +369,64 @@ describe("MCP tools", () => {
     });
   });
 
+  it("keeps the singular create alias callable but hidden from discovery", async () => {
+    expect(getMcpTools().map((tool) => tool.name)).not.toContain("create_transaction");
+
+    mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name);
+      if (authResponse) return authResponse;
+      if (name === "mcp_create_transactions") {
+        return Promise.resolve({
+          data: {
+            created: [
+              {
+                id: "6f587413-6c44-4d65-9958-a5b623ea9958",
+                title: "Coffee",
+                amount: 4.5,
+                occurred_at: "2026-06-14",
+                kind: "expense",
+              },
+            ],
+          },
+          error: null,
+        });
+      }
+      if (name === "mcp_get_transaction_widget_items") {
+        return Promise.resolve({ data: [], error: null });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    const response = await postMcp({
+      jsonrpc: "2.0",
+      id: "legacy-create",
+      method: "tools/call",
+      params: {
+        name: "create_transaction",
+        arguments: {
+          transaction: {
+            title: "Coffee",
+            kind: "expense",
+            status: "paid",
+            amount: 4.5,
+            occurred_at: "2026-06-14",
+            source_account_id: "wallet-cash",
+            category_id: "cat-coffee",
+          },
+        },
+      },
+    });
+
+    await expect(response.json()).resolves.toMatchObject({
+      result: {
+        structuredContent: {
+          operation: "create_transaction",
+          counts: { created: 1 },
+        },
+      },
+    });
+  });
+
   it("exposes transaction edit/delete tools with correct safety annotations and widget metadata", () => {
     const tools = getMcpTools();
     const updateDraftTool = tools.find((tool) => tool.name === "update_transaction_draft");
@@ -378,16 +435,16 @@ describe("MCP tools", () => {
 
     expect(updateDraftTool).toMatchObject({
       annotations: { readOnlyHint: false, destructiveHint: false },
-      _meta: { "openai/outputTemplate": "ui://moniq/transaction-result.html" },
+      _meta: { "openai/outputTemplate": "ui://moniq/finance-result.html" },
       outputSchema: { title: "Updated draft transaction" },
     });
     expect(deleteDraftTool).toMatchObject({
       annotations: { readOnlyHint: false, destructiveHint: true },
-      _meta: { "openai/outputTemplate": "ui://moniq/transaction-result.html" },
+      _meta: { "openai/outputTemplate": "ui://moniq/finance-result.html" },
     });
     expect(deleteTransactionTool).toMatchObject({
       annotations: { readOnlyHint: false, destructiveHint: true },
-      _meta: { "openai/outputTemplate": "ui://moniq/transaction-result.html" },
+      _meta: { "openai/outputTemplate": "ui://moniq/finance-result.html" },
     });
   });
 
@@ -399,7 +456,7 @@ describe("MCP tools", () => {
     });
     const listBody = await listResponse.json();
     expect(listBody.result.resources[0]).toMatchObject({
-      uri: "ui://moniq/transaction-result.html",
+      uri: "ui://moniq/finance-result.html",
       mimeType: "text/html;profile=mcp-app",
     });
 
@@ -407,14 +464,14 @@ describe("MCP tools", () => {
       jsonrpc: "2.0",
       id: "resource",
       method: "resources/read",
-      params: { uri: "ui://moniq/transaction-result.html" },
+      params: { uri: "ui://moniq/finance-result.html" },
     });
     const readBody = await readResponse.json();
     expect(readBody.result.contents[0]).toMatchObject({
-      uri: "ui://moniq/transaction-result.html",
+      uri: "ui://moniq/finance-result.html",
       mimeType: "text/html;profile=mcp-app",
     });
-    expect(readBody.result.contents[0].text).toContain("window.openai");
+    expect(readBody.result.contents[0].text).toContain("ui/notifications/tool-result");
   });
 
   it("returns finance context with category paths and selectable flags", async () => {
@@ -884,6 +941,66 @@ describe("MCP tools", () => {
         code: -32000,
         message: 'Transaction "Coffee" category not found',
       },
+    });
+  });
+
+  it("preserves Unicode transaction titles and notes", async () => {
+    mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name);
+      if (authResponse) return authResponse;
+      if (name === "mcp_create_transactions") {
+        return Promise.resolve({
+          data: {
+            created: [
+              {
+                id: "97df80c8-ffb6-46e5-b3fc-01b4cc90d7be",
+                title: "Hotovost na účet — проценты",
+                amount: 149.61,
+                occurred_at: "2026-05-16",
+                kind: "expense",
+              },
+            ],
+          },
+          error: null,
+        });
+      }
+      if (name === "mcp_get_transaction_widget_items") {
+        return Promise.resolve({ data: [], error: null });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    await postMcp({
+      jsonrpc: "2.0",
+      id: "unicode-create",
+      method: "tools/call",
+      params: {
+        name: "create_transactions",
+        arguments: {
+          transactions: [
+            {
+              title: "Hotovost na účet — проценты",
+              note: "Raiffeisenbank. Úrok za převod.",
+              kind: "expense",
+              status: "paid",
+              amount: 149.61,
+              occurred_at: "2026-05-16",
+              source_account_id: "wallet-credit",
+              category_id: "cat-loans",
+            },
+          ],
+        },
+      },
+    });
+
+    expect(mocks.rpc).toHaveBeenCalledWith("mcp_create_transactions", {
+      p_key_hash: AUTH_KEY_HASH,
+      p_transactions: [
+        expect.objectContaining({
+          title: "Hotovost na účet — проценты",
+          note: "Raiffeisenbank. Úrok za převod.",
+        }),
+      ],
     });
   });
 
