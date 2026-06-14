@@ -22,4 +22,4 @@ The end date is stored as `end=YYYY-MM-DD`. Selected accounts use repeated `acco
 
 ## Chart
 
-The chart uses `lightweight-charts` directly with stepped neutral line series, crosshair tracking, touch selection, and keyboard date navigation. Hovering, tapping, or dragging shows a tooltip with the selected date and line balances. Account and operation details are not rendered below the chart. Keep the TradingView attribution enabled when changing chart options.
+The chart uses `lightweight-charts` directly with a restrained accent for the primary line and neutral colors for additional lines. It fills the report workspace, uses compact price-axis labels, and supports crosshair tracking, touch selection, and keyboard date navigation. Hovering, tapping, or dragging shows a tooltip with the selected date and line balances. Account and operation details are not rendered below the chart, and the built-in TradingView attribution is disabled.

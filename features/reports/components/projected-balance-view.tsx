@@ -34,6 +34,13 @@ import { calDate } from "@/lib/formatters";
 import type { FinanceSnapshot } from "@/types/finance";
 
 const PRESET_MONTHS = [1, 3, 6, 12, 18] as const;
+const SERIES_COLOR_CLASSES = [
+  "bg-chart-1",
+  "bg-chart-5",
+  "bg-chart-4",
+  "bg-muted-foreground",
+  "bg-border",
+] as const;
 
 function replaceUrlState(endDate: string, selection: ProjectedBalanceSelection) {
   const params = buildProjectedBalanceSearchParams({ endDate, selection });
@@ -118,83 +125,93 @@ export function ProjectedBalanceView({
   }
 
   return (
-    <div className="mobile-nav-scroll-clearance h-full w-full max-w-full overflow-x-hidden overflow-y-auto pb-[calc(76px+env(safe-area-inset-bottom))] lg:pb-0">
-      <header className="border-b border-border/60 bg-card">
-        <div className="flex flex-col gap-3 px-4 pt-5 pb-4 sm:px-6 sm:pt-7 sm:pb-5 lg:flex-row lg:items-center lg:justify-between lg:px-7 lg:pt-8 lg:pb-6">
-          <div className="flex min-w-0 items-center gap-2">
-            <h1 className="font-heading text-[28px] leading-none tracking-[-0.035em] text-foreground sm:type-h1">
-              {t("title")}
-            </h1>
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    className="shrink-0 bg-transparent text-muted-foreground hover:bg-secondary/70 hover:text-foreground active:bg-secondary"
-                    aria-label={t("description")}
-                  />
-                }
-              >
-                <Info className="size-4 translate-y-[2px]" />
-              </TooltipTrigger>
-              <TooltipContent className="max-w-72 text-balance">{t("description")}</TooltipContent>
-            </Tooltip>
-          </div>
+    <div className="mobile-nav-scroll-clearance flex h-full w-full max-w-full flex-col overflow-hidden bg-card pb-[calc(76px+env(safe-area-inset-bottom))] lg:pb-0">
+      <header className="shrink-0 bg-card">
+        <div className="flex flex-col gap-3 px-3 pt-4 pb-3 sm:gap-4 sm:px-6 sm:pt-7 sm:pb-5 lg:px-7 lg:pt-8 lg:pb-6">
+          <div className="flex flex-col gap-2 px-1.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-2.5">
+            <div className="flex min-w-0 items-center gap-2">
+              <h1 className="whitespace-nowrap font-heading text-[28px] leading-none tracking-[-0.035em] text-foreground sm:type-h1">
+                {t("title")}
+              </h1>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      className="shrink-0 bg-transparent text-muted-foreground hover:bg-secondary/70 hover:text-foreground active:bg-secondary"
+                      aria-label={t("description")}
+                    />
+                  }
+                >
+                  <Info className="size-4 translate-y-[2px]" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-72 text-balance">{t("description")}</TooltipContent>
+              </Tooltip>
+            </div>
 
-          <div className="flex min-w-0 items-center gap-1 overflow-x-auto lg:justify-end" role="toolbar" aria-label={t("title")}>
-            <ProjectedBalanceAccountPicker
-              accounts={snapshot.accounts}
-              selection={selection}
-              onSelectionChange={updateSelection}
-              initialOpen={initialAccountPickerOpen}
-            />
+            <div
+              className="flex shrink-0 items-center gap-1 self-end sm:gap-2 sm:self-auto"
+              role="toolbar"
+              aria-label={t("title")}
+            >
+              <ProjectedBalanceAccountPicker
+                accounts={snapshot.accounts}
+                selection={selection}
+                onSelectionChange={updateSelection}
+                initialOpen={initialAccountPickerOpen}
+              />
 
-            <DropdownMenu open={periodOpen} onOpenChange={setPeriodOpen}>
-              <DropdownMenuTrigger
-                render={
-                  <Button
-                    variant="ghost"
-                    className="shrink-0 bg-transparent text-muted-foreground hover:bg-secondary/70 hover:text-foreground"
-                  />
-                }
-              >
-                {periodLabel}
-                <ChevronDown data-icon="inline-end" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44">
-                <DropdownMenuGroup>
-                  <DropdownMenuLabel>{t("period.label")}</DropdownMenuLabel>
-                  <DropdownMenuRadioGroup
-                    value={selectedPreset ? String(selectedPreset) : ""}
-                    onValueChange={(value) => updatePeriod(Number(value))}
-                  >
-                    {PRESET_MONTHS.map((months) => (
-                      <DropdownMenuRadioItem key={months} value={String(months)}>
-                        {t("period.months", { count: months })}
-                      </DropdownMenuRadioItem>
-                    ))}
-                  </DropdownMenuRadioGroup>
-                </DropdownMenuGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              <DropdownMenu open={periodOpen} onOpenChange={setPeriodOpen}>
+                <DropdownMenuTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      className="shrink-0 bg-transparent text-muted-foreground hover:bg-secondary/70 hover:text-foreground active:bg-secondary"
+                    />
+                  }
+                >
+                  {periodLabel}
+                  <ChevronDown data-icon="inline-end" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>{t("period.label")}</DropdownMenuLabel>
+                    <DropdownMenuRadioGroup
+                      value={selectedPreset ? String(selectedPreset) : ""}
+                      onValueChange={(value) => updatePeriod(Number(value))}
+                    >
+                      {PRESET_MONTHS.map((months) => (
+                        <DropdownMenuRadioItem key={months} value={String(months)}>
+                          {t("period.months", { count: months })}
+                        </DropdownMenuRadioItem>
+                      ))}
+                    </DropdownMenuRadioGroup>
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
       </header>
 
       {report.series.length ? (
-        <main className="min-w-0 px-2 pt-4 pb-2 sm:px-4 lg:px-5">
-          <div className="flex min-w-0 flex-col gap-1 px-2 sm:flex-row sm:flex-wrap sm:gap-x-6">
-            {report.series.map((item) => {
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col px-3 pb-3 sm:px-6 sm:pb-5 lg:px-7 lg:pb-6">
+          <div className="flex min-w-0 shrink-0 flex-wrap items-center gap-x-6 gap-y-1 px-1.5 pb-2 sm:px-2.5">
+            {report.series.map((item, index) => {
               const finalPoint = item.points.at(-1);
               return (
-                <div key={item.id} className="flex min-w-0 items-center justify-between gap-4 py-2 sm:justify-start">
+                <div key={item.id} className="flex min-w-0 items-center gap-2 py-1">
+                  <span
+                    className={`h-0.5 w-4 shrink-0 ${SERIES_COLOR_CLASSES[index % SERIES_COLOR_CLASSES.length]}`}
+                    aria-hidden
+                  />
                   <span className="type-body-14 min-w-0 truncate">{item.name}</span>
                   {finalPoint ? (
                     <MoneyAmount
                       amount={finalPoint.balance}
                       currency={report.currency}
-                      className="shrink-0 text-sm font-medium tabular-nums text-muted-foreground"
+                      className="shrink-0 type-body-14 font-medium tabular-nums"
                     />
                   ) : null}
                 </div>

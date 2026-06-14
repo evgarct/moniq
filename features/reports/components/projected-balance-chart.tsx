@@ -7,25 +7,26 @@ import {
   LineSeries,
   LineType,
   TrackingModeExitMode,
+  type AutoscaleInfo,
   type BusinessDay,
   type IChartApi,
   type ISeriesApi,
   type MouseEventParams,
   type Time,
 } from "lightweight-charts";
-import { useFormatter } from "next-intl";
-import { useEffect, useRef, useState } from "react";
+import { useFormatter, useLocale } from "next-intl";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { MoneyAmount } from "@/components/money-amount";
 import type { ProjectedBalanceReport } from "@/features/reports/lib/projected-balance";
 import { calDate } from "@/lib/formatters";
 
-const NEUTRAL_LINE_VARIABLES = [
+const LINE_COLOR_VARIABLES = [
+  "--chart-1",
   "--chart-5",
   "--chart-4",
   "--muted-foreground",
   "--border",
-  "--foreground",
 ] as const;
 
 function timeToDate(time: Time | undefined) {
@@ -57,6 +58,16 @@ export function ProjectedBalanceChart({
   ariaLabel: string;
 }) {
   const format = useFormatter();
+  const locale = useLocale();
+  const compactNumberFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat(locale, {
+        notation: "compact",
+        compactDisplay: "short",
+        maximumFractionDigits: 1,
+      }),
+    [locale],
+  );
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const firstSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
@@ -76,17 +87,21 @@ export function ProjectedBalanceChart({
     const borderColor = styles.getPropertyValue("--border").trim();
     const foreground = styles.getPropertyValue("--foreground").trim();
     const crosshairColor = styles.getPropertyValue("--chart-4").trim();
-    const lineColors = NEUTRAL_LINE_VARIABLES.map(
+    const lineColors = LINE_COLOR_VARIABLES.map(
       (variable) => styles.getPropertyValue(variable).trim(),
     );
     const chart = createChart(container, {
       autoSize: true,
-      height: 360,
       layout: {
         background: { type: ColorType.Solid, color: "transparent" },
         textColor,
         fontFamily: styles.fontFamily,
-        attributionLogo: true,
+        fontSize: 12,
+        attributionLogo: false,
+      },
+      localization: {
+        locale,
+        priceFormatter: (price: number) => compactNumberFormatter.format(price),
       },
       grid: {
         vertLines: { visible: false },
@@ -105,7 +120,9 @@ export function ProjectedBalanceChart({
       },
       rightPriceScale: {
         borderVisible: false,
-        scaleMargins: { top: 0.12, bottom: 0.12 },
+        entireTextOnly: true,
+        minimumWidth: 52,
+        scaleMargins: { top: 0.1, bottom: 0 },
       },
       timeScale: {
         borderColor,
@@ -138,6 +155,22 @@ export function ProjectedBalanceChart({
         priceLineVisible: false,
         lastValueVisible: false,
         crosshairMarkerRadius: 4,
+        autoscaleInfoProvider: (original: () => AutoscaleInfo | null) => {
+          const autoscaleInfo = original();
+          if (!autoscaleInfo?.priceRange) return autoscaleInfo;
+
+          return {
+            ...autoscaleInfo,
+            priceRange: {
+              ...autoscaleInfo.priceRange,
+              minValue: Math.min(0, autoscaleInfo.priceRange.minValue),
+            },
+            margins: {
+              above: autoscaleInfo.margins?.above ?? 0,
+              below: Math.max(16, autoscaleInfo.margins?.below ?? 0),
+            },
+          };
+        },
       });
       line.setData(series.points.map((point) => ({
         time: point.date,
@@ -174,7 +207,7 @@ export function ProjectedBalanceChart({
       chartRef.current = null;
       firstSeriesRef.current = null;
     };
-  }, [report]);
+  }, [compactNumberFormatter, locale, report]);
 
   const dates = report.series[0]?.points.map((point) => point.date) ?? [];
   const tooltipPoints = tooltip
@@ -209,7 +242,7 @@ export function ProjectedBalanceChart({
           }
         }
       }}
-      className="relative h-[300px] w-full touch-none overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-ring lg:h-[360px]"
+      className="relative min-h-[300px] w-full flex-1 touch-none overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       {tooltip ? (
         <div
