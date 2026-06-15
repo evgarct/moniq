@@ -25,7 +25,9 @@ import {
   updateUserPreferencesRequest,
   updateWalletAllocationRequest,
   updateWalletRequest,
+  saveInvestmentPositionRequest,
 } from "@/features/finance/lib/finance-api";
+import { savePositionOptimistically } from "@/features/investments/lib/positions";
 import {
   addTransactionEntry,
   adjustWalletBalance,
@@ -56,6 +58,7 @@ import type {
   Transaction,
   TransactionSchedule,
   WalletAllocation,
+  InvestmentInstrumentCandidate,
 } from "@/types/finance";
 import type {
   CategoryInput,
@@ -93,6 +96,7 @@ function mapTransactionValues<T extends TransactionInput | TransactionEntryInput
     source_account_id: resolveOptionalId(resolveId, values.source_account_id),
     destination_account_id: resolveOptionalId(resolveId, values.destination_account_id),
     allocation_id: resolveOptionalId(resolveId, values.allocation_id),
+    investment_instrument_id: resolveOptionalId(resolveId, values.investment_instrument_id),
   };
 }
 
@@ -131,7 +135,9 @@ function transactionMatchesInput(transaction: Transaction, values: TransactionEn
     transaction.category_id === (values.category_id ?? null) &&
     transaction.source_account_id === (values.source_account_id ?? null) &&
     transaction.destination_account_id === (values.destination_account_id ?? null) &&
-    transaction.allocation_id === (values.allocation_id ?? null)
+    transaction.allocation_id === (values.allocation_id ?? null) &&
+    transaction.investment_instrument_id === (values.investment_instrument_id ?? null) &&
+    transaction.investment_units === (values.investment_units ?? null)
   );
 }
 
@@ -488,6 +494,17 @@ export function useFinanceActions() {
         },
         options,
       );
+    },
+    saveInvestmentPosition(instrument: InvestmentInstrumentCandidate, openingUnits: number, options?: ActionOptions) {
+      const optimisticId = createOptimisticId("investment-position");
+      return execute({
+        apply: (snapshot) => savePositionOptimistically(
+          snapshot,
+          { instrument, opening_units: openingUnits },
+          optimisticId,
+        ),
+        request: () => saveInvestmentPositionRequest(instrument, openingUnits),
+      }, options);
     },
   };
 }

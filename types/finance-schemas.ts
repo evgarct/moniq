@@ -69,6 +69,8 @@ const transactionFieldShape = {
   source_account_id: z.string().uuid().nullable().optional(),
   destination_account_id: z.string().uuid().nullable().optional(),
   allocation_id: z.string().uuid().nullable().optional(),
+  investment_instrument_id: z.string().uuid().nullable().optional(),
+  investment_units: z.number().positive("Investment units must be greater than 0.").nullable().optional(),
 } as const;
 
 function addTransactionValidation<
@@ -82,6 +84,8 @@ function addTransactionValidation<
     category_id?: string | null;
     source_account_id?: string | null;
     destination_account_id?: string | null;
+    investment_instrument_id?: string | null;
+    investment_units?: number | null;
   }>
 >(schema: T) {
   return schema.superRefine((values, ctx) => {
@@ -135,6 +139,23 @@ function addTransactionValidation<
         message: "Destination amount is required for account-to-account moves.",
       });
     }
+
+    const hasInvestmentInstrument = Boolean(values.investment_instrument_id);
+    const hasInvestmentUnits = values.investment_units != null;
+    if (hasInvestmentInstrument !== hasInvestmentUnits) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: hasInvestmentInstrument ? ["investment_units"] : ["investment_instrument_id"],
+        message: "Choose an investment and provide the purchased units.",
+      });
+    }
+    if (hasInvestmentInstrument && values.kind !== "expense") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["investment_instrument_id"],
+        message: "Investment purchases must be expenses.",
+      });
+    }
   });
 }
 
@@ -150,6 +171,8 @@ function normalizeTransactionValues<
     extra_principal_amount?: number | null;
     category_id?: string | null;
     allocation_id?: string | null;
+    investment_instrument_id?: string | null;
+    investment_units?: number | null;
   }
 >(values: T) {
   return {
@@ -201,6 +224,13 @@ export const transactionEntryInputSchema = addTransactionValidation(
         message: "Recurring transactions must start as planned.",
       });
     }
+    if (values.recurrence && values.investment_instrument_id) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["investment_instrument_id"],
+        message: "Investment purchases cannot recur.",
+      });
+    }
   })
   .transform((values) => normalizeTransactionValues(values));
 
@@ -217,7 +247,17 @@ export const transactionScheduleInputSchema = addTransactionValidation(
     .extend({
       recurrence: transactionRecurrenceSchema,
     }),
-).transform((values) => normalizeTransactionValues(values));
+)
+  .superRefine((values, ctx) => {
+    if (values.investment_instrument_id) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["investment_instrument_id"],
+        message: "Investment purchases cannot recur.",
+      });
+    }
+  })
+  .transform((values) => normalizeTransactionValues(values));
 
 export const transactionScheduleStateInputSchema = z.object({
   state: z.enum(["active", "paused"] satisfies [TransactionScheduleState, ...TransactionScheduleState[]]),
@@ -241,6 +281,11 @@ export const userPreferencesInputSchema = z.object({
   default_currency: z.enum(SUPPORTED_CURRENCY_CODES),
 });
 
+export const investmentPositionInputSchema = z.object({
+  instrument_id: z.string().uuid(),
+  opening_units: z.number().min(0),
+});
+
 export type WalletInput = z.output<typeof walletInputSchema>;
 export type WalletInputValues = z.input<typeof walletInputSchema>;
 export type CategoryInput = z.output<typeof categoryInputSchema>;
@@ -257,3 +302,4 @@ export type TransactionScheduleStateInput = z.output<typeof transactionScheduleS
 export type WalletAllocationInput = z.output<typeof walletAllocationInputSchema>;
 export type WalletAllocationInputValues = z.input<typeof walletAllocationInputSchema>;
 export type UserPreferencesInput = z.output<typeof userPreferencesInputSchema>;
+export type InvestmentPositionInput = z.output<typeof investmentPositionInputSchema>;

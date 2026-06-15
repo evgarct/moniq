@@ -48,6 +48,9 @@ const FINANCE_ERROR_KEYS = {
   "Debt payment interest can only use an expense category.": "common.errors.transaction.debtCategoryExpenseOnly",
   "Debt payment must target a debt account.": "common.errors.transaction.debtNeedsDebtAccount",
   "Transfers do not use categories.": "common.errors.transaction.transferNoCategory",
+  "Unable to search investments.": "common.errors.investment.search",
+  "Unable to save investment instrument.": "common.errors.investment.save",
+  "Unable to save investment.": "common.errors.investment.save",
   "Supabase schema is out of date. Run `npx supabase db push` and reload the app.":
     "common.errors.finance.schemaOutOfDate",
 } as const;

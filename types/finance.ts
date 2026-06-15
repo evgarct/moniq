@@ -38,6 +38,44 @@ export type ExchangeRate = {
   fetched_at: string;
 };
 
+export type InvestmentInstrumentType = "stock" | "etf";
+
+export type InvestmentInstrument = {
+  id: string;
+  name: string;
+  type: InvestmentInstrumentType;
+  ticker: string;
+  exchange: string;
+  quote_currency: CurrencyCode;
+  isin: string | null;
+  provider: string;
+  provider_symbol: string;
+};
+
+export type InvestmentInstrumentCandidate = Omit<InvestmentInstrument, "id"> & {
+  id?: string;
+};
+
+export type InvestmentQuote = {
+  instrument_id: string;
+  provider: string;
+  market_date: string;
+  price: number;
+  currency: CurrencyCode;
+  fetched_at: string;
+};
+
+export type InvestmentPosition = {
+  id: string;
+  user_id: string;
+  instrument_id: string;
+  opening_units: number;
+  created_at: string;
+  updated_at: string;
+  instrument: InvestmentInstrument;
+  latest_quote: InvestmentQuote | null;
+};
+
 export type CategoryTreeNode = Category & {
   children: CategoryTreeNode[];
   depth: number;
@@ -125,6 +163,9 @@ export type Transaction = {
   schedule: TransactionSchedule | null;
   allocation_id: string | null;
   allocation: WalletAllocation | null;
+  investment_instrument_id?: string | null;
+  investment_units?: number | null;
+  investment_instrument?: InvestmentInstrument | null;
 };
 
 export type WalletAllocationKind = "goal_open" | "goal_targeted";
@@ -149,4 +190,5 @@ export type FinanceSnapshot = {
   allocations: WalletAllocation[];
   preferences: UserPreferences;
   exchange_rates: ExchangeRate[];
+  investment_positions: InvestmentPosition[];
 };

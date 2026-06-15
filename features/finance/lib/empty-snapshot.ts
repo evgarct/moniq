@@ -13,5 +13,6 @@ export function createEmptyFinanceSnapshot(): FinanceSnapshot {
       default_currency_source: "fallback",
     },
     exchange_rates: [],
+    investment_positions: [],
   };
 }

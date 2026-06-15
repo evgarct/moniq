@@ -14,24 +14,29 @@ import { AccountFormSheet } from "@/features/accounts/components/account-form-sh
 import { BalanceRegisterHeader, BalanceRegisterPanel } from "@/features/accounts/components/balance-register-panel";
 import { useFinanceActions } from "@/features/finance/hooks/use-finance-actions";
 import { GoalFormSheet } from "@/features/goals/components/goal-form-sheet";
+import { InvestmentDetail } from "@/features/investments/components/investment-detail";
+import { InvestmentList } from "@/features/investments/components/investment-list";
+import { InvestmentPositionSheet } from "@/features/investments/components/investment-position-sheet";
 import { TransactionFormSheet, type TransactionFormSubmitPayload } from "@/features/transactions/components/transaction-form-sheet";
 import { useTransactionActions } from "@/features/transactions/hooks/use-transaction-actions";
 import { isSettledTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
 import { getTransactionsForAccount } from "@/lib/finance-selectors";
 import { cn } from "@/lib/utils";
 import type { CurrencyCode } from "@/types/currency";
-import type { Account, Category, Transaction, WalletAllocation } from "@/types/finance";
+import type { Account, Category, InvestmentPosition, Transaction, WalletAllocation } from "@/types/finance";
 
 export function AccountsView({
   accounts,
   categories,
   transactions,
   allocations,
+  investmentPositions,
 }: {
   accounts: Account[];
   categories: Category[];
   transactions: Transaction[];
   allocations: WalletAllocation[];
+  investmentPositions: InvestmentPosition[];
 }) {
   const tr = useTranslations();
   const t = useTranslations("accounts");
@@ -60,6 +65,9 @@ export function AccountsView({
   const [goalSheetMode, setGoalSheetMode] = useState<"add" | "edit">("add");
   const [editingAllocation, setEditingAllocation] = useState<WalletAllocation | null>(null);
   const [goalWalletId, setGoalWalletId] = useState<string | null>(null);
+  const [selectedInvestmentId, setSelectedInvestmentId] = useState<string | null>(null);
+  const [investmentSheetOpen, setInvestmentSheetOpen] = useState(false);
+  const [purchaseInstrumentId, setPurchaseInstrumentId] = useState<string | null>(null);
 
   function deleteGoalOptimistic(allocationId: string) {
     financeActions.deleteAllocation(allocationId, {
@@ -68,6 +76,13 @@ export function AccountsView({
   }
 
   const selectedAccount = selectedAccountId ? accounts.find((account) => account.id === selectedAccountId) ?? null : null;
+  const selectedInvestment = selectedInvestmentId
+    ? investmentPositions.find((position) => position.id === selectedInvestmentId) ?? null
+    : null;
+  const investmentInstruments = useMemo(
+    () => investmentPositions.map((position) => position.instrument),
+    [investmentPositions],
+  );
   const settledTransactions = useMemo(
     () =>
       [...transactions]
@@ -274,6 +289,7 @@ export function AccountsView({
             className="mobile-nav-scroll-clearance min-h-0 flex-1 overflow-auto px-3 py-2 [scroll-padding-bottom:calc(76px+env(safe-area-inset-bottom))] sm:px-6 sm:py-4 lg:px-7 lg:[scroll-padding-bottom:1rem]"
             onScroll={(event) => setLeftPanelScrolled(event.currentTarget.scrollTop > 0)}
           >
+            <div className="flex flex-col gap-8 lg:gap-10">
             <AccountList
               accounts={accounts}
               selectedAccountId={selectedAccountId}
@@ -309,10 +325,33 @@ export function AccountsView({
               }}
               onDeleteGoal={(allocation) => deleteGoalOptimistic(allocation.id)}
             />
+            <InvestmentList
+              positions={investmentPositions}
+              transactions={transactions}
+              selectedId={selectedInvestmentId}
+              onAdd={() => setInvestmentSheetOpen(true)}
+              onSelect={(positionId) => {
+                setSelectedAccountId(null);
+                setSelectedInvestmentId(positionId);
+              }}
+            />
+            </div>
           </div>
         </section>
 
-        <BalanceRegisterPanel
+        {selectedInvestment ? (
+          <InvestmentDetail
+            position={selectedInvestment}
+            transactions={transactions}
+            onClose={() => setSelectedInvestmentId(null)}
+            onAddPurchase={() => {
+              setPurchaseInstrumentId(selectedInvestment.instrument_id);
+              setTransactionSheetMode("add");
+              setEditingTransaction(null);
+              setTransactionSheetOpen(true);
+            }}
+          />
+        ) : <BalanceRegisterPanel
           selectedAccount={selectedAccount}
           transactions={filteredRegister}
           showMinorUnits={showMinorUnits}
@@ -336,7 +375,7 @@ export function AccountsView({
           onClearSelection={() => {
             setSelectedAccountId(null);
           }}
-        />
+        />}
       </div>
 
       <Sheet
@@ -395,6 +434,8 @@ export function AccountsView({
         accounts={accounts}
         categories={categories}
         allocations={allocations}
+        investmentPositions={investmentPositions}
+        initialInvestmentInstrumentId={purchaseInstrumentId}
         onOpenChange={setTransactionSheetOpen}
         onSubmit={(payload: TransactionFormSubmitPayload) => {
           const onError = (error: unknown) =>
@@ -413,6 +454,18 @@ export function AccountsView({
             }
           }
           setActionError(null);
+        }}
+      />
+
+      <InvestmentPositionSheet
+        open={investmentSheetOpen}
+        onOpenChange={setInvestmentSheetOpen}
+        initialInstruments={investmentInstruments}
+        onSubmit={(instrument, openingUnits) => {
+          financeActions.saveInvestmentPosition(instrument, openingUnits, {
+            onError: (error) => setActionError(error instanceof Error ? error.message : tr("common.errors.requestFailed")),
+          });
+          setInvestmentSheetOpen(false);
         }}
       />
 

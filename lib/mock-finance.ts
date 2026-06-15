@@ -240,6 +240,55 @@ export const mockFinanceSnapshot: FinanceSnapshot = {
     default_currency_source: "wallet_inferred",
   },
   exchange_rates: [],
+  investment_positions: [
+    {
+      id: "position-vuaa",
+      user_id: userId,
+      instrument_id: "instrument-vuaa",
+      opening_units: 51.68,
+      created_at: formatISO(today),
+      updated_at: formatISO(today),
+      instrument: {
+        id: "instrument-vuaa",
+        name: "Vanguard S&P 500 UCITS ETF Acc",
+        type: "etf",
+        ticker: "VUAA",
+        exchange: "XETRA",
+        quote_currency: "EUR",
+        isin: "IE00BFMXXD54",
+        provider: "fmp",
+        provider_symbol: "VUAA.DE",
+      },
+      latest_quote: {
+        instrument_id: "instrument-vuaa",
+        provider: "fmp",
+        market_date: formatISO(today, { representation: "date" }),
+        price: 107.32,
+        currency: "EUR",
+        fetched_at: formatISO(today),
+      },
+    },
+    {
+      id: "position-spyl",
+      user_id: userId,
+      instrument_id: "instrument-spyl",
+      opening_units: 265.99,
+      created_at: formatISO(today),
+      updated_at: formatISO(today),
+      instrument: {
+        id: "instrument-spyl",
+        name: "State Street SPDR S&P 500 UCITS ETF Acc",
+        type: "etf",
+        ticker: "SPYL",
+        exchange: "XETRA",
+        quote_currency: "EUR",
+        isin: "IE000XZSV718",
+        provider: "fmp",
+        provider_symbol: "SPYL.DE",
+      },
+      latest_quote: null,
+    },
+  ],
 };
 
 function makeTransaction(values: {
@@ -281,6 +330,8 @@ function makeTransaction(values: {
     source_account_id: sourceAccount?.id ?? null,
     destination_account_id: destinationAccount?.id ?? null,
     allocation_id: null,
+    investment_instrument_id: null,
+    investment_units: null,
     schedule_id: null,
     schedule_occurrence_date: null,
     is_schedule_override: false,
@@ -288,6 +339,7 @@ function makeTransaction(values: {
     source_account: sourceAccount,
     destination_account: destinationAccount,
     allocation: null,
+    investment_instrument: null,
     schedule: null,
   };
 }

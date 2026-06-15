@@ -19,8 +19,9 @@ import type {
   TransactionScheduleInput,
   WalletAllocationInput,
   WalletInput,
+  InvestmentPositionInput,
 } from "@/types/finance-schemas";
-import type { Account, Category, FinanceSnapshot, Transaction, TransactionSchedule, UserPreferences, WalletAllocation, WalletAllocationKind } from "@/types/finance";
+import type { Account, Category, FinanceSnapshot, InvestmentInstrument, InvestmentPosition, InvestmentQuote, Transaction, TransactionSchedule, UserPreferences, WalletAllocation, WalletAllocationKind } from "@/types/finance";
 
 type WalletRow = {
   id: string;
@@ -69,6 +70,19 @@ type TransactionRow = {
   schedule_occurrence_date: string | null;
   is_schedule_override: boolean | null;
   allocation_id: string | null;
+  investment_instrument_id: string | null;
+  investment_units: number | string | null;
+};
+
+type InvestmentInstrumentRow = InvestmentInstrument;
+
+type InvestmentQuoteRow = {
+  instrument_id: string;
+  provider: string;
+  market_date: string;
+  price: number | string;
+  currency: CurrencyCode;
+  fetched_at: string;
 };
 
 type TransactionScheduleRow = {
@@ -203,6 +217,8 @@ function buildTransactionInputFromSchedule(
     source_account_id: schedule.source_account_id,
     destination_account_id: schedule.destination_account_id,
     allocation_id: schedule.allocation_id,
+    investment_instrument_id: null,
+    investment_units: null,
   };
 }
 
@@ -544,7 +560,7 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
     const { data, error } = await supabase
       .from("finance_transactions")
       .select(
-        "id, user_id, title, note, occurred_at, created_at, status, kind, amount, destination_amount, fx_rate, principal_amount, interest_amount, extra_principal_amount, category_id, source_account_id, destination_account_id, schedule_id, schedule_occurrence_date, is_schedule_override, allocation_id",
+        "id, user_id, title, note, occurred_at, created_at, status, kind, amount, destination_amount, fx_rate, principal_amount, interest_amount, extra_principal_amount, category_id, source_account_id, destination_account_id, schedule_id, schedule_occurrence_date, is_schedule_override, allocation_id, investment_instrument_id, investment_units",
       )
       .eq("user_id", user.id)
       .in("schedule_id", activeScheduleIds)
@@ -584,16 +600,62 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
   const { data: transactions, error: transactionError } = await supabase
     .from("finance_transactions")
     .select(
-      "id, user_id, title, note, occurred_at, created_at, status, kind, amount, destination_amount, fx_rate, principal_amount, interest_amount, extra_principal_amount, category_id, source_account_id, destination_account_id, schedule_id, schedule_occurrence_date, is_schedule_override, allocation_id",
+      "id, user_id, title, note, occurred_at, created_at, status, kind, amount, destination_amount, fx_rate, principal_amount, interest_amount, extra_principal_amount, category_id, source_account_id, destination_account_id, schedule_id, schedule_occurrence_date, is_schedule_override, allocation_id, investment_instrument_id, investment_units",
     )
     .eq("user_id", user.id)
-    .or(`occurred_at.gte.${transactionCutoff},status.eq.planned`)
+    .or(`occurred_at.gte.${transactionCutoff},status.eq.planned,investment_instrument_id.not.is.null`)
     .order("occurred_at", { ascending: false })
     .order("created_at", { ascending: false });
 
   if (transactionError) {
     throw new Error(normalizeFinanceRepositoryError(transactionError));
   }
+
+  const { data: positionRows, error: positionError } = await supabase
+    .from("investment_positions")
+    .select(`
+      id, user_id, instrument_id, opening_units, created_at, updated_at,
+      instrument:investment_instruments(
+        id, name, type, ticker, exchange, quote_currency, isin, provider, provider_symbol,
+        quotes:investment_quotes(instrument_id, provider, market_date, price, currency, fetched_at)
+      )
+    `)
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: true });
+
+  if (positionError) {
+    throw new Error(normalizeFinanceRepositoryError(positionError));
+  }
+
+  const investmentPositions: InvestmentPosition[] = (positionRows ?? []).map((row) => {
+    const instrumentValue = row.instrument as unknown as (InvestmentInstrumentRow & { quotes: InvestmentQuoteRow[] }) | null;
+    if (!instrumentValue) {
+      throw new Error("Investment instrument not found.");
+    }
+    const { quotes, ...instrument } = instrumentValue;
+    const latestQuoteRow = [...(quotes ?? [])].sort((left, right) =>
+      right.market_date.localeCompare(left.market_date),
+    )[0];
+    const latestQuote: InvestmentQuote | null = latestQuoteRow
+      ? {
+          ...latestQuoteRow,
+          price: Number(latestQuoteRow.price),
+        }
+      : null;
+    return {
+      id: row.id as string,
+      user_id: row.user_id as string,
+      instrument_id: row.instrument_id as string,
+      opening_units: Number(row.opening_units),
+      created_at: row.created_at as string,
+      updated_at: row.updated_at as string,
+      instrument,
+      latest_quote: latestQuote,
+    };
+  });
+  const investmentInstrumentsById = new Map(
+    investmentPositions.map((position) => [position.instrument_id, position.instrument]),
+  );
 
   recordSnapshotPhase(user.id, "transactions_read", phaseStartedAt, { transactions: transactions?.length ?? 0 });
 
@@ -628,6 +690,11 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
       source_account: row.source_account_id ? accountsById.get(row.source_account_id) ?? null : null,
       destination_account: row.destination_account_id ? accountsById.get(row.destination_account_id) ?? null : null,
       allocation: row.allocation_id ? allocationsById.get(row.allocation_id) ?? null : null,
+      investment_instrument_id: row.investment_instrument_id,
+      investment_units: row.investment_units === null ? null : Number(row.investment_units),
+      investment_instrument: row.investment_instrument_id
+        ? investmentInstrumentsById.get(row.investment_instrument_id) ?? null
+        : null,
       schedule: row.schedule_id ? schedulesById.get(row.schedule_id) ?? null : null,
     };
   });
@@ -669,7 +736,23 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
     allocations: earlyMappedAllocations,
     preferences,
     exchange_rates: exchangeRates,
+    investment_positions: investmentPositions,
   };
+}
+
+export async function saveInvestmentPosition(values: InvestmentPositionInput) {
+  const { supabase, user } = await getAuthenticatedSupabase();
+  const { error } = await supabase
+    .from("investment_positions")
+    .upsert(
+      {
+        user_id: user.id,
+        instrument_id: values.instrument_id,
+        opening_units: values.opening_units,
+      },
+      { onConflict: "user_id,instrument_id" },
+    );
+  if (error) throw new Error(normalizeFinanceRepositoryError(error));
 }
 
 function recordSnapshotPhase(
@@ -1004,6 +1087,8 @@ export async function createTransactionEntry(values: TransactionEntryInput) {
       source_account_id: values.source_account_id,
       destination_account_id: values.destination_account_id,
       allocation_id: values.allocation_id ?? null,
+      investment_instrument_id: values.investment_instrument_id ?? null,
+      investment_units: values.investment_units ?? null,
       recurrence: values.recurrence,
     };
 
@@ -1050,6 +1135,8 @@ export async function createTransactionEntryBatch(entries: TransactionEntryInput
         source_account_id: e.source_account_id,
         destination_account_id: e.destination_account_id,
         allocation_id: e.allocation_id ?? null,
+        investment_instrument_id: e.investment_instrument_id ?? null,
+        investment_units: e.investment_units ?? null,
       })),
     );
     if (error) throw new Error(normalizeFinanceRepositoryError(error));
@@ -1083,6 +1170,8 @@ export async function createTransaction(values: TransactionInput) {
     source_account_id: values.source_account_id,
     destination_account_id: values.destination_account_id,
     allocation_id: values.allocation_id ?? null,
+    investment_instrument_id: values.investment_instrument_id ?? null,
+    investment_units: values.investment_units ?? null,
   });
 
   if (error) {
@@ -1166,6 +1255,8 @@ export async function updateTransaction(transactionId: string, values: Transacti
     source_account_id: values.source_account_id,
     destination_account_id: values.destination_account_id,
     allocation_id: values.allocation_id ?? null,
+    investment_instrument_id: values.investment_instrument_id ?? null,
+    investment_units: values.investment_units ?? null,
   };
 
   // Mark as overridden so the reconciler doesn't overwrite manual edits

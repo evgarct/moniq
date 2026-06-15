@@ -6,7 +6,7 @@
 - `app/api` exposes thin route handlers for finance reads, wallet/allocation mutations, and MCP agent workflows.
 - `features/finance/server/repository.ts` is the only server-side finance data access layer.
 - `features/finance/lib/finance-api.ts` is the client-side fetch layer used by TanStack Query and mutations.
-- `features/accounts` and `features/allocations` keep domain helpers and UI.
+- `features/accounts`, `features/allocations`, and `features/investments` keep domain helpers and UI.
 - `features/banking` owns CSV import preview, draft inbox review, import rules, and confirm/delete flows.
 
 ## Data flow
@@ -48,6 +48,7 @@ Moniq records technical performance events for Web Vitals, client fetches, API r
 - `finance_categories` are user-owned income or expense trees with arbitrary nesting.
 - `finance_transaction_schedules` define recurring series and own cadence/state rules.
 - `finance_transactions` store one register for income, expense, transfer, savings moves, and debt payments, including generated occurrences for recurring series.
+- `investment_positions` store opening units; paid expense transactions with investment metadata add purchased units. Market value stays outside wallet totals.
 - import batches and draft import rows are staging entities that exist before confirmed ledger transactions are created.
 - currencies are wallet-level attributes and allocations inherit the parent wallet currency.
 - category analytics must remain currency-separated instead of mixing EUR/CZK/RUB into one fake total.

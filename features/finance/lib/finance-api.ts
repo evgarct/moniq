@@ -14,6 +14,7 @@ import type {
   WalletInput,
 } from "@/types/finance-schemas";
 import type { FinanceSnapshot } from "@/types/finance";
+import type { InvestmentInstrumentCandidate } from "@/types/finance";
 import { loadMessages } from "@/i18n/messages";
 import { reportFetchPerformance } from "@/lib/performance/client";
 import { routing, type AppLocale } from "@/i18n/routing";
@@ -128,6 +129,19 @@ export async function fetchFinanceSnapshot(): Promise<FinanceSnapshot> {
     cache: "no-store",
   });
 
+  return parseJsonResponse<FinanceSnapshot>(response);
+}
+
+export async function saveInvestmentPositionRequest(
+  instrument: InvestmentInstrumentCandidate,
+  openingUnits: number,
+): Promise<FinanceSnapshot> {
+  const response = await fetchWithTimeout("/api/investments/positions", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ instrument, opening_units: openingUnits }),
+  });
   return parseJsonResponse<FinanceSnapshot>(response);
 }
 

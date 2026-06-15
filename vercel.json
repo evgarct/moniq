@@ -18,6 +18,10 @@
     {
       "path": "/api/fx/rates/refresh",
       "schedule": "15 15 * * *"
+    },
+    {
+      "path": "/api/investments/quotes/refresh",
+      "schedule": "30 18 * * *"
     }
   ]
 }

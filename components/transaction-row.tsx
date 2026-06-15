@@ -142,6 +142,7 @@ export function TransactionRow({
   onToggleScheduleState?: (transaction: Transaction) => void;
 }) {
   const t = useTranslations("transactions");
+  const investmentsT = useTranslations("investments");
   const formatDate = useFormatter();
   const suppressClickUntil = useRef(0);
 
@@ -168,7 +169,9 @@ export function TransactionRow({
   const recurringLabel = transaction.schedule_id ? t("row.recurring") : null;
   const kindLabel = t(`kinds.${transaction.kind}`);
   const secondaryLabel = secondaryLabelOverride ?? buildSecondaryLabel(transaction, kindLabel, t("row.unlinkedAccount"));
-  const secondaryMeta = secondaryLabel;
+  const secondaryMeta = transaction.investment_instrument && transaction.investment_units
+    ? `${secondaryLabel} · ${transaction.investment_instrument.ticker} · ${investmentsT("units", { value: String(transaction.investment_units) })}`
+    : secondaryLabel;
   const showEncouragementBadge = isEncouragedTransaction(transaction);
   const interactive = Boolean(onClick);
 

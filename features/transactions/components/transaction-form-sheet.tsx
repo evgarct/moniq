@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger } from "@
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import type { Account, Category, Transaction, TransactionSchedule, WalletAllocation } from "@/types/finance";
+import type { Account, Category, InvestmentPosition, Transaction, TransactionSchedule, WalletAllocation } from "@/types/finance";
 
 import { RescheduleConfirmOverlay } from "./reschedule-confirm-overlay";
 import { TransactionFormProvider, useTransactionFormContext } from "../form/context";
@@ -221,6 +221,8 @@ export function TransactionFormSheet({
   categories,
   transactions = [],
   allocations = [],
+  investmentPositions = [],
+  initialInvestmentInstrumentId,
   onOpenChange,
   onSubmit,
 }: {
@@ -235,6 +237,8 @@ export function TransactionFormSheet({
   categories: Category[];
   transactions?: Transaction[];
   allocations?: WalletAllocation[];
+  investmentPositions?: InvestmentPosition[];
+  initialInvestmentInstrumentId?: string | null;
   onOpenChange: (open: boolean) => void;
   onSubmit: (payload: TransactionFormSubmitPayload) => void;
 }) {
@@ -296,6 +300,8 @@ export function TransactionFormSheet({
           categories={categories}
           transactions={transactions}
           allocations={allocations}
+          investmentPositions={investmentPositions}
+          initialInvestmentInstrumentId={initialInvestmentInstrumentId}
           onSubmit={wrappedOnSubmit}
           onOpenChange={onOpenChange}
         >

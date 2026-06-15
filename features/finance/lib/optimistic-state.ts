@@ -63,6 +63,9 @@ function resolveTransactionRelations(snapshot: FinanceSnapshot, values: Transact
     allocation: values.allocation_id
       ? snapshot.allocations.find((allocation) => allocation.id === values.allocation_id) ?? null
       : null,
+    investment_instrument: values.investment_instrument_id
+      ? snapshot.investment_positions.find((position) => position.instrument_id === values.investment_instrument_id)?.instrument ?? null
+      : null,
   };
 }
 
@@ -93,6 +96,8 @@ export function makeOptimisticTransaction(
     schedule_occurrence_date: null,
     is_schedule_override: false,
     allocation_id: values.allocation_id ?? null,
+    investment_instrument_id: values.investment_instrument_id ?? null,
+    investment_units: values.investment_units ?? null,
     schedule: null,
     ...resolveTransactionRelations(snapshot, values),
   };
@@ -136,6 +141,8 @@ export function updateTransaction(snapshot: FinanceSnapshot, transactionId: stri
     interest_amount: values.interest_amount ?? null,
     extra_principal_amount: values.extra_principal_amount ?? null,
     allocation_id: values.allocation_id ?? null,
+    investment_instrument_id: values.investment_instrument_id ?? null,
+    investment_units: values.investment_units ?? null,
     is_schedule_override: existing.schedule_id ? true : existing.is_schedule_override,
     ...resolveTransactionRelations(snapshot, values),
   };

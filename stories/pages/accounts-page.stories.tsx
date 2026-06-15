@@ -83,6 +83,7 @@ const meta = {
           categories={data.categories}
           transactions={data.transactions}
           allocations={data.allocations ?? []}
+          investmentPositions={data.investment_positions ?? []}
         />
       </div>
     </StoryWorkspace>
