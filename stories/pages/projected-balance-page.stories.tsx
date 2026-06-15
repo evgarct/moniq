@@ -144,14 +144,27 @@ export const MobileAccountPickerOpen: Story = {
   args: {
     snapshot: reportSnapshot,
   },
+  beforeEach: ({ canvasElement }) => {
+    const documentRootStyle = canvasElement.ownerDocument.documentElement.style;
+    const previousValue = documentRootStyle.getPropertyValue("--safe-area-inset-top");
+    const previousPriority = documentRootStyle.getPropertyPriority("--safe-area-inset-top");
+
+    documentRootStyle.setProperty("--safe-area-inset-top", "47px");
+
+    return () => {
+      if (previousValue) {
+        documentRootStyle.setProperty("--safe-area-inset-top", previousValue, previousPriority);
+      } else {
+        documentRootStyle.removeProperty("--safe-area-inset-top");
+      }
+    };
+  },
   parameters: {
     viewport: {
       defaultViewport: "mobile1",
     },
   },
   play: async ({ canvasElement }) => {
-    canvasElement.ownerDocument.documentElement.style.setProperty("--safe-area-inset-top", "47px");
-
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole("button", { name: "All accounts" }));
 
