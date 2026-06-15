@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { addDays, format } from "date-fns";
-import { expect, within } from "storybook/test";
+import { expect, userEvent, within } from "storybook/test";
 
 import { ProjectedBalanceView } from "@/features/reports/components/projected-balance-view";
 import { makeFinanceSnapshot } from "@/stories/fixtures/story-data";
@@ -137,6 +137,31 @@ export const AccountPickerOpen: Story = {
   args: {
     snapshot: reportSnapshot,
     initialAccountPickerOpen: true,
+  },
+};
+
+export const MobileAccountPickerOpen: Story = {
+  args: {
+    snapshot: reportSnapshot,
+  },
+  parameters: {
+    viewport: {
+      defaultViewport: "mobile1",
+    },
+  },
+  play: async ({ canvasElement }) => {
+    canvasElement.ownerDocument.documentElement.style.setProperty("--safe-area-inset-top", "47px");
+
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: "All accounts" }));
+
+    const body = within(canvasElement.ownerDocument.body);
+    const dialog = body.getByRole("dialog");
+    const backButton = body.getByRole("button", { name: "Back" });
+
+    await expect(dialog).toBeInTheDocument();
+    await expect(getComputedStyle(dialog).top).toBe("47px");
+    await expect(backButton.getBoundingClientRect().top).toBeGreaterThanOrEqual(47);
   },
 };
 
