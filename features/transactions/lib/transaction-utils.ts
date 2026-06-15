@@ -1,5 +1,5 @@
 import type { TransactionInput } from "@/types/finance-schemas";
-import type { Account, Category, Transaction } from "@/types/finance";
+import type { Account, Category, InvestmentPosition, Transaction } from "@/types/finance";
 import { isSettledTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
 
 export function getTransactionAnalyticsAmount(transaction: Transaction) {
@@ -43,6 +43,7 @@ export function validateTransactionRelationships(
   options: {
     accounts: Account[];
     categories: Category[];
+    investment_positions?: InvestmentPosition[];
   },
 ) {
   const sourceAccount = values.source_account_id
@@ -81,6 +82,21 @@ export function validateTransactionRelationships(
 
   if (values.kind === "transfer" && values.category_id) {
     throw new Error("Transfers do not use categories.");
+  }
+
+  const hasInstrument = Boolean(values.investment_instrument_id);
+  const hasUnits = values.investment_units != null;
+  if (hasInstrument !== hasUnits || (values.investment_units != null && values.investment_units <= 0)) {
+    throw new Error("Choose an investment and provide positive purchased units.");
+  }
+  if (hasInstrument && values.kind !== "expense") {
+    throw new Error("Investment purchases must be expenses.");
+  }
+  if (
+    values.investment_instrument_id &&
+    !options.investment_positions?.some((position) => position.instrument_id === values.investment_instrument_id)
+  ) {
+    throw new Error("Investment position not found.");
   }
 }
 

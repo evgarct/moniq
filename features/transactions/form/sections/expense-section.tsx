@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { CategoryCascadePicker } from "@/components/category-cascade-picker";
 import { FieldMessage, FormPickerRow, FormRow, FormSection } from "@/components/form-primitives";
 import { MoneyInput } from "@/components/money-input";
+import { Input } from "@/components/ui/input";
 
 import { useTransactionFormContext } from "../context";
 import { AccountSelect } from "../account-select";
@@ -16,7 +17,7 @@ import type { TransactionFormInputs } from "../types";
 
 export function ExpenseSection() {
   const t = useTranslations("transactions.form");
-  const { isBatchMode, accounts, categoryOptions, sourceCurrencySymbol, allocations } = useTransactionFormContext();
+  const { isBatchMode, accounts, categoryOptions, sourceCurrencySymbol, allocations, investmentPositions } = useTransactionFormContext();
   const { control, formState: { errors } } = useFormContext<TransactionFormInputs>();
 
   if (isBatchMode) {
@@ -43,6 +44,45 @@ export function ExpenseSection() {
         <FormPickerRow>
           <GoalSelect allocations={allocations} />
         </FormPickerRow>
+      )}
+
+      {investmentPositions.length > 0 && (
+        <>
+          <FormRow label={t("fields.investment")}>
+            <Controller
+              control={control}
+              name="investment_instrument_id"
+              render={({ field }) => (
+                <select
+                  className="h-10 min-w-44 bg-transparent text-right type-body-14"
+                  value={field.value ?? ""}
+                  onChange={(event) => field.onChange(event.target.value || null)}
+                >
+                  <option value="">{t("placeholders.investment")}</option>
+                  {investmentPositions.map((position) => (
+                    <option key={position.instrument_id} value={position.instrument_id}>
+                      {position.instrument.ticker} · {position.instrument.exchange}
+                    </option>
+                  ))}
+                </select>
+              )}
+            />
+          </FormRow>
+          <FormRow label={t("fields.investmentUnits")}>
+            <Controller
+              control={control}
+              name="investment_units"
+              render={({ field }) => (
+                <Input
+                  className="w-44 border-0 text-right shadow-none"
+                  inputMode="decimal"
+                  value={field.value ?? ""}
+                  onChange={(event) => field.onChange(event.target.value ? Number(event.target.value) : null)}
+                />
+              )}
+            />
+          </FormRow>
+        </>
       )}
 
       <FormPickerRow>

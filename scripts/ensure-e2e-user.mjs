@@ -137,6 +137,7 @@ async function ensureAuthSession(supabase, email, password) {
 
 async function resetUserData(supabase, userId) {
   const deletions = [
+    ["investment_positions", "delete investment positions"],
     ["transaction_import_column_presets", "delete import column presets"],
     ["transaction_imports", "delete import drafts"],
     ["transaction_import_rules", "delete import rules"],

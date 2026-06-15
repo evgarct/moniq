@@ -52,6 +52,8 @@ export function buildSchema(msgs: SchemaMessages, mode: TransactionFormMode) {
       source_account_id: opaqueId,
       destination_account_id: opaqueId,
       allocation_id: opaqueId,
+      investment_instrument_id: opaqueId,
+      investment_units: z.number().positive(v.amountPositive).nullable(),
       is_recurring: z.boolean(),
       recurrence_frequency: z.enum(["daily", "weekly", "monthly", "yearly"]),
       recurrence_interval_weeks: z.number().int().min(1),
@@ -59,7 +61,7 @@ export function buildSchema(msgs: SchemaMessages, mode: TransactionFormMode) {
       line_items: z.array(lineItemSchema),
     })
     .superRefine((values, ctx) => {
-      const batchMode = mode === "add" && supportsBatchItems(values.kind);
+      const batchMode = mode === "add" && supportsBatchItems(values.kind) && !values.investment_instrument_id;
 
       if (!batchMode && values.amount <= 0) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["amount"], message: v.amountPositive });
@@ -118,6 +120,9 @@ export function buildSchema(msgs: SchemaMessages, mode: TransactionFormMode) {
       }
       if (values.is_recurring && values.recurrence_until && values.recurrence_until < values.occurred_at) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["recurrence_until"], message: v.recurrenceUntilBeforeStart });
+      }
+      if (Boolean(values.investment_instrument_id) !== Boolean(values.investment_units)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["investment_units"], message: v.amountPositive });
       }
     });
 }

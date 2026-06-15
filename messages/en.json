@@ -104,6 +104,10 @@
         "debtNeedsDebtAccount": "Debt payment must target a debt account.",
         "transferNoCategory": "Transfers do not use categories."
       },
+      "investment": {
+        "search": "Unable to search investments.",
+        "save": "Unable to save investment."
+      },
       "invalidJson": "Invalid JSON.",
       "invalidInput": "Invalid input.",
       "mcp": {
@@ -371,6 +375,33 @@
       "empty": "No overdue, current, or upcoming operations.",
       "selectedEmpty": "No operations for this day.",
       "doneEmpty": "No completed transactions for this day."
+    }
+  },
+  "investments": {
+    "title": "Investments",
+    "empty": "No investment positions yet.",
+    "units": "{value} units",
+    "quoteUnavailable": "No quote",
+    "quoteDate": "Price as of {date}",
+    "purchases": "Purchases",
+    "noPurchases": "No linked purchases yet.",
+    "labels": {
+      "units": "Units",
+      "marketValue": "Market value"
+    },
+    "actions": {
+      "add": "Add investment",
+      "addPurchase": "Add purchase",
+      "close": "Close investment details"
+    },
+    "form": {
+      "title": "Add investment",
+      "description": "Choose a stock or ETF and enter the opening quantity.",
+      "instrument": "Instrument",
+      "search": "Search by name, ticker, or ISIN",
+      "selected": "Selected",
+      "openingUnits": "Opening units",
+      "submit": "Save investment"
     }
   },
   "accounts": {
@@ -766,6 +797,8 @@
         "row": "Row",
         "details": "Transaction details",
         "additional": "Additional details"
+        ,"investment": "Investment"
+        ,"investmentUnits": "Purchased units"
       },
       "entryTypes": {
         "oneOff": "One-time",
@@ -799,6 +832,7 @@
         "noGoal": "No goal",
         "note": "Add notes",
         "lineNote": "Optional note"
+        ,"investment": "No investment"
       },
       "actions": {
         "addOperation": "Add transaction",

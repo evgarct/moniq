@@ -8,7 +8,7 @@ import { useTranslations } from "next-intl";
 
 import { DEFAULT_CURRENCY_CODE } from "@/lib/currencies";
 import { getCurrencySymbol } from "@/lib/formatters";
-import type { Account, Category, Transaction, TransactionSchedule, WalletAllocation } from "@/types/finance";
+import type { Account, Category, InvestmentPosition, Transaction, TransactionSchedule, WalletAllocation } from "@/types/finance";
 
 import { buildSchema } from "./schema";
 import { supportsBatchItems, isMoveKind, createEmptyLineItem } from "./helpers";
@@ -29,6 +29,7 @@ export type TransactionFormContextValue = {
   categories: Category[];
   transactions: Transaction[];
   allocations: WalletAllocation[];
+  investmentPositions: InvestmentPosition[];
   // callbacks
   onSubmit: (payload: TransactionFormSubmitPayload) => boolean | void;
   onOpenChange: (open: boolean) => void;
@@ -107,6 +108,7 @@ function makeDefaults({
   initialDate,
   mode,
   defaultSourceAccountId,
+  initialInvestmentInstrumentId,
 }: {
   transaction?: Transaction | null;
   schedule?: TransactionSchedule | null;
@@ -114,6 +116,7 @@ function makeDefaults({
   initialDate?: string | null;
   mode: TransactionFormMode;
   defaultSourceAccountId?: string | null;
+  initialInvestmentInstrumentId?: string | null;
 }): TransactionFormInputs {
   const currentKind = schedule?.kind ?? transaction?.kind ?? initialKind ?? "expense";
   const isAddMode = mode === "add";
@@ -135,6 +138,8 @@ function makeDefaults({
     source_account_id: schedule?.source_account_id ?? transaction?.source_account_id ?? defaultSourceId,
     destination_account_id: schedule?.destination_account_id ?? transaction?.destination_account_id ?? defaultDestId,
     allocation_id: schedule?.allocation_id ?? transaction?.allocation_id ?? null,
+    investment_instrument_id: transaction?.investment_instrument_id ?? initialInvestmentInstrumentId ?? null,
+    investment_units: transaction?.investment_units ?? null,
     is_recurring: mode === "edit-schedule",
     recurrence_frequency: schedule?.frequency ?? "monthly",
     recurrence_interval_weeks: schedule?.interval_weeks ?? 1,
@@ -167,6 +172,8 @@ export function TransactionFormProvider({
   categories,
   transactions = [],
   allocations = [],
+  investmentPositions = [],
+  initialInvestmentInstrumentId,
   onSubmit,
   onOpenChange,
 }: {
@@ -182,6 +189,8 @@ export function TransactionFormProvider({
   categories: Category[];
   transactions?: Transaction[];
   allocations?: WalletAllocation[];
+  investmentPositions?: InvestmentPosition[];
+  initialInvestmentInstrumentId?: string | null;
   onSubmit: (payload: TransactionFormSubmitPayload) => boolean | void;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -218,7 +227,7 @@ export function TransactionFormProvider({
 
   const form = useForm<TransactionFormInputs>({
     resolver: zodResolver(schema),
-    defaultValues: makeDefaults({ transaction, schedule, initialKind, initialDate, mode, defaultSourceAccountId }),
+    defaultValues: makeDefaults({ transaction, schedule, initialKind, initialDate, mode, defaultSourceAccountId, initialInvestmentInstrumentId }),
   });
 
   const { fields, append, insert, remove, replace } = useFieldArray({
@@ -227,8 +236,8 @@ export function TransactionFormProvider({
   });
 
   useEffect(() => {
-    form.reset(makeDefaults({ transaction, schedule, initialKind, initialDate, mode, defaultSourceAccountId }));
-  }, [form, initialKind, initialDate, mode, open, schedule, transaction, defaultSourceAccountId]);
+    form.reset(makeDefaults({ transaction, schedule, initialKind, initialDate, mode, defaultSourceAccountId, initialInvestmentInstrumentId }));
+  }, [form, initialInvestmentInstrumentId, initialKind, initialDate, mode, open, schedule, transaction, defaultSourceAccountId]);
 
   const kind = useWatch({ control: form.control, name: "kind" });
   const amount = useWatch({ control: form.control, name: "amount" });
@@ -239,8 +248,9 @@ export function TransactionFormProvider({
   const occurredAt = useWatch({ control: form.control, name: "occurred_at" });
   const status = useWatch({ control: form.control, name: "status" });
   const note = useWatch({ control: form.control, name: "note" });
+  const investmentInstrumentId = useWatch({ control: form.control, name: "investment_instrument_id" });
 
-  const isBatchMode = mode === "add" && supportsBatchItems(kind);
+  const isBatchMode = mode === "add" && supportsBatchItems(kind) && !investmentInstrumentId;
 
   // auto-calc destination amount from fx rate
   useEffect(() => {
@@ -385,6 +395,7 @@ export function TransactionFormProvider({
     categories,
     transactions,
     allocations,
+    investmentPositions,
     onSubmit,
     onOpenChange,
     kind,

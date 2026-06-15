@@ -20,6 +20,8 @@ export function normalizePayload(values: TransactionFormInputs): TransactionInpu
     source_account_id: values.source_account_id ?? null,
     destination_account_id: values.destination_account_id ?? null,
     allocation_id: values.kind === "expense" ? (values.allocation_id ?? null) : null,
+    investment_instrument_id: values.kind === "expense" ? values.investment_instrument_id : null,
+    investment_units: values.kind === "expense" ? values.investment_units : null,
   };
 }
 
@@ -56,7 +58,7 @@ export function buildSubmitPayload(
   accounts: Account[],
   categories: Category[],
 ): TransactionFormSubmitPayload | null {
-  if (supportsBatchItems(values.kind) && mode === "add" && values.line_items.length > 0) {
+  if (supportsBatchItems(values.kind) && mode === "add" && !values.investment_instrument_id && values.line_items.length > 0) {
     const batchKind = values.kind;
     return {
       kind: "entry-batch",

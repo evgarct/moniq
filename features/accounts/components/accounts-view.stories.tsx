@@ -65,6 +65,7 @@ const meta = {
     categories: snapshot.categories,
     transactions: snapshot.transactions,
     allocations: snapshot.allocations,
+    investmentPositions: snapshot.investment_positions,
   },
   parameters: {
     layout: "fullscreen",
@@ -88,6 +89,7 @@ export const Default: Story = {
     categories: snapshot.categories,
     transactions: snapshot.transactions,
     allocations: snapshot.allocations,
+    investmentPositions: snapshot.investment_positions,
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -102,11 +104,37 @@ export const DenseSavingsBuckets: Story = {
     categories: denseSavingsSnapshot.categories,
     transactions: denseSavingsSnapshot.transactions,
     allocations: denseSavingsAllocations,
+    investmentPositions: denseSavingsSnapshot.investment_positions,
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("Euro Reserve")).toBeInTheDocument();
     await expect(canvas.getByText("Emergency fund")).toBeInTheDocument();
     await expect(canvas.getByText("Quarterly taxes")).toBeInTheDocument();
+  },
+};
+
+export const EmptyInvestments: Story = {
+  args: {
+    accounts: snapshot.accounts,
+    categories: snapshot.categories,
+    transactions: snapshot.transactions,
+    allocations: snapshot.allocations,
+    investmentPositions: [],
+  },
+};
+
+export const StaleAndMissingQuotes: Story = {
+  args: {
+    accounts: snapshot.accounts,
+    categories: snapshot.categories,
+    transactions: snapshot.transactions,
+    allocations: snapshot.allocations,
+    investmentPositions: snapshot.investment_positions.map((position, index) => ({
+      ...position,
+      latest_quote: index === 0 && position.latest_quote
+        ? { ...position.latest_quote, market_date: "2026-05-01" }
+        : null,
+    })),
   },
 };
