@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Account, ExchangeRate, Transaction } from "@/types/finance";
 
-import { buildProjectedBalanceReport, createProjectedBalanceSeries } from "./projected-balance";
+import { buildProjectedBalanceReport, createProjectedBalanceSeries, PROJECTED_BALANCE_PRESET_MONTHS } from "./projected-balance";
 
 const now = new Date("2026-06-14T12:00:00Z");
 
@@ -92,6 +92,10 @@ function build(options: {
 }
 
 describe("projected balance report", () => {
+  it("includes the two-month preset used by frequent mobile reporting", () => {
+    expect(PROJECTED_BALANCE_PRESET_MONTHS).toContain(2);
+  });
+
   it("builds either one merged line or one line per selected account", () => {
     const first = account("first", 1_000);
     const second = account("second", 500);

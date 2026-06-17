@@ -16,30 +16,51 @@ export function InvestmentList({
   selectedId,
   onSelect,
   onAdd,
+  editing = false,
 }: {
   positions: InvestmentPosition[];
   transactions: Transaction[];
   selectedId: string | null;
   onSelect: (id: string) => void;
   onAdd: () => void;
+  editing?: boolean;
 }) {
   const t = useTranslations("investments");
+
   return (
-    <section>
-      <div className="mb-2 flex items-center justify-between px-2">
-        <h2 className="type-h6 text-muted-foreground">{t("title")}</h2>
-        <Tooltip>
-          <TooltipTrigger render={<Button variant="ghost" size="icon-sm" aria-label={t("actions.add")} />} onClick={onAdd}>
-            <Plus />
-          </TooltipTrigger>
-          <TooltipContent>{t("actions.add")}</TooltipContent>
-        </Tooltip>
+    <section className="flex flex-col gap-2 sm:gap-2.5">
+      <div className="flex items-center justify-between gap-3 px-1.5 sm:px-2.5">
+        <h3 className="font-heading text-[20px] leading-[1.12] tracking-[-0.028em] text-foreground sm:type-h3">
+          {t("title")}
+        </h3>
+        <div className="flex h-8 w-8 items-center justify-center">
+          {editing ? (
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="bg-transparent text-muted-foreground hover:bg-secondary/70 hover:text-foreground active:bg-secondary"
+                    aria-label={t("actions.add")}
+                  />
+                }
+                onClick={onAdd}
+              >
+                <Plus />
+              </TooltipTrigger>
+              <TooltipContent>{t("actions.add")}</TooltipContent>
+            </Tooltip>
+          ) : null}
+        </div>
       </div>
+
       {positions.length ? (
-        <div className="flex flex-col">
+        <div className="flex flex-col gap-0.5 sm:gap-1">
           {positions.map((position) => {
             const units = getPositionUnits(position, transactions);
             const value = getPositionMarketValue(position, transactions);
+
             return (
               <button
                 type="button"
@@ -52,19 +73,21 @@ export function InvestmentList({
               >
                 <TrendingUp className="size-[18px] shrink-0 text-muted-foreground" strokeWidth={1.75} />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate type-body-14 font-medium">{position.instrument.name}</span>
-                  <span className="block type-body-12 text-muted-foreground">
-                    {position.instrument.ticker} · {position.instrument.exchange} · {t("units", { value: String(units) })}
+                  <span className="block max-h-10 overflow-hidden text-[13px] leading-5 font-medium text-foreground sm:text-[14px]">
+                    {position.instrument.name}
+                  </span>
+                  <span className="block truncate type-body-12 text-muted-foreground">
+                    {position.instrument.ticker} {"\u00b7"} {position.instrument.exchange} {"\u00b7"} {t("units", { value: String(units) })}
                   </span>
                 </span>
                 {value == null ? (
-                  <span className="type-body-12 text-muted-foreground">{t("quoteUnavailable")}</span>
+                  <span className="shrink-0 type-body-12 text-muted-foreground">{t("quoteUnavailable")}</span>
                 ) : (
                   <MoneyAmount
                     amount={value}
                     currency={position.latest_quote!.currency}
                     display="absolute"
-                    className="type-body-14 font-medium"
+                    className="shrink-0 type-body-14 font-medium"
                   />
                 )}
               </button>
@@ -72,7 +95,9 @@ export function InvestmentList({
           })}
         </div>
       ) : (
-        <p className="px-2 py-3 type-body-12 text-muted-foreground">{t("empty")}</p>
+        <p className="px-1.5 py-1 text-[13px] leading-5 text-muted-foreground sm:type-body-14 sm:px-2.5">
+          {t("empty")}
+        </p>
       )}
     </section>
   );

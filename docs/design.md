@@ -158,7 +158,7 @@ Each kind defines which accounts are involved and what data is required:
 | `transfer` | ✅ required | ✅ required | — | may have `destination_amount` for FX |
 | `save_to_goal` | ✅ required | ✅ required | — | destination is savings wallet |
 | `spend_from_goal` | ✅ required | ✅ required | — | source is savings wallet |
-| `debt_payment` | ✅ required | ✅ debt account | — | has `principal_amount`, `interest_amount` |
+| `debt_payment` | ✅ required | ✅ debt or credit card account | — | has `principal_amount`, `interest_amount` |
 | `investment` | ✅ required | — | ✅ expense | money leaves; no special wallet tracked |
 | `refund` | — | ✅ required | ✅ expense | money enters; uses expense categories |
 | `adjustment` | conditional | conditional | — | user enters real balance; app computes diff |

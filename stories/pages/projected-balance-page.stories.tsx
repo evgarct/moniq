@@ -128,8 +128,7 @@ export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole("heading", { name: "Projected balance" })).toBeInTheDocument();
-    await expect(canvas.getByRole("button", { name: "All accounts" })).toBeInTheDocument();
-    await expect(canvas.getByRole("button", { name: "6 months" })).toBeInTheDocument();
+    await expect(canvas.getByRole("button", { name: /All accounts.*6 months/ })).toBeInTheDocument();
   },
 };
 
@@ -166,7 +165,7 @@ export const MobileAccountPickerOpen: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await userEvent.click(canvas.getByRole("button", { name: "All accounts" }));
+    await userEvent.click(canvas.getByRole("button", { name: /All accounts.*6 months/ }));
 
     const body = within(canvasElement.ownerDocument.body);
     const dialog = body.getByRole("dialog");

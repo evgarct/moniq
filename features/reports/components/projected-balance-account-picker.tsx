@@ -137,15 +137,56 @@ function PickerRows({
   );
 }
 
-export function ProjectedBalanceAccountPicker({
+function PeriodRows({
+  periodMonths,
+  selectedMonths,
+  onPeriodChange,
+}: {
+  periodMonths: readonly number[];
+  selectedMonths: number | null;
+  onPeriodChange: (months: number) => void;
+}) {
+  const t = useTranslations("reports.projectedBalance.period");
+
+  return (
+    <section className="flex flex-col gap-1">
+      <p className="type-body-12 px-3 py-1.5 font-medium text-muted-foreground">
+        {t("label")}
+      </p>
+      <div className="flex flex-col">
+        {periodMonths.map((months) => (
+          <button
+            key={months}
+            type="button"
+            className="flex min-h-11 w-full items-center justify-between gap-4 rounded-[var(--radius-control)] px-3 text-left hover:bg-secondary/50"
+            onClick={() => onPeriodChange(months)}
+          >
+            <span className="type-body-14">{t("months", { count: months })}</span>
+            {selectedMonths === months ? <Check className="size-4" aria-hidden /> : null}
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export function ProjectedBalanceControls({
   accounts,
   selection,
   onSelectionChange,
+  periodMonths,
+  selectedPeriodMonths,
+  periodLabel,
+  onPeriodChange,
   initialOpen = false,
 }: {
   accounts: Account[];
   selection: ProjectedBalanceSelection;
   onSelectionChange: (selection: ProjectedBalanceSelection) => void;
+  periodMonths: readonly number[];
+  selectedPeriodMonths: number | null;
+  periodLabel: string;
+  onPeriodChange: (months: number) => void;
   initialOpen?: boolean;
 }) {
   const t = useTranslations("reports.projectedBalance.accountPicker");
@@ -162,37 +203,47 @@ export function ProjectedBalanceAccountPicker({
     });
   }
 
+  const triggerLabel = `${selectionLabel} · ${periodLabel}`;
+
   return (
     <>
       <div className="hidden lg:block">
         <Popover defaultOpen={initialOpen}>
           <PopoverTrigger
             render={
-              <Button variant="ghost" className="bg-transparent text-muted-foreground hover:bg-secondary/70 hover:text-foreground" />
+              <Button variant="ghost" className="max-w-[18rem] bg-transparent text-muted-foreground hover:bg-secondary/70 hover:text-foreground" />
             }
           >
             <Wallet data-icon="inline-start" />
-            {selectionLabel}
+            <span className="min-w-0 truncate">{triggerLabel}</span>
             <ChevronDown data-icon="inline-end" />
           </PopoverTrigger>
           <PopoverContent align="end" className="w-80 p-1">
+            <div className="flex flex-col gap-2">
+              <PeriodRows
+                periodMonths={periodMonths}
+                selectedMonths={selectedPeriodMonths}
+                onPeriodChange={onPeriodChange}
+              />
+              <div className="h-px bg-border/60" />
             <PickerRows
               accounts={accounts}
               selection={selection}
               onSelectionChange={onSelectionChange}
               compact
             />
+            </div>
           </PopoverContent>
         </Popover>
       </div>
 
       <Button
         variant="ghost"
-        className="bg-transparent text-muted-foreground hover:bg-secondary/70 hover:text-foreground lg:hidden"
+        className="max-w-[46vw] bg-transparent text-muted-foreground hover:bg-secondary/70 hover:text-foreground lg:hidden"
         onClick={() => setMobileOpen(true)}
       >
         <Wallet data-icon="inline-start" />
-        {selectionLabel}
+        <span className="min-w-0 truncate">{triggerLabel}</span>
         <ChevronDown data-icon="inline-end" />
       </Button>
 
@@ -213,6 +264,13 @@ export function ProjectedBalanceAccountPicker({
             </Button>
           </header>
           <div className="min-h-0 flex-1 overflow-y-auto pb-[env(safe-area-inset-bottom)]">
+            <div className="border-b border-border/60 px-1 py-2">
+              <PeriodRows
+                periodMonths={periodMonths}
+                selectedMonths={selectedPeriodMonths}
+                onPeriodChange={onPeriodChange}
+              />
+            </div>
             <PickerRows
               accounts={accounts}
               selection={selection}

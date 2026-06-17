@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import type { TransactionFormMode } from "./types";
 import { supportsBatchItems, isMoveKind } from "./helpers";
+import { normalizeDebtPaymentBreakdown } from "./debt-payment-breakdown";
 
 export type SchemaMessages = {
   validation: {
@@ -104,11 +105,15 @@ export function buildSchema(msgs: SchemaMessages, mode: TransactionFormMode) {
         });
       }
       if (values.kind === "debt_payment") {
-        const total = (values.principal_amount ?? 0) + (values.interest_amount ?? 0) + (values.extra_principal_amount ?? 0);
-        if (total <= 0) {
+        const breakdown = normalizeDebtPaymentBreakdown(values);
+        const total = breakdown
+          ? breakdown.principal_amount + breakdown.interest_amount + breakdown.extra_principal_amount
+          : 0;
+
+        if (!breakdown || total <= 0) {
           ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["principal_amount"], message: v.debtBreakdownRequired });
         }
-        if (Math.abs(total - values.amount) > 0.01) {
+        if (!breakdown || Math.abs(total - values.amount) > 0.01) {
           ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["amount"], message: v.debtBreakdownMismatch });
         }
       }

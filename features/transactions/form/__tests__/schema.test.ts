@@ -162,6 +162,40 @@ describe("buildSchema – add mode", () => {
     expect(paths).not.toContain("amount");
   });
 
+  it("accepts debt_payment with only total amount and lets submit normalize principal", () => {
+    const result = schema.safeParse(
+      base({
+        kind: "debt_payment",
+        amount: 1000,
+        source_account_id: "acc-1",
+        destination_account_id: "acc-2",
+        category_id: null,
+        principal_amount: null,
+        interest_amount: null,
+        extra_principal_amount: null,
+      }),
+    );
+
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts debt_payment when one missing breakdown field can be inferred", () => {
+    const result = schema.safeParse(
+      base({
+        kind: "debt_payment",
+        amount: 1000,
+        source_account_id: "acc-1",
+        destination_account_id: "acc-2",
+        category_id: null,
+        principal_amount: null,
+        interest_amount: 100,
+        extra_principal_amount: null,
+      }),
+    );
+
+    expect(result.success).toBe(true);
+  });
+
   it("rejects recurring transaction with status paid", () => {
     const result = schema.safeParse(
       base({ is_recurring: true, status: "paid" }),

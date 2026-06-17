@@ -80,4 +80,36 @@ describe("projected balance URL state", () => {
       merged: true,
     });
   });
+
+  it("uses remembered account selection only when URL selection is absent", () => {
+    expect(
+      parseProjectedBalanceUrlState({
+        searchParams: new URLSearchParams(),
+        accounts,
+        rememberedSelection: {
+          accountIds: ["wallet-2", "deleted"],
+          merged: false,
+        },
+        now,
+      }).selection,
+    ).toEqual({
+      accountIds: ["wallet-2"],
+      merged: false,
+    });
+
+    expect(
+      parseProjectedBalanceUrlState({
+        searchParams: new URLSearchParams({ account: "wallet-1" }),
+        accounts,
+        rememberedSelection: {
+          accountIds: ["wallet-2"],
+          merged: false,
+        },
+        now,
+      }).selection,
+    ).toEqual({
+      accountIds: ["wallet-1"],
+      merged: true,
+    });
+  });
 });

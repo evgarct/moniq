@@ -107,6 +107,7 @@ export const Default: Story = {
     await expect(canvas.getByText("Euro Reserve")).toBeInTheDocument();
     await expect(canvas.getByRole("heading", { name: "Balance", level: 1 })).toBeInTheDocument();
     await expect(canvas.getByText("Transactions")).toBeInTheDocument();
+    await expect(canvas.queryByRole("button", { name: "Add investment" })).not.toBeInTheDocument();
   },
 };
 
@@ -129,6 +130,7 @@ export const Editing: Story = {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole("button", { name: "Add wallet" }));
     await expect(canvas.getAllByLabelText(/Add .* wallet/)[0]).toBeInTheDocument();
+    await expect(canvas.getByRole("button", { name: "Add investment" })).toBeInTheDocument();
   },
 };
 

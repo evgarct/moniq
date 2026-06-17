@@ -47,8 +47,8 @@ export function BalanceRegisterHeader({
   return (
     <div
       className={cn(
-        "sticky top-0 z-10 bg-background/94 backdrop-blur transition-shadow supports-[backdrop-filter]:bg-background/84",
-        scrolled && "shadow-[0_10px_24px_-22px_rgba(28,22,17,0.75)]",
+        "sticky top-0 z-10 border-b border-transparent bg-background/94 backdrop-blur transition-[background-color,border-color] supports-[backdrop-filter]:bg-background/84",
+        scrolled && "border-border/45",
         className,
       )}
     >

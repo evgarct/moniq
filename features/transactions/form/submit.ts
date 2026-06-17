@@ -1,9 +1,14 @@
 import type { Account, Category } from "@/types/finance";
 import type { TransactionInput } from "@/types/finance-schemas";
 import { isMoveKind, supportsBatchItems } from "./helpers";
+import { normalizeDebtPaymentBreakdown } from "./debt-payment-breakdown";
 import type { BatchKind, TransactionFormInputs, TransactionFormMode, TransactionFormSubmitPayload, TransactionLineItemInput } from "./types";
 
 export function normalizePayload(values: TransactionFormInputs): TransactionInput {
+  const debtBreakdown = values.kind === "debt_payment"
+    ? normalizeDebtPaymentBreakdown(values)
+    : null;
+
   return {
     title: values.title.trim(),
     note: values.note.trim() ? values.note.trim() : null,
@@ -13,9 +18,9 @@ export function normalizePayload(values: TransactionFormInputs): TransactionInpu
     amount: values.amount,
     destination_amount: isMoveKind(values.kind) ? (values.destination_amount ?? values.amount) : null,
     fx_rate: values.fx_rate ?? null,
-    principal_amount: values.kind === "debt_payment" ? (values.principal_amount ?? 0) : null,
-    interest_amount: values.kind === "debt_payment" ? (values.interest_amount ?? 0) : null,
-    extra_principal_amount: values.kind === "debt_payment" ? (values.extra_principal_amount ?? 0) : null,
+    principal_amount: values.kind === "debt_payment" ? (debtBreakdown?.principal_amount ?? 0) : null,
+    interest_amount: values.kind === "debt_payment" ? (debtBreakdown?.interest_amount ?? 0) : null,
+    extra_principal_amount: values.kind === "debt_payment" ? (debtBreakdown?.extra_principal_amount ?? 0) : null,
     category_id: isMoveKind(values.kind) ? null : (values.category_id ?? null),
     source_account_id: values.source_account_id ?? null,
     destination_account_id: values.destination_account_id ?? null,

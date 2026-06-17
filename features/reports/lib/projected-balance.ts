@@ -5,6 +5,7 @@ import type { CurrencyCode } from "@/types/currency";
 import type { Account, ExchangeRate, Transaction } from "@/types/finance";
 
 export const PROJECTED_BALANCE_MAX_MONTHS = 18;
+export const PROJECTED_BALANCE_PRESET_MONTHS = [1, 2, 3, 6, 12, 18] as const;
 
 export type ProjectedBalanceSeriesConfig = {
   id: string;

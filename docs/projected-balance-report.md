@@ -18,8 +18,8 @@ When the finance snapshot does not contain a required currency pair, the report 
 
 ## URL State
 
-The end date is stored as `end=YYYY-MM-DD`. Selected accounts use repeated `account` parameters, and `merged=true|false` controls line composition. Unknown account IDs are ignored. Legacy `series` parameters are read once for existing deep links and replaced with the current format after the next interaction. When all URL state is invalid, the report falls back to every available account in merged mode with a six-month period.
+The end date is stored as `end=YYYY-MM-DD`. Selected accounts use repeated `account` parameters, and `merged=true|false` controls line composition. Unknown account IDs are ignored. Legacy `series` parameters are read once for existing deep links and replaced with the current format after the next interaction. When the URL does not specify accounts, the page reuses the last valid browser-local account selection; otherwise it falls back to every available account in merged mode with a six-month period.
 
 ## Chart
 
-The chart uses `lightweight-charts` directly with a restrained accent for the primary line and neutral colors for additional lines. It fills the report workspace, uses compact price-axis labels, and supports crosshair tracking, touch selection, and keyboard date navigation. Hovering, tapping, or dragging shows a tooltip with the selected date and line balances. Account and operation details are not rendered below the chart, and the built-in TradingView attribution is disabled.
+The chart uses `lightweight-charts` directly with a restrained accent for the primary line and neutral colors for additional lines. It fills the report workspace, uses compact price-axis labels, and supports crosshair tracking, touch selection, and keyboard date navigation. Hovering, tapping, or dragging shows a tooltip with the selected date and line balances. Account and operation details are not rendered below the chart. The built-in TradingView attribution remains enabled.

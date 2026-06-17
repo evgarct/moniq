@@ -80,6 +80,6 @@ npx supabase db push
 - Auth is handled by Supabase SSR cookies.
 - Wallets and savings allocations are persisted in Supabase and loaded through API route handlers plus TanStack Query.
 - Transactions, categories, investments, and imports are persisted in Supabase.
-- Investment search and daily quote refresh use server-side `FMP_API_KEY`; Vercel cron calls the protected refresh route with `CRON_SECRET`.
+- Investment search and morning quote refresh use server-side `FMP_API_KEY`; Vercel cron calls the protected refresh route with `CRON_SECRET`.
 - CSV imports use a separate draft inbox. Imported rows stay as drafts until the user confirms them, then they are written into the main finance ledger and can create merchant-based category rules.
 - MCP-capable agents should use [docs/mcp-agent-instructions.md](docs/mcp-agent-instructions.md) before claiming Moniq cannot access transactions, future schedules, balances, or categories.
