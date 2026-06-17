@@ -101,7 +101,7 @@
         "categoryNotFound": "Category not found.",
         "categoryTypeMismatch": "Choose a category with the matching type.",
         "debtCategoryExpenseOnly": "Debt payment interest can only use an expense category.",
-        "debtNeedsDebtAccount": "Debt payment must target a debt account.",
+        "debtNeedsDebtAccount": "Debt payment must target a debt or credit card account.",
         "transferNoCategory": "Transfers do not use categories."
       },
       "investment": {

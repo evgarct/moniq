@@ -7,6 +7,22 @@ export type ProjectedBalanceSelection = {
   merged: boolean;
 };
 
+function filterSelection(
+  selection: ProjectedBalanceSelection,
+  validAccountIds: Set<string>,
+): ProjectedBalanceSelection | null {
+  const accountIds = Array.from(
+    new Set(selection.accountIds.filter((accountId) => validAccountIds.has(accountId))),
+  );
+
+  return accountIds.length
+    ? {
+        accountIds,
+        merged: selection.merged,
+      }
+    : null;
+}
+
 function decodeBase64Url(value: string) {
   const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
   const padding = normalized.length % 4;
@@ -46,6 +62,7 @@ export function createDefaultProjectedBalanceSelection(
 export function parseProjectedBalanceUrlState(options: {
   searchParams: Pick<URLSearchParams, "get" | "getAll">;
   accounts: Pick<Account, "id">[];
+  rememberedSelection?: ProjectedBalanceSelection | null;
   now?: Date;
 }) {
   const validAccountIds = new Set(options.accounts.map((account) => account.id));
@@ -53,15 +70,22 @@ export function parseProjectedBalanceUrlState(options: {
     ...options.searchParams.getAll("account"),
     ...parseLegacySeriesAccountIds(options.searchParams.getAll("series")),
   ];
-  const accountIds = Array.from(
-    new Set(requestedAccountIds.filter((accountId) => validAccountIds.has(accountId))),
+  const hasExplicitSelection =
+    options.searchParams.getAll("account").length > 0 ||
+    options.searchParams.getAll("series").length > 0;
+  const urlSelection = filterSelection(
+    {
+      accountIds: requestedAccountIds,
+      merged: options.searchParams.get("merged") !== "false",
+    },
+    validAccountIds,
   );
-  const selection = accountIds.length
-    ? {
-        accountIds,
-        merged: options.searchParams.get("merged") !== "false",
-      }
-    : createDefaultProjectedBalanceSelection(options.accounts);
+  const rememberedSelection = options.rememberedSelection
+    ? filterSelection(options.rememberedSelection, validAccountIds)
+    : null;
+  const selection = hasExplicitSelection
+    ? urlSelection ?? createDefaultProjectedBalanceSelection(options.accounts)
+    : rememberedSelection ?? createDefaultProjectedBalanceSelection(options.accounts);
   const period = resolveProjectedBalancePeriod({
     endDate: options.searchParams.get("end"),
     now: options.now,

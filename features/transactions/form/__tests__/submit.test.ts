@@ -79,6 +79,40 @@ describe("normalizePayload", () => {
     expect(result.interest_amount).toBe(15);
     expect(result.extra_principal_amount).toBe(5);
   });
+
+  it("defaults total-only debt payments to principal", () => {
+    const result = normalizePayload(
+      base({
+        kind: "debt_payment",
+        amount: 1000,
+        destination_account_id: "acc-2",
+        principal_amount: null,
+        interest_amount: null,
+        extra_principal_amount: null,
+      }),
+    );
+
+    expect(result.principal_amount).toBe(1000);
+    expect(result.interest_amount).toBe(0);
+    expect(result.extra_principal_amount).toBe(0);
+  });
+
+  it("calculates the missing debt payment breakdown field", () => {
+    const result = normalizePayload(
+      base({
+        kind: "debt_payment",
+        amount: 1000,
+        destination_account_id: "acc-2",
+        principal_amount: null,
+        interest_amount: 120,
+        extra_principal_amount: null,
+      }),
+    );
+
+    expect(result.principal_amount).toBe(880);
+    expect(result.interest_amount).toBe(120);
+    expect(result.extra_principal_amount).toBe(0);
+  });
 });
 
 describe("buildSubmitPayload – add income single (non-batch kind)", () => {

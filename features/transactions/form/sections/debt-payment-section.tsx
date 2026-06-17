@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useMemo } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import { useTranslations } from "next-intl";
 
@@ -11,12 +12,15 @@ import { cn } from "@/lib/utils";
 import { useTransactionFormContext } from "../context";
 import { AccountSelect } from "../account-select";
 import { SharedFields } from "./shared-fields";
+import { normalizeDebtPaymentBreakdown } from "../debt-payment-breakdown";
 import type { TransactionFormInputs } from "../types";
 
 export function DebtPaymentSection() {
   const t = useTranslations("transactions.form");
   const { accounts, categoryOptions, sourceCurrencySymbol } = useTransactionFormContext();
-  const { control, watch, formState: { errors } } = useFormContext<TransactionFormInputs>();
+  const { control, watch, setValue, formState: { dirtyFields, errors } } = useFormContext<TransactionFormInputs>();
+  const sourceAccountId = watch("source_account_id");
+  const destinationAccountId = watch("destination_account_id");
   const amount = watch("amount");
   const principal = watch("principal_amount") ?? 0;
   const interest = watch("interest_amount") ?? 0;
@@ -24,15 +28,65 @@ export function DebtPaymentSection() {
   const breakdownSum = principal + interest + extra;
   const breakdownDiff = Math.abs(breakdownSum - amount);
   const breakdownOk = breakdownSum > 0 && breakdownDiff <= 0.01;
+  const principalDirty = Boolean(dirtyFields.principal_amount);
+  const interestDirty = Boolean(dirtyFields.interest_amount);
+  const extraDirty = Boolean(dirtyFields.extra_principal_amount);
+  const sourceAccounts = useMemo(
+    () => accounts.filter((account) => account.type !== "credit_card" && account.type !== "debt"),
+    [accounts],
+  );
+  const destinationAccounts = useMemo(
+    () => accounts.filter((account) => account.type === "debt" || account.type === "credit_card"),
+    [accounts],
+  );
+
+  useEffect(() => {
+    if (sourceAccountId && sourceAccounts.some((account) => account.id === sourceAccountId)) return;
+    const nextSourceAccountId = sourceAccounts[0]?.id ?? null;
+    if (sourceAccountId === nextSourceAccountId) return;
+    setValue("source_account_id", nextSourceAccountId, { shouldValidate: false });
+  }, [setValue, sourceAccountId, sourceAccounts]);
+
+  useEffect(() => {
+    if (destinationAccountId && destinationAccounts.some((account) => account.id === destinationAccountId)) return;
+    const nextDestinationAccountId = destinationAccounts[0]?.id ?? null;
+    if (destinationAccountId === nextDestinationAccountId) return;
+    setValue("destination_account_id", nextDestinationAccountId, { shouldValidate: false });
+  }, [destinationAccountId, destinationAccounts, setValue]);
+
+  useEffect(() => {
+    const dirtyCount = Number(principalDirty) + Number(interestDirty) + Number(extraDirty);
+
+    if (amount <= 0 || dirtyCount === 0 || dirtyCount === 3) return;
+
+    const breakdown = normalizeDebtPaymentBreakdown({
+      amount,
+      principal_amount: principalDirty ? principal : null,
+      interest_amount: interestDirty ? interest : null,
+      extra_principal_amount: extraDirty ? extra : null,
+    });
+
+    if (!breakdown) return;
+
+    if (!principalDirty) {
+      setValue("principal_amount", breakdown.principal_amount, { shouldValidate: true, shouldDirty: false });
+    }
+    if (!interestDirty) {
+      setValue("interest_amount", breakdown.interest_amount, { shouldValidate: true, shouldDirty: false });
+    }
+    if (!extraDirty) {
+      setValue("extra_principal_amount", breakdown.extra_principal_amount, { shouldValidate: true, shouldDirty: false });
+    }
+  }, [amount, extra, extraDirty, interest, interestDirty, principal, principalDirty, setValue]);
 
   return (
     <FormSection>
       <FormPickerRow>
-        <AccountSelect name="source_account_id" accounts={accounts} placeholder={t("placeholders.sourceAccount")} />
+        <AccountSelect name="source_account_id" accounts={sourceAccounts} placeholder={t("placeholders.sourceAccount")} />
       </FormPickerRow>
 
       <FormPickerRow>
-        <AccountSelect name="destination_account_id" accounts={accounts} placeholder={t("placeholders.destinationAccount")} />
+        <AccountSelect name="destination_account_id" accounts={destinationAccounts} placeholder={t("placeholders.destinationAccount")} />
       </FormPickerRow>
 
       <FormPickerRow>
@@ -64,6 +118,7 @@ export function DebtPaymentSection() {
               <div className="flex items-center justify-end gap-2">
                 <MoneyInput
                   id="transaction-amount"
+                  autoComplete="off"
                   className="type-h3 h-10 w-[11rem] rounded-none border-0 bg-transparent px-0 py-1 text-right shadow-none"
                   blankZeroOnFocus
                   value={field.value ?? null}
@@ -85,6 +140,7 @@ export function DebtPaymentSection() {
           render={({ field }) => (
             <MoneyInput
               id="transaction-principal"
+              autoComplete="off"
               className="h-auto w-[8rem] rounded-none border-0 bg-transparent px-0 py-0 text-right shadow-none"
               value={field.value ?? null}
               onValueChange={field.onChange}
@@ -99,6 +155,7 @@ export function DebtPaymentSection() {
           render={({ field }) => (
             <MoneyInput
               id="transaction-interest"
+              autoComplete="off"
               className="h-auto w-[8rem] rounded-none border-0 bg-transparent px-0 py-0 text-right shadow-none"
               value={field.value ?? null}
               onValueChange={field.onChange}
@@ -113,6 +170,7 @@ export function DebtPaymentSection() {
           render={({ field }) => (
             <MoneyInput
               id="transaction-extra-principal"
+              autoComplete="off"
               className="h-auto w-[8rem] rounded-none border-0 bg-transparent px-0 py-0 text-right shadow-none"
               value={field.value ?? null}
               onValueChange={field.onChange}

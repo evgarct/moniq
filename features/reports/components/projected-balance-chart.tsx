@@ -97,7 +97,6 @@ export function ProjectedBalanceChart({
         textColor,
         fontFamily: styles.fontFamily,
         fontSize: 12,
-        attributionLogo: false,
       },
       localization: {
         locale,
@@ -121,8 +120,8 @@ export function ProjectedBalanceChart({
       rightPriceScale: {
         borderVisible: false,
         entireTextOnly: true,
-        minimumWidth: 52,
-        scaleMargins: { top: 0.1, bottom: 0 },
+        minimumWidth: 44,
+        scaleMargins: { top: 0.16, bottom: 0.12 },
       },
       timeScale: {
         borderColor,
@@ -158,16 +157,22 @@ export function ProjectedBalanceChart({
         autoscaleInfoProvider: (original: () => AutoscaleInfo | null) => {
           const autoscaleInfo = original();
           if (!autoscaleInfo?.priceRange) return autoscaleInfo;
+          const { minValue, maxValue } = autoscaleInfo.priceRange;
+          const range = maxValue - minValue;
+          const padding = range > 0
+            ? range * 0.08
+            : Math.max(Math.abs(maxValue) * 0.05, 1);
 
           return {
             ...autoscaleInfo,
             priceRange: {
               ...autoscaleInfo.priceRange,
-              minValue: Math.min(0, autoscaleInfo.priceRange.minValue),
+              minValue: minValue - padding,
+              maxValue: maxValue + padding,
             },
             margins: {
-              above: autoscaleInfo.margins?.above ?? 0,
-              below: Math.max(16, autoscaleInfo.margins?.below ?? 0),
+              above: Math.max(8, autoscaleInfo.margins?.above ?? 0),
+              below: Math.max(8, autoscaleInfo.margins?.below ?? 0),
             },
           };
         },

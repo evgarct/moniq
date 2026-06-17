@@ -21,7 +21,7 @@
     },
     {
       "path": "/api/investments/quotes/refresh",
-      "schedule": "30 18 * * *"
+      "schedule": "30 5 * * *"
     }
   ]
 }

@@ -76,8 +76,12 @@ export function validateTransactionRelationships(
     throw new Error("Debt payment interest can only use an expense category.");
   }
 
-  if (values.kind === "debt_payment" && destinationAccount?.type !== "debt") {
-    throw new Error("Debt payment must target a debt account.");
+  if (
+    values.kind === "debt_payment" &&
+    destinationAccount?.type !== "debt" &&
+    destinationAccount?.type !== "credit_card"
+  ) {
+    throw new Error("Debt payment must target a debt or credit card account.");
   }
 
   if (values.kind === "transfer" && values.category_id) {

@@ -11,6 +11,8 @@ const incomeTransaction = snapshot.transactions.find((transaction) => transactio
 const transferTransaction = snapshot.transactions.find((transaction) => transaction.kind === "transfer") ?? snapshot.transactions[0];
 const debtPaymentTransaction = snapshot.transactions.find((transaction) => transaction.kind === "debt_payment") ?? snapshot.transactions[0];
 const rubleAccount = snapshot.accounts.find((account) => account.currency === "RUB") ?? snapshot.accounts[0];
+const cashAccount = snapshot.accounts.find((account) => account.type === "cash") ?? snapshot.accounts[0];
+const creditCardAccount = snapshot.accounts.find((account) => account.type === "credit_card") ?? snapshot.accounts[0];
 const rubleExpenseTransaction: Transaction = {
   ...(defaultTransaction as Transaction),
   id: "tx-story-ruble-expense",
@@ -377,6 +379,23 @@ export const AddDebtPayment: Story = {
         initialKind="debt_payment"
         accounts={snapshot.accounts}
 
+        categories={snapshot.categories}
+        transactions={snapshot.transactions}
+        onOpenChange={() => {}}
+        onSubmit={async () => {}}
+      />
+    </StorySurface>
+  ),
+};
+
+export const AddCreditCardDebtPayment: Story = {
+  render: () => (
+    <StorySurface>
+      <TransactionFormSheet
+        open
+        mode="add"
+        initialKind="debt_payment"
+        accounts={[cashAccount, creditCardAccount]}
         categories={snapshot.categories}
         transactions={snapshot.transactions}
         onOpenChange={() => {}}

@@ -1,7 +1,7 @@
 "use client";
 
 import { addMonths, format, parseISO } from "date-fns";
-import { ChevronDown, Info } from "lucide-react";
+import { Info } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -9,21 +9,13 @@ import { useMemo, useState } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { MoneyAmount } from "@/components/money-amount";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { ProjectedBalanceAccountPicker } from "@/features/reports/components/projected-balance-account-picker";
+import { ProjectedBalanceControls } from "@/features/reports/components/projected-balance-account-picker";
 import { ProjectedBalanceChart } from "@/features/reports/components/projected-balance-chart";
 import {
   buildProjectedBalanceReport,
   createProjectedBalanceSeries,
+  PROJECTED_BALANCE_PRESET_MONTHS,
 } from "@/features/reports/lib/projected-balance";
 import {
   buildProjectedBalanceSearchParams,
@@ -33,7 +25,7 @@ import {
 import { calDate } from "@/lib/formatters";
 import type { FinanceSnapshot } from "@/types/finance";
 
-const PRESET_MONTHS = [1, 3, 6, 12, 18] as const;
+const REMEMBERED_SELECTION_KEY = "moniq:projected-balance:selection";
 const SERIES_COLOR_CLASSES = [
   "bg-chart-1",
   "bg-chart-5",
@@ -45,6 +37,35 @@ const SERIES_COLOR_CLASSES = [
 function replaceUrlState(endDate: string, selection: ProjectedBalanceSelection) {
   const params = buildProjectedBalanceSearchParams({ endDate, selection });
   window.history.replaceState(null, "", `?${params.toString()}`);
+}
+
+function readRememberedSelection() {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const value = window.localStorage.getItem(REMEMBERED_SELECTION_KEY);
+    if (!value) return null;
+    const parsed = JSON.parse(value) as Partial<ProjectedBalanceSelection>;
+
+    if (!Array.isArray(parsed.accountIds) || typeof parsed.merged !== "boolean") {
+      return null;
+    }
+
+    return {
+      accountIds: parsed.accountIds.filter((accountId): accountId is string => typeof accountId === "string"),
+      merged: parsed.merged,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function rememberSelection(selection: ProjectedBalanceSelection) {
+  try {
+    window.localStorage.setItem(REMEMBERED_SELECTION_KEY, JSON.stringify(selection));
+  } catch {
+    // localStorage can be unavailable in private browsing or embedded previews.
+  }
 }
 
 export function ProjectedBalanceView({
@@ -62,12 +83,12 @@ export function ProjectedBalanceView({
       parseProjectedBalanceUrlState({
         searchParams,
         accounts: snapshot.accounts,
+        rememberedSelection: readRememberedSelection(),
       }),
     [searchParams, snapshot.accounts],
   );
   const [endDate, setEndDate] = useState(initialState.endDate);
   const [selection, setSelection] = useState(initialState.selection);
-  const [periodOpen, setPeriodOpen] = useState(false);
   const series = useMemo(
     () =>
       createProjectedBalanceSeries({
@@ -95,7 +116,7 @@ export function ProjectedBalanceView({
     selectedDate < report.start_date || selectedDate > report.end_date
       ? report.start_date
       : selectedDate;
-  const selectedPreset = PRESET_MONTHS.find((months) => {
+  const selectedPreset = PROJECTED_BALANCE_PRESET_MONTHS.find((months) => {
     const expected = format(addMonths(parseISO(report.start_date), months), "yyyy-MM-dd");
     return expected === endDate;
   });
@@ -105,14 +126,14 @@ export function ProjectedBalanceView({
 
   function updateSelection(nextSelection: ProjectedBalanceSelection) {
     setSelection(nextSelection);
+    rememberSelection(nextSelection);
     replaceUrlState(endDate, nextSelection);
   }
 
   function updatePeriod(months: number) {
-    if (!PRESET_MONTHS.includes(months as typeof PRESET_MONTHS[number])) return;
+    if (!PROJECTED_BALANCE_PRESET_MONTHS.includes(months as typeof PROJECTED_BALANCE_PRESET_MONTHS[number])) return;
     const nextEndDate = format(addMonths(parseISO(report.start_date), months), "yyyy-MM-dd");
     setEndDate(nextEndDate);
-    setPeriodOpen(false);
     replaceUrlState(nextEndDate, selection);
   }
 
@@ -128,7 +149,7 @@ export function ProjectedBalanceView({
     <div className="mobile-nav-scroll-clearance flex h-full w-full max-w-full flex-col overflow-hidden bg-card pb-[calc(76px+env(safe-area-inset-bottom))] lg:pb-0">
       <header className="shrink-0 bg-card">
         <div className="flex flex-col gap-3 px-3 pt-4 pb-3 sm:gap-4 sm:px-6 sm:pt-7 sm:pb-5 lg:px-7 lg:pt-8 lg:pb-6">
-          <div className="flex flex-col gap-2 px-1.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-2.5">
+          <div className="flex items-start justify-between gap-2 px-1.5 sm:items-center sm:gap-3 sm:px-2.5">
             <div className="flex min-w-0 items-center gap-2">
               <h1 className="whitespace-nowrap font-heading text-[28px] leading-none tracking-[-0.035em] text-foreground sm:type-h1">
                 {t("title")}
@@ -151,52 +172,27 @@ export function ProjectedBalanceView({
             </div>
 
             <div
-              className="flex shrink-0 items-center gap-1 self-end sm:gap-2 sm:self-auto"
+              className="flex min-w-0 shrink items-center justify-end gap-1 sm:gap-2"
               role="toolbar"
               aria-label={t("title")}
             >
-              <ProjectedBalanceAccountPicker
+              <ProjectedBalanceControls
                 accounts={snapshot.accounts}
                 selection={selection}
                 onSelectionChange={updateSelection}
+                periodMonths={PROJECTED_BALANCE_PRESET_MONTHS}
+                selectedPeriodMonths={selectedPreset ?? null}
+                periodLabel={periodLabel}
+                onPeriodChange={updatePeriod}
                 initialOpen={initialAccountPickerOpen}
               />
-
-              <DropdownMenu open={periodOpen} onOpenChange={setPeriodOpen}>
-                <DropdownMenuTrigger
-                  render={
-                    <Button
-                      variant="ghost"
-                      className="shrink-0 bg-transparent text-muted-foreground hover:bg-secondary/70 hover:text-foreground active:bg-secondary"
-                    />
-                  }
-                >
-                  {periodLabel}
-                  <ChevronDown data-icon="inline-end" />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-44">
-                  <DropdownMenuGroup>
-                    <DropdownMenuLabel>{t("period.label")}</DropdownMenuLabel>
-                    <DropdownMenuRadioGroup
-                      value={selectedPreset ? String(selectedPreset) : ""}
-                      onValueChange={(value) => updatePeriod(Number(value))}
-                    >
-                      {PRESET_MONTHS.map((months) => (
-                        <DropdownMenuRadioItem key={months} value={String(months)}>
-                          {t("period.months", { count: months })}
-                        </DropdownMenuRadioItem>
-                      ))}
-                    </DropdownMenuRadioGroup>
-                  </DropdownMenuGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
             </div>
           </div>
         </div>
       </header>
 
       {report.series.length ? (
-        <main className="flex min-h-0 min-w-0 flex-1 flex-col px-3 pb-3 sm:px-6 sm:pb-5 lg:px-7 lg:pb-6">
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-3 pb-3 sm:px-6 sm:pb-5 lg:px-7 lg:pb-6">
           <div className="flex min-w-0 shrink-0 flex-wrap items-center gap-x-6 gap-y-1 px-1.5 pb-2 sm:px-2.5">
             {report.series.map((item, index) => {
               const finalPoint = item.points.at(-1);

@@ -46,7 +46,7 @@ const FINANCE_ERROR_KEYS = {
   "Destination account not found.": "common.errors.transaction.destinationNotFound",
   "Choose a category with the matching type.": "common.errors.transaction.categoryTypeMismatch",
   "Debt payment interest can only use an expense category.": "common.errors.transaction.debtCategoryExpenseOnly",
-  "Debt payment must target a debt account.": "common.errors.transaction.debtNeedsDebtAccount",
+  "Debt payment must target a debt or credit card account.": "common.errors.transaction.debtNeedsDebtAccount",
   "Transfers do not use categories.": "common.errors.transaction.transferNoCategory",
   "Unable to search investments.": "common.errors.investment.search",
   "Unable to save investment instrument.": "common.errors.investment.save",

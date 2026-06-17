@@ -117,6 +117,7 @@ export function AccountsView({
     setActionError(null);
     setTransactionSheetMode("edit-transaction");
     setEditingTransaction(transaction);
+    setPurchaseInstrumentId(null);
     setTransactionSheetOpen(true);
   }
 
@@ -124,6 +125,7 @@ export function AccountsView({
     setActionError(null);
     setTransactionSheetMode("add");
     setEditingTransaction(null);
+    setPurchaseInstrumentId(null);
     setTransactionSheetOpen(true);
   }
 
@@ -188,8 +190,8 @@ export function AccountsView({
         <section className="flex min-h-0 flex-col overflow-hidden border-b border-border/40 bg-card lg:border-r lg:border-b-0 lg:border-r-border/25">
           <div
             className={cn(
-              "bg-card/96 backdrop-blur transition-shadow supports-[backdrop-filter]:bg-card/88",
-              leftPanelScrolled && "shadow-[0_10px_24px_-22px_rgba(28,22,17,0.75)]",
+              "border-b border-transparent bg-card/96 backdrop-blur transition-[background-color,border-color] supports-[backdrop-filter]:bg-card/88",
+              leftPanelScrolled && "border-border/45",
             )}
           >
             <div className="flex flex-col gap-3 px-3 pt-4 pb-3 sm:gap-4 sm:px-6 sm:pt-7 sm:pb-5 lg:px-7 lg:pt-8 lg:pb-6">
@@ -329,6 +331,7 @@ export function AccountsView({
               positions={investmentPositions}
               transactions={transactions}
               selectedId={selectedInvestmentId}
+              editing={walletsEditMode}
               onAdd={() => setInvestmentSheetOpen(true)}
               onSelect={(positionId) => {
                 setSelectedAccountId(null);
@@ -436,7 +439,10 @@ export function AccountsView({
         allocations={allocations}
         investmentPositions={investmentPositions}
         initialInvestmentInstrumentId={purchaseInstrumentId}
-        onOpenChange={setTransactionSheetOpen}
+        onOpenChange={(open) => {
+          setTransactionSheetOpen(open);
+          if (!open) setPurchaseInstrumentId(null);
+        }}
         onSubmit={(payload: TransactionFormSubmitPayload) => {
           const onError = (error: unknown) =>
             setActionError(error instanceof Error ? error.message : tr("transactions.view.saveError"));
