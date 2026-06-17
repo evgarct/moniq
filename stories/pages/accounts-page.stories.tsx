@@ -108,6 +108,7 @@ export const Default: Story = {
     await expect(canvas.getByRole("heading", { name: "Balance", level: 1 })).toBeInTheDocument();
     await expect(canvas.getByText("Transactions")).toBeInTheDocument();
     await expect(canvas.queryByRole("button", { name: "Add investment" })).not.toBeInTheDocument();
+    await expect(canvas.queryByText("No quote")).not.toBeInTheDocument();
   },
 };
 
