@@ -36,6 +36,23 @@ function normalizeCurrency(value: unknown): CurrencyCode | null {
     : null;
 }
 
+function normalizeQuoteRows(payload: unknown): InvestmentQuoteResult[] {
+  if (!Array.isArray(payload)) throw new Error("FMP quotes returned an unexpected response.");
+  return payload.flatMap((item): InvestmentQuoteResult[] => {
+    if (!item || typeof item !== "object") return [];
+    const row = item as Record<string, unknown>;
+    const price = Number(row.price);
+    const symbol = typeof row.symbol === "string" ? row.symbol : null;
+    const currency = normalizeCurrency(row.currency);
+    const timestamp = Number(row.timestamp);
+    if (!symbol || !currency || !Number.isFinite(price) || price <= 0) return [];
+    const marketDate = typeof row.date === "string"
+      ? row.date.slice(0, 10)
+      : new Date(Number.isFinite(timestamp) ? timestamp * 1000 : Date.now()).toISOString().slice(0, 10);
+    return [{ provider_symbol: symbol, price, currency, market_date: marketDate }];
+  });
+}
+
 function normalizeType(value: unknown): InvestmentInstrumentType | null {
   const type = typeof value === "string" ? value.toLowerCase() : "";
   if (type.includes("etf") || type.includes("fund")) return "etf";
@@ -88,19 +105,26 @@ export async function fetchFmpQuotes(
   fetcher: Fetcher = fetch,
 ): Promise<InvestmentQuoteResult[]> {
   if (!symbols.length) return [];
-  const payload = await fetchFmp("batch-quote", { symbols: symbols.join(",") }, fetcher);
-  if (!Array.isArray(payload)) throw new Error("FMP quotes returned an unexpected response.");
-  return payload.flatMap((item): InvestmentQuoteResult[] => {
-    if (!item || typeof item !== "object") return [];
-    const row = item as Record<string, unknown>;
-    const price = Number(row.price);
-    const symbol = typeof row.symbol === "string" ? row.symbol : null;
-    const currency = normalizeCurrency(row.currency);
-    const timestamp = Number(row.timestamp);
-    if (!symbol || !currency || !Number.isFinite(price) || price <= 0) return [];
-    const marketDate = typeof row.date === "string"
-      ? row.date.slice(0, 10)
-      : new Date(Number.isFinite(timestamp) ? timestamp * 1000 : Date.now()).toISOString().slice(0, 10);
-    return [{ provider_symbol: symbol, price, currency, market_date: marketDate }];
+  const uniqueSymbols = Array.from(new Set(symbols));
+  const primary = normalizeQuoteRows(
+    await fetchFmp("batch-quote", { symbols: uniqueSymbols.join(",") }, fetcher),
+  );
+  const quotesBySymbol = new Map(primary.map((quote) => [quote.provider_symbol, quote]));
+  const missingSymbols = uniqueSymbols.filter((symbol) => !quotesBySymbol.has(symbol));
+
+  if (missingSymbols.length) {
+    const fallback = normalizeQuoteRows(
+      await fetchFmp("batch-quote-short", { symbols: missingSymbols.join(",") }, fetcher),
+    );
+    for (const quote of fallback) {
+      if (!quotesBySymbol.has(quote.provider_symbol)) {
+        quotesBySymbol.set(quote.provider_symbol, quote);
+      }
+    }
+  }
+
+  return uniqueSymbols.flatMap((symbol) => {
+    const quote = quotesBySymbol.get(symbol);
+    return quote ? [quote] : [];
   });
 }

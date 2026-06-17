@@ -286,7 +286,14 @@ export const mockFinanceSnapshot: FinanceSnapshot = {
         provider: "fmp",
         provider_symbol: "SPYL.DE",
       },
-      latest_quote: null,
+      latest_quote: {
+        instrument_id: "instrument-spyl",
+        provider: "fmp",
+        market_date: formatISO(today, { representation: "date" }),
+        price: 14.25,
+        currency: "EUR",
+        fetched_at: formatISO(today),
+      },
     },
   ],
 };
