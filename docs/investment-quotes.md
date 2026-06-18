@@ -7,20 +7,24 @@ row in `investment_quotes` and remain outside wallet totals.
 
 1. The Vercel cron calls `GET /api/investments/quotes/refresh`.
 2. The route requires `Authorization: Bearer $CRON_SECRET`.
-3. The repository loads every FMP-backed instrument that has an active position, including its stored quote currency.
-4. FMP full batch quotes are requested first. Missing symbols are retried through the short batch endpoint.
-5. Short quotes may omit currency and date. The stored instrument currency is authoritative, and the current UTC date
+3. The repository loads every tracked instrument that has an active position, including ISIN, exchange, and quote currency.
+4. When `FMP_API_KEY` is configured, FMP full batch quotes are requested first and missing symbols are retried through
+   the short batch endpoint.
+5. Remaining Xetra instruments with an ISIN are fetched from the official Deutsche Börse price endpoint without a key.
+6. Short FMP quotes may omit currency and date. The stored instrument currency is authoritative, and the current UTC date
    is used when FMP supplies neither a date nor a timestamp.
-6. Available quotes are upserted. The route returns `502` when any requested symbol remains missing, so incomplete
+7. Available quotes are upserted. The route returns `502` when any requested symbol remains missing, so incomplete
    refreshes cannot be reported as successful.
 
 ## Required Vercel variables
 
-- `FMP_API_KEY`
 - `CRON_SECRET`
 - `SUPABASE_SERVICE_ROLE_KEY`
 
-Configure them for Production. `SUPABASE_SERVICE_ROLE_KEY` is also required in Preview only when a preview deployment
+`FMP_API_KEY` is optional for quote refresh because supported Xetra instruments fall back to Deutsche Börse. It remains
+required for remote investment search and broader exchange coverage.
+
+Configure the required variables for Production. `SUPABASE_SERVICE_ROLE_KEY` is also required in Preview only when a preview deployment
 is intentionally allowed to write to the linked development database.
 
 ## Verification

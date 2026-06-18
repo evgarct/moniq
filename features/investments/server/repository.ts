@@ -2,6 +2,7 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { fetchDeutscheBoerseQuotes } from "@/features/investments/server/deutsche-boerse-provider";
 import { fetchFmpQuotes, searchFmpInstruments, type InvestmentSearchResult } from "@/features/investments/server/fmp-provider";
 import type { InvestmentInstrument, InvestmentQuote } from "@/types/finance";
 
@@ -49,7 +50,7 @@ export async function refreshInvestmentQuotes(): Promise<InvestmentQuoteRefreshR
   const service = createServiceClient();
   const { data: positions, error } = await service
     .from("investment_positions")
-    .select("instrument_id, investment_instruments!inner(id, provider, provider_symbol, quote_currency)")
+    .select("instrument_id, investment_instruments!inner(id, provider, provider_symbol, quote_currency, isin, exchange)")
     .eq("investment_instruments.provider", "fmp");
   if (error) throw new Error("Unable to load investment instruments.");
   const instruments = Array.from(
@@ -61,10 +62,34 @@ export async function refreshInvestmentQuotes(): Promise<InvestmentQuoteRefreshR
       }),
     ).values(),
   );
-  const fetched = await fetchFmpQuotes(instruments.map((item) => ({
+  const requests = instruments.map((item) => ({
     provider_symbol: item.provider_symbol,
     quote_currency: item.quote_currency,
-  })));
+    isin: item.isin,
+    exchange: item.exchange,
+  }));
+  const fmpFetched = process.env.FMP_API_KEY
+    ? await fetchFmpQuotes(requests)
+    : {
+        requested_symbols: requests.map((request) => request.provider_symbol),
+        quotes: [],
+        missing_symbols: requests.map((request) => request.provider_symbol),
+      };
+  const fmpSymbols = new Set(fmpFetched.quotes.map((quote) => quote.provider_symbol));
+  const deutscheBoerseQuotes = await fetchDeutscheBoerseQuotes(
+    requests.filter((request) => !fmpSymbols.has(request.provider_symbol)),
+  );
+  const quotesBySymbol = new Map(
+    [...fmpFetched.quotes, ...deutscheBoerseQuotes].map((quote) => [quote.provider_symbol, quote]),
+  );
+  const fetched = {
+    requested_symbols: fmpFetched.requested_symbols,
+    quotes: fmpFetched.requested_symbols.flatMap((symbol) => {
+      const quote = quotesBySymbol.get(symbol);
+      return quote ? [quote] : [];
+    }),
+    missing_symbols: fmpFetched.requested_symbols.filter((symbol) => !quotesBySymbol.has(symbol)),
+  };
   const instrumentBySymbol = new Map(instruments.map((item) => [item.provider_symbol, item.id]));
   const symbolByInstrument = new Map(instruments.map((item) => [item.id, item.provider_symbol]));
   if (!fetched.quotes.length) {
@@ -82,7 +107,7 @@ export async function refreshInvestmentQuotes(): Promise<InvestmentQuoteRefreshR
         const instrumentId = instrumentBySymbol.get(quote.provider_symbol);
         return instrumentId ? [{
           instrument_id: instrumentId,
-          provider: "fmp",
+          provider: quote.provider,
           market_date: quote.market_date,
           price: quote.price,
           currency: quote.currency,

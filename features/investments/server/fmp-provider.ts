@@ -16,6 +16,7 @@ export type InvestmentSearchResult = {
 
 export type InvestmentQuoteResult = {
   provider_symbol: string;
+  provider: "fmp";
   price: number;
   market_date: string;
   currency: CurrencyCode;
@@ -64,7 +65,7 @@ function normalizeQuoteRows(
     const marketDate = typeof row.date === "string"
       ? row.date.slice(0, 10)
       : new Date(Number.isFinite(timestamp) ? timestamp * 1000 : now.getTime()).toISOString().slice(0, 10);
-    return [{ provider_symbol: symbol, price, currency, market_date: marketDate }];
+    return [{ provider_symbol: symbol, provider: "fmp", price, currency, market_date: marketDate }];
   });
 }
 

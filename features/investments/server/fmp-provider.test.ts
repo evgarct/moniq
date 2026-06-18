@@ -28,7 +28,7 @@ describe("FMP investment provider", () => {
     )).resolves.toEqual({
       requested_symbols: ["SPYL.DE"],
       quotes: [
-        { provider_symbol: "SPYL.DE", price: 14.25, currency: "EUR", market_date: "2026-06-16" },
+        { provider_symbol: "SPYL.DE", provider: "fmp", price: 14.25, currency: "EUR", market_date: "2026-06-16" },
       ],
       missing_symbols: [],
     });
@@ -58,8 +58,8 @@ describe("FMP investment provider", () => {
     )).resolves.toEqual({
       requested_symbols: ["VUAA.DE", "SPYL.DE"],
       quotes: [
-        { provider_symbol: "VUAA.DE", price: 107.32, currency: "EUR", market_date: "2026-06-16" },
-        { provider_symbol: "SPYL.DE", price: 14.25, currency: "EUR", market_date: "2026-06-18" },
+        { provider_symbol: "VUAA.DE", provider: "fmp", price: 107.32, currency: "EUR", market_date: "2026-06-16" },
+        { provider_symbol: "SPYL.DE", provider: "fmp", price: 14.25, currency: "EUR", market_date: "2026-06-18" },
       ],
       missing_symbols: [],
     });
@@ -86,7 +86,7 @@ describe("FMP investment provider", () => {
     )).resolves.toEqual({
       requested_symbols: ["VUAA.DE", "SPYL.DE"],
       quotes: [
-        { provider_symbol: "VUAA.DE", price: 107.32, currency: "EUR", market_date: "2026-06-16" },
+        { provider_symbol: "VUAA.DE", provider: "fmp", price: 107.32, currency: "EUR", market_date: "2026-06-16" },
       ],
       missing_symbols: ["SPYL.DE"],
     });

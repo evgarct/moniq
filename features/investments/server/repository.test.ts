@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const fetchFmpQuotes = vi.fn();
+const fetchDeutscheBoerseQuotes = vi.fn();
 const upsert = vi.fn();
 
 vi.mock("server-only", () => ({}));
@@ -8,6 +9,10 @@ vi.mock("server-only", () => ({}));
 vi.mock("@/features/investments/server/fmp-provider", () => ({
   fetchFmpQuotes,
   searchFmpInstruments: vi.fn(),
+}));
+
+vi.mock("@/features/investments/server/deutsche-boerse-provider", () => ({
+  fetchDeutscheBoerseQuotes,
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -29,6 +34,8 @@ vi.mock("@/lib/supabase/service", () => ({
                     provider: "fmp",
                     provider_symbol: "VUAA.DE",
                     quote_currency: "EUR",
+                    isin: "IE00BFMXXD54",
+                    exchange: "XETRA",
                   },
                 },
                 {
@@ -38,6 +45,8 @@ vi.mock("@/lib/supabase/service", () => ({
                     provider: "fmp",
                     provider_symbol: "SPYL.DE",
                     quote_currency: "EUR",
+                    isin: "IE000XZSV718",
+                    exchange: "XETRA",
                   },
                 },
               ],
@@ -74,7 +83,9 @@ vi.mock("@/lib/supabase/service", () => ({
 describe("investment quote repository", () => {
   beforeEach(() => {
     process.env.SUPABASE_SERVICE_ROLE_KEY = "test";
+    process.env.FMP_API_KEY = "test";
     fetchFmpQuotes.mockReset();
+    fetchDeutscheBoerseQuotes.mockReset();
     upsert.mockClear();
   });
 
@@ -84,6 +95,7 @@ describe("investment quote repository", () => {
       quotes: [
         {
           provider_symbol: "VUAA.DE",
+          provider: "fmp",
           price: 107.32,
           market_date: "2026-06-18",
           currency: "EUR",
@@ -91,15 +103,50 @@ describe("investment quote repository", () => {
       ],
       missing_symbols: ["SPYL.DE"],
     });
+    fetchDeutscheBoerseQuotes.mockResolvedValue([]);
 
     const { refreshInvestmentQuotes } = await import("@/features/investments/server/repository");
     const result = await refreshInvestmentQuotes();
 
     expect(fetchFmpQuotes).toHaveBeenCalledWith([
-      { provider_symbol: "VUAA.DE", quote_currency: "EUR" },
-      { provider_symbol: "SPYL.DE", quote_currency: "EUR" },
+      {
+        provider_symbol: "VUAA.DE",
+        quote_currency: "EUR",
+        isin: "IE00BFMXXD54",
+        exchange: "XETRA",
+      },
+      {
+        provider_symbol: "SPYL.DE",
+        quote_currency: "EUR",
+        isin: "IE000XZSV718",
+        exchange: "XETRA",
+      },
     ]);
     expect(upsert).toHaveBeenCalledOnce();
+    expect(result).toMatchObject({
+      requested_symbols: ["VUAA.DE", "SPYL.DE"],
+      saved_symbols: ["VUAA.DE"],
+      missing_symbols: ["SPYL.DE"],
+    });
+  });
+
+  it("uses Deutsche Börse when FMP is not configured", async () => {
+    delete process.env.FMP_API_KEY;
+    fetchDeutscheBoerseQuotes.mockResolvedValue([
+      {
+        provider_symbol: "VUAA.DE",
+        provider: "deutsche-boerse",
+        price: 125.81,
+        market_date: "2026-06-18",
+        currency: "EUR",
+      },
+    ]);
+
+    const { refreshInvestmentQuotes } = await import("@/features/investments/server/repository");
+    const result = await refreshInvestmentQuotes();
+
+    expect(fetchFmpQuotes).not.toHaveBeenCalled();
+    expect(fetchDeutscheBoerseQuotes).toHaveBeenCalledTimes(1);
     expect(result).toMatchObject({
       requested_symbols: ["VUAA.DE", "SPYL.DE"],
       saved_symbols: ["VUAA.DE"],
