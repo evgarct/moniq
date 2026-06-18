@@ -21,6 +21,17 @@ export type InvestmentQuoteResult = {
   currency: CurrencyCode;
 };
 
+export type InvestmentQuoteRequest = {
+  provider_symbol: string;
+  quote_currency: CurrencyCode;
+};
+
+export type InvestmentQuoteFetchResult = {
+  requested_symbols: string[];
+  quotes: InvestmentQuoteResult[];
+  missing_symbols: string[];
+};
+
 type Fetcher = typeof fetch;
 
 function getApiKey() {
@@ -36,19 +47,23 @@ function normalizeCurrency(value: unknown): CurrencyCode | null {
     : null;
 }
 
-function normalizeQuoteRows(payload: unknown): InvestmentQuoteResult[] {
+function normalizeQuoteRows(
+  payload: unknown,
+  fallbackCurrencies: Map<string, CurrencyCode>,
+  now: Date,
+): InvestmentQuoteResult[] {
   if (!Array.isArray(payload)) throw new Error("FMP quotes returned an unexpected response.");
   return payload.flatMap((item): InvestmentQuoteResult[] => {
     if (!item || typeof item !== "object") return [];
     const row = item as Record<string, unknown>;
     const price = Number(row.price);
     const symbol = typeof row.symbol === "string" ? row.symbol : null;
-    const currency = normalizeCurrency(row.currency);
+    const currency = normalizeCurrency(row.currency) ?? (symbol ? fallbackCurrencies.get(symbol) ?? null : null);
     const timestamp = Number(row.timestamp);
     if (!symbol || !currency || !Number.isFinite(price) || price <= 0) return [];
     const marketDate = typeof row.date === "string"
       ? row.date.slice(0, 10)
-      : new Date(Number.isFinite(timestamp) ? timestamp * 1000 : Date.now()).toISOString().slice(0, 10);
+      : new Date(Number.isFinite(timestamp) ? timestamp * 1000 : now.getTime()).toISOString().slice(0, 10);
     return [{ provider_symbol: symbol, price, currency, market_date: marketDate }];
   });
 }
@@ -101,13 +116,28 @@ export async function searchFmpInstruments(query: string, fetcher: Fetcher = fet
 }
 
 export async function fetchFmpQuotes(
-  symbols: string[],
+  requests: InvestmentQuoteRequest[],
   fetcher: Fetcher = fetch,
-): Promise<InvestmentQuoteResult[]> {
-  if (!symbols.length) return [];
-  const uniqueSymbols = Array.from(new Set(symbols));
+  now = new Date(),
+): Promise<InvestmentQuoteFetchResult> {
+  const uniqueRequests = Array.from(
+    new Map(requests.map((request) => [request.provider_symbol, request])).values(),
+  );
+  const uniqueSymbols = uniqueRequests.map((request) => request.provider_symbol);
+  if (!uniqueSymbols.length) {
+    return {
+      requested_symbols: [],
+      quotes: [],
+      missing_symbols: [],
+    };
+  }
+  const fallbackCurrencies = new Map(
+    uniqueRequests.map((request) => [request.provider_symbol, request.quote_currency]),
+  );
   const primary = normalizeQuoteRows(
     await fetchFmp("batch-quote", { symbols: uniqueSymbols.join(",") }, fetcher),
+    fallbackCurrencies,
+    now,
   );
   const quotesBySymbol = new Map(primary.map((quote) => [quote.provider_symbol, quote]));
   const missingSymbols = uniqueSymbols.filter((symbol) => !quotesBySymbol.has(symbol));
@@ -115,6 +145,8 @@ export async function fetchFmpQuotes(
   if (missingSymbols.length) {
     const fallback = normalizeQuoteRows(
       await fetchFmp("batch-quote-short", { symbols: missingSymbols.join(",") }, fetcher),
+      fallbackCurrencies,
+      now,
     );
     for (const quote of fallback) {
       if (!quotesBySymbol.has(quote.provider_symbol)) {
@@ -123,8 +155,14 @@ export async function fetchFmpQuotes(
     }
   }
 
-  return uniqueSymbols.flatMap((symbol) => {
+  const quotes = uniqueSymbols.flatMap((symbol) => {
     const quote = quotesBySymbol.get(symbol);
     return quote ? [quote] : [];
   });
+
+  return {
+    requested_symbols: uniqueSymbols,
+    quotes,
+    missing_symbols: uniqueSymbols.filter((symbol) => !quotesBySymbol.has(symbol)),
+  };
 }
