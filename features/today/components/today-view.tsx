@@ -8,6 +8,7 @@ import { useFormatter, useTranslations } from "next-intl";
 import { CalendarGrid } from "@/components/calendar-grid";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
+import { PageHeaderIconButton } from "@/components/page-header-icon-button";
 import { TransactionList } from "@/components/transaction-list";
 import { Button } from "@/components/ui/button";
 import { TransactionAddButton } from "@/features/transactions/components/transaction-add-button";
@@ -221,33 +222,26 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
           actions={
             <>
               {selectedDate ? (
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  className="text-muted-foreground hover:bg-secondary/70 hover:text-foreground"
+                <PageHeaderIconButton
+                  icon={X}
+                  label={t("board.clearDay")}
                   onClick={() => setSelectedDate(null)}
-                  aria-label={t("board.clearDay")}
-                >
-                  <X />
-                </Button>
+                />
               ) : null}
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="text-muted-foreground hover:bg-secondary/70 hover:text-foreground"
+              <PageHeaderIconButton
+                icon={CalendarDays}
+                label={calendarOpen ? t("board.hideCalendar") : t("board.showCalendar")}
+                pressed={calendarOpen}
                 onClick={() => setCalendarOpen((open) => !open)}
-                aria-label={calendarOpen ? t("board.hideCalendar") : t("board.showCalendar")}
                 aria-expanded={calendarOpen}
-              >
-                <CalendarDays />
-              </Button>
+              />
               <TransactionAddButton onSelect={openAdd} variant="icon" />
             </>
           }
         />
 
         {calendarOpen ? (
-          <section className="shrink-0 border-b border-border/30 bg-card px-4 pb-3">
+          <section className="shrink-0 border-b border-border/30 bg-background px-4 pb-3">
             <div className="flex items-center justify-center gap-0.5 py-2">
               {calendarNav}
             </div>

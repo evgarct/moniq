@@ -1,3 +1,5 @@
+import { addMonths, format } from "date-fns";
+
 import type { Account } from "@/types/finance";
 
 import { resolveProjectedBalancePeriod } from "./projected-balance";
@@ -63,6 +65,7 @@ export function parseProjectedBalanceUrlState(options: {
   searchParams: Pick<URLSearchParams, "get" | "getAll">;
   accounts: Pick<Account, "id">[];
   rememberedSelection?: ProjectedBalanceSelection | null;
+  rememberedPeriodMonths?: number | null;
   now?: Date;
 }) {
   const validAccountIds = new Set(options.accounts.map((account) => account.id));
@@ -86,8 +89,17 @@ export function parseProjectedBalanceUrlState(options: {
   const selection = hasExplicitSelection
     ? urlSelection ?? createDefaultProjectedBalanceSelection(options.accounts)
     : rememberedSelection ?? createDefaultProjectedBalanceSelection(options.accounts);
+  const explicitEndDate = options.searchParams.get("end");
+  const rememberedEndDate =
+    !explicitEndDate && options.rememberedPeriodMonths
+      ? resolveProjectedBalancePeriod({ now: options.now }).startDate
+      : null;
   const period = resolveProjectedBalancePeriod({
-    endDate: options.searchParams.get("end"),
+    endDate:
+      explicitEndDate ??
+      (rememberedEndDate
+        ? format(addMonths(rememberedEndDate, options.rememberedPeriodMonths!), "yyyy-MM-dd")
+        : null),
     now: options.now,
   });
 

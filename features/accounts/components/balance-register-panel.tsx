@@ -5,9 +5,8 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { TransactionList } from "@/components/transaction-list";
+import { PageHeaderIconButton } from "@/components/page-header-icon-button";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
-import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { Account, Transaction } from "@/types/finance";
 
@@ -41,9 +40,6 @@ export function BalanceRegisterHeader({
   className,
 }: BalanceRegisterHeaderProps) {
   const t = useTranslations("accounts");
-  const actionButtonClassName =
-    "shrink-0 bg-transparent text-muted-foreground hover:bg-secondary/70 hover:text-foreground active:bg-secondary";
-
   return (
     <div
       className={cn(
@@ -53,23 +49,19 @@ export function BalanceRegisterHeader({
       )}
     >
       <div className="px-3 pt-4 pb-3 sm:px-6 sm:pt-7 sm:pb-5 lg:px-7 lg:pt-8 lg:pb-6">
-        <div className="flex items-start justify-between gap-3 px-1.5 sm:items-center sm:px-2.5">
-          <div className="flex min-w-0 items-center gap-2.5">
+        <div className="flex items-center justify-between gap-2 px-1.5 sm:gap-3 sm:px-2.5">
+          <div className="flex min-w-0 flex-1 items-center gap-2.5">
             {onBack ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                className={actionButtonClassName}
-                aria-label={t("view.backToBalance")}
+              <PageHeaderIconButton
+                icon={ArrowLeft}
+                label={t("view.backToBalance")}
                 onClick={onBack}
-              >
-                <ArrowLeft />
-              </Button>
+              />
             ) : null}
             <h3 className="min-w-0 truncate font-heading text-[28px] leading-none tracking-[-0.035em] text-foreground sm:type-h1">
               {title}
             </h3>
+            <div className="hidden min-w-0 lg:block">
             <DateRangePicker
               startDate={startDate}
               endDate={endDate}
@@ -93,49 +85,54 @@ export function BalanceRegisterHeader({
               }}
               className="min-w-0"
             />
+            </div>
           </div>
 
           <div className="flex shrink-0 items-center gap-1 sm:gap-2">
             {onAddTransaction ? (
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      className={actionButtonClassName}
-                      aria-label={t("view.addTransaction")}
-                    />
-                  }
-                  onClick={onAddTransaction}
-                >
-                  <Plus />
-                </TooltipTrigger>
-                <TooltipContent>{t("view.addTransaction")}</TooltipContent>
-              </Tooltip>
+              <PageHeaderIconButton
+                icon={Plus}
+                label={t("view.addTransaction")}
+                onClick={onAddTransaction}
+              />
             ) : null}
 
-            {showClearSelection && onClearSelection ? (
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      className={actionButtonClassName}
-                      aria-label={t("view.showAllWallets")}
-                    />
-                  }
-                  onClick={onClearSelection}
-                >
-                  <X />
-                </TooltipTrigger>
-                <TooltipContent>{t("view.showAllWallets")}</TooltipContent>
-              </Tooltip>
+            {showClearSelection && onClearSelection && !onBack ? (
+              <PageHeaderIconButton
+                icon={X}
+                label={t("view.showAllWallets")}
+                onClick={onClearSelection}
+              />
             ) : (
               <span className="block size-8" aria-hidden="true" />
             )}
           </div>
+        </div>
+        <div className="mt-2 px-1.5 lg:hidden">
+          <DateRangePicker
+            startDate={startDate}
+            endDate={endDate}
+            defaultStartDate={defaultStartDate}
+            onChange={({ startDate: nextStartDate, endDate: nextEndDate }) => {
+              onStartDateChange(nextStartDate);
+              onEndDateChange(nextEndDate);
+            }}
+            triggerAriaLabel={t("view.dateRange")}
+            emptyLabel={t("view.anyDate")}
+            presets={{
+              today: t("view.presets.today"),
+              yesterday: t("view.presets.yesterday"),
+              last7Days: t("view.presets.last7Days"),
+              last14Days: t("view.presets.last14Days"),
+              last30Days: t("view.presets.last30Days"),
+              thisWeek: t("view.presets.thisWeek"),
+              lastWeek: t("view.presets.lastWeek"),
+              thisMonth: t("view.presets.thisMonth"),
+              lastMonth: t("view.presets.lastMonth"),
+            }}
+            className="w-full"
+            triggerClassName="w-full justify-center bg-secondary/60"
+          />
         </div>
       </div>
     </div>

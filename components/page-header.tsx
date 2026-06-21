@@ -18,14 +18,14 @@ export function PageHeader({
   return (
     <div
       className={cn(
-        "bg-card/96 backdrop-blur transition-shadow supports-[backdrop-filter]:bg-card/88",
+        "bg-background/96 backdrop-blur transition-shadow supports-[backdrop-filter]:bg-background/88",
         scrolled && "shadow-[0_10px_24px_-22px_rgba(28,22,17,0.75)]",
         className,
       )}
     >
       <div className="flex flex-col gap-3 px-3 pt-4 pb-3 sm:gap-4 sm:px-6 sm:pt-7 sm:pb-5 lg:px-7 lg:pt-8 lg:pb-6">
-        <div className="flex items-start justify-between gap-2 px-1.5 sm:gap-3 sm:px-2.5">
-          <h1 className="font-heading text-[28px] leading-none tracking-[-0.035em] text-foreground sm:type-h1">
+        <div className="flex min-w-0 items-center justify-between gap-2 px-1.5 sm:gap-3 sm:px-2.5">
+          <h1 className="min-w-0 flex-1 text-balance font-heading text-[28px] leading-[1.02] tracking-[-0.035em] text-foreground sm:type-h1">
             {title}
           </h1>
           {actions ? (

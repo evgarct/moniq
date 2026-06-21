@@ -34,6 +34,8 @@ export const Default: Story = {
   args: {
     transactions: snapshot.transactions,
     categories: snapshot.categories,
+    targetCurrency: snapshot.preferences.default_currency,
+    exchangeRates: snapshot.exchange_rates,
     currentMonth: new Date(),
     onMonthSelect: () => {},
   },
@@ -43,6 +45,8 @@ export const PreviousMonth: Story = {
   args: {
     transactions: snapshot.transactions,
     categories: snapshot.categories,
+    targetCurrency: snapshot.preferences.default_currency,
+    exchangeRates: snapshot.exchange_rates,
     currentMonth: subMonths(new Date(), 3),
     onMonthSelect: () => {},
   },
@@ -52,6 +56,8 @@ export const NegativeMonth: Story = {
   args: {
     transactions: snapshot.transactions,
     categories: snapshot.categories,
+    targetCurrency: snapshot.preferences.default_currency,
+    exchangeRates: snapshot.exchange_rates,
     currentMonth: subMonths(new Date(), 6),
     onMonthSelect: () => {},
   },
@@ -61,6 +67,8 @@ export const Empty: Story = {
   args: {
     transactions: [],
     categories: snapshot.categories,
+    targetCurrency: snapshot.preferences.default_currency,
+    exchangeRates: snapshot.exchange_rates,
     currentMonth: new Date(),
     onMonthSelect: () => {},
   },

@@ -1,5 +1,21 @@
 # Projected Balance Report
 
+## Rendering and preferences
+
+The report uses an internal responsive SVG renderer. It does not depend on a
+third-party chart watermark or attribution surface. The renderer keeps the
+step-line projection, responsive axes, pointer inspection, and left/right
+keyboard navigation.
+
+The selected accounts, merged/separate mode, and preset period are stored in
+the versioned `moniq:projected-balance:preferences:v1` browser preference.
+Explicit URL parameters take precedence over remembered preferences. The old
+account-only preference is migrated automatically.
+
+On mobile, one icon action opens the fullscreen filter sheet. The report view
+owns exactly one bottom-navigation clearance and the chart fills the remaining
+height between the header and mobile navigation.
+
 The projected balance report is available at `/reports/projected-balance`.
 `/reports` redirects to that first report.
 
@@ -18,8 +34,17 @@ When the finance snapshot does not contain a required currency pair, the report 
 
 ## URL State
 
-The end date is stored as `end=YYYY-MM-DD`. Selected accounts use repeated `account` parameters, and `merged=true|false` controls line composition. Unknown account IDs are ignored. Legacy `series` parameters are read once for existing deep links and replaced with the current format after the next interaction. When the URL does not specify accounts, the page reuses the last valid browser-local account selection; otherwise it falls back to every available account in merged mode with a six-month period.
+The end date is stored as `end=YYYY-MM-DD`. Selected accounts use repeated
+`account` parameters, and `merged=true|false` controls line composition. Unknown
+account IDs are ignored. Legacy `series` parameters are read once for existing
+deep links and replaced with the current format after the next interaction.
+Explicit URL state wins over the versioned browser preferences; preferences
+win over the default selection and period.
 
 ## Chart
 
-The chart uses `lightweight-charts` directly with a restrained accent for the primary line and neutral colors for additional lines. It fills the report workspace, uses compact price-axis labels, and supports crosshair tracking, touch selection, and keyboard date navigation. Hovering, tapping, or dragging shows a tooltip with the selected date and line balances. Account and operation details are not rendered below the chart. The built-in TradingView attribution remains enabled.
+The internal SVG chart uses a restrained accent for the primary line and
+neutral colors for additional lines. It fills the report workspace, uses
+compact value-axis labels, and supports pointer, touch, and keyboard date
+navigation. Hovering, tapping, dragging, or navigating with the arrow keys
+shows the selected date and line balances.

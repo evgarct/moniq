@@ -94,17 +94,15 @@ export function AccountCard({
       onContextMenu={handleContextMenu}
       className={cn(
         "relative rounded-sm transition-[background-color,color]",
-        selected
-          ? "bg-secondary text-foreground"
-          : "bg-transparent hover:bg-secondary/70 active:bg-secondary",
+        selected ? "bg-secondary text-foreground" : "bg-transparent",
       )}
     >
-      <div className="px-1.5 py-1.5 sm:px-2.5 sm:py-2.5">
         <button
           type="button"
           onClick={onSelect}
           className={cn(
-            "min-w-0 w-full rounded-sm text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/25",
+            "min-w-0 w-full rounded-sm px-1.5 py-1.5 text-left outline-none transition-[background-color] hover:bg-secondary/70 active:bg-secondary focus-visible:ring-2 focus-visible:ring-ring/25 sm:px-2.5 sm:py-2.5",
+            selected && "hover:bg-secondary",
             creditCard
               ? "grid grid-cols-1 gap-1.5 sm:gap-3"
               : "grid grid-cols-[minmax(0,1fr)_minmax(96px,auto)] items-center gap-2 sm:gap-3",
@@ -170,7 +168,6 @@ export function AccountCard({
             </>
           )}
         </button>
-      </div>
       {showGoals ? (
         <div className="px-1.5 pb-2.5 sm:px-2.5 sm:pb-3">
           <div className="mb-2.5 h-px bg-foreground/6 sm:mb-3" />

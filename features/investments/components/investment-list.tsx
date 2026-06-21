@@ -66,14 +66,14 @@ export function InvestmentList({
                 type="button"
                 key={position.id}
                 className={cn(
-                  "flex min-h-14 w-full items-center gap-3 px-2 py-2 text-left hover:bg-secondary/50",
+                  "flex min-h-14 w-full items-center gap-2 rounded-sm px-1.5 py-1.5 text-left transition-[background-color] hover:bg-secondary/70 active:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/25 sm:gap-2.5 sm:px-2.5 sm:py-2.5",
                   selectedId === position.id && "bg-secondary/60",
                 )}
                 onClick={() => onSelect(position.id)}
               >
                 <TrendingUp className="size-[18px] shrink-0 text-muted-foreground" strokeWidth={1.75} />
                 <span className="min-w-0 flex-1">
-                  <span className="block max-h-10 overflow-hidden text-[13px] leading-5 font-medium text-foreground sm:text-[14px]">
+                  <span className="block truncate text-[13px] leading-[18px] font-medium tracking-[0.01em] text-foreground sm:type-h6">
                     {position.instrument.name}
                   </span>
                   <span className="block truncate type-body-12 text-muted-foreground">

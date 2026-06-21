@@ -59,3 +59,18 @@ export const CategoryCollapsed: Story = {
     await expect(canvas.queryAllByText("Loans").length).toBe(0);
   },
 };
+
+export const MobileCategoryManagement: Story = {
+  parameters: {
+    ...withPathname("/budget"),
+    layout: "fullscreen",
+    viewport: { defaultViewport: "mobile2" },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: "Manage categories" }));
+    const body = within(canvasElement.ownerDocument.body);
+    await expect(body.getByRole("dialog")).toBeInTheDocument();
+    await expect(body.getByRole("button", { name: "Add category" })).toBeInTheDocument();
+  },
+};

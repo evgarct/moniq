@@ -41,9 +41,9 @@ export function TransactionAddButton({
         render={
           variant === "icon" ? (
             <Button
-              variant="ghost"
+              variant="secondary"
               size="icon-sm"
-              className="text-muted-foreground hover:bg-secondary/70 hover:text-foreground"
+              className="border border-border/60 bg-secondary/75 text-muted-foreground hover:bg-secondary hover:text-foreground"
               aria-label={displayLabel}
             />
           ) : (
@@ -55,7 +55,7 @@ export function TransactionAddButton({
           )
         }
       >
-        <Plus className="size-4" />
+        {variant === "pill" ? <Plus data-icon="inline-start" /> : null}
         {variant === "pill" ? <span className="font-medium">{displayLabel}</span> : null}
       </DropdownMenuTrigger>
 

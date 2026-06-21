@@ -178,6 +178,49 @@ export const MobileLeftPanelScroll: Story = {
   },
 };
 
+export const MobileLongWalletHeader: Story = {
+  args: {
+    data: {
+      ...snapshot,
+      accounts: snapshot.accounts.map((account, index) => index === 0
+        ? { ...account, name: "Very long everyday wallet name for mobile verification" }
+        : account),
+    },
+  },
+  parameters: {
+    viewport: {
+      defaultViewport: "mobile1",
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: /Very long everyday wallet name/ }));
+    const body = within(canvasElement.ownerDocument.body);
+    await expect(body.getByRole("heading", { name: /Very long everyday wallet name/ })).toBeInTheDocument();
+    await expect(body.getByRole("button", { name: "Date range" })).toBeInTheDocument();
+  },
+};
+
+export const MobileInvestmentDetail: Story = {
+  args: {
+    data: snapshot,
+  },
+  parameters: {
+    viewport: {
+      defaultViewport: "mobile1",
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const position = snapshot.investment_positions[0];
+    if (!position) return;
+    await userEvent.click(canvas.getByRole("button", { name: new RegExp(position.instrument.name) }));
+    const body = within(canvasElement.ownerDocument.body);
+    await expect(body.getByRole("heading", { name: position.instrument.name })).toBeInTheDocument();
+    await expect(body.getByRole("button", { name: "Close investment details" })).toBeInTheDocument();
+  },
+};
+
 function makeOpeningBalanceData() {
   const snap = makeFinanceSnapshot();
   const wallet = snap.accounts[0];
