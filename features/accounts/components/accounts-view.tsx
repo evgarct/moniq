@@ -6,10 +6,9 @@ import { Eye, EyeOff, Info, WalletCards } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { AccountList } from "@/components/account-list";
+import { PageHeaderIconButton } from "@/components/page-header-icon-button";
 import { TransactionList } from "@/components/transaction-list";
-import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { AccountFormSheet } from "@/features/accounts/components/account-form-sheet";
 import { BalanceRegisterHeader, BalanceRegisterPanel } from "@/features/accounts/components/balance-register-panel";
 import { useFinanceActions } from "@/features/finance/hooks/use-finance-actions";
@@ -53,6 +52,7 @@ export function AccountsView({
   const [walletsEditMode, setWalletsEditMode] = useState(false);
   const [showMinorUnits, setShowMinorUnits] = useState(false);
   const [mobileRegisterOpen, setMobileRegisterOpen] = useState(false);
+  const [mobileInvestmentOpen, setMobileInvestmentOpen] = useState(false);
   const [transactionSheetOpen, setTransactionSheetOpen] = useState(false);
   const [transactionSheetMode, setTransactionSheetMode] = useState<"add" | "edit-transaction">("add");
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -102,9 +102,6 @@ export function AccountsView({
   const pending = false;
   const hasAccounts = accounts.length > 0;
   const registerTitle = selectedAccount ? selectedAccount.name : t("view.activity");
-  const toolbarButtonClassName =
-    "bg-transparent text-muted-foreground hover:bg-secondary/70 hover:text-foreground active:bg-secondary";
-
   const isDesktopViewport = () =>
     typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches;
 
@@ -200,23 +197,11 @@ export function AccountsView({
                   <h1 className="font-heading text-[28px] leading-none tracking-[-0.035em] text-foreground sm:type-h1">
                     {t("view.title")}
                   </h1>
-                  <Tooltip>
-                    <TooltipTrigger
-                      render={
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          className="shrink-0 bg-transparent text-muted-foreground hover:bg-secondary/70 hover:text-foreground active:bg-secondary"
-                          aria-label={walletsEditMode ? copy("view.editModeDescription") : t("view.description")}
-                        />
-                      }
-                    >
-                      <Info className="size-4 translate-y-[2px]" />
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-72 text-balance">
-                      {walletsEditMode ? copy("view.editModeDescription") : t("view.description")}
-                    </TooltipContent>
-                  </Tooltip>
+                  <PageHeaderIconButton
+                    icon={Info}
+                    label={walletsEditMode ? copy("view.editModeDescription") : t("view.description")}
+                    className="shrink-0"
+                  />
                 </div>
 
                 <div
@@ -224,52 +209,20 @@ export function AccountsView({
                   role="toolbar"
                   aria-label={t("view.title")}
                 >
-                  <Tooltip>
-                    <TooltipTrigger
-                      render={
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          className={cn(
-                            toolbarButtonClassName,
-                            showMinorUnits && "bg-secondary text-foreground",
-                          )}
-                          aria-label={showMinorUnits ? copy("view.hideMinorUnits") : copy("view.showMinorUnits")}
-                          aria-pressed={showMinorUnits}
-                        />
-                      }
-                      onClick={() => setShowMinorUnits((current) => !current)}
-                    >
-                      {showMinorUnits ? <Eye /> : <EyeOff />}
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      {showMinorUnits ? copy("view.hideMinorUnits") : copy("view.showMinorUnits")}
-                    </TooltipContent>
-                  </Tooltip>
+                  <PageHeaderIconButton
+                    icon={showMinorUnits ? Eye : EyeOff}
+                    label={showMinorUnits ? copy("view.hideMinorUnits") : copy("view.showMinorUnits")}
+                    pressed={showMinorUnits}
+                    onClick={() => setShowMinorUnits((current) => !current)}
+                  />
 
-                  <Tooltip>
-                    <TooltipTrigger
-                      render={
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          className={cn(
-                            toolbarButtonClassName,
-                            walletsEditMode && "bg-secondary text-foreground",
-                          )}
-                          aria-label={walletsEditMode ? t("view.finishWalletEditing") : t("view.addWallet")}
-                          aria-pressed={walletsEditMode}
-                        />
-                      }
-                      onClick={() => setWalletsEditMode((current) => !current)}
-                      disabled={pending}
-                    >
-                      <WalletCards />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      {walletsEditMode ? t("view.finishWalletEditing") : t("view.addWallet")}
-                    </TooltipContent>
-                  </Tooltip>
+                  <PageHeaderIconButton
+                    icon={WalletCards}
+                    label={walletsEditMode ? t("view.finishWalletEditing") : t("view.addWallet")}
+                    pressed={walletsEditMode}
+                    onClick={() => setWalletsEditMode((current) => !current)}
+                    disabled={pending}
+                  />
                 </div>
               </div>
 
@@ -336,6 +289,7 @@ export function AccountsView({
               onSelect={(positionId) => {
                 setSelectedAccountId(null);
                 setSelectedInvestmentId(positionId);
+                if (!isDesktopViewport()) setMobileInvestmentOpen(true);
               }}
             />
             </div>
@@ -426,6 +380,34 @@ export function AccountsView({
               />
             </div>
           </div>
+        </SheetContent>
+      </Sheet>
+
+      <Sheet
+        open={mobileInvestmentOpen}
+        onOpenChange={(open) => {
+          setMobileInvestmentOpen(open);
+          if (!open) setSelectedInvestmentId(null);
+        }}
+      >
+        <SheetContent side="fullscreen" className="gap-0 p-0 lg:hidden" showCloseButton={false}>
+          {selectedInvestment ? (
+            <InvestmentDetail
+              position={selectedInvestment}
+              transactions={transactions}
+              mobile
+              onClose={() => {
+                setMobileInvestmentOpen(false);
+                setSelectedInvestmentId(null);
+              }}
+              onAddPurchase={() => {
+                setPurchaseInstrumentId(selectedInvestment.instrument_id);
+                setTransactionSheetMode("add");
+                setEditingTransaction(null);
+                setTransactionSheetOpen(true);
+              }}
+            />
+          ) : null}
         </SheetContent>
       </Sheet>
 

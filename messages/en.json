@@ -574,7 +574,9 @@
     },
     "view": {
       "title": "Budget",
-      "description": "Review this month's category structure with expenses and income separated into their own working columns."
+      "description": "Review this month's category structure with expenses and income separated into their own working columns.",
+      "manageCategories": "Manage categories",
+      "manageCategoriesDescription": "Create, rename, reorganize, and delete income and expense categories."
     },
     "metrics": {
       "trackedCategories": "Tracked categories",
@@ -595,12 +597,18 @@
       "leaf": "Leaf category"
     },
     "category": {
-      "noTransactions": "No transactions in this category for the selected month."
+      "noTransactions": "No transactions in this category for the selected month.",
+      "childCount": "{count, plural, =0 {No subcategories} one {# subcategory} other {# subcategories}}",
+      "rateUnavailable": "Rate unavailable"
     },
     "monthChart": {
       "ariaLabel": "Monthly budget analysis",
       "eyebrow": "Retrospective",
       "title": "Monthly envelope performance",
+      "convertedTo": "Converted to {currency}",
+      "missingRates": "Rates unavailable for: {currencies}",
+      "previousMonth": "Previous month",
+      "nextMonth": "Next month",
       "hint": "Hover for context. Click a month for details.",
       "emptyCurrency": "None",
       "openMonth": "Open analysis for {month}",

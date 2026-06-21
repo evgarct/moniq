@@ -8,8 +8,7 @@ import { useMemo, useState } from "react";
 
 import { EmptyState } from "@/components/empty-state";
 import { MoneyAmount } from "@/components/money-amount";
-import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { PageHeaderIconButton } from "@/components/page-header-icon-button";
 import { ProjectedBalanceControls } from "@/features/reports/components/projected-balance-account-picker";
 import { ProjectedBalanceChart } from "@/features/reports/components/projected-balance-chart";
 import {
@@ -18,6 +17,12 @@ import {
   PROJECTED_BALANCE_PRESET_MONTHS,
 } from "@/features/reports/lib/projected-balance";
 import {
+  PROJECTED_BALANCE_LEGACY_SELECTION_KEY,
+  PROJECTED_BALANCE_PREFERENCES_KEY,
+  parseProjectedBalancePreferences,
+  serializeProjectedBalancePreferences,
+} from "@/features/reports/lib/projected-balance-preferences";
+import {
   buildProjectedBalanceSearchParams,
   parseProjectedBalanceUrlState,
   type ProjectedBalanceSelection,
@@ -25,7 +30,6 @@ import {
 import { calDate } from "@/lib/formatters";
 import type { FinanceSnapshot } from "@/types/finance";
 
-const REMEMBERED_SELECTION_KEY = "moniq:projected-balance:selection";
 const SERIES_COLOR_CLASSES = [
   "bg-chart-1",
   "bg-chart-5",
@@ -39,30 +43,26 @@ function replaceUrlState(endDate: string, selection: ProjectedBalanceSelection) 
   window.history.replaceState(null, "", `?${params.toString()}`);
 }
 
-function readRememberedSelection() {
+function readRememberedPreferences() {
   if (typeof window === "undefined") return null;
 
   try {
-    const value = window.localStorage.getItem(REMEMBERED_SELECTION_KEY);
-    if (!value) return null;
-    const parsed = JSON.parse(value) as Partial<ProjectedBalanceSelection>;
-
-    if (!Array.isArray(parsed.accountIds) || typeof parsed.merged !== "boolean") {
-      return null;
-    }
-
-    return {
-      accountIds: parsed.accountIds.filter((accountId): accountId is string => typeof accountId === "string"),
-      merged: parsed.merged,
-    };
+    return parseProjectedBalancePreferences(
+      window.localStorage.getItem(PROJECTED_BALANCE_PREFERENCES_KEY),
+      window.localStorage.getItem(PROJECTED_BALANCE_LEGACY_SELECTION_KEY),
+    );
   } catch {
     return null;
   }
 }
 
-function rememberSelection(selection: ProjectedBalanceSelection) {
+function rememberPreferences(selection: ProjectedBalanceSelection, periodMonths: number) {
   try {
-    window.localStorage.setItem(REMEMBERED_SELECTION_KEY, JSON.stringify(selection));
+    window.localStorage.setItem(
+      PROJECTED_BALANCE_PREFERENCES_KEY,
+      serializeProjectedBalancePreferences({ ...selection, periodMonths }),
+    );
+    window.localStorage.removeItem(PROJECTED_BALANCE_LEGACY_SELECTION_KEY);
   } catch {
     // localStorage can be unavailable in private browsing or embedded previews.
   }
@@ -78,14 +78,16 @@ export function ProjectedBalanceView({
   const t = useTranslations("reports.projectedBalance");
   const formatDate = useFormatter();
   const searchParams = useSearchParams();
+  const rememberedPreferences = useMemo(() => readRememberedPreferences(), []);
   const initialState = useMemo(
     () =>
       parseProjectedBalanceUrlState({
         searchParams,
         accounts: snapshot.accounts,
-        rememberedSelection: readRememberedSelection(),
+        rememberedSelection: rememberedPreferences,
+        rememberedPeriodMonths: rememberedPreferences?.periodMonths,
       }),
-    [searchParams, snapshot.accounts],
+    [rememberedPreferences, searchParams, snapshot.accounts],
   );
   const [endDate, setEndDate] = useState(initialState.endDate);
   const [selection, setSelection] = useState(initialState.selection);
@@ -126,7 +128,7 @@ export function ProjectedBalanceView({
 
   function updateSelection(nextSelection: ProjectedBalanceSelection) {
     setSelection(nextSelection);
-    rememberSelection(nextSelection);
+    rememberPreferences(nextSelection, selectedPreset ?? rememberedPreferences?.periodMonths ?? 6);
     replaceUrlState(endDate, nextSelection);
   }
 
@@ -134,6 +136,7 @@ export function ProjectedBalanceView({
     if (!PROJECTED_BALANCE_PRESET_MONTHS.includes(months as typeof PROJECTED_BALANCE_PRESET_MONTHS[number])) return;
     const nextEndDate = format(addMonths(parseISO(report.start_date), months), "yyyy-MM-dd");
     setEndDate(nextEndDate);
+    rememberPreferences(selection, months);
     replaceUrlState(nextEndDate, selection);
   }
 
@@ -146,29 +149,15 @@ export function ProjectedBalanceView({
   }
 
   return (
-    <div className="mobile-nav-scroll-clearance flex h-full w-full max-w-full flex-col overflow-hidden bg-card pb-[calc(76px+env(safe-area-inset-bottom))] lg:pb-0">
-      <header className="shrink-0 bg-card">
+    <div className="flex h-full min-h-0 w-full max-w-full flex-col overflow-hidden bg-background pb-[calc(76px+env(safe-area-inset-bottom))] lg:pb-0">
+      <header className="shrink-0 bg-background">
         <div className="flex flex-col gap-3 px-3 pt-4 pb-3 sm:gap-4 sm:px-6 sm:pt-7 sm:pb-5 lg:px-7 lg:pt-8 lg:pb-6">
           <div className="flex items-start justify-between gap-2 px-1.5 sm:items-center sm:gap-3 sm:px-2.5">
             <div className="flex min-w-0 items-center gap-2">
               <h1 className="whitespace-nowrap font-heading text-[28px] leading-none tracking-[-0.035em] text-foreground sm:type-h1">
                 {t("title")}
               </h1>
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      className="shrink-0 bg-transparent text-muted-foreground hover:bg-secondary/70 hover:text-foreground active:bg-secondary"
-                      aria-label={t("description")}
-                    />
-                  }
-                >
-                  <Info className="size-4 translate-y-[2px]" />
-                </TooltipTrigger>
-                <TooltipContent className="max-w-72 text-balance">{t("description")}</TooltipContent>
-              </Tooltip>
+              <PageHeaderIconButton icon={Info} label={t("description")} className="shrink-0" />
             </div>
 
             <div

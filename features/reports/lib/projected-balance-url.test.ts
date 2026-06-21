@@ -112,4 +112,24 @@ describe("projected balance URL state", () => {
       merged: true,
     });
   });
+
+  it("uses remembered period only when the URL period is absent", () => {
+    expect(
+      parseProjectedBalanceUrlState({
+        searchParams: new URLSearchParams(),
+        accounts,
+        rememberedPeriodMonths: 12,
+        now,
+      }).endDate,
+    ).toBe("2027-06-14");
+
+    expect(
+      parseProjectedBalanceUrlState({
+        searchParams: new URLSearchParams({ end: "2026-08-14" }),
+        accounts,
+        rememberedPeriodMonths: 12,
+        now,
+      }).endDate,
+    ).toBe("2026-08-14");
+  });
 });

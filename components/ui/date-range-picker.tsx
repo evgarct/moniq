@@ -119,6 +119,7 @@ export function DateRangePicker({
   presets,
   initialOpen = false,
   className,
+  triggerClassName,
 }: {
   startDate: string;
   endDate: string;
@@ -139,6 +140,7 @@ export function DateRangePicker({
   };
   initialOpen?: boolean;
   className?: string;
+  triggerClassName?: string;
 }) {
   const tr = useTranslations();
   const formatDate = useFormatter();
@@ -242,7 +244,10 @@ export function DateRangePicker({
             <Button
               type="button"
               variant="ghost"
-              className="h-10 w-auto max-w-full justify-start bg-transparent px-2.5 text-sm font-medium text-foreground hover:bg-secondary/70 active:bg-secondary"
+              className={cn(
+                "h-10 w-auto max-w-full justify-start bg-transparent px-2.5 text-sm font-medium text-foreground hover:bg-secondary/70 active:bg-secondary",
+                triggerClassName,
+              )}
               aria-expanded={open}
               aria-label={triggerAriaLabel}
             />

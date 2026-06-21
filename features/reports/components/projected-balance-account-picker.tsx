@@ -1,10 +1,11 @@
 "use client";
 
-import { ArrowLeft, Check, ChevronDown, CreditCard, Landmark, PiggyBank, Wallet } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, CreditCard, Landmark, PiggyBank, SlidersHorizontal, Wallet } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { PageHeaderIconButton } from "@/components/page-header-icon-button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -237,15 +238,12 @@ export function ProjectedBalanceControls({
         </Popover>
       </div>
 
-      <Button
-        variant="ghost"
-        className="max-w-[46vw] bg-transparent text-muted-foreground hover:bg-secondary/70 hover:text-foreground lg:hidden"
+      <PageHeaderIconButton
+        icon={SlidersHorizontal}
+        label={triggerLabel}
         onClick={() => setMobileOpen(true)}
-      >
-        <Wallet data-icon="inline-start" />
-        <span className="min-w-0 truncate">{triggerLabel}</span>
-        <ChevronDown data-icon="inline-end" />
-      </Button>
+        className="lg:hidden"
+      />
 
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="fullscreen" className="gap-0 p-0 lg:hidden" showCloseButton={false}>

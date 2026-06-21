@@ -177,6 +177,24 @@ export const MobileAccountPickerOpen: Story = {
   },
 };
 
+export const MobileFullHeightChart: Story = {
+  args: {
+    snapshot: reportSnapshot,
+  },
+  parameters: {
+    viewport: {
+      defaultViewport: "mobile1",
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const chart = canvas.getByRole("img", { name: /Projected account balance chart/ });
+    const rect = chart.getBoundingClientRect();
+    await expect(rect.height).toBeGreaterThan(300);
+    await expect(rect.right).toBeLessThanOrEqual(canvasElement.ownerDocument.documentElement.clientWidth);
+  },
+};
+
 export const Empty: Story = {
   args: {
     snapshot: {

@@ -57,7 +57,9 @@ async function main() {
     await page.waitForURL(new RegExp(`${targetPath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:[?#].*)?$`), {
       timeout: 20_000,
     });
-    await page.locator("h1").getByText(expectedHeading, { exact: true }).waitFor({ timeout: 10_000 });
+    await page.getByRole("heading", { level: 1, name: expectedHeading, exact: true }).first().waitFor({
+      timeout: 10_000,
+    });
 
     if (consoleErrors.length > 0) {
       throw new Error(`Console errors after login:\n${consoleErrors.join("\n")}`);

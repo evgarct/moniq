@@ -1,188 +1,175 @@
 "use client";
 
 import { addMonths, isSameMonth, parseISO, startOfToday } from "date-fns";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Settings2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
 
-import { BudgetBarChart } from "@/features/budget/components/budget-bar-chart";
-import { BudgetMonthAnalysisSheet } from "@/features/budget/components/budget-month-analysis-sheet";
 import { CategoryIcon } from "@/components/category-icon";
+import { EmptyState } from "@/components/empty-state";
 import { MoneyAmount } from "@/components/money-amount";
+import { PageHeader } from "@/components/page-header";
+import { PageHeaderIconButton } from "@/components/page-header-icon-button";
 import { TransactionList } from "@/components/transaction-list";
 import { Button } from "@/components/ui/button";
-import { getCategoryDescendantIds } from "@/features/categories/lib/category-tree";
-import { buildCategoryTree } from "@/features/categories/lib/category-tree";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { BudgetBarChart } from "@/features/budget/components/budget-bar-chart";
+import { BudgetMonthAnalysisSheet } from "@/features/budget/components/budget-month-analysis-sheet";
+import { getConvertedCategoryTotal } from "@/features/budget/lib/budget-analytics";
+import { getCategoryDescendantIds, buildCategoryTree } from "@/features/categories/lib/category-tree";
 import type { CategorySpendingReport } from "@/features/finance/lib/category-spending-report";
 import { isSettledTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
+import { TransactionsView } from "@/features/transactions/components/transactions-view";
 import { calDate } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
-import type { CurrencyCode } from "@/types/currency";
 import type { CategoryTreeNode, FinanceSnapshot, Transaction } from "@/types/finance";
 
 function sortNodesByActivity(nodes: CategoryTreeNode[]) {
-  return [...nodes].sort((a, b) => Math.abs(b.total_amount) - Math.abs(a.total_amount));
+  return [...nodes].sort((left, right) => Math.abs(right.total_amount) - Math.abs(left.total_amount));
 }
 
-// ─── Category tile ────────────────────────────────────────────────────────────
-
-function CategoryTile({
+function CategoryRow({
   node,
-  isSelected,
-  onClick,
-}: {
-  node: CategoryTreeNode;
-  isSelected: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "flex flex-col items-center gap-2 rounded-[var(--radius-control)] px-2 py-3 text-center transition-colors focus:outline-none",
-        "hover:bg-secondary/50",
-        isSelected && "bg-secondary/60",
-      )}
-    >
-      <CategoryIcon icon={node.icon} glyphClassName="size-[18px] text-muted-foreground" />
-      <div className="w-full min-w-0">
-        <p className="type-body-12 truncate font-medium leading-tight text-foreground">{node.name}</p>
-        {node.totals_by_currency.length ? (
-          <div className="mt-0.5 flex flex-col items-center">
-            {node.totals_by_currency.map((total) => (
-              <MoneyAmount
-                key={total.currency}
-                amount={total.amount}
-                currency={total.currency}
-                display="absolute"
-                className="type-body-12 text-muted-foreground tabular-nums"
-              />
-            ))}
-          </div>
-        ) : (
-          <span className="type-body-12 mt-0.5 text-muted-foreground">—</span>
-        )}
-      </div>
-    </button>
-  );
-}
-
-// ─── Section header ───────────────────────────────────────────────────────────
-
-function SectionHeader({
-  title,
-  nodes,
-}: {
-  title: string;
-  nodes: CategoryTreeNode[];
-}) {
-  const totals = useMemo(
-    () =>
-      nodes
-        .flatMap((n) => n.totals_by_currency)
-        .reduce<{ currency: CurrencyCode; amount: number }[]>((acc, t) => {
-          const existing = acc.find((x) => x.currency === t.currency);
-          if (existing) existing.amount += t.amount;
-          else acc.push({ ...t });
-          return acc;
-        }, []),
-    [nodes],
-  );
-
-  return (
-    <div className="flex shrink-0 items-center justify-between py-3">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{title}</p>
-      <div className="flex gap-3">
-        {totals.map((total) => (
-          <MoneyAmount
-            key={total.currency}
-            amount={total.amount}
-            currency={total.currency}
-            display="absolute"
-            className="type-body-12 font-semibold tabular-nums text-foreground"
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ─── Category detail ──────────────────────────────────────────────────────────
-
-function CategoryDetail({
-  node,
+  month,
   transactions,
-  emptyMessage,
+  snapshot,
+  selected,
+  onSelect,
 }: {
   node: CategoryTreeNode;
+  month: Date;
   transactions: Transaction[];
-  emptyMessage: string;
+  snapshot: FinanceSnapshot;
+  selected: boolean;
+  onSelect: () => void;
 }) {
-  const sortedChildren = sortNodesByActivity(node.children);
+  const t = useTranslations("budget");
+  const categoryIds = useMemo(
+    () => new Set([node.id, ...getCategoryDescendantIds(snapshot.categories, node.id)]),
+    [node.id, snapshot.categories],
+  );
+  const total = useMemo(
+    () => getConvertedCategoryTotal({
+      transactions,
+      month,
+      categoryIds,
+      targetCurrency: snapshot.preferences.default_currency,
+      exchangeRates: snapshot.exchange_rates,
+    }),
+    [categoryIds, month, snapshot.exchange_rates, snapshot.preferences.default_currency, transactions],
+  );
+  const linkedTransactions = useMemo(
+    () => transactions.filter((transaction) => transaction.category_id && categoryIds.has(transaction.category_id)),
+    [categoryIds, transactions],
+  );
 
   return (
-    <div>
-      <div className="mb-4 flex items-center gap-3">
-        <CategoryIcon icon={node.icon} glyphClassName="size-[18px] text-muted-foreground" />
-        <div className="flex min-w-0 flex-1 items-center justify-between gap-4">
-          <p className="type-body-14 font-medium text-foreground">{node.name}</p>
-          {node.totals_by_currency.length ? (
-            <div className="flex gap-3">
-              {node.totals_by_currency.map((total) => (
-                <MoneyAmount
-                  key={total.currency}
-                  amount={total.amount}
-                  currency={total.currency}
-                  display="absolute"
-                  className="text-sm font-semibold tabular-nums text-foreground"
-                />
+    <div className="border-b border-border/40 last:border-b-0">
+      <button
+        type="button"
+        className={cn(
+          "flex min-h-14 w-full items-center gap-3 rounded-[var(--radius-control)] px-2 py-2 text-left transition-[background-color] hover:bg-secondary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          selected && "bg-secondary/60",
+        )}
+        onClick={onSelect}
+        aria-expanded={selected}
+      >
+        <CategoryIcon icon={node.icon} glyphClassName="size-[18px] shrink-0 text-muted-foreground" />
+        <span className="min-w-0 flex-1">
+          <span className="type-body-14 block truncate font-medium text-foreground">{node.name}</span>
+          <span className="type-body-12 block truncate text-muted-foreground">
+            {t("category.childCount", { count: node.children.length })}
+          </span>
+        </span>
+        {total.amount === null ? (
+          <span className="type-body-12 shrink-0 text-muted-foreground">
+            {t("category.rateUnavailable")}
+          </span>
+        ) : (
+          <MoneyAmount
+            amount={total.amount}
+            currency={snapshot.preferences.default_currency}
+            display="absolute"
+            className="shrink-0 type-body-14 font-medium"
+          />
+        )}
+        <ChevronDown className={cn("shrink-0 text-muted-foreground transition-transform", selected && "rotate-180")} />
+      </button>
+
+      {selected ? (
+        <div className="flex flex-col gap-4 px-2 pb-5 pl-8">
+          {node.children.length ? (
+            <div className="flex flex-col">
+              {sortNodesByActivity(node.children).map((child) => (
+                <div key={child.id} className="flex min-h-11 items-center gap-3 border-b border-border/35 px-1 last:border-b-0">
+                  <CategoryIcon icon={child.icon} glyphClassName="size-4 shrink-0 text-muted-foreground" />
+                  <span className="type-body-14 min-w-0 flex-1 truncate">{child.name}</span>
+                </div>
               ))}
             </div>
           ) : null}
+          <TransactionList
+            transactions={linkedTransactions}
+            emptyMessage={t("category.noTransactions")}
+            groupByDate
+            showMinorUnits
+          />
         </div>
-      </div>
-
-      {sortedChildren.length > 0 && (
-        <div className="mb-4 flex flex-col">
-          {sortedChildren.map((child, i) => (
-            <div
-              key={child.id}
-              className={cn("flex items-center gap-3 py-2", i > 0 && "border-t border-border/40")}
-            >
-              <CategoryIcon icon={child.icon} glyphClassName="size-4 text-muted-foreground" />
-              <p className="min-w-0 flex-1 truncate text-sm text-foreground">{child.name}</p>
-              {child.totals_by_currency.length ? (
-                <div className="flex gap-3">
-                  {child.totals_by_currency.map((total) => (
-                    <MoneyAmount
-                      key={total.currency}
-                      amount={total.amount}
-                      currency={total.currency}
-                      display="absolute"
-                      className="text-sm tabular-nums text-muted-foreground"
-                    />
-                  ))}
-                </div>
-              ) : (
-                <span className="text-sm text-muted-foreground">—</span>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      <TransactionList
-        transactions={transactions}
-        emptyMessage={emptyMessage}
-        groupByDate
-        showMinorUnits
-      />
+      ) : null}
     </div>
   );
 }
 
-// ─── Main view ────────────────────────────────────────────────────────────────
+function CategorySection({
+  title,
+  nodes,
+  month,
+  transactions,
+  snapshot,
+  selectedCategoryId,
+  onSelectCategory,
+  emptyMessage,
+}: {
+  title: string;
+  nodes: CategoryTreeNode[];
+  month: Date;
+  transactions: Transaction[];
+  snapshot: FinanceSnapshot;
+  selectedCategoryId: string | null;
+  onSelectCategory: (categoryId: string | null) => void;
+  emptyMessage: string;
+}) {
+  return (
+    <section className="border-t border-border/40 px-4 py-5 sm:px-6 lg:px-7">
+      <h2 className="type-body-12 mb-2 font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+        {title}
+      </h2>
+      {nodes.length ? (
+        <div className="flex flex-col">
+          {nodes.map((node) => (
+            <CategoryRow
+              key={node.id}
+              node={node}
+              month={month}
+              transactions={transactions}
+              snapshot={snapshot}
+              selected={selectedCategoryId === node.id}
+              onSelect={() => onSelectCategory(selectedCategoryId === node.id ? null : node.id)}
+            />
+          ))}
+        </div>
+      ) : (
+        <EmptyState title={emptyMessage} description="" />
+      )}
+    </section>
+  );
+}
 
 export function BudgetView({ snapshot }: { snapshot: FinanceSnapshot }) {
   const t = useTranslations("budget");
@@ -191,20 +178,20 @@ export function BudgetView({ snapshot }: { snapshot: FinanceSnapshot }) {
   const [month, setMonth] = useState(today);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedMonthReport, setSelectedMonthReport] = useState<CategorySpendingReport | null>(null);
+  const [categoryManagerOpen, setCategoryManagerOpen] = useState(false);
 
   const monthTransactions = useMemo(
-    () =>
-      snapshot.transactions.filter(
-        (tx) => isSettledTransactionStatus(tx.status) && isSameMonth(parseISO(tx.occurred_at), month),
-      ),
+    () => snapshot.transactions.filter(
+      (transaction) =>
+        isSettledTransactionStatus(transaction.status) &&
+        isSameMonth(parseISO(transaction.occurred_at), month),
+    ),
     [month, snapshot.transactions],
   );
-
   const categoryTree = useMemo(
     () => buildCategoryTree(snapshot.categories, monthTransactions),
     [monthTransactions, snapshot.categories],
   );
-
   const expenseNodes = useMemo(
     () => sortNodesByActivity(categoryTree.filter((node) => node.type === "expense")),
     [categoryTree],
@@ -214,124 +201,93 @@ export function BudgetView({ snapshot }: { snapshot: FinanceSnapshot }) {
     [categoryTree],
   );
 
-  const selectedNode = useMemo(() => {
-    if (!selectedCategoryId) return null;
-    return [...expenseNodes, ...incomeNodes].find((n) => n.id === selectedCategoryId) ?? null;
-  }, [selectedCategoryId, expenseNodes, incomeNodes]);
-
-  const selectedTransactions = useMemo(() => {
-    if (!selectedCategoryId) return [];
-    const ids = new Set([selectedCategoryId, ...getCategoryDescendantIds(snapshot.categories, selectedCategoryId)]);
-    return monthTransactions.filter((tx) => tx.category_id && ids.has(tx.category_id));
-  }, [selectedCategoryId, monthTransactions, snapshot.categories]);
+  function changeMonth(nextMonth: Date) {
+    setMonth(nextMonth);
+    setSelectedCategoryId(null);
+  }
 
   return (
-    <div className="flex h-full flex-col overflow-hidden">
-
-      {/* Chart + month nav — fixed height, never scrolls */}
-      <div className="shrink-0 border-b border-border/40 px-4 pb-4 pt-5 sm:px-6 lg:px-7">
-        <BudgetBarChart
-          transactions={snapshot.transactions}
-          categories={snapshot.categories}
-          currentMonth={month}
-          onMonthSelect={setSelectedMonthReport}
+    <>
+      <div className="mobile-nav-scroll-clearance h-full overflow-y-auto bg-background [scroll-padding-bottom:calc(76px+env(safe-area-inset-bottom))]">
+        <PageHeader
+          title={t("view.title")}
+          actions={
+            <PageHeaderIconButton
+              icon={Settings2}
+              label={t("view.manageCategories")}
+              onClick={() => setCategoryManagerOpen(true)}
+            />
+          }
         />
-        <div className="mt-3 flex items-center justify-between">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => { setMonth((m) => addMonths(m, -1)); setSelectedCategoryId(null); }}
-          >
-            <ChevronLeft className="size-4" />
-          </Button>
-          <button
-            type="button"
-            onClick={() => { setMonth(today); setSelectedCategoryId(null); }}
-            className="type-body-14 rounded-[var(--radius-control)] px-2 py-1 font-medium text-foreground transition-colors hover:bg-secondary/50"
-          >
-            {formatDate.dateTime(calDate(month), { month: "long", year: "numeric" })}
-          </button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => { setMonth((m) => addMonths(m, 1)); setSelectedCategoryId(null); }}
-          >
-            <ChevronRight className="size-4" />
-          </Button>
-        </div>
+
+        <section className="px-4 pb-4 sm:px-6 lg:px-7">
+          <BudgetBarChart
+            transactions={snapshot.transactions}
+            categories={snapshot.categories}
+            currentMonth={month}
+            targetCurrency={snapshot.preferences.default_currency}
+            exchangeRates={snapshot.exchange_rates}
+            onMonthSelect={setSelectedMonthReport}
+          />
+          <div className="mt-3 grid grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-2">
+            <PageHeaderIconButton
+              icon={ChevronLeft}
+              label={t("monthChart.previousMonth")}
+              onClick={() => changeMonth(addMonths(month, -1))}
+            />
+            <Button
+              variant="ghost"
+              onClick={() => changeMonth(today)}
+              className="min-w-0 justify-center bg-transparent"
+            >
+              <span className="truncate">
+                {formatDate.dateTime(calDate(month), { month: "long", year: "numeric" })}
+              </span>
+            </Button>
+            <PageHeaderIconButton
+              icon={ChevronRight}
+              label={t("monthChart.nextMonth")}
+              onClick={() => changeMonth(addMonths(month, 1))}
+            />
+          </div>
+        </section>
+
+        <CategorySection
+          title={t("sections.expensesTitle")}
+          nodes={expenseNodes}
+          month={month}
+          transactions={monthTransactions}
+          snapshot={snapshot}
+          selectedCategoryId={selectedCategoryId}
+          onSelectCategory={setSelectedCategoryId}
+          emptyMessage={t("sections.expensesEmpty")}
+        />
+        <CategorySection
+          title={t("sections.incomeTitle")}
+          nodes={incomeNodes}
+          month={month}
+          transactions={monthTransactions}
+          snapshot={snapshot}
+          selectedCategoryId={selectedCategoryId}
+          onSelectCategory={setSelectedCategoryId}
+          emptyMessage={t("sections.incomeEmpty")}
+        />
       </div>
 
-      {/* Content area — fills rest of viewport */}
-      <div className="flex min-h-0 flex-1">
-
-        {/* Left: categories — always visible */}
-        <div className={cn(
-          "flex min-h-0 flex-col",
-          selectedNode ? "hidden lg:flex lg:w-[340px] xl:w-[400px] lg:border-r lg:border-border/40" : "flex-1",
-        )}>
-          {/* Expenses — flex-[3]: takes most of the vertical space */}
-          <div className="flex min-h-0 flex-[3] flex-col border-b border-border/40 px-4 sm:px-6 lg:px-7">
-            <SectionHeader title={t("sections.expensesTitle")} nodes={expenseNodes} />
-            <div className="mobile-nav-scroll-clearance flex-1 overflow-y-auto pb-3 [scroll-padding-bottom:calc(76px+env(safe-area-inset-bottom))] lg:[scroll-padding-bottom:1rem]">
-              {expenseNodes.length ? (
-                <div className={cn(
-                  "-mx-2 grid",
-                  selectedNode ? "grid-cols-3 lg:grid-cols-4" : "grid-cols-4 sm:grid-cols-5 xl:grid-cols-6",
-                )}>
-                  {expenseNodes.map((node) => (
-                    <CategoryTile
-                      key={node.id}
-                      node={node}
-                      isSelected={selectedCategoryId === node.id}
-                      onClick={() => setSelectedCategoryId(selectedCategoryId === node.id ? null : node.id)}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <p className="type-body-14 py-6 text-muted-foreground">{t("sections.expensesEmpty")}</p>
-              )}
-            </div>
+      <Sheet open={categoryManagerOpen} onOpenChange={setCategoryManagerOpen}>
+        <SheetContent
+          side="right"
+          className="w-full max-w-none gap-0 overflow-hidden p-0 pt-[var(--safe-area-inset-top)] lg:max-w-[min(1100px,85vw)] lg:pt-0"
+        >
+          <SheetHeader className="sr-only">
+            <SheetTitle>{t("view.manageCategories")}</SheetTitle>
+            <SheetDescription>{t("view.manageCategoriesDescription")}</SheetDescription>
+          </SheetHeader>
+          <div className="h-full overflow-y-auto p-4 sm:p-6">
+            <TransactionsView snapshot={snapshot} basePath="/budget" />
           </div>
-
-          {/* Income — flex-[2]: smaller, but still scrollable */}
-          <div className="flex min-h-0 flex-[2] flex-col px-4 sm:px-6 lg:px-7">
-            <SectionHeader title={t("sections.incomeTitle")} nodes={incomeNodes} />
-            <div className="mobile-nav-scroll-clearance flex-1 overflow-y-auto pb-3 [scroll-padding-bottom:calc(76px+env(safe-area-inset-bottom))] lg:[scroll-padding-bottom:1rem]">
-              {incomeNodes.length ? (
-                <div className={cn(
-                  "-mx-2 grid",
-                  selectedNode ? "grid-cols-3 lg:grid-cols-4" : "grid-cols-4 sm:grid-cols-5 xl:grid-cols-6",
-                )}>
-                  {incomeNodes.map((node) => (
-                    <CategoryTile
-                      key={node.id}
-                      node={node}
-                      isSelected={selectedCategoryId === node.id}
-                      onClick={() => setSelectedCategoryId(selectedCategoryId === node.id ? null : node.id)}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <p className="type-body-14 py-6 text-muted-foreground">{t("sections.incomeEmpty")}</p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Right: category detail — scrollable, only when selected */}
-        {selectedNode && (
-          <div className="flex min-h-0 flex-1 flex-col">
-            <div className="mobile-nav-scroll-clearance flex-1 overflow-y-auto px-4 py-5 [scroll-padding-bottom:calc(76px+env(safe-area-inset-bottom))] sm:px-6 lg:px-7 lg:[scroll-padding-bottom:1rem]">
-              <CategoryDetail
-                node={selectedNode}
-                transactions={selectedTransactions}
-                emptyMessage={t("category.noTransactions")}
-              />
-            </div>
-          </div>
-        )}
-
-      </div>
+        </SheetContent>
+      </Sheet>
 
       <BudgetMonthAnalysisSheet
         report={selectedMonthReport}
@@ -340,6 +296,6 @@ export function BudgetView({ snapshot }: { snapshot: FinanceSnapshot }) {
           if (!open) setSelectedMonthReport(null);
         }}
       />
-    </div>
+    </>
   );
 }
