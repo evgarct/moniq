@@ -223,6 +223,7 @@ export function TransactionFormSheet({
   allocations = [],
   investmentPositions = [],
   initialInvestmentInstrumentId,
+  initialCategoryId,
   onOpenChange,
   onSubmit,
 }: {
@@ -239,6 +240,7 @@ export function TransactionFormSheet({
   allocations?: WalletAllocation[];
   investmentPositions?: InvestmentPosition[];
   initialInvestmentInstrumentId?: string | null;
+  initialCategoryId?: string | null;
   onOpenChange: (open: boolean) => void;
   onSubmit: (payload: TransactionFormSubmitPayload) => void;
 }) {
@@ -301,7 +303,8 @@ export function TransactionFormSheet({
           transactions={transactions}
           allocations={allocations}
           investmentPositions={investmentPositions}
-          initialInvestmentInstrumentId={initialInvestmentInstrumentId}
+            initialInvestmentInstrumentId={initialInvestmentInstrumentId}
+            initialCategoryId={initialCategoryId}
           onSubmit={wrappedOnSubmit}
           onOpenChange={onOpenChange}
         >

@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { z } from "zod";
 
 import { CategoryIcon } from "@/components/category-icon";
+import { CategoryIconPicker } from "@/components/category-icon-picker";
 import {
   FormField,
   FormSelectField,
@@ -104,16 +105,20 @@ export function CategoryFormSheet({
           />
         </FormField>
 
-        <div className="grid gap-4 sm:grid-cols-[96px_minmax(0,1fr)]">
-          <FormField id="category-icon" label={t("fields.icon")} error={form.formState.errors.icon}>
-            <Input
-              id="category-icon"
-              maxLength={48}
-              autoComplete="off"
-              aria-invalid={Boolean(form.formState.errors.icon)}
-              {...form.register("icon")}
-            />
-          </FormField>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Controller
+            control={form.control}
+            name="icon"
+            render={({ field }) => (
+              <FormField id="category-icon" label={t("fields.icon")} error={form.formState.errors.icon}>
+                <CategoryIconPicker
+                  id="category-icon"
+                  value={field.value}
+                  onValueChange={field.onChange}
+                />
+              </FormField>
+            )}
+          />
 
           <Controller
             control={form.control}

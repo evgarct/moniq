@@ -1,6 +1,7 @@
 import type { CurrencyCode } from "@/types/currency";
 
 export type CategoryType = "income" | "expense";
+export type CategoryPurpose = "investment";
 
 export type Category = {
   id: string;
@@ -11,6 +12,7 @@ export type Category = {
   type: CategoryType;
   parent_id: string | null;
   is_system: boolean;
+  purpose?: CategoryPurpose | null;
   created_at: string;
 };
 

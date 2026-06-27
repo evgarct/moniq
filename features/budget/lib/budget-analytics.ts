@@ -16,6 +16,45 @@ export type ConvertedBudgetMonth = {
   missingCurrencies: CurrencyCode[];
 };
 
+export function buildMissingHistoricalFxRequest(options: {
+  transactions: Transaction[];
+  currentMonth: Date;
+  targetCurrency: CurrencyCode;
+  exchangeRates: ExchangeRate[];
+  monthsShown?: number;
+}) {
+  const monthsShown = options.monthsShown ?? 13;
+  const startDate = format(startOfMonth(addMonths(options.currentMonth, -(monthsShown - 1))), "yyyy-MM-dd");
+  const endDate = format(endOfMonth(options.currentMonth), "yyyy-MM-dd");
+  const requestedDates = new Set<string>();
+  const quoteCurrencies = new Set<CurrencyCode>();
+
+  for (const transaction of options.transactions) {
+    if (
+      !isSettledTransactionStatus(transaction.status) ||
+      transaction.occurred_at < startDate ||
+      transaction.occurred_at > endDate
+    ) {
+      continue;
+    }
+
+    const conversion = convertTransactionAnalyticsAmount({
+      transaction,
+      targetCurrency: options.targetCurrency,
+      exchangeRates: options.exchangeRates,
+    });
+    if (conversion?.status !== "missing_rate") continue;
+
+    requestedDates.add(transaction.occurred_at);
+    quoteCurrencies.add(conversion.source_currency);
+  }
+
+  return {
+    requestedDates: Array.from(requestedDates).sort(),
+    quoteCurrencies: Array.from(quoteCurrencies).sort(),
+  };
+}
+
 export function buildConvertedBudgetMonths(options: {
   transactions: Transaction[];
   currentMonth: Date;

@@ -231,6 +231,19 @@ describe("buildSchema – add mode", () => {
     expect(result.success).toBe(true);
   });
 
+  it("accepts a recurring investment-category expense without purchase details", () => {
+    const result = schema.safeParse(
+      base({
+        is_recurring: true,
+        status: "planned",
+        investment_instrument_id: null,
+        investment_units: null,
+        line_items: [{ category_id: "investment-category", amount: 100, note: "" }],
+      }),
+    );
+    expect(result.success).toBe(true);
+  });
+
   it("accepts weekly recurring transactions with an interval", () => {
     const result = schema.safeParse(
       base({

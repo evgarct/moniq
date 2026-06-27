@@ -69,8 +69,19 @@ export const MobileCategoryManagement: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole("button", { name: "Manage categories" }));
+    await expect(canvas.getByRole("button", { name: "Finish editing categories" })).toBeInTheDocument();
+    await expect(canvas.getAllByRole("button", { name: "Add" }).length).toBeGreaterThan(0);
+  },
+};
+
+export const InlineCategoryEditing: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: "Manage categories" }));
+    await userEvent.click(canvas.getByRole("button", { name: "Open actions for Core Bills" }));
     const body = within(canvasElement.ownerDocument.body);
-    await expect(body.getByRole("dialog")).toBeInTheDocument();
-    await expect(body.getByRole("button", { name: "Add category" })).toBeInTheDocument();
+    await userEvent.click(body.getByText("Edit category"));
+    await expect(canvas.getByLabelText("Category name")).toHaveValue("Core Bills");
+    await expect(canvas.getByRole("button", { name: "Icon" })).toBeInTheDocument();
   },
 };

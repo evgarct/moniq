@@ -83,6 +83,7 @@ export function AccountsView({
     () => investmentPositions.map((position) => position.instrument),
     [investmentPositions],
   );
+  const investmentCategoryId = categories.find((category) => category.purpose === "investment")?.id ?? null;
   const settledTransactions = useMemo(
     () =>
       [...transactions]
@@ -200,7 +201,7 @@ export function AccountsView({
                   <PageHeaderIconButton
                     icon={Info}
                     label={walletsEditMode ? copy("view.editModeDescription") : t("view.description")}
-                    className="shrink-0"
+                      className="hidden shrink-0 lg:inline-flex"
                   />
                 </div>
 
@@ -421,6 +422,7 @@ export function AccountsView({
         allocations={allocations}
         investmentPositions={investmentPositions}
         initialInvestmentInstrumentId={purchaseInstrumentId}
+        initialCategoryId={purchaseInstrumentId ? investmentCategoryId : null}
         onOpenChange={(open) => {
           setTransactionSheetOpen(open);
           if (!open) setPurchaseInstrumentId(null);

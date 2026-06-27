@@ -272,6 +272,7 @@ type CategoryRow = {
   type: Category["type"];
   parent_id: string | null;
   is_system: boolean;
+  purpose: Category["purpose"];
   created_at: string;
 };
 
@@ -1265,6 +1266,7 @@ function mapCategory(row: CategoryRow): Category {
     type: row.type,
     parent_id: row.parent_id,
     is_system: row.is_system,
+    purpose: row.purpose ?? null,
     created_at: row.created_at,
   };
 }

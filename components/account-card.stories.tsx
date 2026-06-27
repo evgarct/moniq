@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { expect, fn, userEvent, within } from "storybook/test";
+import { expect, fireEvent, fn, userEvent, within } from "storybook/test";
 
 import { AccountCard } from "@/components/account-card";
 import { StoryDemoFrame, makeFinanceSnapshot } from "@/stories/fixtures/story-data";
@@ -46,5 +46,19 @@ export const Debt: Story = {
 export const CreditCard: Story = {
   args: {
     account: snapshot.accounts[4],
+  },
+};
+
+export const ContextActions: Story = {
+  args: {
+    onEdit: fn(),
+    onDelete: fn(),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    fireEvent.contextMenu(canvas.getByRole("button"));
+    const body = within(canvasElement.ownerDocument.body);
+    await expect(body.getByText("Edit wallet")).toBeInTheDocument();
+    await expect(body.getByText("Delete wallet")).toBeInTheDocument();
   },
 };

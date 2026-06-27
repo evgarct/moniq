@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { CurrencyCode } from "@/types/currency";
-import type { Account, Category } from "@/types/finance";
+import type { Account, Category, InvestmentPosition } from "@/types/finance";
 import type { TransactionInput } from "@/types/finance-schemas";
 
 import { validateTransactionRelationships } from "./transaction-utils";
@@ -34,6 +34,16 @@ const categories: Category[] = [{
   is_system: false,
   created_at: "2026-01-01T00:00:00Z",
 }];
+
+const investmentCategories: Category[] = [
+  ...categories,
+  { ...categories[0], id: "investments", name: "Investments", purpose: "investment" },
+  { ...categories[0], id: "etf-child", name: "ETFs", parent_id: "investments" },
+];
+const positions = [{
+  instrument_id: "etf-position",
+  instrument: { id: "etf-position", type: "etf" },
+}] as InvestmentPosition[];
 
 function debtPayment(destinationAccountId: string): TransactionInput {
   return {
@@ -78,5 +88,36 @@ describe("validateTransactionRelationships", () => {
     expect(() =>
       validateTransactionRelationships(debtPayment("savings"), { accounts, categories }),
     ).toThrow("Debt payment must target a debt or credit card account.");
+  });
+
+  it("accepts an ETF purchase in a descendant of the investment category", () => {
+    expect(() => validateTransactionRelationships({
+      ...debtPayment("loan"),
+      kind: "expense",
+      amount: 100,
+      principal_amount: null,
+      interest_amount: null,
+      extra_principal_amount: null,
+      destination_account_id: null,
+      category_id: "etf-child",
+      investment_instrument_id: "etf-position",
+      investment_units: 1.5,
+    }, { accounts, categories: investmentCategories, investment_positions: positions })).not.toThrow();
+  });
+
+  it("rejects linked purchases outside the investment branch", () => {
+    expect(() => validateTransactionRelationships({
+      ...debtPayment("loan"),
+      kind: "expense",
+      principal_amount: null,
+      interest_amount: null,
+      extra_principal_amount: null,
+      destination_account_id: null,
+      category_id: "cat-expense",
+      investment_instrument_id: "etf-position",
+      investment_units: 1,
+    }, { accounts, categories: investmentCategories, investment_positions: positions })).toThrow(
+      "Investment purchases must use the investment category.",
+    );
   });
 });

@@ -175,6 +175,11 @@ export const MobileLeftPanelScroll: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole("heading", { name: "Balance", level: 1 })).toBeInTheDocument();
     await expect(canvas.getByText("Cash 1")).toBeInTheDocument();
+    const passiveInfoButton = canvasElement.querySelector<HTMLButtonElement>(
+      'button[class*="lg:inline-flex"]',
+    );
+    await expect(passiveInfoButton).not.toBeNull();
+    await expect(passiveInfoButton).not.toBeVisible();
   },
 };
 

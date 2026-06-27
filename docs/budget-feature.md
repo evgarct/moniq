@@ -65,9 +65,20 @@ There are no tile grids or nested independent scroll regions.
 
 ### Category management
 
-The page header exposes one explicit category-management action. It opens the
-existing category workspace in a full-width mobile sheet and a wide desktop
-side sheet, reusing the optimistic create, edit, reparent, and delete flows.
+The page header toggles an inline category-management mode. Expense and income
+sections keep their row layout while exposing add and action controls; create,
+edit, reparent, and icon selection render directly beneath the affected row.
+Deletion still uses the focused confirmation sheet. System categories such as
+balance adjustments remain visible on their transactions but are excluded from
+the manageable category tree.
+
+### Historical exchange rates
+
+Budget detects missing rates for each paid transaction date in its 13-month
+window and requests those dates in one authenticated refresh call. Returned
+rates are merged into the current snapshot immediately and persisted when the
+service role is configured, so currencies with incomplete history such as RUB
+do not leave an otherwise convertible month unavailable.
 
 ## Data Flow
 
@@ -79,6 +90,7 @@ useFinanceData()
   -> filter to selected month
   -> monthTransactions
   -> buildCategoryTree(categories, monthTransactions)
+  -> manageable categories only
   -> categoryTree
   -> getConvertedCategoryTotal(...)
   -> split and sort by converted total

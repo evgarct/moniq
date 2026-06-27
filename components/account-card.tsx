@@ -1,17 +1,16 @@
-import { useState } from "react";
+import { useRef } from "react";
 import { BanknoteArrowDown, CreditCard, Landmark, Pencil, PencilLine, PiggyBank, PlusCircle, SlidersHorizontal, Target, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { MoneyAmount } from "@/components/money-amount";
 import { ProgressTrack } from "@/components/progress-track";
-import { Button } from "@/components/ui/button";
 import { InlineIcon } from "@/components/ui/inline-icon";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import { getCreditCardMetrics, isCreditCardAccount, isDebtAccount } from "@/features/accounts/lib/account-utils";
 import { cn } from "@/lib/utils";
 import type { Account, WalletAllocation } from "@/types/finance";
@@ -41,7 +40,6 @@ export function AccountCard({
   onEditGoal?: (allocation: WalletAllocation) => void;
   onDeleteGoal?: (allocation: WalletAllocation) => void;
 }) {
-  const tr = useTranslations();
   const t = useTranslations("accounts");
   const debt = isDebtAccount(account);
   const creditCard = isCreditCardAccount(account);
@@ -59,47 +57,31 @@ export function AccountCard({
           ? Landmark
           : BanknoteArrowDown;
   const hasActions = Boolean(onEdit || onDelete || onAdjustBalance || onAddGoal);
-  const [contextMenu, setContextMenu] = useState<
-    | { kind: "account"; x: number; y: number }
-    | { kind: "allocation"; x: number; y: number; allocation: WalletAllocation }
-    | null
-  >(null);
+  const suppressClickUntil = useRef(0);
   const showGoals = account.type === "saving" && allocations !== undefined;
   const accountAllocations = allocations ?? [];
   const totalAllocated = showGoals ? accountAllocations.reduce((sum, a) => sum + a.amount, 0) : 0;
   const free = account.balance - totalAllocated;
   const isOverfunded = free < -0.001;
 
-  function handleContextMenu(event: React.MouseEvent<HTMLDivElement>) {
-    if (!hasActions) {
-      return;
-    }
-
-    event.preventDefault();
-    setContextMenu({ kind: "account", x: event.clientX, y: Math.max(event.clientY - 6, 0) });
-  }
-
-  function handleAllocationContextMenu(event: React.MouseEvent<HTMLDivElement>, allocation: WalletAllocation) {
-    if (!onEditGoal && !onDeleteGoal) {
-      return;
-    }
-
-    event.preventDefault();
-    event.stopPropagation();
-    setContextMenu({ kind: "allocation", allocation, x: event.clientX, y: Math.max(event.clientY - 6, 0) });
-  }
-
   return (
     <div
-      onContextMenu={handleContextMenu}
       className={cn(
         "relative rounded-sm transition-[background-color,color]",
         selected ? "bg-secondary text-foreground" : "bg-transparent",
       )}
     >
-        <button
+      <ContextMenu
+        disabled={!hasActions}
+        onOpenChange={(open) => {
+          if (open) suppressClickUntil.current = Date.now() + 700;
+        }}
+      >
+        <ContextMenuTrigger render={<button
           type="button"
-          onClick={onSelect}
+          onClick={() => {
+            if (Date.now() >= suppressClickUntil.current) onSelect?.();
+          }}
           className={cn(
             "min-w-0 w-full rounded-sm px-1.5 py-1.5 text-left outline-none transition-[background-color] hover:bg-secondary/70 active:bg-secondary focus-visible:ring-2 focus-visible:ring-ring/25 sm:px-2.5 sm:py-2.5",
             selected && "hover:bg-secondary",
@@ -107,7 +89,7 @@ export function AccountCard({
               ? "grid grid-cols-1 gap-1.5 sm:gap-3"
               : "grid grid-cols-[minmax(0,1fr)_minmax(96px,auto)] items-center gap-2 sm:gap-3",
           )}
-        >
+        />}>
           {creditCard ? (
             <>
               <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(120px,auto)] items-start gap-1.5 sm:gap-2">
@@ -167,7 +149,15 @@ export function AccountCard({
               />
             </>
           )}
-        </button>
+        </ContextMenuTrigger>
+        <AccountContextActions
+          account={account}
+          onAddGoal={onAddGoal}
+          onAdjustBalance={onAdjustBalance}
+          onEdit={onEdit}
+          onDelete={onDelete}
+        />
+      </ContextMenu>
       {showGoals ? (
         <div className="px-1.5 pb-2.5 sm:px-2.5 sm:pb-3">
           <div className="mb-2.5 h-px bg-foreground/6 sm:mb-3" />
@@ -198,11 +188,10 @@ export function AccountCard({
                       : null;
 
                   return (
-                    <div
-                      key={allocation.id}
-                      onContextMenu={(event) => handleAllocationContextMenu(event, allocation)}
-                      className="group rounded-[var(--radius-tight)] py-1 transition-colors hover:bg-secondary/70"
-                    >
+                    <ContextMenu key={allocation.id} disabled={!onEditGoal && !onDeleteGoal}>
+                      <ContextMenuTrigger
+                        render={<div className="group rounded-[var(--radius-tight)] py-1 transition-colors hover:bg-secondary/70" />}
+                      >
                       <div className="grid grid-cols-[minmax(0,1fr)_minmax(104px,auto)] items-center gap-3">
                         <div className="flex min-w-0 items-center gap-1.5">
                           {allocation.kind === "goal_targeted" ? (
@@ -250,7 +239,13 @@ export function AccountCard({
                           </div>
                         </div>
                       ) : null}
-                    </div>
+                      </ContextMenuTrigger>
+                      <AllocationContextActions
+                        allocation={allocation}
+                        onEditGoal={onEditGoal}
+                        onDeleteGoal={onDeleteGoal}
+                      />
+                    </ContextMenu>
                   );
                 })}
               </div>
@@ -259,90 +254,58 @@ export function AccountCard({
           </div>
         </div>
       ) : null}
-      {contextMenu ? (
-        <DropdownMenu open onOpenChange={(open) => (!open ? setContextMenu(null) : null)}>
-          <DropdownMenuTrigger
-            render={
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="pointer-events-none fixed h-px w-px min-h-0 min-w-0 p-0 opacity-0"
-                style={{ left: contextMenu.x, top: contextMenu.y }}
-                aria-label={
-                  contextMenu.kind === "allocation"
-                    ? `${tr("common.actions.edit")} ${contextMenu.allocation.name}`
-                    : `${tr("common.actions.edit")} ${account.name}`
-                }
-              />
-            }
-          />
-          <DropdownMenuContent className="w-40 rounded-[var(--radius-floating)] p-1.5" side="right" align="start" sideOffset={6} alignOffset={-6}>
-            {contextMenu.kind === "allocation" ? (
-              <>
-                {onEditGoal ? (
-                  <DropdownMenuItem
-                    className="rounded-[var(--radius-control)] px-2 py-2 text-[13px]"
-                    onClick={() => onEditGoal(contextMenu.allocation)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                    {t("actions.editGoal", { name: contextMenu.allocation.name })}
-                  </DropdownMenuItem>
-                ) : null}
-                {onDeleteGoal ? (
-                  <DropdownMenuItem
-                    className="rounded-[var(--radius-control)] px-2 py-2 text-[13px]"
-                    variant="destructive"
-                    onClick={() => onDeleteGoal(contextMenu.allocation)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    {t("actions.deleteGoal", { name: contextMenu.allocation.name })}
-                  </DropdownMenuItem>
-                ) : null}
-              </>
-            ) : (
-              <>
-                {onAddGoal ? (
-                  <DropdownMenuItem className="rounded-[var(--radius-control)] px-2 py-2 text-[13px]" onClick={onAddGoal}>
-                    <PlusCircle className="h-4 w-4" />
-                    {t("actions.addGoal")}
-                  </DropdownMenuItem>
-                ) : null}
-                {onAdjustBalance ? (
-                  <DropdownMenuItem
-                    className="rounded-[var(--radius-control)] px-2 py-2 text-[13px]"
-                    onClick={() => {
-                      const rawValue = window.prompt(t("actions.adjustBalancePrompt"), String(account.balance));
-                      if (rawValue === null) return;
-                      const newBalance = parseFloat(rawValue);
-                      if (!isNaN(newBalance)) onAdjustBalance(account, newBalance);
-                    }}
-                  >
-                    <SlidersHorizontal className="h-4 w-4" />
-                    {t("actions.adjustBalance")}
-                  </DropdownMenuItem>
-                ) : null}
-                {onEdit ? (
-                  <DropdownMenuItem className="rounded-[var(--radius-control)] px-2 py-2 text-[13px]" onClick={() => onEdit(account)}>
-                    <PencilLine className="h-4 w-4" />
-                    {t("actions.editWallet")}
-                  </DropdownMenuItem>
-                ) : null}
-                {onDelete ? (
-                  <DropdownMenuItem
-                    className="rounded-[var(--radius-control)] px-2 py-2 text-[13px]"
-                    variant="destructive"
-                    onClick={() => onDelete(account)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    {t("actions.deleteWallet")}
-                  </DropdownMenuItem>
-                ) : null}
-              </>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ) : null}
     </div>
+  );
+}
+
+function AccountContextActions({
+  account,
+  onAddGoal,
+  onAdjustBalance,
+  onEdit,
+  onDelete,
+}: {
+  account: Account;
+  onAddGoal?: () => void;
+  onAdjustBalance?: (account: Account, newBalance: number) => void;
+  onEdit?: (account: Account) => void;
+  onDelete?: (account: Account) => void;
+}) {
+  const t = useTranslations("accounts");
+  return (
+    <ContextMenuContent className="w-48 rounded-[var(--radius-floating)] p-1.5">
+      {onAddGoal ? <ContextMenuItem onClick={onAddGoal}><PlusCircle />{t("actions.addGoal")}</ContextMenuItem> : null}
+      {onAdjustBalance ? (
+        <ContextMenuItem onClick={() => {
+          const rawValue = window.prompt(t("actions.adjustBalancePrompt"), String(account.balance));
+          if (rawValue === null) return;
+          const newBalance = Number(rawValue);
+          if (Number.isFinite(newBalance)) onAdjustBalance(account, newBalance);
+        }}>
+          <SlidersHorizontal />{t("actions.adjustBalance")}
+        </ContextMenuItem>
+      ) : null}
+      {onEdit ? <ContextMenuItem onClick={() => onEdit(account)}><PencilLine />{t("actions.editWallet")}</ContextMenuItem> : null}
+      {onDelete ? <ContextMenuItem variant="destructive" onClick={() => onDelete(account)}><Trash2 />{t("actions.deleteWallet")}</ContextMenuItem> : null}
+    </ContextMenuContent>
+  );
+}
+
+function AllocationContextActions({
+  allocation,
+  onEditGoal,
+  onDeleteGoal,
+}: {
+  allocation: WalletAllocation;
+  onEditGoal?: (allocation: WalletAllocation) => void;
+  onDeleteGoal?: (allocation: WalletAllocation) => void;
+}) {
+  const t = useTranslations("accounts");
+  return (
+    <ContextMenuContent className="w-48 rounded-[var(--radius-floating)] p-1.5">
+      {onEditGoal ? <ContextMenuItem onClick={() => onEditGoal(allocation)}><Pencil />{t("actions.editGoal", { name: allocation.name })}</ContextMenuItem> : null}
+      {onDeleteGoal ? <ContextMenuItem variant="destructive" onClick={() => onDeleteGoal(allocation)}><Trash2 />{t("actions.deleteGoal", { name: allocation.name })}</ContextMenuItem> : null}
+    </ContextMenuContent>
   );
 }
 

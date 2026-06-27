@@ -157,7 +157,7 @@ export function ProjectedBalanceView({
               <h1 className="whitespace-nowrap font-heading text-[28px] leading-none tracking-[-0.035em] text-foreground sm:type-h1">
                 {t("title")}
               </h1>
-              <PageHeaderIconButton icon={Info} label={t("description")} className="shrink-0" />
+              <PageHeaderIconButton icon={Info} label={t("description")} className="hidden shrink-0 lg:inline-flex" />
             </div>
 
             <div

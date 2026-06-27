@@ -7,6 +7,7 @@ import { FormProvider, useFieldArray, useForm, useWatch, type UseFormReturn } fr
 import { useTranslations } from "next-intl";
 
 import { DEFAULT_CURRENCY_CODE } from "@/lib/currencies";
+import { isInvestmentCategory } from "@/features/categories/lib/category-tree";
 import { getCurrencySymbol } from "@/lib/formatters";
 import type { Account, Category, InvestmentPosition, Transaction, TransactionSchedule, WalletAllocation } from "@/types/finance";
 
@@ -109,6 +110,7 @@ function makeDefaults({
   mode,
   defaultSourceAccountId,
   initialInvestmentInstrumentId,
+  initialCategoryId,
 }: {
   transaction?: Transaction | null;
   schedule?: TransactionSchedule | null;
@@ -117,6 +119,7 @@ function makeDefaults({
   mode: TransactionFormMode;
   defaultSourceAccountId?: string | null;
   initialInvestmentInstrumentId?: string | null;
+  initialCategoryId?: string | null;
 }): TransactionFormInputs {
   const currentKind = schedule?.kind ?? transaction?.kind ?? initialKind ?? "expense";
   const isAddMode = mode === "add";
@@ -134,7 +137,7 @@ function makeDefaults({
     principal_amount: schedule?.principal_amount ?? transaction?.principal_amount ?? null,
     interest_amount: schedule?.interest_amount ?? transaction?.interest_amount ?? null,
     extra_principal_amount: schedule?.extra_principal_amount ?? transaction?.extra_principal_amount ?? null,
-    category_id: schedule?.category_id ?? transaction?.category_id ?? null,
+    category_id: schedule?.category_id ?? transaction?.category_id ?? initialCategoryId ?? null,
     source_account_id: schedule?.source_account_id ?? transaction?.source_account_id ?? defaultSourceId,
     destination_account_id: schedule?.destination_account_id ?? transaction?.destination_account_id ?? defaultDestId,
     allocation_id: schedule?.allocation_id ?? transaction?.allocation_id ?? null,
@@ -174,6 +177,7 @@ export function TransactionFormProvider({
   allocations = [],
   investmentPositions = [],
   initialInvestmentInstrumentId,
+  initialCategoryId,
   onSubmit,
   onOpenChange,
 }: {
@@ -191,6 +195,7 @@ export function TransactionFormProvider({
   allocations?: WalletAllocation[];
   investmentPositions?: InvestmentPosition[];
   initialInvestmentInstrumentId?: string | null;
+  initialCategoryId?: string | null;
   onSubmit: (payload: TransactionFormSubmitPayload) => boolean | void;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -227,7 +232,7 @@ export function TransactionFormProvider({
 
   const form = useForm<TransactionFormInputs>({
     resolver: zodResolver(schema),
-    defaultValues: makeDefaults({ transaction, schedule, initialKind, initialDate, mode, defaultSourceAccountId, initialInvestmentInstrumentId }),
+    defaultValues: makeDefaults({ transaction, schedule, initialKind, initialDate, mode, defaultSourceAccountId, initialInvestmentInstrumentId, initialCategoryId }),
   });
 
   const { fields, append, insert, remove, replace } = useFieldArray({
@@ -236,8 +241,8 @@ export function TransactionFormProvider({
   });
 
   useEffect(() => {
-    form.reset(makeDefaults({ transaction, schedule, initialKind, initialDate, mode, defaultSourceAccountId, initialInvestmentInstrumentId }));
-  }, [form, initialInvestmentInstrumentId, initialKind, initialDate, mode, open, schedule, transaction, defaultSourceAccountId]);
+    form.reset(makeDefaults({ transaction, schedule, initialKind, initialDate, mode, defaultSourceAccountId, initialInvestmentInstrumentId, initialCategoryId }));
+  }, [form, initialCategoryId, initialInvestmentInstrumentId, initialKind, initialDate, mode, open, schedule, transaction, defaultSourceAccountId]);
 
   const kind = useWatch({ control: form.control, name: "kind" });
   const amount = useWatch({ control: form.control, name: "amount" });
@@ -249,8 +254,26 @@ export function TransactionFormProvider({
   const status = useWatch({ control: form.control, name: "status" });
   const note = useWatch({ control: form.control, name: "note" });
   const investmentInstrumentId = useWatch({ control: form.control, name: "investment_instrument_id" });
+  const categoryId = useWatch({ control: form.control, name: "category_id" });
+  const allocationId = useWatch({ control: form.control, name: "allocation_id" });
 
   const isBatchMode = mode === "add" && supportsBatchItems(kind) && !investmentInstrumentId;
+
+  useEffect(() => {
+    const source = accounts.find((account) => account.id === sourceAccountId);
+    const allocation = allocations.find((item) => item.id === allocationId);
+    if (allocationId && (source?.type !== "saving" || allocation?.wallet_id !== source.id)) {
+      form.setValue("allocation_id", null, { shouldDirty: true, shouldValidate: true });
+    }
+  }, [accounts, allocationId, allocations, form, sourceAccountId]);
+
+  useEffect(() => {
+    if (kind === "expense" && !isRecurring && isInvestmentCategory(categories, categoryId)) return;
+    if (investmentInstrumentId) {
+      form.setValue("investment_instrument_id", null, { shouldDirty: true, shouldValidate: true });
+      form.setValue("investment_units", null, { shouldDirty: true, shouldValidate: true });
+    }
+  }, [categories, categoryId, form, investmentInstrumentId, isRecurring, kind]);
 
   // auto-calc destination amount from fx rate
   useEffect(() => {

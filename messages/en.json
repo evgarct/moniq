@@ -88,7 +88,11 @@
         "parentNotFound": "Parent category not found.",
         "parentSameType": "Parent category must have the same type.",
         "cannotBeOwnParent": "A category cannot be its own parent.",
-        "cannotMoveUnderDescendant": "A category cannot be moved under its own descendant."
+        "cannotMoveUnderDescendant": "A category cannot be moved under its own descendant.",
+        "systemEdit": "System categories cannot be edited.",
+        "systemDelete": "System categories cannot be deleted.",
+        "investmentType": "The investment category must remain an expense category.",
+        "investmentDelete": "The investment category cannot be deleted."
       },
       "transaction": {
         "create": "Unable to create transaction.",
@@ -102,7 +106,10 @@
         "categoryTypeMismatch": "Choose a category with the matching type.",
         "debtCategoryExpenseOnly": "Debt payment interest can only use an expense category.",
         "debtNeedsDebtAccount": "Debt payment must target a debt or credit card account.",
-        "transferNoCategory": "Transfers do not use categories."
+        "transferNoCategory": "Transfers do not use categories.",
+        "investmentCategory": "Investment purchases must use the investment category.",
+        "investmentEtf": "Investment purchases must use an ETF position.",
+        "investmentNotFound": "Investment position not found."
       },
       "investment": {
         "search": "Unable to search investments.",
@@ -576,6 +583,7 @@
       "title": "Budget",
       "description": "Review this month's category structure with expenses and income separated into their own working columns.",
       "manageCategories": "Manage categories",
+      "finishManagingCategories": "Finish editing categories",
       "manageCategoriesDescription": "Create, rename, reorganize, and delete income and expense categories."
     },
     "metrics": {
@@ -688,6 +696,12 @@
         "nameRequired": "Category name is required.",
         "descriptionMax": "Keep the description under 600 characters.",
         "iconMax": "Use a short icon token."
+      },
+      "iconPicker": {
+        "title": "Choose an icon",
+        "description": "Select an icon from the Moniq category set.",
+        "selected": "Choose icon",
+        "choose": "Choose icon {icon}"
       }
     },
     "delete": {

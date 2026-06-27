@@ -179,6 +179,33 @@ export async function refreshExchangeRates(options: {
   return upsertProviderRates([...primaryRates, ...fallbackRates]);
 }
 
+export async function refreshExchangeRatesForDates(options: {
+  baseCurrency: CurrencyCode;
+  quoteCurrencies: CurrencyCode[];
+  requestedDates: string[];
+}) {
+  const requestedDates = Array.from(new Set(options.requestedDates)).sort();
+  const results: ExchangeRate[] = [];
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < requestedDates.length) {
+      const requestedDate = requestedDates[nextIndex];
+      nextIndex += 1;
+      results.push(...await refreshExchangeRates({
+        baseCurrency: options.baseCurrency,
+        quoteCurrencies: options.quoteCurrencies,
+        requestedDate,
+      }));
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: Math.min(4, requestedDates.length) }, () => worker()),
+  );
+  return results.sort((left, right) => left.requested_date.localeCompare(right.requested_date));
+}
+
 export async function refreshSupportedCurrencyRates(requestedDate = getTodayIsoDate()) {
   return refreshExchangeRates({
     baseCurrency: "EUR",
