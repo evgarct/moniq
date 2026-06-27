@@ -96,6 +96,21 @@ export function getCategoryDescendantIds(categories: Category[], categoryId: str
   return descendants;
 }
 
+export function getManageableCategories(categories: Category[]) {
+  return categories.filter((category) => !category.is_system);
+}
+
+export function getInvestmentCategoryIds(categories: Category[]) {
+  const investmentRoot = categories.find((category) => category.purpose === "investment");
+  if (!investmentRoot) return new Set<string>();
+
+  return new Set([investmentRoot.id, ...getCategoryDescendantIds(categories, investmentRoot.id)]);
+}
+
+export function isInvestmentCategory(categories: Category[], categoryId: string | null | undefined) {
+  return Boolean(categoryId && getInvestmentCategoryIds(categories).has(categoryId));
+}
+
 export function validateCategoryHierarchy(categories: Category[], values: { categoryId?: string; parent_id?: string | null; type: Category["type"] }) {
   if (!values.parent_id) {
     return;

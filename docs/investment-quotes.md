@@ -3,6 +3,15 @@
 Investment positions keep their units in `investment_positions`. Current market values are calculated from the latest
 row in `investment_quotes` and remain outside wallet totals.
 
+## Purchase links
+
+An expense can optionally record `investment_instrument_id` and
+`investment_units` when its category is the category marked with purpose
+`investment` or one of that category's descendants. Only an existing ETF
+position can be linked. Recurring schedules intentionally keep these fields
+empty; a generated occurrence can be edited later to record the ETF and the
+units actually purchased.
+
 ## Refresh pipeline
 
 1. The Vercel cron calls `GET /api/investments/quotes/refresh`.

@@ -44,7 +44,7 @@ import {
 
 import { cn } from "@/lib/utils";
 
-const CATEGORY_ICON_MAP: Record<string, LucideIcon> = {
+export const CATEGORY_ICON_MAP: Record<string, LucideIcon> = {
   "banknote-arrow-up": BanknoteArrowUp,
   "briefcase-business": BriefcaseBusiness,
   "building-2": Building2,
@@ -87,6 +87,8 @@ const CATEGORY_ICON_MAP: Record<string, LucideIcon> = {
   ellipsis: Ellipsis,
   folder: Folder,
 };
+
+export const CATEGORY_ICON_OPTIONS = Object.keys(CATEGORY_ICON_MAP);
 
 export function CategoryIcon({
   icon,

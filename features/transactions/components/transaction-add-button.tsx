@@ -55,7 +55,7 @@ export function TransactionAddButton({
           )
         }
       >
-        {variant === "pill" ? <Plus data-icon="inline-start" /> : null}
+        <Plus data-icon={variant === "pill" ? "inline-start" : undefined} />
         {variant === "pill" ? <span className="font-medium">{displayLabel}</span> : null}
       </DropdownMenuTrigger>
 

@@ -4,15 +4,17 @@ import { localizedErrorResponse } from "@/app/api/_lib/error-response";
 import { getUserPreferencesWithDefault } from "@/features/finance/server/repository";
 import {
   refreshExchangeRates,
+  refreshExchangeRatesForDates,
   refreshSupportedCurrencyRates,
 } from "@/features/finance/server/fx-repository";
 import { withApiPerformance } from "@/lib/performance/api";
 import { createClient } from "@/lib/supabase/server";
-import { isSupportedCurrency } from "@/lib/currencies";
+import { isSupportedCurrency, SUPPORTED_CURRENCY_CODES } from "@/lib/currencies";
 import type { CurrencyCode } from "@/types/currency";
 
 type RefreshPayload = {
   requested_date?: unknown;
+  requested_dates?: unknown;
   base_currency?: unknown;
   quote_currencies?: unknown;
 };
@@ -36,6 +38,15 @@ function normalizeRequestedDate(value: unknown) {
   }
 
   return value;
+}
+
+function normalizeRequestedDates(value: unknown, fallback?: string) {
+  if (value == null) return fallback ? [fallback] : [];
+  if (!Array.isArray(value)) throw new Error("FX rate dates must be an array.");
+
+  const requestedDates = Array.from(new Set(value.map(normalizeRequestedDate).filter(Boolean) as string[])).sort();
+  if (requestedDates.length > 366) throw new Error("Too many FX rate dates requested.");
+  return requestedDates;
 }
 
 function normalizeCurrency(value: unknown) {
@@ -92,17 +103,16 @@ async function refreshForAuthenticatedUser(request: Request, payload: RefreshPay
   const preferences = await getUserPreferencesWithDefault(user.id, walletCurrencies);
   const baseCurrency = payload.base_currency ? normalizeCurrency(payload.base_currency) : preferences.default_currency;
   const requestedDate = normalizeRequestedDate(payload.requested_date);
+  const requestedDates = normalizeRequestedDates(payload.requested_dates, requestedDate);
   const quoteCurrencies =
     normalizeQuoteCurrencies(payload.quote_currencies) ??
     Array.from(new Set(walletCurrencies.map((wallet) => wallet.currency))).filter(
       (currency) => currency !== baseCurrency,
     );
 
-  const rates = await refreshExchangeRates({
-    baseCurrency,
-    quoteCurrencies,
-    requestedDate,
-  });
+  const rates = requestedDates.length
+    ? await refreshExchangeRatesForDates({ baseCurrency, quoteCurrencies, requestedDates })
+    : await refreshExchangeRates({ baseCurrency, quoteCurrencies, requestedDate });
 
   return NextResponse.json({ rates });
 }
@@ -116,7 +126,14 @@ export async function POST(request: Request) {
 
       if (cronSecret && bearer === cronSecret) {
         const requestedDate = normalizeRequestedDate(payload.requested_date);
-        const rates = await refreshSupportedCurrencyRates(requestedDate);
+        const requestedDates = normalizeRequestedDates(payload.requested_dates, requestedDate);
+        const rates = requestedDates.length
+          ? await refreshExchangeRatesForDates({
+              baseCurrency: "EUR",
+              quoteCurrencies: SUPPORTED_CURRENCY_CODES.filter((currency) => currency !== "EUR"),
+              requestedDates,
+            })
+          : await refreshSupportedCurrencyRates(requestedDate);
 
         return NextResponse.json({ rates });
       }

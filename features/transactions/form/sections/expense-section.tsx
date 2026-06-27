@@ -1,34 +1,102 @@
 "use client";
 
-import { Controller, useFormContext } from "react-hook-form";
+import { Controller, useFormContext, useWatch } from "react-hook-form";
 import { useTranslations } from "next-intl";
 
 import { CategoryCascadePicker } from "@/components/category-cascade-picker";
 import { FieldMessage, FormPickerRow, FormRow, FormSection } from "@/components/form-primitives";
 import { MoneyInput } from "@/components/money-input";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger } from "@/components/ui/select";
+import { isInvestmentCategory } from "@/features/categories/lib/category-tree";
 
 import { useTransactionFormContext } from "../context";
 import { AccountSelect } from "../account-select";
-import { GoalSelect } from "../goal-select";
+import { getGoalAllocationsForSource, GoalSelect } from "../goal-select";
 import { SharedFields } from "./shared-fields";
 import { BatchItemsSection } from "./batch-items-section";
 import type { TransactionFormInputs } from "../types";
 
 export function ExpenseSection() {
   const t = useTranslations("transactions.form");
-  const { isBatchMode, accounts, categoryOptions, sourceCurrencySymbol, allocations, investmentPositions } = useTransactionFormContext();
+  const { form, isBatchMode, isRecurring, accounts, categories, categoryOptions, sourceAccountId, sourceCurrencySymbol, allocations, investmentPositions } = useTransactionFormContext();
   const { control, formState: { errors } } = useFormContext<TransactionFormInputs>();
+  const categoryId = useWatch({ control, name: "category_id" });
+  const lineItems = useWatch({ control, name: "line_items" });
+  const investmentInstrumentId = useWatch({ control, name: "investment_instrument_id" });
+  const investmentCategoryId = isBatchMode && lineItems.length === 1 ? lineItems[0]?.category_id : categoryId;
+  const savingAllocations = getGoalAllocationsForSource(accounts, allocations, sourceAccountId);
+  const etfPositions = investmentPositions.filter((position) => position.instrument.type === "etf");
+  const showInvestmentPurchase = !isRecurring && etfPositions.length > 0 && isInvestmentCategory(categories, investmentCategoryId);
+
+  const investmentFields = showInvestmentPurchase ? (
+    <>
+      <FormRow label={t("fields.investment")}>
+        <Controller
+          control={control}
+          name="investment_instrument_id"
+          render={({ field }) => (
+            <Select
+              value={field.value ?? "none"}
+              onValueChange={(value) => {
+                if (isBatchMode && value !== "none") {
+                  const lineItem = form.getValues("line_items.0");
+                  form.setValue("category_id", lineItem.category_id, { shouldDirty: true });
+                  form.setValue("amount", lineItem.amount ?? 0, { shouldDirty: true });
+                  form.setValue("note", lineItem.note ?? "", { shouldDirty: true });
+                }
+                field.onChange(value === "none" ? null : value);
+                if (value === "none") form.setValue("investment_units", null, { shouldDirty: true });
+              }}
+            >
+              <SelectTrigger className="h-auto min-w-44 justify-end border-0 bg-transparent px-0 py-0 shadow-none">
+                {field.value
+                  ? etfPositions.find((position) => position.instrument_id === field.value)?.instrument.ticker
+                  : t("placeholders.investment")}
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value="none">{t("placeholders.investment")}</SelectItem>
+                  {etfPositions.map((position) => (
+                    <SelectItem key={position.instrument_id} value={position.instrument_id}>
+                      {position.instrument.ticker} · {position.instrument.exchange}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          )}
+        />
+      </FormRow>
+      {investmentInstrumentId ? (
+        <FormRow label={t("fields.investmentUnits")}>
+          <Controller
+            control={control}
+            name="investment_units"
+            render={({ field }) => (
+              <Input
+                className="w-44 border-0 text-right shadow-none"
+                inputMode="decimal"
+                value={field.value ?? ""}
+                onChange={(event) => field.onChange(event.target.value ? Number(event.target.value) : null)}
+              />
+            )}
+          />
+        </FormRow>
+      ) : null}
+    </>
+  ) : null;
 
   if (isBatchMode) {
     return (
       <FormSection>
         <BatchItemsSection />
-        {allocations.length > 0 && (
+        {savingAllocations.length > 0 && (
           <FormPickerRow>
-            <GoalSelect allocations={allocations} />
+            <GoalSelect allocations={savingAllocations} />
           </FormPickerRow>
         )}
+        {investmentFields}
         <SharedFields />
       </FormSection>
     );
@@ -40,49 +108,10 @@ export function ExpenseSection() {
         <AccountSelect name="source_account_id" accounts={accounts} placeholder={t("placeholders.sourceAccount")} />
       </FormPickerRow>
 
-      {allocations.length > 0 && (
+      {savingAllocations.length > 0 && (
         <FormPickerRow>
-          <GoalSelect allocations={allocations} />
+          <GoalSelect allocations={savingAllocations} />
         </FormPickerRow>
-      )}
-
-      {investmentPositions.length > 0 && (
-        <>
-          <FormRow label={t("fields.investment")}>
-            <Controller
-              control={control}
-              name="investment_instrument_id"
-              render={({ field }) => (
-                <select
-                  className="h-10 min-w-44 bg-transparent text-right type-body-14"
-                  value={field.value ?? ""}
-                  onChange={(event) => field.onChange(event.target.value || null)}
-                >
-                  <option value="">{t("placeholders.investment")}</option>
-                  {investmentPositions.map((position) => (
-                    <option key={position.instrument_id} value={position.instrument_id}>
-                      {position.instrument.ticker} · {position.instrument.exchange}
-                    </option>
-                  ))}
-                </select>
-              )}
-            />
-          </FormRow>
-          <FormRow label={t("fields.investmentUnits")}>
-            <Controller
-              control={control}
-              name="investment_units"
-              render={({ field }) => (
-                <Input
-                  className="w-44 border-0 text-right shadow-none"
-                  inputMode="decimal"
-                  value={field.value ?? ""}
-                  onChange={(event) => field.onChange(event.target.value ? Number(event.target.value) : null)}
-                />
-              )}
-            />
-          </FormRow>
-        </>
       )}
 
       <FormPickerRow>
@@ -104,6 +133,8 @@ export function ExpenseSection() {
           <FieldMessage error={errors.category_id} />
         </div>
       </FormPickerRow>
+
+      {investmentFields}
 
       <FormRow label={t("fields.amount")}>
         <div className="flex flex-col items-end gap-1">

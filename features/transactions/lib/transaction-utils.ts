@@ -1,5 +1,6 @@
 import type { TransactionInput } from "@/types/finance-schemas";
 import type { Account, Category, InvestmentPosition, Transaction } from "@/types/finance";
+import { isInvestmentCategory } from "@/features/categories/lib/category-tree";
 import { isSettledTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
 
 export function getTransactionAnalyticsAmount(transaction: Transaction) {
@@ -101,6 +102,18 @@ export function validateTransactionRelationships(
     !options.investment_positions?.some((position) => position.instrument_id === values.investment_instrument_id)
   ) {
     throw new Error("Investment position not found.");
+  }
+  if (values.investment_instrument_id && !isInvestmentCategory(options.categories, values.category_id)) {
+    throw new Error("Investment purchases must use the investment category.");
+  }
+  if (
+    values.investment_instrument_id &&
+    !options.investment_positions?.some(
+      (position) =>
+        position.instrument_id === values.investment_instrument_id && position.instrument.type === "etf",
+    )
+  ) {
+    throw new Error("Investment purchases must use an ETF position.");
   }
 }
 

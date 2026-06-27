@@ -28,7 +28,7 @@ export const mockCategories: Category[] = [
   { id: "next-safe", user_id: userId, name: "Next & Safe", icon: "shield", type: "expense", parent_id: null, is_system: false, created_at: formatISO(subMonths(today, 7)) },
   { id: "cushion", user_id: userId, name: "Cushion", icon: "shield", type: "expense", parent_id: "next-safe", is_system: false, created_at: formatISO(subMonths(today, 7)) },
   { id: "wealth", user_id: userId, name: "Wealth", icon: "trending-up", type: "expense", parent_id: null, is_system: false, created_at: formatISO(subMonths(today, 7)) },
-  { id: "investments", user_id: userId, name: "Investments", icon: "trending-up", type: "expense", parent_id: "wealth", is_system: false, created_at: formatISO(subMonths(today, 7)) },
+  { id: "investments", user_id: userId, name: "Investments", icon: "trending-up", type: "expense", parent_id: "wealth", is_system: false, purpose: "investment", created_at: formatISO(subMonths(today, 7)) },
 ];
 
 export const mockAccounts: Account[] = [

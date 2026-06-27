@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { CategoryDeleteSheet } from "@/features/categories/components/category-delete-sheet";
 import { CategoryFormSheet } from "@/features/categories/components/category-form-sheet";
 import { CategoryWorkspace } from "@/features/categories/components/category-workspace";
-import { buildCategoryTree, flattenCategoryTree } from "@/features/categories/lib/category-tree";
+import { buildCategoryTree, flattenCategoryTree, getManageableCategories } from "@/features/categories/lib/category-tree";
 import { useFinanceActions } from "@/features/finance/hooks/use-finance-actions";
 import { createEmptyFinanceSnapshot } from "@/features/finance/lib/empty-snapshot";
 import { TransactionFormSheet, type TransactionFormSubmitPayload } from "@/features/transactions/components/transaction-form-sheet";
@@ -56,10 +56,11 @@ export function TransactionsView({
   const [editingSchedule, setEditingSchedule] = useState<TransactionSchedule | null>(null);
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
 
-  const categoryTree = useMemo(() => buildCategoryTree(snapshot.categories, snapshot.transactions), [snapshot.categories, snapshot.transactions]);
+  const manageableCategories = useMemo(() => getManageableCategories(snapshot.categories), [snapshot.categories]);
+  const categoryTree = useMemo(() => buildCategoryTree(manageableCategories, snapshot.transactions), [manageableCategories, snapshot.transactions]);
   const flatCategoryTree = useMemo(() => flattenCategoryTree(categoryTree), [categoryTree]);
   const replacementOptions = deletingCategory
-    ? snapshot.categories.filter((category) => category.type === deletingCategory.type && category.id !== deletingCategory.id)
+    ? manageableCategories.filter((category) => category.type === deletingCategory.type && category.id !== deletingCategory.id)
     : [];
   const deletingTransactionCount = deletingCategory
     ? snapshot.transactions.filter((transaction) => transaction.category_id === deletingCategory.id).length
@@ -89,7 +90,7 @@ export function TransactionsView({
         {actionError ? <div className="xl:col-span-2 rounded-[var(--radius-control)] border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{actionError}</div> : null}
         <CategoryWorkspace
           nodes={categoryTree}
-          categories={snapshot.categories}
+          categories={manageableCategories}
           transactions={snapshot.transactions}
           selectedCategoryId={selectedCategoryId}
           selectedType={selectedCategoryType}
@@ -113,6 +114,7 @@ export function TransactionsView({
               type: node.type,
               parent_id: node.id,
               is_system: false,
+              purpose: null,
               created_at: new Date().toISOString(),
             });
             setCategorySheetOpen(true);
@@ -238,7 +240,7 @@ export function TransactionsView({
         open={categorySheetOpen}
         mode={categorySheetMode}
         category={editingCategory}
-        categories={snapshot.categories}
+        categories={manageableCategories}
         onOpenChange={setCategorySheetOpen}
         onSubmit={(values) => {
           financeActions.saveCategory(
@@ -289,6 +291,7 @@ export function TransactionsView({
         categories={flatCategoryTree}
         transactions={snapshot.transactions}
         allocations={snapshot.allocations}
+        investmentPositions={snapshot.investment_positions}
         onOpenChange={(open) => {
           setTransactionSheetOpen(open);
 

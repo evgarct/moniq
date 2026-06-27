@@ -405,6 +405,7 @@ export function saveCategory(
     type: values.type,
     parent_id: values.parent_id ?? null,
     is_system: false,
+    purpose: null,
     created_at: new Date().toISOString(),
   };
   return { ...snapshot, categories: [...snapshot.categories, category] };

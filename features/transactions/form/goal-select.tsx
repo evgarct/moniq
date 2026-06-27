@@ -7,12 +7,22 @@ import { useTranslations } from "next-intl";
 import { InlineIcon } from "@/components/ui/inline-icon";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import type { WalletAllocation } from "@/types/finance";
+import type { Account, WalletAllocation } from "@/types/finance";
 
 import { toSelectValue } from "./helpers";
 import type { TransactionFormInputs } from "./types";
 
 const NONE = "__none__";
+
+export function getGoalAllocationsForSource(
+  accounts: Account[],
+  allocations: WalletAllocation[],
+  sourceAccountId: string | null | undefined,
+) {
+  const source = accounts.find((account) => account.id === sourceAccountId);
+  if (source?.type !== "saving") return [];
+  return allocations.filter((allocation) => allocation.wallet_id === source.id);
+}
 
 export function GoalSelect({ allocations }: { allocations: WalletAllocation[] }) {
   const t = useTranslations("transactions.form");

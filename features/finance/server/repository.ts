@@ -3,6 +3,10 @@ import "server-only";
 import { addDays, differenceInCalendarDays, format, parseISO, startOfToday, subMonths } from "date-fns";
 
 import { validateAccountValues } from "@/features/accounts/lib/account-state";
+import {
+  assertCategoryDeleteAllowed,
+  assertCategoryUpdateAllowed,
+} from "@/features/categories/lib/category-mutations";
 import { validateCategoryHierarchy } from "@/features/categories/lib/category-tree";
 import { getFinanceSnapshotScheduleHorizon } from "@/features/finance/server/snapshot-horizon";
 import { resolveUserPreferences } from "@/features/finance/lib/preferences";
@@ -45,6 +49,7 @@ type CategoryRow = {
   type: Category["type"];
   parent_id: string | null;
   is_system: boolean;
+  purpose: Category["purpose"];
   created_at: string;
 };
 
@@ -139,6 +144,7 @@ function mapCategory(row: CategoryRow): Category {
     type: row.type,
     parent_id: row.parent_id,
     is_system: row.is_system,
+    purpose: row.purpose ?? null,
     created_at: row.created_at,
   };
 }
@@ -466,7 +472,7 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
       .order("created_at", { ascending: false }),
     supabase
       .from("finance_categories")
-      .select("id, user_id, name, description, icon, type, parent_id, is_system, created_at")
+      .select("id, user_id, name, description, icon, type, parent_id, is_system, purpose, created_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: true }),
     supabase
@@ -985,6 +991,8 @@ export async function updateCategory(categoryId: string, values: CategoryInput) 
     throw new Error("Category not found.");
   }
 
+  assertCategoryUpdateAllowed(existing, values.type);
+
   validateCategoryHierarchy(snapshot.categories, {
     categoryId,
     parent_id: values.parent_id ?? null,
@@ -1016,6 +1024,8 @@ export async function deleteCategory(categoryId: string, replacementCategoryId: 
   if (!existing) {
     throw new Error("Category not found.");
   }
+
+  assertCategoryDeleteAllowed(existing);
 
   const transactionsUsingCategory = snapshot.transactions.filter((transaction) => transaction.category_id === categoryId);
 

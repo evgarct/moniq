@@ -13,6 +13,8 @@ const debtPaymentTransaction = snapshot.transactions.find((transaction) => trans
 const rubleAccount = snapshot.accounts.find((account) => account.currency === "RUB") ?? snapshot.accounts[0];
 const cashAccount = snapshot.accounts.find((account) => account.type === "cash") ?? snapshot.accounts[0];
 const creditCardAccount = snapshot.accounts.find((account) => account.type === "credit_card") ?? snapshot.accounts[0];
+const savingsAccount = snapshot.accounts.find((account) => account.type === "saving") ?? snapshot.accounts[0];
+const investmentCategory = snapshot.categories.find((category) => category.purpose === "investment") ?? snapshot.categories[0];
 const rubleExpenseTransaction: Transaction = {
   ...(defaultTransaction as Transaction),
   id: "tx-story-ruble-expense",
@@ -316,6 +318,63 @@ export const MobileBatchExpense: Story = {
   ),
 };
 
+const recurringInvestmentOccurrence: Transaction = {
+  ...recurringOccurrence,
+  id: "tx-story-recurring-investment",
+  title: "Monthly ETF contribution",
+  category_id: investmentCategory.id,
+  category: investmentCategory,
+};
+
+export const SavingsGoalExpense: Story = {
+  render: () => (
+    <StorySurface>
+      <TransactionFormSheet
+        open
+        mode="add"
+        initialKind="expense"
+        defaultSourceAccountId={savingsAccount.id}
+        accounts={snapshot.accounts}
+        categories={snapshot.categories}
+        transactions={snapshot.transactions}
+        allocations={[{
+          id: "story-goal",
+          user_id: savingsAccount.user_id,
+          wallet_id: savingsAccount.id,
+          name: "Emergency fund",
+          kind: "goal_targeted",
+          amount: 100,
+          target_amount: 1000,
+          created_at: "2026-01-01T00:00:00Z",
+          updated_at: "2026-01-01T00:00:00Z",
+        }]}
+        onOpenChange={() => {}}
+        onSubmit={async () => {}}
+      />
+    </StorySurface>
+  ),
+};
+
+export const InvestmentPurchase: Story = {
+  render: () => (
+    <StorySurface>
+      <TransactionFormSheet
+        open
+        mode="add"
+        initialKind="expense"
+        initialCategoryId={investmentCategory.id}
+        initialInvestmentInstrumentId={snapshot.investment_positions[0]?.instrument_id}
+        accounts={snapshot.accounts}
+        categories={snapshot.categories}
+        transactions={snapshot.transactions}
+        investmentPositions={snapshot.investment_positions}
+        onOpenChange={() => {}}
+        onSubmit={async () => {}}
+      />
+    </StorySurface>
+  ),
+};
+
 export const IncomeEdit: Story = {
   render: () => (
     <StorySurface>
@@ -418,6 +477,24 @@ export const EditRecurringOccurrence: Story = {
 
         categories={snapshot.categories}
         transactions={snapshot.transactions}
+        onOpenChange={() => {}}
+        onSubmit={async () => {}}
+      />
+    </StorySurface>
+  ),
+};
+
+export const EditRecurringInvestmentOccurrence: Story = {
+  render: () => (
+    <StorySurface>
+      <TransactionFormSheet
+        open
+        mode="edit-transaction"
+        transaction={recurringInvestmentOccurrence}
+        accounts={snapshot.accounts}
+        categories={snapshot.categories}
+        transactions={snapshot.transactions}
+        investmentPositions={snapshot.investment_positions}
         onOpenChange={() => {}}
         onSubmit={async () => {}}
       />
