@@ -20,3 +20,21 @@ grant select on table
   public.investment_quotes,
   public.fx_rates
 to service_role;
+
+-- Authenticated application access is still constrained by each table's RLS
+-- policies; these grants make the effective privileges explicit and rebuildable.
+grant select, insert, update, delete on table
+  public.wallets,
+  public.wallet_allocations,
+  public.finance_categories,
+  public.finance_transactions,
+  public.finance_transaction_schedules,
+  public.user_preferences
+to authenticated;
+
+grant select on table
+  public.investment_instruments,
+  public.investment_quotes,
+  public.fx_rates,
+  public.user_billing_entitlements
+to authenticated;

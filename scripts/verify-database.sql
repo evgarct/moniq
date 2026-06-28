@@ -17,6 +17,12 @@ begin
     if not (select relrowsecurity from pg_class where oid = format('public.%I', v_table)::regclass) then
       raise exception 'RLS is disabled for %', v_table;
     end if;
+    if not has_table_privilege('authenticated', format('public.%I', v_table), 'select') then
+      raise exception 'authenticated cannot read %', v_table;
+    end if;
+    if has_table_privilege('anon', format('public.%I', v_table), 'select') then
+      raise exception 'anon can read %', v_table;
+    end if;
   end loop;
 end;
 $$;
