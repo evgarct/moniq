@@ -18,7 +18,11 @@ export default defineConfig({
     name: "storybook",
     browser: {
       enabled: true,
-      provider: playwright({}),
+      provider: playwright({
+        launchOptions: process.env.CI
+          ? { executablePath: "/usr/bin/google-chrome" }
+          : undefined,
+      }),
       headless: true,
       instances: [{ browser: "chromium" }],
     },
