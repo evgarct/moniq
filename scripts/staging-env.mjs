@@ -25,6 +25,8 @@ export function assertStagingTarget(url, stagingRef, productionRef) {
     throw new Error("Refusing to run: staging and production project refs must be different.");
   }
   const host = new URL(url).hostname;
+  const isLocal = stagingRef.startsWith("local-") && ["127.0.0.1", "localhost"].includes(host);
+  if (isLocal) return;
   if (!host.includes(stagingRef) || host.includes(productionRef)) {
     throw new Error(`Refusing to run against non-staging host: ${host}`);
   }

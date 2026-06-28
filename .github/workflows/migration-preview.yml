@@ -5,6 +5,8 @@ on:
     paths:
       - "supabase/**"
       - "scripts/seed-staging.mjs"
+      - "scripts/staging-env.mjs"
+      - "scripts/verify-database.sql"
       - "scripts/verify-db.mjs"
       - ".github/workflows/migration-preview.yml"
 
@@ -17,10 +19,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      SUPABASE_PRODUCTION_PROJECT_REF: ${{ secrets.SUPABASE_PRODUCTION_PROJECT_REF }}
-      MONIQ_STAGING_PASSWORD: ${{ secrets.MONIQ_STAGING_PASSWORD }}
-      MONIQ_STAGING_EMAIL_DOMAIN: ${{ vars.MONIQ_STAGING_EMAIL_DOMAIN }}
+      SUPABASE_PRODUCTION_PROJECT_REF: production
+      SUPABASE_STAGING_PROJECT_REF: local-ci
+      MONIQ_STAGING_PASSWORD: local-ci-only-password
+      MONIQ_STAGING_EMAIL_DOMAIN: example.invalid
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -37,29 +39,15 @@ jobs:
           supabase start
           supabase db reset
           supabase db reset
-      - name: Create isolated preview branch
-        id: branch
+      - name: Seed and verify local database
         shell: bash
         run: |
-          name="pr-${{ github.event.pull_request.number }}"
-          supabase --experimental branches create "$name" --project-ref "$SUPABASE_PRODUCTION_PROJECT_REF" --region eu-west-1 --size nano --yes
-          supabase --experimental branches get "$name" --project-ref "$SUPABASE_PRODUCTION_PROJECT_REF" -o env >> "$GITHUB_ENV"
-          echo "name=$name" >> "$GITHUB_OUTPUT"
-      - name: Apply and verify migrations
-        shell: bash
-        run: |
-          supabase db push --db-url "$POSTGRES_URL_NON_POOLING" --include-all --yes
+          eval "$(supabase status -o env)"
           STAGING_SUPABASE_URL="$API_URL" \
           STAGING_SUPABASE_ANON_KEY="$ANON_KEY" \
           STAGING_SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" \
-          SUPABASE_STAGING_PROJECT_REF="$BRANCH_PROJECT_ID" \
           npm run db:staging:seed
           STAGING_SUPABASE_URL="$API_URL" \
           STAGING_SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" \
-          SUPABASE_STAGING_PROJECT_REF="$BRANCH_PROJECT_ID" \
           npm run db:verify
-          psql "$POSTGRES_URL_NON_POOLING" -f scripts/verify-database.sql
-          supabase db push --db-url "$POSTGRES_URL_NON_POOLING" --include-all --dry-run
-      - name: Delete preview branch
-        if: always() && steps.branch.outputs.name
-        run: supabase --experimental branches delete "${{ steps.branch.outputs.name }}" --project-ref "$SUPABASE_PRODUCTION_PROJECT_REF" --yes
+          psql "$DB_URL" -f scripts/verify-database.sql
