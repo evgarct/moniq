@@ -35,4 +35,6 @@ Do not enable Supabase's automatic deploy-to-production integration. Production 
 
 Configure each PowerSync instance with `supabase/powersync-sync-streams.yaml`. The edition 3 streams auto-subscribe user-owned rows using only `auth.user_id()`; Supabase RLS remains authoritative for writes. Market instruments, quotes, and FX rates are read-only shared reference data.
 
+The `powersync` Postgres publication is migration-managed and contains only the tables referenced by those streams. The PowerSync source connection must use a dedicated `powersync_role` with `REPLICATION`, `BYPASSRLS`, and read-only access to the published tables; its generated password belongs only in PowerSync Cloud secrets, never in Git or Vercel client variables.
+
 The client keeps a user-scoped SQLite file, a cached finance snapshot, and a 30-day offline authorization lease. API responses are never placed in service-worker Cache Storage. Logout calls `disconnectAndClear()` before invalidating the server session.

@@ -14,3 +14,9 @@ grant select, insert, update, delete on table
   public.user_preferences,
   public.user_billing_entitlements
 to service_role;
+
+grant select on table
+  public.investment_instruments,
+  public.investment_quotes,
+  public.fx_rates
+to service_role;

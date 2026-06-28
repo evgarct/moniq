@@ -22,6 +22,40 @@ end;
 $$;
 
 do $$
+declare
+  v_table text;
+begin
+  foreach v_table in array array['investment_instruments', 'investment_quotes', 'fx_rates'] loop
+    if not has_table_privilege('service_role', format('public.%I', v_table), 'select') then
+      raise exception 'service_role cannot read %', v_table;
+    end if;
+  end loop;
+end;
+$$;
+
+do $$
+declare
+  v_table text;
+begin
+  foreach v_table in array array[
+    'wallets', 'wallet_allocations', 'finance_categories', 'finance_transactions',
+    'finance_transaction_schedules', 'user_preferences', 'investment_positions',
+    'investment_instruments', 'investment_quotes', 'fx_rates'
+  ] loop
+    if not exists (
+      select 1
+      from pg_publication_rel relation
+      join pg_publication publication on publication.oid = relation.prpubid
+      where publication.pubname = 'powersync'
+        and relation.prrelid = format('public.%I', v_table)::regclass
+    ) then
+      raise exception 'powersync publication is missing %', v_table;
+    end if;
+  end loop;
+end;
+$$;
+
+do $$
 begin
   if has_function_privilege('public', 'public.bump_sync_version()', 'execute')
     or has_function_privilege('anon', 'public.bump_sync_version()', 'execute')
