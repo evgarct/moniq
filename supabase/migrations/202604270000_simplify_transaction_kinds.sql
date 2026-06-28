@@ -106,7 +106,8 @@ alter table public.finance_transaction_schedules
   drop column if exists allocation_id;
 
 -- ── 7. Drop wallet_allocations table ─────────────────────────────────────────
-drop table if exists public.wallet_allocations cascade;
+-- Preserve wallet_allocations: the next migration restores allocation_id as a
+-- goal tag and references this table, so dropping it breaks clean rebuilds.
 
 -- ── 8. Tighten MCP batch items kind constraint ────────────────────────────────
 alter table public.mcp_batch_items

@@ -25,5 +25,6 @@ jobs:
       - run: npm exec -- tsc --noEmit
       - run: npm run test:unit
       - run: npm run build-storybook
+      - run: npx playwright install --with-deps chromium
       - run: npm run test-storybook
       - run: npm run build
