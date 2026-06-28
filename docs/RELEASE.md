@@ -33,7 +33,7 @@ Do not enable Supabase's automatic deploy-to-production integration. Production 
 
 `NEXT_PUBLIC_LOCAL_FIRST_MODE` supports `off`, `pilot`, and `on`. Staging uses `on`; production starts with `pilot` and retains the online snapshot path as rollback for one release. A managed PowerSync instance and `NEXT_PUBLIC_POWERSYNC_URL` are configured independently for staging and production.
 
-Configure each PowerSync instance with `supabase/powersync-sync-streams.yaml`. The edition 3 streams auto-subscribe user-owned rows using only `auth.user_id()`; Supabase RLS remains authoritative for writes. Market instruments, quotes, and FX rates are read-only shared reference data.
+Configure each PowerSync instance with `powersync/sync-config.yaml`. The edition 3 streams auto-subscribe user-owned rows using only `auth.user_id()`; Supabase RLS remains authoritative for writes. Market instruments, quotes, and FX rates are read-only shared reference data.
 
 The `powersync` Postgres publication is migration-managed and contains only the tables referenced by those streams. The PowerSync source connection must use a dedicated `powersync_role` with `REPLICATION`, `BYPASSRLS`, and read-only access to the published tables; its generated password belongs only in PowerSync Cloud secrets, never in Git or Vercel client variables.
 
