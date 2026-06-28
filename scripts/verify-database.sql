@@ -36,6 +36,12 @@ begin
     or has_table_privilege('authenticated', 'public.finance_sync_mutations', 'insert') then
     raise exception 'finance_sync_mutations grants are too broad';
   end if;
+  if not has_table_privilege('service_role', 'public.investment_positions', 'select')
+    or not has_table_privilege('service_role', 'public.investment_positions', 'insert')
+    or not has_table_privilege('service_role', 'public.investment_positions', 'update')
+    or not has_table_privilege('service_role', 'public.investment_positions', 'delete') then
+    raise exception 'service_role cannot manage investment_positions';
+  end if;
 end;
 $$;
 
