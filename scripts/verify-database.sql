@@ -36,12 +36,26 @@ begin
     or has_table_privilege('authenticated', 'public.finance_sync_mutations', 'insert') then
     raise exception 'finance_sync_mutations grants are too broad';
   end if;
-  if not has_table_privilege('service_role', 'public.investment_positions', 'select')
-    or not has_table_privilege('service_role', 'public.investment_positions', 'insert')
-    or not has_table_privilege('service_role', 'public.investment_positions', 'update')
-    or not has_table_privilege('service_role', 'public.investment_positions', 'delete') then
-    raise exception 'service_role cannot manage investment_positions';
-  end if;
+end;
+$$;
+
+do $$
+declare
+  v_table text;
+begin
+  foreach v_table in array array[
+    'investment_positions', 'transaction_import_column_presets',
+    'transaction_imports', 'transaction_import_rules', 'transaction_import_batches',
+    'finance_transactions', 'finance_transaction_schedules', 'finance_categories',
+    'wallet_allocations', 'wallets', 'user_preferences', 'user_billing_entitlements'
+  ] loop
+    if not has_table_privilege('service_role', format('public.%I', v_table), 'select')
+      or not has_table_privilege('service_role', format('public.%I', v_table), 'insert')
+      or not has_table_privilege('service_role', format('public.%I', v_table), 'update')
+      or not has_table_privilege('service_role', format('public.%I', v_table), 'delete') then
+      raise exception 'service_role cannot manage %', v_table;
+    end if;
+  end loop;
 end;
 $$;
 
