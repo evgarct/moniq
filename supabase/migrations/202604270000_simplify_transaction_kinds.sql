@@ -105,7 +105,7 @@ alter table public.finance_transactions
 alter table public.finance_transaction_schedules
   drop column if exists allocation_id;
 
--- ── 7. Drop wallet_allocations table ─────────────────────────────────────────
+-- ── 7. Preserve wallet_allocations table ─────────────────────────────────────
 -- Preserve wallet_allocations: the next migration restores allocation_id as a
 -- goal tag and references this table, so dropping it breaks clean rebuilds.
 
