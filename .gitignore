@@ -13,5 +13,9 @@ mcp-server-error.log
 .DS_Store
 .vercel
 messages/*.d.json.ts
+public/sw.js
+public/sw.js.map
+public/swe-worker-*.js
+.env.staging.local
 
 .vercel

@@ -38,6 +38,7 @@ type WalletRow = {
   credit_limit: number | string | null;
   currency: CurrencyCode;
   created_at: string;
+  sync_version: number | string;
 };
 
 type CategoryRow = {
@@ -51,6 +52,7 @@ type CategoryRow = {
   is_system: boolean;
   purpose: Category["purpose"];
   created_at: string;
+  sync_version: number | string;
 };
 
 type TransactionRow = {
@@ -77,6 +79,7 @@ type TransactionRow = {
   allocation_id: string | null;
   investment_instrument_id: string | null;
   investment_units: number | string | null;
+  sync_version: number | string;
 };
 
 type InvestmentInstrumentRow = InvestmentInstrument;
@@ -113,10 +116,12 @@ type TransactionScheduleRow = {
   allocation_id: string | null;
   created_at: string;
   updated_at: string;
+  sync_version: number | string;
 };
 
 type UserPreferenceRow = {
   default_currency: CurrencyCode;
+  sync_version: number | string;
 };
 
 function mapWallet(row: WalletRow): Account {
@@ -131,6 +136,7 @@ function mapWallet(row: WalletRow): Account {
     credit_limit: row.credit_limit === null ? null : Number(row.credit_limit),
     currency: row.currency,
     created_at: row.created_at,
+    sync_version: Number(row.sync_version ?? 1),
   };
 }
 
@@ -146,6 +152,7 @@ function mapCategory(row: CategoryRow): Category {
     is_system: row.is_system,
     purpose: row.purpose ?? null,
     created_at: row.created_at,
+    sync_version: Number(row.sync_version ?? 1),
   };
 }
 
@@ -186,6 +193,7 @@ function mapSchedule(
     validation_error: options.validationError,
     created_at: row.created_at,
     updated_at: row.updated_at,
+    sync_version: Number(row.sync_version ?? 1),
   };
 }
 
@@ -252,7 +260,7 @@ export async function getUserPreferencesWithDefault(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("user_preferences")
-    .select("default_currency")
+    .select("default_currency, sync_version")
     .eq("user_id", userId)
     .maybeSingle();
 
@@ -260,7 +268,11 @@ export async function getUserPreferencesWithDefault(
     throw new Error(normalizeFinanceRepositoryError(error));
   }
 
-  return resolveUserPreferences((data as UserPreferenceRow | null)?.default_currency, accounts);
+  const row = data as UserPreferenceRow | null;
+  return {
+    ...resolveUserPreferences(row?.default_currency, accounts),
+    sync_version: row ? Number(row.sync_version ?? 1) : undefined,
+  };
 }
 
 export async function updateUserPreferences(values: { default_currency: CurrencyCode }) {
@@ -451,7 +463,9 @@ async function pruneScheduleOccurrencesBeyondHorizon(
   }
 }
 
-export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
+export async function getFinanceSnapshot(
+  { reconcileSchedules = false }: { reconcileSchedules?: boolean } = {},
+): Promise<FinanceSnapshot> {
   const snapshotStartedAt = performance.now();
   let phaseStartedAt = snapshotStartedAt;
 
@@ -467,24 +481,24 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
   ] = await Promise.all([
     supabase
       .from("wallets")
-      .select("id, user_id, name, type, cash_kind, debt_kind, balance, credit_limit, currency, created_at")
+      .select("id, user_id, name, type, cash_kind, debt_kind, balance, credit_limit, currency, created_at, sync_version")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false }),
     supabase
       .from("finance_categories")
-      .select("id, user_id, name, description, icon, type, parent_id, is_system, purpose, created_at")
+      .select("id, user_id, name, description, icon, type, parent_id, is_system, purpose, created_at, sync_version")
       .eq("user_id", user.id)
       .order("created_at", { ascending: true }),
     supabase
       .from("finance_transaction_schedules")
       .select(
-        "id, user_id, title, note, start_date, frequency, interval_weeks, until_date, state, kind, amount, destination_amount, fx_rate, principal_amount, interest_amount, extra_principal_amount, category_id, source_account_id, destination_account_id, allocation_id, created_at, updated_at",
+        "id, user_id, title, note, start_date, frequency, interval_weeks, until_date, state, kind, amount, destination_amount, fx_rate, principal_amount, interest_amount, extra_principal_amount, category_id, source_account_id, destination_account_id, allocation_id, created_at, updated_at, sync_version",
       )
       .eq("user_id", user.id)
       .order("created_at", { ascending: false }),
     supabase
       .from("wallet_allocations")
-      .select("id, user_id, wallet_id, name, kind, amount, target_amount, created_at, updated_at")
+      .select("id, user_id, wallet_id, name, kind, amount, target_amount, created_at, updated_at, sync_version")
       .eq("user_id", user.id)
       .order("created_at", { ascending: true }),
   ]);
@@ -526,6 +540,7 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
     target_amount: a.target_amount != null ? Number(a.target_amount) : null,
     created_at: a.created_at as string,
     updated_at: a.updated_at as string,
+    sync_version: Number(a.sync_version ?? 1),
   }));
 
   const accountsById = new Map(mappedAccounts.map((account) => [account.id, account]));
@@ -559,14 +574,15 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
 
   let existingScheduleTransactions: TransactionRow[] = [];
 
-  await pruneScheduleOccurrencesBeyondHorizon(supabase, user.id, scheduleIds, horizonEnd);
+  if (reconcileSchedules) {
+    await pruneScheduleOccurrencesBeyondHorizon(supabase, user.id, scheduleIds, horizonEnd);
 
-  if (activeScheduleIds.length) {
+    if (activeScheduleIds.length) {
     phaseStartedAt = performance.now();
     const { data, error } = await supabase
       .from("finance_transactions")
       .select(
-        "id, user_id, title, note, occurred_at, created_at, status, kind, amount, destination_amount, fx_rate, principal_amount, interest_amount, extra_principal_amount, category_id, source_account_id, destination_account_id, schedule_id, schedule_occurrence_date, is_schedule_override, allocation_id, investment_instrument_id, investment_units",
+        "id, user_id, title, note, occurred_at, created_at, status, kind, amount, destination_amount, fx_rate, principal_amount, interest_amount, extra_principal_amount, category_id, source_account_id, destination_account_id, schedule_id, schedule_occurrence_date, is_schedule_override, allocation_id, investment_instrument_id, investment_units, sync_version",
       )
       .eq("user_id", user.id)
       .in("schedule_id", activeScheduleIds)
@@ -598,6 +614,7 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
         ),
     );
     recordSnapshotPhase(user.id, "reconcile", phaseStartedAt, { active_schedules: activeScheduleIds.length });
+    }
   }
 
   const transactionCutoff = format(subMonths(startOfToday(), 12), "yyyy-MM-dd");
@@ -606,7 +623,7 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
   const { data: transactions, error: transactionError } = await supabase
     .from("finance_transactions")
     .select(
-      "id, user_id, title, note, occurred_at, created_at, status, kind, amount, destination_amount, fx_rate, principal_amount, interest_amount, extra_principal_amount, category_id, source_account_id, destination_account_id, schedule_id, schedule_occurrence_date, is_schedule_override, allocation_id, investment_instrument_id, investment_units",
+      "id, user_id, title, note, occurred_at, created_at, status, kind, amount, destination_amount, fx_rate, principal_amount, interest_amount, extra_principal_amount, category_id, source_account_id, destination_account_id, schedule_id, schedule_occurrence_date, is_schedule_override, allocation_id, investment_instrument_id, investment_units, sync_version",
     )
     .eq("user_id", user.id)
     .or(`occurred_at.gte.${transactionCutoff},status.eq.planned,investment_instrument_id.not.is.null`)
@@ -701,6 +718,7 @@ export async function getFinanceSnapshot(): Promise<FinanceSnapshot> {
       investment_instrument: row.investment_instrument_id
         ? investmentInstrumentsById.get(row.investment_instrument_id) ?? null
         : null,
+      sync_version: Number(row.sync_version ?? 1),
       schedule: row.schedule_id ? schedulesById.get(row.schedule_id) ?? null : null,
     };
   });
@@ -777,24 +795,35 @@ function recordSnapshotPhase(
   });
 }
 
-export async function createWallet(values: WalletInput) {
+export async function createWallet(values: WalletInput, preferredId?: string, mutationId?: string) {
   const { supabase, user } = await getAuthenticatedSupabase();
   validateAccountValues(values);
-  const { error } = await supabase.rpc("create_wallet", {
-    _name: values.name,
-    _type: values.type,
-    _balance: 0,
-    _credit_limit: values.type === "credit_card" ? values.credit_limit ?? null : null,
-    _currency: values.currency,
-    _debt_kind: values.type === "debt" ? values.debt_kind ?? "personal" : null,
-  });
+  const { error } = preferredId
+    ? await supabase.rpc("create_wallet_with_id", {
+        _id: preferredId,
+        _name: values.name,
+        _type: values.type,
+        _credit_limit: values.type === "credit_card" ? values.credit_limit ?? null : null,
+        _currency: values.currency,
+        _debt_kind: values.type === "debt" ? values.debt_kind ?? "personal" : null,
+      })
+    : await supabase.rpc("create_wallet", {
+        _name: values.name,
+        _type: values.type,
+        _balance: 0,
+        _credit_limit: values.type === "credit_card" ? values.credit_limit ?? null : null,
+        _currency: values.currency,
+        _debt_kind: values.type === "debt" ? values.debt_kind ?? "personal" : null,
+      });
 
   if (error) {
     throw new Error(normalizeFinanceRepositoryError(error));
   }
 
   if (Math.abs(values.balance) >= 0.001) {
-    const { data: newWallet } = await supabase
+    const { data: newWallet } = preferredId
+      ? await supabase.from("wallets").select("id").eq("id", preferredId).eq("user_id", user.id).single()
+      : await supabase
       .from("wallets")
       .select("id")
       .eq("user_id", user.id)
@@ -803,7 +832,7 @@ export async function createWallet(values: WalletInput) {
       .single();
 
     if (newWallet?.id) {
-      await insertBalanceTransaction(supabase, user.id, newWallet.id, values.balance, "Opening balance", null);
+      await insertBalanceTransaction(supabase, user.id, newWallet.id, values.balance, "Opening balance", null, mutationId);
     }
   }
 }
@@ -837,15 +866,24 @@ export async function deleteWallet(walletId: string) {
   }
 }
 
-export async function createWalletAllocation(walletId: string, values: WalletAllocationInput): Promise<FinanceSnapshot> {
+export async function createWalletAllocation(walletId: string, values: WalletAllocationInput, preferredId?: string): Promise<FinanceSnapshot> {
   const { supabase } = await getAuthenticatedSupabase();
-  const { error } = await supabase.rpc("create_wallet_allocation", {
-    _wallet_id: walletId,
-    _name: values.name,
-    _kind: values.kind,
-    _amount: values.amount,
-    _target_amount: values.target_amount ?? null,
-  });
+  const { error } = preferredId
+    ? await supabase.rpc("create_wallet_allocation_with_id", {
+        _id: preferredId,
+        _wallet_id: walletId,
+        _name: values.name,
+        _kind: values.kind,
+        _amount: values.amount,
+        _target_amount: values.target_amount ?? null,
+      })
+    : await supabase.rpc("create_wallet_allocation", {
+        _wallet_id: walletId,
+        _name: values.name,
+        _kind: values.kind,
+        _amount: values.amount,
+        _target_amount: values.target_amount ?? null,
+      });
 
   if (error) {
     throw new Error(normalizeFinanceRepositoryError(error));
@@ -919,10 +957,12 @@ async function insertBalanceTransaction(
   diff: number,
   title: string,
   note: string | null,
+  preferredId?: string,
 ) {
   const kind = diff > 0 ? "income" : "expense";
   const categoryId = await getOrCreateAdjustmentCategory(userId, kind);
   const { error } = await supabase.from("finance_transactions").insert({
+    ...(preferredId ? { id: preferredId } : {}),
     user_id: userId,
     title,
     note,
@@ -959,7 +999,7 @@ export async function adjustWalletBalance(walletId: string, newBalance: number, 
   await insertBalanceTransaction(supabase, user.id, walletId, diff, "Balance adjustment", note);
 }
 
-export async function createCategory(values: CategoryInput) {
+export async function createCategory(values: CategoryInput, preferredId?: string) {
   const { supabase, user } = await getAuthenticatedSupabase();
   const snapshot = await getFinanceSnapshot();
 
@@ -969,6 +1009,7 @@ export async function createCategory(values: CategoryInput) {
   });
 
   const { error } = await supabase.from("finance_categories").insert({
+    ...(preferredId ? { id: preferredId } : {}),
     user_id: user.id,
     name: values.name.trim(),
     description: values.description?.trim() || null,
@@ -1080,7 +1121,7 @@ export async function deleteCategory(categoryId: string, replacementCategoryId: 
   }
 }
 
-export async function createTransactionEntry(values: TransactionEntryInput) {
+export async function createTransactionEntry(values: TransactionEntryInput, preferredId?: string) {
   if (values.recurrence) {
     const scheduleValues: TransactionScheduleInput = {
       title: values.title,
@@ -1102,11 +1143,11 @@ export async function createTransactionEntry(values: TransactionEntryInput) {
       recurrence: values.recurrence,
     };
 
-    await createTransactionSchedule(scheduleValues);
+    await createTransactionSchedule(scheduleValues, preferredId);
     return;
   }
 
-  await createTransaction(values);
+  await createTransaction(values, preferredId);
 }
 
 export async function createTransactionEntryBatch(entries: TransactionEntryInput[]) {
@@ -1157,13 +1198,14 @@ export async function createTransactionEntryBatch(entries: TransactionEntryInput
   }
 }
 
-export async function createTransaction(values: TransactionInput) {
+export async function createTransaction(values: TransactionInput, preferredId?: string) {
   const { supabase, user } = await getAuthenticatedSupabase();
   const snapshot = await getFinanceSnapshot();
 
   validateTransactionRelationships(values, snapshot);
 
   const { error } = await supabase.from("finance_transactions").insert({
+    ...(preferredId ? { id: preferredId } : {}),
     user_id: user.id,
     title: values.title.trim(),
     note: values.note,
@@ -1189,7 +1231,7 @@ export async function createTransaction(values: TransactionInput) {
   }
 }
 
-export async function createTransactionSchedule(values: TransactionScheduleInput) {
+export async function createTransactionSchedule(values: TransactionScheduleInput, preferredId?: string) {
   const { supabase, user } = await getAuthenticatedSupabase();
   const snapshot = await getFinanceSnapshot();
   const transactionTemplate = buildTransactionInputFromSchedule({
@@ -1212,6 +1254,7 @@ export async function createTransactionSchedule(values: TransactionScheduleInput
   validateTransactionRelationships(transactionTemplate, snapshot);
 
   const { error } = await supabase.from("finance_transaction_schedules").insert({
+    ...(preferredId ? { id: preferredId } : {}),
     user_id: user.id,
     title: values.title.trim(),
     note: values.note,
@@ -1236,6 +1279,8 @@ export async function createTransactionSchedule(values: TransactionScheduleInput
   if (error) {
     throw new Error(normalizeFinanceRepositoryError(error));
   }
+
+  await getFinanceSnapshot({ reconcileSchedules: true });
 }
 
 export async function updateTransaction(transactionId: string, values: TransactionInput) {
@@ -1341,6 +1386,8 @@ export async function updateTransactionSchedule(scheduleId: string, values: Tran
   if (error) {
     throw new Error(normalizeFinanceRepositoryError(error));
   }
+
+  await getFinanceSnapshot({ reconcileSchedules: true });
 }
 
 export async function setTransactionScheduleState(scheduleId: string, state: TransactionSchedule["state"]) {
@@ -1354,6 +1401,8 @@ export async function setTransactionScheduleState(scheduleId: string, state: Tra
   if (error) {
     throw new Error(normalizeFinanceRepositoryError(error));
   }
+
+  await getFinanceSnapshot({ reconcileSchedules: true });
 }
 
 export async function markTransactionPaid(transactionId: string) {
@@ -1469,6 +1518,8 @@ export async function rescheduleScheduleFromDate(
   if (deleteOverrideError) {
     throw new Error(normalizeFinanceRepositoryError(deleteOverrideError));
   }
+
+  await getFinanceSnapshot({ reconcileSchedules: true });
 }
 
 export async function deleteTransaction(transactionId: string) {

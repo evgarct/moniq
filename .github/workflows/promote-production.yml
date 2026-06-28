@@ -1,0 +1,43 @@
+name: Promote Database to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: Exact commit already verified on staging
+        required: true
+        type: string
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      PRODUCTION_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commit_sha }}
+          fetch-depth: 0
+      - name: Verify immutable release input
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${{ inputs.commit_sha }}"
+      - name: Verify successful staging and quality gates for SHA
+        shell: bash
+        run: |
+          for workflow in migration-preview.yml quality.yml; do
+            count="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/$workflow/runs?head_sha=${{ inputs.commit_sha }}&status=success" --jq '.total_count')"
+            test "$count" -gt 0 || { echo "No successful $workflow run for the requested SHA" >&2; exit 1; }
+          done
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Review pending production migrations
+        run: supabase db push --db-url "$PRODUCTION_DATABASE_URL" --include-all --dry-run
+      - name: Apply approved production migrations
+        run: supabase db push --db-url "$PRODUCTION_DATABASE_URL" --include-all --yes
+      - name: Verify migration history
+        run: supabase migration list --db-url "$PRODUCTION_DATABASE_URL"

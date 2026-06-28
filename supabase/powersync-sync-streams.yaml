@@ -1,0 +1,23 @@
+config:
+  edition: 3
+
+streams:
+  user_finance:
+    auto_subscribe: true
+    priority: 1
+    queries:
+      - SELECT * FROM wallets WHERE user_id = auth.user_id()
+      - SELECT * FROM wallet_allocations WHERE user_id = auth.user_id()
+      - SELECT * FROM finance_categories WHERE user_id = auth.user_id()
+      - SELECT * FROM finance_transactions WHERE user_id = auth.user_id()
+      - SELECT * FROM finance_transaction_schedules WHERE user_id = auth.user_id()
+      - SELECT * FROM user_preferences WHERE user_id = auth.user_id()
+      - SELECT * FROM investment_positions WHERE user_id = auth.user_id()
+
+  market_reference:
+    auto_subscribe: true
+    priority: 2
+    queries:
+      - SELECT * FROM investment_instruments
+      - SELECT * FROM investment_quotes
+      - SELECT * FROM fx_rates

@@ -75,6 +75,13 @@ Right: category shown as plain muted text below the transaction title.
 
 # Repo Workflow Rules
 
+- Database changes are staging-first: test every migration on an isolated Supabase preview branch, verify the resulting schema/RLS/grants, then validate the exact commit on persistent staging before manual production promotion. Never use production as the first remote migration target.
+- Staging and test databases contain synthetic personas only. Seed scripts must refuse to run when the target ref or host matches production.
+- UI pull requests must change a focused Storybook story before application integration; CI enforces this through `npm run check:storybook-first`.
+- Keep `@powersync/web` and its `@journeyapps/wa-sqlite` peer compatible, and keep Storybook Vite workers on `format: "es"`; verify both the Storybook production build and SQLite WASM precache after dependency changes.
+- Before upgrading Next.js or its SWC package on Windows, stop active app and Storybook processes that can lock native binaries. Do not run `npm audit fix --omit=dev` in a development checkout because npm removes the installed dev dependency tree.
+- Local-first finance changes must preserve the online snapshot path as a rollback until the staged rollout is complete, namespace local data by verified user ID, and clear the local database on logout.
+
 - This repo is developed directly on Windows/PowerShell. Do not use WSL for normal project commands unless the user explicitly asks for it.
 - When starting a new feature in this repo, first update from the latest remote `main`, then create a fresh feature branch from that current base.
 - Before starting implementation, branching, or opening/updating a PR in this repo, run `git fetch origin` and verify the intended base against the freshly fetched `origin/main`. Do not rely on a pre-existing `main...origin/main` status line without fetching first.

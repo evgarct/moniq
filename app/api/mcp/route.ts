@@ -14,10 +14,10 @@ import {
   type CategorySpendingPeriodInput,
 } from "@/features/finance/lib/category-spending-report";
 import { getRequestTranslator } from "@/i18n/translator";
-import { getMcpResourceMetadataUrl } from "@/lib/app-url";
 import { createAnonClient } from "@/lib/supabase/anon";
 import type { CurrencyCode } from "@/types/currency";
 import type { Account, Category, Transaction } from "@/types/finance";
+import { getMcpWwwAuthenticate } from "./auth-metadata";
 import {
   MONIQ_WIDGET_MIME_TYPE,
   MONIQ_WIDGET_RESOURCE_META,
@@ -46,10 +46,6 @@ export async function OPTIONS() {
 // or Claude.ai rejects the server as unreachable ("Method Not Allowed").
 // We don't push server-initiated events, so the stream stays idle until the
 // client disconnects or Vercel's function timeout closes it.
-export function getMcpWwwAuthenticate(currentOrigin?: string) {
-  return `Bearer realm="moniq", resource_metadata="${getMcpResourceMetadataUrl(currentOrigin)}"`;
-}
-
 const TRANSACTION_KINDS = ["income", "expense", "transfer", "debt_payment"] as const;
 const DIRECT_TRANSACTION_STATUSES = ["paid", "planned"] as const;
 const READ_TRANSACTION_STATUSES = ["paid", "planned", "skipped"] as const;
@@ -665,7 +661,7 @@ function recurringToolAliases() {
   ];
 }
 
-export function getMcpTools() {
+function getMcpTools() {
   return [
         {
           name: "get_finance_context",

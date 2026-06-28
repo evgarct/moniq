@@ -20,11 +20,9 @@ import type {
 } from "@/types/finance-schemas";
 import type { CurrencyCode } from "@/types/currency";
 
-let optimisticSequence = 0;
-
-export function createOptimisticId(kind: string) {
-  optimisticSequence += 1;
-  return `optimistic:${kind}:${optimisticSequence}`;
+export function createOptimisticId(_kind: string) {
+  void _kind;
+  return crypto.randomUUID();
 }
 
 function updateAccountBalance(accounts: Account[], accountId: string | null, delta: number) {

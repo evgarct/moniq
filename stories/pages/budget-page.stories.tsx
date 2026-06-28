@@ -80,7 +80,7 @@ export const InlineCategoryEditing: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "Manage categories" }));
     await userEvent.click(canvas.getByRole("button", { name: "Open actions for Core Bills" }));
     const body = within(canvasElement.ownerDocument.body);
-    await userEvent.click(body.getByText("Edit category"));
+    await userEvent.click(await body.findByText("Edit category"));
     await expect(canvas.getByLabelText("Category name")).toHaveValue("Core Bills");
     await expect(canvas.getByRole("button", { name: "Icon" })).toBeInTheDocument();
   },

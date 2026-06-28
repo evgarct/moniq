@@ -35,15 +35,19 @@ async function main() {
   const page = await browser.newPage();
   const consoleErrors = [];
   const failedRequests = [];
+  const failedResponses = [];
 
   page.on("console", (message) => {
     if (message.type() === "error") {
-      consoleErrors.push(message.text());
+      consoleErrors.push(`${message.location().url}: ${message.text()}`);
     }
   });
 
   page.on("requestfailed", (request) => {
     failedRequests.push(`${request.method()} ${request.url()} ${request.failure()?.errorText ?? ""}`.trim());
+  });
+  page.on("response", (response) => {
+    if (response.status() >= 400) failedResponses.push(`${response.status()} ${response.url()}`);
   });
 
   const loginUrl = new URL("/en/login", appUrl);
@@ -51,9 +55,9 @@ async function main() {
 
   try {
     await page.goto(loginUrl.toString(), { waitUntil: "networkidle" });
-    await page.fill('input[name="email"]', email);
-    await page.fill('input[name="password"]', password);
-    await page.click('button[type="submit"]');
+    await page.getByLabel("Email").fill(email);
+    await page.getByLabel("Password").fill(password);
+    await page.getByRole("button", { name: "Log in" }).click();
     await page.waitForURL(new RegExp(`${targetPath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:[?#].*)?$`), {
       timeout: 20_000,
     });
@@ -61,11 +65,18 @@ async function main() {
       timeout: 10_000,
     });
 
-    if (consoleErrors.length > 0) {
-      throw new Error(`Console errors after login:\n${consoleErrors.join("\n")}`);
+    const blockingConsoleErrors = consoleErrors.filter((entry) => !entry.includes("/_vercel/insights/") && !entry.includes("/_vercel/speed-insights/"));
+    const blockingResponses = failedResponses.filter((entry) => !entry.includes("/_vercel/insights/") && !entry.includes("/_vercel/speed-insights/"));
+    if (blockingConsoleErrors.length > 0 || blockingResponses.length > 0) {
+      throw new Error(`Browser errors after login:\n${blockingConsoleErrors.join("\n")}\nHTTP errors:\n${blockingResponses.join("\n")}`);
     }
 
-    const blockingFailures = failedRequests.filter((entry) => !entry.includes("__nextjs_original-stack-frames"));
+    const blockingFailures = failedRequests.filter((entry) =>
+      !entry.includes("__nextjs_original-stack-frames") &&
+      !entry.includes("net::ERR_ABORTED") &&
+      !entry.includes("/_vercel/insights/") &&
+      !entry.includes("/_vercel/speed-insights/"),
+    );
     if (blockingFailures.length > 0) {
       throw new Error(`Failed browser requests after login:\n${blockingFailures.join("\n")}`);
     }

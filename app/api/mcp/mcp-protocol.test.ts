@@ -10,7 +10,8 @@ vi.mock("@/lib/supabase/anon", () => ({
   }),
 }));
 
-import { getMcpTools, getMcpWwwAuthenticate, OPTIONS, POST } from "./route";
+import { getMcpWwwAuthenticate } from "./auth-metadata";
+import { OPTIONS, POST } from "./route";
 
 const AUTH_HEADERS = {
   Authorization: "Bearer mnq_test",
@@ -47,6 +48,14 @@ async function postMcp(body: unknown, headers: Record<string, string> = {}) {
       body: JSON.stringify(body),
     }),
   );
+}
+
+async function getListedTools() {
+  const response = await postMcp({ jsonrpc: "2.0", id: "tools", method: "tools/list" });
+  const body = await response.json();
+  // Tool schemas are intentionally heterogeneous JSON objects.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return body.result.tools as Array<Record<string, any> & { name: string }>;
 }
 
 describe("MCP CORS", () => {
@@ -161,7 +170,7 @@ describe("MCP tools", () => {
       "get_category_spending_report",
       "get_budget_month_analysis",
     ]);
-    expect(getMcpTools().map((tool) => tool.name)).toEqual(names);
+    expect((await getListedTools()).map((tool) => tool.name)).toEqual(names);
   });
 
   it("returns budget month analysis through the spending report source RPC", async () => {
@@ -319,8 +328,8 @@ describe("MCP tools", () => {
     });
   });
 
-  it("does not expose savings bucket management through MCP tool schemas", () => {
-    const tools = getMcpTools();
+  it("does not expose savings bucket management through MCP tool schemas", async () => {
+    const tools = await getListedTools();
     const names = tools.map((tool) => tool.name);
     const schemaText = JSON.stringify(tools).toLowerCase();
 
@@ -335,7 +344,7 @@ describe("MCP tools", () => {
   });
 
   it("exposes human-readable metadata for ChatGPT confirmations", async () => {
-    const createTransactionsTool = getMcpTools().find((tool) => tool.name === "create_transactions");
+    const createTransactionsTool = (await getListedTools()).find((tool) => tool.name === "create_transactions");
 
     expect(createTransactionsTool).toMatchObject({
       title: "Add ledger transactions to Moniq",
@@ -370,7 +379,7 @@ describe("MCP tools", () => {
   });
 
   it("keeps the singular create alias callable but hidden from discovery", async () => {
-    expect(getMcpTools().map((tool) => tool.name)).not.toContain("create_transaction");
+    expect((await getListedTools()).map((tool) => tool.name)).not.toContain("create_transaction");
 
     mocks.rpc.mockImplementation((name: string) => {
       const authResponse = authRpcResponse(name);
@@ -427,8 +436,8 @@ describe("MCP tools", () => {
     });
   });
 
-  it("exposes transaction edit/delete tools with correct safety annotations and widget metadata", () => {
-    const tools = getMcpTools();
+  it("exposes transaction edit/delete tools with correct safety annotations and widget metadata", async () => {
+    const tools = await getListedTools();
     const updateDraftTool = tools.find((tool) => tool.name === "update_transaction_draft");
     const deleteDraftTool = tools.find((tool) => tool.name === "delete_transaction_draft");
     const deleteTransactionTool = tools.find((tool) => tool.name === "delete_transaction");

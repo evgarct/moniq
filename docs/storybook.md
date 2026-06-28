@@ -50,7 +50,10 @@ Storybook is the review surface for Moniq UI work.
 
 ## Rules
 
-- every meaningful UI surface should be represented in Storybook
+- UI work starts in Storybook: component states first, composed screen second, application integration last
+- every meaningful UI surface and state must be represented in Storybook in the same pull request
 - stories should use mock data and stay independent from Supabase
 - page stories should reflect realistic Moniq layouts, not isolated demo fragments
 - stateful review surfaces such as the import inbox should have a focused story that opens directly into the target interaction state
+- `npm run check:storybook-first` blocks runtime UI changes without a story change; `.storybook/non-visual-change.md` is only for a documented, genuinely non-visual exception
+- local-first stories cover cached, syncing, offline, pending, reconnecting, conflict, storage-failure, and expired-authorization states without contacting PowerSync or Supabase

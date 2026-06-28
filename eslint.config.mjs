@@ -13,6 +13,8 @@ export default defineConfig([
     "out/**",
     "build/**",
     "storybook-static/**",
+    "public/powersync/**",
+    "public/sw*.js",
     "next-env.d.ts",
   ]),
 ]);

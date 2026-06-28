@@ -14,6 +14,7 @@ export type Category = {
   is_system: boolean;
   purpose?: CategoryPurpose | null;
   created_at: string;
+  sync_version?: number;
 };
 
 export type MoneyByCurrency = {
@@ -26,6 +27,7 @@ export type DefaultCurrencySource = "saved" | "wallet_inferred" | "fallback";
 export type UserPreferences = {
   default_currency: CurrencyCode;
   default_currency_source: DefaultCurrencySource;
+  sync_version?: number;
 };
 
 export type ExchangeRateProvider = "frankfurter" | "currency-api";
@@ -101,6 +103,7 @@ export type Account = {
   credit_limit?: number | null;
   currency: CurrencyCode;
   created_at: string;
+  sync_version?: number;
 };
 
 export type TransactionStatus = "planned" | "paid" | "skipped";
@@ -136,6 +139,7 @@ export type TransactionSchedule = {
   validation_error: string | null;
   created_at: string;
   updated_at: string;
+  sync_version?: number;
 };
 
 export type Transaction = {
@@ -168,6 +172,7 @@ export type Transaction = {
   investment_instrument_id?: string | null;
   investment_units?: number | null;
   investment_instrument?: InvestmentInstrument | null;
+  sync_version?: number;
 };
 
 export type WalletAllocationKind = "goal_open" | "goal_targeted";
@@ -182,6 +187,7 @@ export type WalletAllocation = {
   target_amount: number | null;
   created_at: string;
   updated_at: string;
+  sync_version?: number;
 };
 
 export type FinanceSnapshot = {

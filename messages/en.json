@@ -1,4 +1,28 @@
 {
+  "offline": {
+    "title": "Moniq is offline",
+    "description": "Open a previously loaded workspace to keep working. Changes will sync after the connection returns."
+  },
+  "sync": {
+    "states": {
+      "cached": "Showing saved data",
+      "syncing": "Syncing changes",
+      "offline": "Working offline",
+      "pending": "{count, plural, one {# change waiting to sync} other {# changes waiting to sync}}",
+      "reconnecting": "Reconnecting",
+      "conflict": "A change needs review",
+      "storage_error": "Local storage is unavailable",
+      "expired": "Connect to the internet to verify this device"
+    },
+    "conflicts": {
+      "title": "Review sync conflicts",
+      "description": "The same data changed on another device. Choose which version should remain.",
+      "item": "Local change",
+      "version": "The server is now on version {version}.",
+      "keepServer": "Keep server version",
+      "retryLocal": "Apply my change"
+    }
+  },
   "metadata": {
     "title": "Moniq",
     "description": "Personal finance management app built with Next.js and Supabase."
