@@ -5,6 +5,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import { AppProviders } from "@/components/providers/app-providers";
+import { ServiceWorkerRegistrar } from "@/components/providers/service-worker-registrar";
 import { WebVitalsReporter } from "@/components/providers/web-vitals";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { CANONICAL_APP_URL } from "@/lib/app-url";
@@ -81,6 +82,7 @@ export default async function RootLayout({
     >
       <body className="min-h-full bg-background font-sans text-foreground">
         <TooltipProvider>
+          <ServiceWorkerRegistrar />
           <WebVitalsReporter />
           <AppProviders>{children}</AppProviders>
         </TooltipProvider>
