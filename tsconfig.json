@@ -5,7 +5,8 @@
     "lib": [
       "dom",
       "dom.iterable",
-      "esnext"
+      "esnext",
+      "webworker"
     ],
     "allowJs": false,
     "allowArbitraryExtensions": true,
@@ -24,6 +25,9 @@
         "name": "next"
       }
     ],
+    "types": [
+      "@serwist/next/typings"
+    ],
     "paths": {
       "@/i18n/*": [
         "src/i18n/*"
@@ -41,6 +45,7 @@
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "public/sw.js"
   ]
 }

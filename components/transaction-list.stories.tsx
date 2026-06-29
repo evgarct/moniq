@@ -206,14 +206,14 @@ const plannedMix = [
     id: "story-planned-netflix",
     title: "Netflix",
     status: "planned" as const,
-    occurred_at: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) + "T00:00:00.000Z",
+    occurred_at: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
   },
   {
     ...byKind("expense"),
     id: "story-planned-rent",
     title: "Monthly rent",
     status: "planned" as const,
-    occurred_at: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) + "T00:00:00.000Z",
+    occurred_at: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
   },
 ];
 

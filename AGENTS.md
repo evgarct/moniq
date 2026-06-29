@@ -75,6 +75,13 @@ Right: category shown as plain muted text below the transaction title.
 
 # Repo Workflow Rules
 
+- Database changes are isolated-test-first: rebuild every migration twice on local Supabase in CI, seed synthetic personas, verify schema/RLS/grants/tenant isolation, then manually promote the exact verified commit. Never use production as the first migration target.
+- Local CI and optional staging databases contain synthetic personas only. Seed scripts must refuse production targets and may accept localhost only with an explicit `local-*` staging ref.
+- UI pull requests must change a focused Storybook story before application integration; CI enforces this through `npm run check:storybook-first`.
+- Keep `@powersync/web` and its `@journeyapps/wa-sqlite` peer compatible, and keep Storybook Vite workers on `format: "es"`; verify both the Storybook production build and SQLite WASM precache after dependency changes.
+- Before upgrading Next.js or its SWC package on Windows, stop active app and Storybook processes that can lock native binaries. Do not run `npm audit fix --omit=dev` in a development checkout because npm removes the installed dev dependency tree.
+- Local-first finance changes must preserve the online snapshot path as a rollback until the staged rollout is complete, namespace local data by verified user ID, and clear the local database on logout.
+
 - This repo is developed directly on Windows/PowerShell. Do not use WSL for normal project commands unless the user explicitly asks for it.
 - When starting a new feature in this repo, first update from the latest remote `main`, then create a fresh feature branch from that current base.
 - Before starting implementation, branching, or opening/updating a PR in this repo, run `git fetch origin` and verify the intended base against the freshly fetched `origin/main`. Do not rely on a pre-existing `main...origin/main` status line without fetching first.
@@ -142,6 +149,7 @@ Right: category shown as plain muted text below the transaction title.
 - After adding MCP SECURITY DEFINER RPC helpers, verify direct execute grants with `has_function_privilege` and explicitly revoke helper functions from `public`, `anon`, and `authenticated`; only the intended key-hash wrapper RPCs should be executable by MCP roles.
 - After completing meaningful work in this repo, invoke the `instruction-retrospective` skill to review execution problems and update durable instructions.
 - For this repo, do not reuse an already running `next start` preview after source changes. Rebuild with `npm run build`, restart the preview process, and then verify the reported app URL by HTTP before claiming the local preview is current.
+- For this repo, run `npm run test:e2e:pwa` against a production `next start` preview after `npm run build`; the dev preview is not an authoritative service-worker/PWA verification surface.
 - For this repo, `npm run preview:live` must reuse healthy dev servers on `http://localhost:3008` and `http://localhost:6008` so HMR, authentication, and the current browser page remain intact. Use `npm run preview:refresh` only when a server is stale, broken, or a clean restart is explicitly needed. Do not rotate ports.
 - During a manual UI iteration session, keep one existing in-app browser tab on the user's current authenticated route. Do not open replacement tabs, navigate back to login, or restart healthy previews after ordinary source edits; rely on HMR and refresh the current page only when necessary.
 - In this repo, the app shell sets `body` and `main` to `overflow-hidden`. Every scrollable page view must add `overflow-y-auto` to its own outermost container (the root element returned by the page or top-level view component). Do not rely on the shell to scroll; do not set `h-full` without a matching `overflow-y-auto` on the same element.

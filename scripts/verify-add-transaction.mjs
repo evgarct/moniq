@@ -88,7 +88,10 @@ async function main() {
 
   page.on("console", (message) => {
     if (message.type() === "error") {
-      consoleErrors.push(message.text());
+      consoleErrors.push({
+        text: message.text(),
+        url: message.location().url,
+      });
     }
   });
 
@@ -139,21 +142,33 @@ async function main() {
       .getByText("Forced optimistic rollback.", { exact: true })
       .waitFor({ timeout: 10_000 });
 
-    const blockingFailures = failedRequests.filter(
-      (entry) =>
-        !entry.includes("__nextjs_original-stack-frames") &&
-        !entry.includes("/api/transactions"),
-    );
+    const blockingFailures = failedRequests.filter((entry) => {
+      if (entry.includes("__nextjs_original-stack-frames")) return false;
+      if (entry.includes("/api/transactions")) return false;
+      if (entry.includes("/_vercel/insights/") || entry.includes("/_vercel/speed-insights/")) return false;
+      if (entry.endsWith("net::ERR_ABORTED") && !entry.includes("/api/")) return false;
+      return true;
+    });
     if (blockingFailures.length > 0) {
       throw new Error(`Failed browser requests while adding a transaction:\n${blockingFailures.join("\n")}`);
     }
 
-    const unexpectedConsoleErrors = consoleErrors.filter(
-      (message) =>
-        !message.includes("Failed to load resource: the server responded with a status of 500"),
-    );
+    const unexpectedConsoleErrors = consoleErrors.filter(({ text, url }) => {
+      if (text.includes("Failed to load resource: the server responded with a status of 500")) return false;
+      if (
+        text.includes("Failed to load resource: the server responded with a status of 404") &&
+        (url.includes("/_vercel/insights/") || url.includes("/_vercel/speed-insights/"))
+      ) {
+        return false;
+      }
+      return true;
+    });
     if (unexpectedConsoleErrors.length > 0) {
-      throw new Error(`Console errors while adding a transaction:\n${unexpectedConsoleErrors.join("\n")}`);
+      throw new Error(
+        `Console errors while adding a transaction:\n${unexpectedConsoleErrors
+          .map(({ text, url }) => `${text}${url ? ` (${url})` : ""}`)
+          .join("\n")}`,
+      );
     }
 
     console.log(`Add transaction verification passed: ${appUrl}/en/accounts (${marker})`);

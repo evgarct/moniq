@@ -1,0 +1,53 @@
+name: Migration Preview
+
+on:
+  pull_request:
+    paths:
+      - "supabase/**"
+      - "scripts/seed-staging.mjs"
+      - "scripts/staging-env.mjs"
+      - "scripts/verify-database.sql"
+      - "scripts/verify-db.mjs"
+      - ".github/workflows/migration-preview.yml"
+
+concurrency:
+  group: supabase-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  migrate-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SUPABASE_PRODUCTION_PROJECT_REF: production
+      SUPABASE_STAGING_PROJECT_REF: local-ci
+      MONIQ_STAGING_PASSWORD: local-ci-only-password
+      MONIQ_STAGING_EMAIL_DOMAIN: example.invalid
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: npm ci
+      - name: Rebuild migrations from zero twice
+        shell: bash
+        run: |
+          supabase start
+          supabase db reset
+          supabase db reset
+      - name: Seed and verify local database
+        shell: bash
+        run: |
+          eval "$(supabase status -o env)"
+          STAGING_SUPABASE_URL="$API_URL" \
+          STAGING_SUPABASE_ANON_KEY="$ANON_KEY" \
+          STAGING_SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" \
+          npm run db:staging:seed
+          STAGING_SUPABASE_URL="$API_URL" \
+          STAGING_SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" \
+          npm run db:verify
+          psql "$DB_URL" -f scripts/verify-database.sql

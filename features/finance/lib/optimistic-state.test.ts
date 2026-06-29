@@ -4,6 +4,7 @@ import { createEmptyFinanceSnapshot } from "@/features/finance/lib/empty-snapsho
 import {
   addTransactionEntry,
   applyPaidTransactionEffect,
+  createOptimisticId,
   removeTransaction,
   setTransactionStatus,
   updateTransaction,
@@ -23,6 +24,10 @@ const paidTransfer = {
 } as Transaction;
 
 describe("optimistic finance state", () => {
+  it("uses persistent UUIDs for offline relationships", () => {
+    expect(createOptimisticId("wallet")).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+  });
+
   it("keeps caller-provided optimistic transaction IDs stable", () => {
     const snapshot = {
       ...createEmptyFinanceSnapshot(),

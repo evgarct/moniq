@@ -21,6 +21,9 @@ const config: StorybookConfig = {
       optimizeDeps: {
         include: ["@base-ui/react/switch"],
       },
+      worker: {
+        format: "es",
+      },
     }),
 };
 

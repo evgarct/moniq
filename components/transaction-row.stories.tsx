@@ -31,7 +31,7 @@ const plannedExpense: Transaction = {
   id: "story-planned-expense",
   title: "Netflix subscription",
   status: "planned",
-  occurred_at: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) + "T00:00:00.000Z",
+  occurred_at: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
 };
 const recurringPlanned: Transaction = {
   ...plannedExpense,

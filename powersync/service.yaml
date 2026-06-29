@@ -1,0 +1,17 @@
+_type: cloud
+name: Development
+region: eu
+
+replication:
+  connections:
+    - type: postgresql
+      hostname: db.wffqpmqvgjphuinzgata.supabase.co
+      port: 5432
+      database: postgres
+      username: powersync_role
+      password:
+        secret: !env PS_DATABASE_PASSWORD
+      sslmode: verify-full
+
+client_auth:
+  supabase: true
