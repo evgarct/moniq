@@ -1370,12 +1370,12 @@ async function handleCategorySpendingReportTool(
     transactions?: TransactionRow[];
   };
   const accounts = (source.wallets ?? []).map(mapWallet);
-  const categories = (source.categories ?? []).map(mapCategory);
+  const categories = (source.categories ?? []).map(mapCategory).filter((c) => !c.is_system);
   const accountsById = new Map(accounts.map((account) => [account.id, account]));
   const categoriesById = new Map(categories.map((category) => [category.id, category]));
-  const transactions = (source.transactions ?? []).map((transaction) =>
-    mapTransaction(transaction, { accountsById, categoriesById }),
-  );
+  const transactions = (source.transactions ?? [])
+    .map((transaction) => mapTransaction(transaction, { accountsById, categoriesById }))
+    .filter((transaction) => !transaction.category_id || categoriesById.has(transaction.category_id));
 
   let report: ReturnType<typeof buildCategorySpendingReport>;
   try {
@@ -1494,21 +1494,29 @@ async function handleGetTransactionsTool(
       const categories = new Map(context.categories.map((category) => [String(category.id), category]));
       widgetData = {
         ...data,
-        transactions: data.transactions.map((entry) => {
-          if (!isRecord(entry)) return entry;
-          const source = wallets.get(String(entry.source_account_id ?? ""));
-          const destination = wallets.get(String(entry.destination_account_id ?? ""));
-          const category = categories.get(String(entry.category_id ?? ""));
-          return {
-            ...entry,
-            source_account_name: entry.source_account_name ?? source?.name ?? null,
-            destination_account_name: entry.destination_account_name ?? destination?.name ?? null,
-            category_name: entry.category_name ?? category?.name ?? null,
-            category_path: category?.path ?? entry.category_name ?? null,
-            currency: entry.currency ?? source?.currency ?? destination?.currency ?? null,
-            destination_currency: destination?.currency ?? null,
-          };
-        }),
+        transactions: data.transactions
+          .filter((entry) => {
+            if (!isRecord(entry)) return false;
+            if (entry.category_id && !categories.has(String(entry.category_id))) {
+              return false;
+            }
+            return true;
+          })
+          .map((entry) => {
+            if (!isRecord(entry)) return entry;
+            const source = wallets.get(String(entry.source_account_id ?? ""));
+            const destination = wallets.get(String(entry.destination_account_id ?? ""));
+            const category = categories.get(String(entry.category_id ?? ""));
+            return {
+              ...entry,
+              source_account_name: entry.source_account_name ?? source?.name ?? null,
+              destination_account_name: entry.destination_account_name ?? destination?.name ?? null,
+              category_name: entry.category_name ?? category?.name ?? null,
+              category_path: category?.path ?? entry.category_name ?? null,
+              currency: entry.currency ?? source?.currency ?? destination?.currency ?? null,
+              destination_currency: destination?.currency ?? null,
+            };
+          }),
       };
     }
   }
@@ -1824,16 +1832,19 @@ function sanitizeFinanceContext(data: unknown) {
       balance: wallet.balance,
       credit_limit: wallet.credit_limit ?? null,
     })),
-    categories: categories.filter(isRecord).map((category) => ({
-      id: category.id,
-      type: category.type,
-      name: category.name,
-      path: category.path,
-      parent_id: category.parent_id ?? null,
-      icon: category.icon ?? null,
-      is_system: category.is_system,
-      is_selectable: category.is_selectable,
-    })),
+    categories: categories
+      .filter(isRecord)
+      .filter((category) => !category.is_system)
+      .map((category) => ({
+        id: category.id,
+        type: category.type,
+        name: category.name,
+        path: category.path,
+        parent_id: category.parent_id ?? null,
+        icon: category.icon ?? null,
+        is_system: category.is_system,
+        is_selectable: category.is_selectable,
+      })),
     rules: source.rules,
   };
 }

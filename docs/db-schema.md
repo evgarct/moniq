@@ -251,6 +251,7 @@ Rules:
 - results include ledger rows for `paid`, `planned`, and `skipped` transactions plus generated active recurring schedule occurrences for the requested future range.
 - materialized schedule occurrences in `finance_transactions` take precedence over generated schedule rows for the same `(schedule_id, schedule_occurrence_date)`, including paid, skipped, and overridden occurrences.
 - generated occurrences use stable synthetic IDs in the form `schedule:{schedule_id}:{date}` and include `source = "schedule"` plus `is_generated = true`.
+- categories with `is_system = true`, their ledger transactions, and their generated schedule occurrences are excluded from MCP context, transaction-range results, widgets, and spending summaries.
 - the response is capped at 5000 returned/generated transactions; agents should split larger date ranges.
 
 ## MCP recurring transaction writes
