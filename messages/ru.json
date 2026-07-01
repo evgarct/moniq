@@ -631,7 +631,11 @@
     "category": {
       "noTransactions": "В этой категории нет транзакций за выбранный месяц.",
       "childCount": "{count, plural, =0 {Нет подкатегорий} one {# подкатегория} few {# подкатегории} many {# подкатегорий} other {# подкатегории}}",
-      "rateUnavailable": "Нет курса"
+      "rateUnavailable": "Нет курса",
+      "actual": "Фактически",
+      "planned": "Запланировано",
+      "showTransactions": "Показать транзакции ({count})",
+      "hideTransactions": "Скрыть транзакции"
     },
     "monthChart": {
       "ariaLabel": "Месячный анализ бюджета",
@@ -705,7 +709,8 @@
         "description": "Описание",
         "icon": "Иконка",
         "type": "Тип",
-        "parent": "Родительская категория"
+        "parent": "Родительская категория",
+        "plannedBudget": "Запланированный бюджет"
       },
       "types": {
         "expense": "Расход",

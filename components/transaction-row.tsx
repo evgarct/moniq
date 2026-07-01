@@ -15,20 +15,46 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 import { MoneyAmount } from "@/components/money-amount";
+import { convertMoney } from "@/features/finance/lib/exchange-rates";
 import { getTransactionKindMeta, TransactionKindIndicator } from "@/features/transactions/components/transaction-kind-badge";
 import { calDate, formatMoneyNumber, getCurrencySymbol } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
-import type { Transaction } from "@/types/finance";
+import type { CurrencyCode } from "@/types/currency";
+import type { ExchangeRate, Transaction } from "@/types/finance";
 
 function isEncouragedTransaction(transaction: Transaction) {
   return transaction.kind === "income";
 }
 
-function renderAmount(transaction: Transaction, showMinorUnits: boolean) {
+function renderAmount(
+  transaction: Transaction,
+  showMinorUnits: boolean,
+  targetCurrency?: CurrencyCode,
+  exchangeRates?: ExchangeRate[],
+) {
   const primaryAccount = transaction.source_account ?? transaction.destination_account;
   const kindMeta = getTransactionKindMeta(transaction.kind);
 
   if (!primaryAccount) return null;
+
+  if (targetCurrency && exchangeRates) {
+    const conversion = convertMoney({
+      amount: transaction.amount,
+      sourceCurrency: primaryAccount.currency,
+      targetCurrency,
+      requestedDate: transaction.occurred_at,
+      exchangeRates,
+    });
+    return (
+      <MoneyAmount
+        amount={conversion.amount}
+        currency={targetCurrency}
+        display="absolute"
+        tone={kindMeta.amountTone}
+        showMinorUnits={showMinorUnits}
+      />
+    );
+  }
 
   if (transaction.kind === "transfer") {
     const primaryCurrency = transaction.source_account?.currency ?? primaryAccount.currency;
@@ -120,6 +146,8 @@ export function TransactionRow({
   onMarkPaid,
   onSkipOccurrence,
   onToggleScheduleState,
+  targetCurrency,
+  exchangeRates,
 }: {
   transaction: Transaction;
   variant?: "default" | "board";
@@ -140,6 +168,8 @@ export function TransactionRow({
   onMarkPaid?: (transaction: Transaction) => void;
   onSkipOccurrence?: (transaction: Transaction) => void;
   onToggleScheduleState?: (transaction: Transaction) => void;
+  targetCurrency?: CurrencyCode;
+  exchangeRates?: ExchangeRate[];
 }) {
   const t = useTranslations("transactions");
   const investmentsT = useTranslations("investments");
@@ -382,7 +412,7 @@ export function TransactionRow({
           </TooltipProvider>
         ) : null}
         <div className="text-right">
-          <div className="flex justify-end">{renderAmount(transaction, showMinorUnits)}</div>
+          <div className="flex justify-end">{renderAmount(transaction, showMinorUnits, targetCurrency, exchangeRates)}</div>
           {showDate ? (
             <p className="type-body-12 mt-0.5 whitespace-nowrap text-muted-foreground">
               {formatDate.dateTime(calDate(transaction.occurred_at), {
