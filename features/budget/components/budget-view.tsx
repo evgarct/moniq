@@ -222,10 +222,6 @@ function InlineBudgetInput({
   const parsed = useMemo(() => parseCategoryDescriptionAndBudget(category.description), [category.description]);
   const [value, setValue] = useState(parsed.plannedBudget !== null ? String(parsed.plannedBudget) : "");
 
-  useMemo(() => {
-    setValue(parsed.plannedBudget !== null ? String(parsed.plannedBudget) : "");
-  }, [parsed.plannedBudget]);
-
   const handleBlurOrSubmit = () => {
     const trimmed = value.trim();
     const budgetVal = trimmed === "" ? null : parseFloat(trimmed);
@@ -433,7 +429,7 @@ function CategoryDetailsPanel({
               )}
             </span>
           ) : (
-            <InlineBudgetInput category={node} onSave={(values) => onSave(editor || { mode: "edit", category: node }, values)} currency={defaultCurrency} />
+            <InlineBudgetInput key={node.id} category={node} onSave={(values) => onSave(editor || { mode: "edit", category: node }, values)} currency={defaultCurrency} />
           )}
         </div>
       </div>
