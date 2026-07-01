@@ -31,14 +31,12 @@ export default function AccountsPage() {
   }
 
   return (
-    <PageContainer className="h-full overflow-hidden px-0 py-0 sm:px-0">
-      <AccountsView
-        accounts={data?.accounts ?? []}
-        categories={data?.categories ?? []}
-        transactions={data?.transactions ?? []}
-        allocations={data?.allocations ?? []}
-        investmentPositions={data?.investment_positions ?? []}
-      />
-    </PageContainer>
+    <AccountsView
+      accounts={data?.accounts ?? []}
+      categories={data?.categories ?? []}
+      transactions={data?.transactions ?? []}
+      allocations={data?.allocations ?? []}
+      investmentPositions={data?.investment_positions ?? []}
+    />
   );
 }
