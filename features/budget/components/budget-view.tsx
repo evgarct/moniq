@@ -122,11 +122,16 @@ function CategoryRowItem({
   
   const parsed = useMemo(() => parseCategoryDescriptionAndBudget(node.description), [node.description]);
 
+  const budgetUtilization = useMemo(() => {
+    if (parsed.plannedBudget === null || parsed.plannedBudget <= 0) return 0;
+    return Math.min(100, Math.max(0, (Math.abs(total.amount || 0) / parsed.plannedBudget) * 100));
+  }, [total.amount, parsed.plannedBudget]);
+
   return (
     <button
       type="button"
       className={cn(
-        "flex w-full items-center gap-3 px-3 py-2.5 transition-colors text-left",
+        "flex w-full items-center gap-3 px-3 py-3 transition-[transform,background-color] duration-150 ease-out text-left relative overflow-hidden active:scale-[0.98]",
         selected 
           ? "bg-secondary/70 text-foreground" 
           : "hover:bg-secondary/50 text-muted-foreground hover:text-foreground"
@@ -154,6 +159,18 @@ function CategoryRowItem({
           "—"
         )}
       </div>
+
+      {parsed.plannedBudget !== null && (
+        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-secondary/30">
+          <div 
+            className={cn(
+              "h-full transition-all duration-300", 
+              budgetUtilization >= 100 ? "bg-destructive" : "bg-neutral-800 dark:bg-neutral-200"
+            )}
+            style={{ width: `${budgetUtilization}%` }}
+          />
+        </div>
+      )}
     </button>
   );
 }
@@ -161,9 +178,11 @@ function CategoryRowItem({
 function InlineBudgetInput({
   category,
   onSave,
+  currency,
 }: {
   category: Category;
   onSave: (values: CategoryInput) => void;
+  currency: string;
 }) {
   const parsed = useMemo(() => parseCategoryDescriptionAndBudget(category.description), [category.description]);
   const [value, setValue] = useState(parsed.plannedBudget !== null ? String(parsed.plannedBudget) : "");
@@ -188,7 +207,7 @@ function InlineBudgetInput({
   };
 
   return (
-    <div className="flex items-center gap-2 mt-1">
+    <div className="flex items-center gap-1.5 mt-1 relative">
       <Input
         type="number"
         step="any"
@@ -202,8 +221,9 @@ function InlineBudgetInput({
             e.currentTarget.blur();
           }
         }}
-        className="w-28 h-8 px-2 text-sm tabular-nums bg-background"
+        className="h-8 w-24 border-border/40 bg-background/50 px-2 text-sm font-semibold tabular-nums focus:bg-background focus:ring-1 focus:ring-ring/25 active:scale-[0.98]"
       />
+      <span className="text-sm font-medium text-muted-foreground">{currency}</span>
     </div>
   );
 }
@@ -281,38 +301,28 @@ function CategoryDetailsPanel({
     );
   }
 
+  const handleBack = () => {
+    if (path.length > 1) {
+      onSelectCategory(path[path.length - 2].id);
+    } else {
+      onSelectCategory(null);
+    }
+  };
+
   return (
     <Surface tone="panel" padding="md" className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-        <button type="button" onClick={() => onSelectCategory(null)} className="hover:underline">
-          {node.type === "expense" ? t("sections.expensesTitle") : t("sections.incomeTitle")}
-        </button>
-        {path.map((item, index) => (
-          <span key={item.id} className="flex items-center gap-1.5">
-            <span>/</span>
-            <button
-              type="button"
-              onClick={index === path.length - 1 ? undefined : () => onSelectCategory(item.id)}
-              className={cn(
-                index === path.length - 1 ? "font-semibold text-foreground cursor-default" : "hover:underline",
-              )}
-            >
-              {item.name}
-            </button>
-          </span>
-        ))}
-      </div>
-
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <CategoryIcon icon={node.icon} glyphClassName="size-6 text-muted-foreground" />
-          <div>
-            <h3 className="type-h4 font-serif">{node.name}</h3>
-            {parsed.description ? (
-              <p className="type-body-14 text-muted-foreground mt-1 max-w-xl">{parsed.description}</p>
-            ) : null}
-          </div>
-        </div>
+      {/* Header back button navigation */}
+      <div className="flex items-center justify-between gap-3">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={handleBack}
+          className="h-9 px-2 text-muted-foreground hover:text-foreground active:scale-[0.98] transition-transform"
+        >
+          <ChevronLeft className="size-4 mr-1 shrink-0" />
+          <span>{path.length > 1 ? path[path.length - 2].name : t("view.title")}</span>
+        </Button>
 
         {editMode ? (
           <div className="flex flex-wrap gap-2">
@@ -350,7 +360,19 @@ function CategoryDetailsPanel({
         ) : null}
       </div>
 
-      <div className="grid grid-cols-2 gap-4 border-t border-border/40 pt-4">
+      {/* Category Info */}
+      <div className="flex items-center gap-3 mt-1">
+        <CategoryIcon icon={node.icon} glyphClassName="size-6 text-muted-foreground" />
+        <div>
+          <h3 className="type-h4 font-serif">{node.name}</h3>
+          {parsed.description ? (
+            <p className="type-body-14 text-muted-foreground mt-1 max-w-xl">{parsed.description}</p>
+          ) : null}
+        </div>
+      </div>
+
+      {/* Actual Spent vs Planned */}
+      <div className="grid grid-cols-2 gap-4 border-y border-border/20 py-4 my-2">
         <div>
           <span className="type-body-12 text-muted-foreground uppercase tracking-wider block">
             {t("category.actual")}
@@ -376,17 +398,18 @@ function CategoryDetailsPanel({
               )}
             </span>
           ) : (
-            <InlineBudgetInput category={node} onSave={(values) => onSave(editor || { mode: "edit", category: node }, values)} />
+            <InlineBudgetInput category={node} onSave={(values) => onSave(editor || { mode: "edit", category: node }, values)} currency={defaultCurrency} />
           )}
         </div>
       </div>
 
+      {/* Subcategories nested stack */}
       {node.children.length ? (
-        <div className="border-t border-border/40 pt-4 flex flex-col gap-2">
+        <div className="flex flex-col gap-2">
           <span className="type-body-12 text-muted-foreground uppercase tracking-wider">
             {t("category.childCount", { count: node.children.length })}
           </span>
-          <div className="flex flex-col border border-border/40 rounded-[var(--radius-control)] bg-secondary/5 divide-y divide-border/30">
+          <div className="flex flex-col border border-border/40 rounded-[var(--radius-control)] bg-secondary/5 divide-y divide-border/30 overflow-hidden">
             {sortNodesByActivity(node.children).map((child) => (
               <CategoryRowItem
                 key={child.id}
@@ -402,16 +425,17 @@ function CategoryDetailsPanel({
         </div>
       ) : null}
 
+      {/* Transactions collapsible list */}
       <div className="border-t border-border/40 pt-4 flex flex-col gap-3">
         <div>
           {!showTransactions ? (
-            <Button type="button" variant="outline" size="sm" onClick={() => setShowTransactions(true)}>
+            <Button type="button" variant="outline" size="sm" onClick={() => setShowTransactions(true)} className="active:scale-[0.98] transition-transform">
               <ChevronDown className="size-4 mr-1.5" />
               {t("category.showTransactions", { count: String(linkedTransactions.length) })}
             </Button>
           ) : (
             <>
-              <Button type="button" variant="outline" size="sm" onClick={() => setShowTransactions(false)} className="mb-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => setShowTransactions(false)} className="mb-2 active:scale-[0.98] transition-transform">
                 <ChevronUp className="size-4 mr-1.5" />
                 {t("category.hideTransactions")}
               </Button>
