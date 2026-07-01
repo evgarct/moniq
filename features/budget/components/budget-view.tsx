@@ -1,7 +1,7 @@
 "use client";
 
 import { addMonths, isSameMonth, parseISO, startOfToday } from "date-fns";
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, PencilLine, Plus, Settings2, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, PencilLine, Plus, Settings2, Trash2, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
 
@@ -87,20 +87,24 @@ function InlineEditor({
   );
 }
 
-function CategoryRowItem({
+function CategoryCircleItem({
   node,
   month,
   transactions,
   snapshot,
   selected,
+  editMode,
   onClick,
+  onDelete,
 }: {
   node: CategoryTreeNode;
   month: Date;
   transactions: Transaction[];
   snapshot: FinanceSnapshot;
   selected: boolean;
+  editMode: boolean;
   onClick: () => void;
+  onDelete: (category: Category) => void;
 }) {
   const defaultCurrency = snapshot.preferences.default_currency;
   
@@ -127,50 +131,81 @@ function CategoryRowItem({
     return Math.min(100, Math.max(0, (Math.abs(total.amount || 0) / parsed.plannedBudget) * 100));
   }, [total.amount, parsed.plannedBudget]);
 
+  const radius = 28;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (budgetUtilization / 100) * circumference;
+
   return (
     <button
       type="button"
-      className={cn(
-        "flex w-full items-center gap-3 px-3 py-3 transition-[transform,background-color] duration-150 ease-out text-left relative overflow-hidden active:scale-[0.98]",
-        selected 
-          ? "bg-secondary/70 text-foreground" 
-          : "hover:bg-secondary/50 text-muted-foreground hover:text-foreground"
-      )}
+      className="group flex w-20 flex-col items-center text-center gap-1.5 relative select-none active:scale-[0.96] transition-transform duration-150"
       onClick={onClick}
     >
-      <CategoryIcon icon={node.icon} glyphClassName={cn("h-[18px] w-[18px] shrink-0 text-muted-foreground", selected && "text-foreground")} />
-      <div className="min-w-0 flex-1">
-        <p className={cn("type-body-14 truncate font-medium text-foreground", selected && "font-semibold")}>{node.name}</p>
-        <p className="type-body-12 truncate text-muted-foreground mt-0.5">
-          {parsed.plannedBudget !== null ? (
-            <>
-              {"Plan: "}
-              <MoneyAmount amount={parsed.plannedBudget} currency={defaultCurrency} display="absolute" className="inline text-muted-foreground" />
-            </>
+      {/* Edit mode delete badge */}
+      {editMode && !node.purpose && (
+        <span
+          role="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(node);
+          }}
+          className="absolute -top-1 -right-1 z-10 flex size-5 items-center justify-center rounded-full bg-destructive text-white hover:bg-destructive/90 shadow-sm active:scale-95 transition-transform"
+        >
+          <X className="size-3" />
+        </span>
+      )}
+
+      {/* Circle Icon and Progress SVG */}
+      <div 
+        className={cn(
+          "relative size-14 flex items-center justify-center rounded-full border transition-[background-color,border-color] duration-150",
+          selected
+            ? "bg-secondary/70 border-foreground text-foreground"
+            : "bg-secondary/20 border-border/40 text-muted-foreground group-hover:bg-secondary/40 group-hover:text-foreground"
+        )}
+      >
+        {parsed.plannedBudget !== null && (
+          <svg className="absolute -top-[5px] -left-[5px] size-16 -rotate-90">
+            <circle
+              cx="32"
+              cy="32"
+              r={radius}
+              className="stroke-secondary/35"
+              strokeWidth="2"
+              fill="transparent"
+            />
+            <circle
+              cx="32"
+              cy="32"
+              r={radius}
+              className={cn(
+                "transition-all duration-300",
+                budgetUtilization >= 100 ? "stroke-destructive" : "stroke-neutral-800 dark:stroke-neutral-200"
+              )}
+              strokeWidth="2"
+              fill="transparent"
+              strokeDasharray={circumference}
+              strokeDashoffset={strokeDashoffset}
+              strokeLinecap="round"
+            />
+          </svg>
+        )}
+        <CategoryIcon icon={node.icon} glyphClassName={cn("size-5 text-muted-foreground transition-colors", selected && "text-foreground")} />
+      </div>
+
+      {/* Text labels */}
+      <div className="min-w-0 w-full">
+        <p className={cn("text-xs truncate font-medium text-foreground leading-tight", selected && "font-semibold")}>
+          {node.name}
+        </p>
+        <p className="text-[11px] truncate text-muted-foreground mt-0.5 font-medium tabular-nums">
+          {total.amount !== null ? (
+            <MoneyAmount amount={total.amount} currency={defaultCurrency} display="absolute" className="inline text-muted-foreground" />
           ) : (
-            "No budget"
+            "—"
           )}
         </p>
       </div>
-      <div className="text-right shrink-0">
-        {total.amount !== null ? (
-          <MoneyAmount amount={total.amount} currency={defaultCurrency} display="absolute" className="text-sm font-medium tabular-nums text-foreground" />
-        ) : (
-          "—"
-        )}
-      </div>
-
-      {parsed.plannedBudget !== null && (
-        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-secondary/30">
-          <div 
-            className={cn(
-              "h-full transition-all duration-300", 
-              budgetUtilization >= 100 ? "bg-destructive" : "bg-neutral-800 dark:bg-neutral-200"
-            )}
-            style={{ width: `${budgetUtilization}%` }}
-          />
-        </div>
-      )}
     </button>
   );
 }
@@ -405,20 +440,22 @@ function CategoryDetailsPanel({
 
       {/* Subcategories nested stack */}
       {node.children.length ? (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-3 mt-2">
           <span className="type-body-12 text-muted-foreground uppercase tracking-wider">
             {t("category.childCount", { count: node.children.length })}
           </span>
-          <div className="flex flex-col border border-border/40 rounded-[var(--radius-control)] bg-secondary/5 divide-y divide-border/30 overflow-hidden">
+          <div className="flex flex-wrap gap-x-6 gap-y-5 justify-start px-1 py-1">
             {sortNodesByActivity(node.children).map((child) => (
-              <CategoryRowItem
+              <CategoryCircleItem
                 key={child.id}
                 node={child}
                 month={month}
                 transactions={transactions}
                 snapshot={snapshot}
                 selected={false}
+                editMode={editMode}
                 onClick={() => onSelectCategory(child.id)}
+                onDelete={onDelete}
               />
             ))}
           </div>
@@ -509,16 +546,18 @@ function CategorySection({
         </div>
       ) : null}
       {nodes.length ? (
-        <div className="flex flex-col border border-border/40 rounded-[var(--radius-control)] bg-secondary/5 divide-y divide-border/30">
+        <div className="flex flex-wrap gap-x-6 gap-y-5 justify-start px-2 py-1">
           {nodes.map((node) => (
-            <CategoryRowItem
+            <CategoryCircleItem
               key={node.id}
               node={node}
               month={month}
               transactions={transactions}
               snapshot={snapshot}
               selected={selectedCategoryId === node.id}
+              editMode={editMode}
               onClick={() => onSelectCategory(selectedCategoryId === node.id ? null : node.id)}
+              onDelete={onDelete}
             />
           ))}
         </div>
