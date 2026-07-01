@@ -12,11 +12,12 @@ import type { Account, Transaction } from "@/types/finance";
 
 type BalanceRegisterHeaderProps = {
   title: string;
-  startDate: string;
-  endDate: string;
-  defaultStartDate: string;
-  onStartDateChange: (value: string) => void;
-  onEndDateChange: (value: string) => void;
+  description?: string;
+  startDate?: string;
+  endDate?: string;
+  defaultStartDate?: string;
+  onStartDateChange?: (value: string) => void;
+  onEndDateChange?: (value: string) => void;
   onClearSelection?: () => void;
   showClearSelection?: boolean;
   onAddTransaction?: () => void;
@@ -27,6 +28,7 @@ type BalanceRegisterHeaderProps = {
 
 export function BalanceRegisterHeader({
   title,
+  description,
   startDate,
   endDate,
   defaultStartDate,
@@ -40,6 +42,14 @@ export function BalanceRegisterHeader({
   className,
 }: BalanceRegisterHeaderProps) {
   const t = useTranslations("accounts");
+  const hasDatePicker = Boolean(
+    startDate &&
+      endDate &&
+      defaultStartDate &&
+      onStartDateChange &&
+      onEndDateChange
+  );
+
   return (
     <div
       className={cn(
@@ -58,34 +68,43 @@ export function BalanceRegisterHeader({
                 onClick={onBack}
               />
             ) : null}
-            <h3 className="min-w-0 truncate font-heading text-[28px] leading-none tracking-[-0.035em] text-foreground sm:type-h1">
-              {title}
-            </h3>
-            <div className="hidden min-w-0 lg:block">
-            <DateRangePicker
-              startDate={startDate}
-              endDate={endDate}
-              defaultStartDate={defaultStartDate}
-              onChange={({ startDate: nextStartDate, endDate: nextEndDate }) => {
-                onStartDateChange(nextStartDate);
-                onEndDateChange(nextEndDate);
-              }}
-              triggerAriaLabel={t("view.dateRange")}
-              emptyLabel={t("view.anyDate")}
-              presets={{
-                today: t("view.presets.today"),
-                yesterday: t("view.presets.yesterday"),
-                last7Days: t("view.presets.last7Days"),
-                last14Days: t("view.presets.last14Days"),
-                last30Days: t("view.presets.last30Days"),
-                thisWeek: t("view.presets.thisWeek"),
-                lastWeek: t("view.presets.lastWeek"),
-                thisMonth: t("view.presets.thisMonth"),
-                lastMonth: t("view.presets.lastMonth"),
-              }}
-              className="min-w-0"
-            />
+            <div className="min-w-0 flex-1">
+              <h3 className="min-w-0 truncate font-heading text-[28px] leading-none tracking-[-0.035em] text-foreground sm:type-h1">
+                {title}
+              </h3>
+              {description ? (
+                <p className="mt-1 truncate type-body-14 text-muted-foreground">
+                  {description}
+                </p>
+              ) : null}
             </div>
+            {hasDatePicker && (
+              <div className="hidden min-w-0 lg:block">
+                <DateRangePicker
+                  startDate={startDate!}
+                  endDate={endDate!}
+                  defaultStartDate={defaultStartDate!}
+                  onChange={({ startDate: nextStartDate, endDate: nextEndDate }) => {
+                    onStartDateChange!(nextStartDate);
+                    onEndDateChange!(nextEndDate);
+                  }}
+                  triggerAriaLabel={t("view.dateRange")}
+                  emptyLabel={t("view.anyDate")}
+                  presets={{
+                    today: t("view.presets.today"),
+                    yesterday: t("view.presets.yesterday"),
+                    last7Days: t("view.presets.last7Days"),
+                    last14Days: t("view.presets.last14Days"),
+                    last30Days: t("view.presets.last30Days"),
+                    thisWeek: t("view.presets.thisWeek"),
+                    lastWeek: t("view.presets.lastWeek"),
+                    thisMonth: t("view.presets.thisMonth"),
+                    lastMonth: t("view.presets.lastMonth"),
+                  }}
+                  className="min-w-0"
+                />
+              </div>
+            )}
           </div>
 
           <div className="flex shrink-0 items-center gap-1 sm:gap-2">
@@ -104,36 +123,38 @@ export function BalanceRegisterHeader({
                 onClick={onClearSelection}
               />
             ) : (
-              <span className="block size-8" aria-hidden="true" />
+              !onBack && <span className="block size-8" aria-hidden="true" />
             )}
           </div>
         </div>
-        <div className="mt-2 px-1.5 lg:hidden">
-          <DateRangePicker
-            startDate={startDate}
-            endDate={endDate}
-            defaultStartDate={defaultStartDate}
-            onChange={({ startDate: nextStartDate, endDate: nextEndDate }) => {
-              onStartDateChange(nextStartDate);
-              onEndDateChange(nextEndDate);
-            }}
-            triggerAriaLabel={t("view.dateRange")}
-            emptyLabel={t("view.anyDate")}
-            presets={{
-              today: t("view.presets.today"),
-              yesterday: t("view.presets.yesterday"),
-              last7Days: t("view.presets.last7Days"),
-              last14Days: t("view.presets.last14Days"),
-              last30Days: t("view.presets.last30Days"),
-              thisWeek: t("view.presets.thisWeek"),
-              lastWeek: t("view.presets.lastWeek"),
-              thisMonth: t("view.presets.thisMonth"),
-              lastMonth: t("view.presets.lastMonth"),
-            }}
-            className="w-full"
-            triggerClassName="w-full justify-center bg-secondary/60"
-          />
-        </div>
+        {hasDatePicker && (
+          <div className="mt-2 px-1.5 lg:hidden">
+            <DateRangePicker
+              startDate={startDate!}
+              endDate={endDate!}
+              defaultStartDate={defaultStartDate!}
+              onChange={({ startDate: nextStartDate, endDate: nextEndDate }) => {
+                onStartDateChange!(nextStartDate);
+                onEndDateChange!(nextEndDate);
+              }}
+              triggerAriaLabel={t("view.dateRange")}
+              emptyLabel={t("view.anyDate")}
+              presets={{
+                today: t("view.presets.today"),
+                yesterday: t("view.presets.yesterday"),
+                last7Days: t("view.presets.last7Days"),
+                last14Days: t("view.presets.last14Days"),
+                last30Days: t("view.presets.last30Days"),
+                thisWeek: t("view.presets.thisWeek"),
+                lastWeek: t("view.presets.lastWeek"),
+                thisMonth: t("view.presets.thisMonth"),
+                lastMonth: t("view.presets.lastMonth"),
+              }}
+              className="w-full"
+              triggerClassName="w-full justify-center bg-secondary/60"
+            />
+          </div>
+        )}
       </div>
     </div>
   );

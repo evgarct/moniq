@@ -261,6 +261,7 @@ export function AccountsView({
 
                   return nextId;
                 });
+                setSelectedInvestmentId(null);
               }}
               onAddAccount={openAddWallet}
               onEditAccount={openEditWallet}
