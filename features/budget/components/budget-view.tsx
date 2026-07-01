@@ -282,9 +282,10 @@ function CategoryDetailsPanel({
             {node.purpose ? null : (
               <Button
                 type="button"
-                variant="destructive"
+                variant="ghost"
                 size="sm"
                 onClick={() => onDelete(node)}
+                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
               >
                 <Trash2 className="size-4 mr-1.5" />
                 {categoriesTreeT("deleteCategory")}
@@ -347,7 +348,7 @@ function CategoryDetailsPanel({
           {!showTransactions ? (
             <Button type="button" variant="outline" size="sm" onClick={() => setShowTransactions(true)}>
               <ChevronDown className="size-4 mr-1.5" />
-              {t("category.showTransactions", { count: linkedTransactions.length })}
+              {t("category.showTransactions", { count: String(linkedTransactions.length) })}
             </Button>
           ) : (
             <>
