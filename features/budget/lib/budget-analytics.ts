@@ -148,3 +148,24 @@ export function getConvertedCategoryTotal(options: {
     missingCurrencies: Array.from(missingCurrencies).sort(),
   };
 }
+
+export function parseCategoryDescriptionAndBudget(description?: string | null) {
+  if (!description) return { description: "", plannedBudget: null };
+  const match = description.match(/^\[budget:\s*([\d.]+)\]\s*([\s\S]*)$/);
+  if (match) {
+    const val = parseFloat(match[1]);
+    return {
+      plannedBudget: isNaN(val) ? null : val,
+      description: match[2].trim(),
+    };
+  }
+  return { description: description.trim(), plannedBudget: null };
+}
+
+export function serializeCategoryDescriptionAndBudget(description: string, plannedBudget: number | null) {
+  const desc = description.trim();
+  if (plannedBudget !== null && !isNaN(plannedBudget) && plannedBudget >= 0) {
+    return `[budget: ${plannedBudget}] ${desc}`;
+  }
+  return desc;
+}

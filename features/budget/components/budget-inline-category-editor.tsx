@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { SelectGroup, SelectItem } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { getCategoryDescendantIds } from "@/features/categories/lib/category-tree";
+import { parseCategoryDescriptionAndBudget, serializeCategoryDescriptionAndBudget } from "@/features/budget/lib/budget-analytics";
 import type { Category, CategoryType } from "@/types/finance";
 import type { CategoryInput } from "@/types/finance-schemas";
 
@@ -30,8 +31,10 @@ export function BudgetInlineCategoryEditor({
 }) {
   const t = useTranslations("categories.form");
   const commonT = useTranslations("common.actions");
+  const parsed = useMemo(() => parseCategoryDescriptionAndBudget(category?.description), [category]);
   const [name, setName] = useState(category?.name ?? "");
-  const [description, setDescription] = useState(category?.description ?? "");
+  const [description, setDescription] = useState(parsed.description);
+  const [plannedBudget, setPlannedBudget] = useState(parsed.plannedBudget !== null ? String(parsed.plannedBudget) : "");
   const [icon, setIcon] = useState(category?.icon ?? "folder");
   const [type, setType] = useState<CategoryType>(category?.type ?? initialType);
   const [parentId, setParentId] = useState<string | null>(category?.parent_id ?? initialParentId ?? null);
@@ -53,9 +56,10 @@ export function BudgetInlineCategoryEditor({
           setNameError(t("validation.nameRequired"));
           return;
         }
+        const budgetVal = plannedBudget.trim() === "" ? null : parseFloat(plannedBudget);
         onSubmit({
           name: name.trim(),
-          description: description.trim() || null,
+          description: serializeCategoryDescriptionAndBudget(description.trim(), budgetVal) || null,
           icon,
           type,
           parent_id: parentId,
@@ -110,6 +114,17 @@ export function BudgetInlineCategoryEditor({
           ))}
         </SelectGroup>
       </FormSelectField>
+
+      <FormField id="budget-category-planned-budget" label={t("fields.plannedBudget")} className="lg:col-span-2">
+        <Input
+          id="budget-category-planned-budget"
+          type="number"
+          step="any"
+          min="0"
+          value={plannedBudget}
+          onChange={(event) => setPlannedBudget(event.target.value)}
+        />
+      </FormField>
 
       <FormField id="budget-category-description" label={t("fields.description")} className="lg:col-span-2">
         <Textarea

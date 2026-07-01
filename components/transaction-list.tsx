@@ -4,7 +4,8 @@ import { useFormatter } from "next-intl";
 import { TransactionRow } from "@/components/transaction-row";
 import { isVisibleTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
 import { calDate } from "@/lib/formatters";
-import type { Transaction } from "@/types/finance";
+import type { CurrencyCode } from "@/types/currency";
+import type { ExchangeRate, Transaction } from "@/types/finance";
 
 type ActionCallbacks = {
   onEditOccurrence?: (transaction: Transaction) => void;
@@ -31,6 +32,8 @@ function renderTransactionListItem({
   getSecondaryLabel,
   onTransactionClick,
   actionCallbacks,
+  targetCurrency,
+  exchangeRates,
 }: {
   transaction: Transaction;
   variant: "default" | "board";
@@ -46,6 +49,8 @@ function renderTransactionListItem({
   getSecondaryLabel?: (transaction: Transaction) => string | undefined;
   onTransactionClick?: (transaction: Transaction) => void;
   actionCallbacks: ActionCallbacks;
+  targetCurrency?: CurrencyCode;
+  exchangeRates?: ExchangeRate[];
 }) {
   const detail = renderDetail?.(transaction);
 
@@ -71,6 +76,8 @@ function renderTransactionListItem({
         onMarkPaid={actionCallbacks.onMarkPaid}
         onSkipOccurrence={actionCallbacks.onSkipOccurrence}
         onToggleScheduleState={actionCallbacks.onToggleScheduleState}
+        targetCurrency={targetCurrency}
+        exchangeRates={exchangeRates}
       />
       {detail}
     </div>
@@ -100,6 +107,8 @@ export function TransactionList({
   onMarkPaid,
   onSkipOccurrence,
   onToggleScheduleState,
+  targetCurrency,
+  exchangeRates,
 }: {
   transactions: Transaction[];
   emptyMessage: string;
@@ -116,6 +125,8 @@ export function TransactionList({
   getPrimaryLabelClassName?: (transaction: Transaction) => string | undefined;
   getSecondaryLabel?: (transaction: Transaction) => string | undefined;
   onTransactionClick?: (transaction: Transaction) => void;
+  targetCurrency?: CurrencyCode;
+  exchangeRates?: ExchangeRate[];
 } & ActionCallbacks) {
   const formatDate = useFormatter();
   const visibleTransactions = transactions.filter((transaction) => isVisibleTransactionStatus(transaction.status));
@@ -177,6 +188,8 @@ export function TransactionList({
                   getSecondaryLabel,
                   onTransactionClick,
                   actionCallbacks,
+                  targetCurrency,
+                  exchangeRates,
                 }),
               )}
             </div>
@@ -204,6 +217,8 @@ export function TransactionList({
           getSecondaryLabel,
           onTransactionClick,
           actionCallbacks,
+          targetCurrency,
+          exchangeRates,
         }),
       )}
     </div>

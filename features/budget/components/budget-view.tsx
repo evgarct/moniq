@@ -1,7 +1,7 @@
 "use client";
 
 import { addMonths, isSameMonth, parseISO, startOfToday } from "date-fns";
-import { ChevronDown, ChevronLeft, ChevronRight, Ellipsis, PencilLine, Plus, Settings2, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, PencilLine, Plus, Settings2, Trash2, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
 
@@ -11,18 +11,13 @@ import { MoneyAmount } from "@/components/money-amount";
 import { PageHeader } from "@/components/page-header";
 import { PageHeaderIconButton } from "@/components/page-header-icon-button";
 import { TransactionList } from "@/components/transaction-list";
+import { Surface } from "@/components/surface";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import { BudgetBarChart } from "@/features/budget/components/budget-bar-chart";
 import { BudgetInlineCategoryEditor } from "@/features/budget/components/budget-inline-category-editor";
 import { BudgetMonthAnalysisSheet } from "@/features/budget/components/budget-month-analysis-sheet";
-import { getConvertedCategoryTotal } from "@/features/budget/lib/budget-analytics";
+import { getConvertedCategoryTotal, parseCategoryDescriptionAndBudget, serializeCategoryDescriptionAndBudget } from "@/features/budget/lib/budget-analytics";
 import { CategoryDeleteSheet } from "@/features/categories/components/category-delete-sheet";
 import {
   buildCategoryTree,
@@ -45,43 +40,24 @@ function sortNodesByActivity(nodes: CategoryTreeNode[]) {
   return [...nodes].sort((left, right) => Math.abs(right.total_amount) - Math.abs(left.total_amount));
 }
 
-function CategoryActions({
-  node,
-  onAddChild,
-  onEdit,
-  onDelete,
-}: {
-  node: CategoryTreeNode;
-  onAddChild: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
-}) {
-  const t = useTranslations("categories.tree");
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            aria-label={t("openMenu", { name: node.name })}
-          />
-        }
-      >
-        <Ellipsis />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
-        <DropdownMenuGroup>
-          <DropdownMenuItem onClick={onAddChild}><Plus />{t("addChild")}</DropdownMenuItem>
-          <DropdownMenuItem onClick={onEdit}><PencilLine />{t("editCategory")}</DropdownMenuItem>
-          {node.purpose ? null : (
-            <DropdownMenuItem variant="destructive" onClick={onDelete}><Trash2 />{t("deleteCategory")}</DropdownMenuItem>
-          )}
-        </DropdownMenuGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
+function findCategoryTreeNode(nodes: CategoryTreeNode[], id: string): CategoryTreeNode | null {
+  for (const node of nodes) {
+    if (node.id === id) return node;
+    const found = findCategoryTreeNode(node.children, id);
+    if (found) return found;
+  }
+  return null;
+}
+
+function buildCategoryPath(nodeId: string, categories: Category[]): Category[] {
+  const path: Category[] = [];
+  let current = categories.find((c) => c.id === nodeId);
+  while (current) {
+    path.unshift(current);
+    const parentId = current.parent_id;
+    current = parentId ? categories.find((c) => c.id === parentId) : undefined;
+  }
+  return path;
 }
 
 function InlineEditor({
@@ -111,74 +87,14 @@ function InlineEditor({
   );
 }
 
-function ManagedCategoryBranch({
-  node,
-  categories,
-  editor,
-  onEditState,
-  onSave,
-  onDelete,
-}: {
-  node: CategoryTreeNode;
-  categories: Category[];
-  editor: CategoryEditorState | null;
-  onEditState: (editor: CategoryEditorState | null) => void;
-  onSave: (editor: CategoryEditorState, values: CategoryInput) => void;
-  onDelete: (category: Category) => void;
-}) {
-  const editingHere = editor?.mode === "edit" && editor.category.id === node.id;
-  const addingHere = editor?.mode === "add" && editor.parentId === node.id;
-  return (
-    <div className="border-b border-border/35 last:border-b-0">
-      <div className="flex min-h-11 items-center gap-3 px-2 py-1.5 hover:bg-secondary/50">
-        <CategoryIcon icon={node.icon} glyphClassName="size-4 shrink-0 text-muted-foreground" />
-        <span className="type-body-14 min-w-0 flex-1 truncate">{node.name}</span>
-        <CategoryActions
-          node={node}
-          onAddChild={() => onEditState({ mode: "add", type: node.type, parentId: node.id })}
-          onEdit={() => onEditState({ mode: "edit", category: node })}
-          onDelete={() => onDelete(node)}
-        />
-      </div>
-      {editingHere || addingHere ? (
-        <InlineEditor
-          editor={editor!}
-          categories={categories}
-          onSave={(values) => onSave(editor!, values)}
-          onCancel={() => onEditState(null)}
-        />
-      ) : null}
-      {node.children.length ? (
-        <div className="ml-5 border-l border-border/50 pl-2">
-          {node.children.map((child) => (
-            <ManagedCategoryBranch
-              key={child.id}
-              node={child}
-              categories={categories}
-              editor={editor}
-              onEditState={onEditState}
-              onSave={onSave}
-              onDelete={onDelete}
-            />
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function CategoryRow({
+function CategoryCircleItem({
   node,
   month,
   transactions,
   snapshot,
   selected,
   editMode,
-  editor,
-  manageableCategories,
-  onSelect,
-  onEditState,
-  onSave,
+  onClick,
   onDelete,
 }: {
   node: CategoryTreeNode;
@@ -187,106 +103,390 @@ function CategoryRow({
   snapshot: FinanceSnapshot;
   selected: boolean;
   editMode: boolean;
-  editor: CategoryEditorState | null;
-  manageableCategories: Category[];
-  onSelect: () => void;
-  onEditState: (editor: CategoryEditorState | null) => void;
-  onSave: (editor: CategoryEditorState, values: CategoryInput) => void;
+  onClick: () => void;
   onDelete: (category: Category) => void;
 }) {
-  const t = useTranslations("budget");
+  const defaultCurrency = snapshot.preferences.default_currency;
+  
   const categoryIds = useMemo(
     () => new Set([node.id, ...getCategoryDescendantIds(snapshot.categories, node.id)]),
     [node.id, snapshot.categories],
   );
+  
   const total = useMemo(
     () => getConvertedCategoryTotal({
       transactions,
       month,
       categoryIds,
-      targetCurrency: snapshot.preferences.default_currency,
+      targetCurrency: defaultCurrency,
       exchangeRates: snapshot.exchange_rates,
     }),
-    [categoryIds, month, snapshot.exchange_rates, snapshot.preferences.default_currency, transactions],
+    [categoryIds, month, snapshot.exchange_rates, defaultCurrency, transactions],
   );
-  const linkedTransactions = useMemo(
-    () => transactions.filter((transaction) => transaction.category_id && categoryIds.has(transaction.category_id)),
-    [categoryIds, transactions],
+  
+  const parsed = useMemo(() => parseCategoryDescriptionAndBudget(node.description), [node.description]);
+
+  const budgetUtilization = useMemo(() => {
+    if (parsed.plannedBudget === null || parsed.plannedBudget <= 0) return 0;
+    return Math.min(100, Math.max(0, (Math.abs(total.amount || 0) / parsed.plannedBudget) * 100));
+  }, [total.amount, parsed.plannedBudget]);
+
+  const radius = 28;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (budgetUtilization / 100) * circumference;
+
+  return (
+    <button
+      type="button"
+      className="group flex w-20 flex-col items-center text-center gap-1.5 relative select-none active:scale-[0.96] transition-transform duration-150"
+      onClick={onClick}
+    >
+      {/* Edit mode delete badge */}
+      {editMode && !node.purpose && (
+        <span
+          role="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(node);
+          }}
+          className="absolute -top-1 -right-1 z-10 flex size-5 items-center justify-center rounded-full bg-destructive text-white hover:bg-destructive/90 shadow-sm active:scale-95 transition-transform"
+        >
+          <X className="size-3" />
+        </span>
+      )}
+
+      {/* Circle Icon and Progress SVG */}
+      <div 
+        className={cn(
+          "relative size-14 flex items-center justify-center rounded-full border transition-[background-color,border-color] duration-150",
+          selected
+            ? "bg-secondary/70 border-foreground text-foreground"
+            : "bg-secondary/20 border-border/40 text-muted-foreground group-hover:bg-secondary/40 group-hover:text-foreground"
+        )}
+      >
+        {parsed.plannedBudget !== null && (
+          <svg className="absolute -top-[5px] -left-[5px] size-16 -rotate-90">
+            <circle
+              cx="32"
+              cy="32"
+              r={radius}
+              className="stroke-secondary/35"
+              strokeWidth="2"
+              fill="transparent"
+            />
+            <circle
+              cx="32"
+              cy="32"
+              r={radius}
+              className={cn(
+                "transition-all duration-300",
+                budgetUtilization >= 100 ? "stroke-destructive" : "stroke-neutral-800 dark:stroke-neutral-200"
+              )}
+              strokeWidth="2"
+              fill="transparent"
+              strokeDasharray={circumference}
+              strokeDashoffset={strokeDashoffset}
+              strokeLinecap="round"
+            />
+          </svg>
+        )}
+        <CategoryIcon icon={node.icon} glyphClassName={cn("size-5 text-muted-foreground transition-colors", selected && "text-foreground")} />
+      </div>
+
+      {/* Text labels */}
+      <div className="min-w-0 w-full">
+        <p className={cn("text-xs truncate font-medium text-foreground leading-tight", selected && "font-semibold")}>
+          {node.name}
+        </p>
+        <p className="text-[11px] truncate text-muted-foreground mt-0.5 font-medium tabular-nums">
+          {total.amount !== null ? (
+            <MoneyAmount amount={total.amount} currency={defaultCurrency} display="absolute" className="inline text-muted-foreground" />
+          ) : (
+            "—"
+          )}
+        </p>
+      </div>
+    </button>
   );
+}
+
+function InlineBudgetInput({
+  category,
+  onSave,
+  currency,
+}: {
+  category: Category;
+  onSave: (values: CategoryInput) => void;
+  currency: string;
+}) {
+  const parsed = useMemo(() => parseCategoryDescriptionAndBudget(category.description), [category.description]);
+  const [value, setValue] = useState(parsed.plannedBudget !== null ? String(parsed.plannedBudget) : "");
+
+  const handleBlurOrSubmit = () => {
+    const trimmed = value.trim();
+    const budgetVal = trimmed === "" ? null : parseFloat(trimmed);
+    const oldBudget = parsed.plannedBudget;
+    if (budgetVal === oldBudget) return;
+
+    onSave({
+      name: category.name,
+      description: serializeCategoryDescriptionAndBudget(parsed.description, budgetVal) || null,
+      icon: category.icon,
+      type: category.type,
+      parent_id: category.parent_id,
+    });
+  };
+
+  return (
+    <div className="flex items-center gap-1.5 mt-1 relative">
+      <Input
+        type="number"
+        step="any"
+        min="0"
+        placeholder="—"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={handleBlurOrSubmit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.currentTarget.blur();
+          }
+        }}
+        className="h-8 w-24 border-border/40 bg-background/50 px-2 text-sm font-semibold tabular-nums focus:bg-background focus:ring-1 focus:ring-ring/25 active:scale-[0.98]"
+      />
+      <span className="text-sm font-medium text-muted-foreground">{currency}</span>
+    </div>
+  );
+}
+
+function CategoryDetailsPanel({
+  nodeId,
+  month,
+  transactions,
+  snapshot,
+  editMode,
+  editor,
+  manageableCategories,
+  onSelectCategory,
+  onEditState,
+  onSave,
+  onDelete,
+}: {
+  nodeId: string;
+  month: Date;
+  transactions: Transaction[];
+  snapshot: FinanceSnapshot;
+  editMode: boolean;
+  editor: CategoryEditorState | null;
+  manageableCategories: Category[];
+  onSelectCategory: (id: string | null) => void;
+  onEditState: (state: CategoryEditorState | null) => void;
+  onSave: (editor: CategoryEditorState, values: CategoryInput) => void;
+  onDelete: (category: Category) => void;
+}) {
+  const t = useTranslations("budget");
+  const categoriesTreeT = useTranslations("categories.tree");
+  const defaultCurrency = snapshot.preferences.default_currency;
+  const [showTransactions, setShowTransactions] = useState(false);
+
+  const node = useMemo(() => {
+    const tree = buildCategoryTree(manageableCategories, transactions);
+    return findCategoryTreeNode(tree, nodeId);
+  }, [manageableCategories, transactions, nodeId]);
+
+  const categoryIds = useMemo(
+    () => new Set(node ? [node.id, ...getCategoryDescendantIds(snapshot.categories, node.id)] : []),
+    [node, snapshot.categories],
+  );
+
+  const total = useMemo(() => getConvertedCategoryTotal({
+    transactions,
+    month,
+    categoryIds,
+    targetCurrency: defaultCurrency,
+    exchangeRates: snapshot.exchange_rates,
+  }), [transactions, month, categoryIds, defaultCurrency, snapshot.exchange_rates]);
+
+  const linkedTransactions = useMemo(() => transactions.filter(
+    (transaction) => transaction.category_id && categoryIds.has(transaction.category_id),
+  ), [transactions, categoryIds]);
+
+  const parsed = useMemo(() => parseCategoryDescriptionAndBudget(node?.description), [node]);
+  const path = useMemo(() => node ? buildCategoryPath(node.id, manageableCategories) : [], [node, manageableCategories]);
+
+  if (!node) return null;
+
   const editingHere = editor?.mode === "edit" && editor.category.id === node.id;
   const addingHere = editor?.mode === "add" && editor.parentId === node.id;
 
+  if (editMode && (editingHere || addingHere)) {
+    return (
+      <div className="mt-4">
+        <InlineEditor
+          editor={editor!}
+          categories={manageableCategories}
+          onSave={(values) => onSave(editor!, values)}
+          onCancel={() => onEditState(null)}
+        />
+      </div>
+    );
+  }
+
+  const handleBack = () => {
+    if (path.length > 1) {
+      onSelectCategory(path[path.length - 2].id);
+    } else {
+      onSelectCategory(null);
+    }
+  };
+
   return (
-    <div className="border-b border-border/40 last:border-b-0">
-      <div className={cn(
-        "flex min-h-14 items-center gap-3 rounded-[var(--radius-control)] px-2 py-2",
-        !editMode && "hover:bg-secondary/50",
-        selected && !editMode && "bg-secondary/60",
-      )}>
-        <button
+    <Surface tone="panel" padding="md" className="flex flex-col gap-4">
+      {/* Header back button navigation */}
+      <div className="flex items-center justify-between gap-3">
+        <Button
           type="button"
-          className="flex min-w-0 flex-1 items-center gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          onClick={editMode ? undefined : onSelect}
-          aria-expanded={editMode ? undefined : selected}
+          variant="ghost"
+          size="sm"
+          onClick={handleBack}
+          className="h-9 px-2 text-muted-foreground hover:text-foreground active:scale-[0.98] transition-transform"
         >
-          <CategoryIcon icon={node.icon} glyphClassName="size-[18px] shrink-0 text-muted-foreground" />
-          <span className="min-w-0 flex-1">
-            <span className="type-body-14 block truncate font-medium text-foreground">{node.name}</span>
-            <span className="type-body-12 block truncate text-muted-foreground">{t("category.childCount", { count: node.children.length })}</span>
-          </span>
-          {total.amount === null ? (
-            <span className="type-body-12 shrink-0 text-muted-foreground">{t("category.rateUnavailable")}</span>
-          ) : (
-            <MoneyAmount amount={total.amount} currency={snapshot.preferences.default_currency} display="absolute" className="shrink-0 type-body-14 font-medium" />
-          )}
-          {!editMode ? <ChevronDown className={cn("shrink-0 text-muted-foreground transition-transform", selected && "rotate-180")} /> : null}
-        </button>
+          <ChevronLeft className="size-4 mr-1 shrink-0" />
+          <span>{path.length > 1 ? path[path.length - 2].name : t("view.title")}</span>
+        </Button>
+
         {editMode ? (
-          <CategoryActions
-            node={node}
-            onAddChild={() => onEditState({ mode: "add", type: node.type, parentId: node.id })}
-            onEdit={() => onEditState({ mode: "edit", category: node })}
-            onDelete={() => onDelete(node)}
-          />
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => onEditState({ mode: "add", type: node.type, parentId: node.id })}
+            >
+              <Plus className="size-4 mr-1.5" />
+              {categoriesTreeT("addChild")}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => onEditState({ mode: "edit", category: node })}
+            >
+              <PencilLine className="size-4 mr-1.5" />
+              {categoriesTreeT("editCategory")}
+            </Button>
+            {node.purpose ? null : (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => onDelete(node)}
+                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+              >
+                <Trash2 className="size-4 mr-1.5" />
+                {categoriesTreeT("deleteCategory")}
+              </Button>
+            )}
+          </div>
         ) : null}
       </div>
 
-      {editMode && (editingHere || addingHere) ? (
-        <InlineEditor editor={editor!} categories={manageableCategories} onSave={(values) => onSave(editor!, values)} onCancel={() => onEditState(null)} />
-      ) : null}
+      {/* Category Info */}
+      <div className="flex items-center gap-3 mt-1">
+        <CategoryIcon icon={node.icon} glyphClassName="size-6 text-muted-foreground" />
+        <div>
+          <h3 className="type-h4 font-serif">{node.name}</h3>
+          {parsed.description ? (
+            <p className="type-body-14 text-muted-foreground mt-1 max-w-xl">{parsed.description}</p>
+          ) : null}
+        </div>
+      </div>
 
-      {editMode ? (
-        node.children.length ? (
-          <div className="ml-5 border-l border-border/50 pl-2">
-            {node.children.map((child) => (
-              <ManagedCategoryBranch
+      {/* Actual Spent vs Planned */}
+      <div className="grid grid-cols-2 gap-4 border-y border-border/20 py-4 my-2">
+        <div>
+          <span className="type-body-12 text-muted-foreground uppercase tracking-wider block">
+            {t("category.actual")}
+          </span>
+          <span className="type-h3 font-semibold tabular-nums mt-1 block">
+            {total.amount !== null ? (
+              <MoneyAmount amount={total.amount} currency={defaultCurrency} display="absolute" />
+            ) : (
+              "—"
+            )}
+          </span>
+        </div>
+        <div>
+          <span className="type-body-12 text-muted-foreground uppercase tracking-wider block font-medium">
+            {t("category.planned")}
+          </span>
+          {editMode ? (
+            <span className="type-h3 font-semibold tabular-nums mt-1 block">
+              {parsed.plannedBudget !== null ? (
+                <MoneyAmount amount={parsed.plannedBudget} currency={defaultCurrency} display="absolute" />
+              ) : (
+                "—"
+              )}
+            </span>
+          ) : (
+            <InlineBudgetInput key={node.id} category={node} onSave={(values) => onSave(editor || { mode: "edit", category: node }, values)} currency={defaultCurrency} />
+          )}
+        </div>
+      </div>
+
+      {/* Subcategories nested stack */}
+      {node.children.length ? (
+        <div className="flex flex-col gap-3 mt-2">
+          <span className="type-body-12 text-muted-foreground uppercase tracking-wider">
+            {t("category.childCount", { count: node.children.length })}
+          </span>
+          <div className="flex flex-wrap gap-x-6 gap-y-5 justify-start px-1 py-1">
+            {sortNodesByActivity(node.children).map((child) => (
+              <CategoryCircleItem
                 key={child.id}
                 node={child}
-                categories={manageableCategories}
-                editor={editor}
-                onEditState={onEditState}
-                onSave={onSave}
+                month={month}
+                transactions={transactions}
+                snapshot={snapshot}
+                selected={false}
+                editMode={editMode}
+                onClick={() => onSelectCategory(child.id)}
                 onDelete={onDelete}
               />
             ))}
           </div>
-        ) : null
-      ) : selected ? (
-        <div className="flex flex-col gap-4 px-2 pb-5 pl-8">
-          {node.children.length ? (
-            <div className="flex flex-col">
-              {sortNodesByActivity(node.children).map((child) => (
-                <div key={child.id} className="flex min-h-11 items-center gap-3 border-b border-border/35 px-1 last:border-b-0">
-                  <CategoryIcon icon={child.icon} glyphClassName="size-4 shrink-0 text-muted-foreground" />
-                  <span className="type-body-14 min-w-0 flex-1 truncate">{child.name}</span>
-                </div>
-              ))}
-            </div>
-          ) : null}
-          <TransactionList transactions={linkedTransactions} emptyMessage={t("category.noTransactions")} groupByDate showMinorUnits />
         </div>
       ) : null}
-    </div>
+
+      {/* Transactions collapsible list */}
+      <div className="border-t border-border/40 pt-4 flex flex-col gap-3">
+        <div>
+          {!showTransactions ? (
+            <Button type="button" variant="outline" size="sm" onClick={() => setShowTransactions(true)} className="active:scale-[0.98] transition-transform">
+              <ChevronDown className="size-4 mr-1.5" />
+              {t("category.showTransactions", { count: String(linkedTransactions.length) })}
+            </Button>
+          ) : (
+            <>
+              <Button type="button" variant="outline" size="sm" onClick={() => setShowTransactions(false)} className="mb-2 active:scale-[0.98] transition-transform">
+                <ChevronUp className="size-4 mr-1.5" />
+                {t("category.hideTransactions")}
+              </Button>
+              <div className="mt-2 rounded-[var(--radius-control)] border border-border/35 bg-background/50 p-2">
+                <TransactionList
+                  transactions={linkedTransactions}
+                  emptyMessage={t("category.noTransactions")}
+                  groupByDate
+                  showMinorUnits
+                  targetCurrency={defaultCurrency}
+                  exchangeRates={snapshot.exchange_rates}
+                />
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </Surface>
   );
 }
 
@@ -325,21 +525,26 @@ function CategorySection({
 }) {
   const commonT = useTranslations("common.actions");
   const addingRoot = editor?.mode === "add" && editor.type === type && editor.parentId === null;
+
   return (
-    <section className="border-t border-border/40 px-4 py-5 sm:px-6 lg:px-7">
-      <div className="mb-2 flex items-center justify-between gap-3">
+    <div className="flex flex-col">
+      <div className="mb-2 flex items-center justify-between gap-3 px-1">
         <h2 className="type-body-12 font-semibold uppercase tracking-[0.18em] text-muted-foreground">{title}</h2>
         {editMode ? (
           <Button type="button" variant="ghost" size="sm" onClick={() => onEditState({ mode: "add", type, parentId: null })}>
-            <Plus data-icon="inline-start" />{commonT("add")}
+            <Plus className="size-4 mr-1" />{commonT("add")}
           </Button>
         ) : null}
       </div>
-      {addingRoot ? <InlineEditor editor={editor} categories={manageableCategories} onSave={(values) => onSave(editor, values)} onCancel={() => onEditState(null)} /> : null}
+      {addingRoot ? (
+        <div className="mb-3">
+          <InlineEditor editor={editor} categories={manageableCategories} onSave={(values) => onSave(editor, values)} onCancel={() => onEditState(null)} />
+        </div>
+      ) : null}
       {nodes.length ? (
-        <div className="flex flex-col">
+        <div className="flex flex-wrap gap-x-6 gap-y-5 justify-start px-2 py-1">
           {nodes.map((node) => (
-            <CategoryRow
+            <CategoryCircleItem
               key={node.id}
               node={node}
               month={month}
@@ -347,17 +552,15 @@ function CategorySection({
               snapshot={snapshot}
               selected={selectedCategoryId === node.id}
               editMode={editMode}
-              editor={editor}
-              manageableCategories={manageableCategories}
-              onSelect={() => onSelectCategory(selectedCategoryId === node.id ? null : node.id)}
-              onEditState={onEditState}
-              onSave={onSave}
+              onClick={() => onSelectCategory(selectedCategoryId === node.id ? null : node.id)}
               onDelete={onDelete}
             />
           ))}
         </div>
-      ) : !addingRoot ? <EmptyState title={emptyMessage} description="" /> : null}
-    </section>
+      ) : !addingRoot ? (
+        <EmptyState title={emptyMessage} description="" className="py-6" />
+      ) : null}
+    </div>
   );
 }
 
@@ -429,7 +632,7 @@ export function BudgetView({
 
   return (
     <>
-      <div className="mobile-nav-scroll-clearance h-full overflow-y-auto bg-background [scroll-padding-bottom:calc(76px+env(safe-area-inset-bottom))]">
+      <div className="mobile-nav-scroll-clearance h-full overflow-y-auto bg-background [scroll-padding-bottom:calc(76px+env(safe-area-inset-bottom))] lg:[scroll-padding-bottom:1rem]">
         <PageHeader
           title={t("view.title")}
           actions={
@@ -466,8 +669,41 @@ export function BudgetView({
           </div>
         </section>
 
-        <CategorySection title={t("sections.expensesTitle")} type="expense" nodes={expenseNodes} emptyMessage={t("sections.expensesEmpty")} {...sectionProps} />
-        <CategorySection title={t("sections.incomeTitle")} type="income" nodes={incomeNodes} emptyMessage={t("sections.incomeEmpty")} {...sectionProps} />
+        {/* Two-Panel Layout */}
+        <div className="grid grid-cols-1 gap-6 px-4 pb-8 sm:px-6 lg:grid-cols-[400px_minmax(0,1fr)] lg:px-7">
+          {/* Left Column: Category Inventory */}
+          <div className="flex flex-col gap-8">
+            <CategorySection title={t("sections.expensesTitle")} type="expense" nodes={expenseNodes} emptyMessage={t("sections.expensesEmpty")} {...sectionProps} />
+            <CategorySection title={t("sections.incomeTitle")} type="income" nodes={incomeNodes} emptyMessage={t("sections.incomeEmpty")} {...sectionProps} />
+          </div>
+
+          {/* Right Column: Selected Category Details / Register */}
+          <div className="flex flex-col">
+            {selectedCategoryId ? (
+              <CategoryDetailsPanel
+                key={selectedCategoryId}
+                nodeId={selectedCategoryId}
+                month={month}
+                transactions={monthTransactions}
+                snapshot={snapshot}
+                editMode={editMode}
+                editor={editor}
+                manageableCategories={manageableCategories}
+                onSelectCategory={setSelectedCategoryId}
+                onEditState={setEditor}
+                onSave={saveCategory}
+                onDelete={setDeletingCategory}
+              />
+            ) : (
+              <Surface tone="panel" padding="lg" className="flex h-full min-h-[300px] flex-col items-center justify-center text-center">
+                <EmptyState
+                  title={t("category.selectPrompt")}
+                  description={t("category.selectPromptDesc")}
+                />
+              </Surface>
+            )}
+          </div>
+        </div>
       </div>
 
       <CategoryDeleteSheet
