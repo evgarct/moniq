@@ -13,10 +13,11 @@ import { PageHeaderIconButton } from "@/components/page-header-icon-button";
 import { TransactionList } from "@/components/transaction-list";
 import { Surface } from "@/components/surface";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { BudgetBarChart } from "@/features/budget/components/budget-bar-chart";
 import { BudgetInlineCategoryEditor } from "@/features/budget/components/budget-inline-category-editor";
 import { BudgetMonthAnalysisSheet } from "@/features/budget/components/budget-month-analysis-sheet";
-import { getConvertedCategoryTotal, parseCategoryDescriptionAndBudget } from "@/features/budget/lib/budget-analytics";
+import { getConvertedCategoryTotal, parseCategoryDescriptionAndBudget, serializeCategoryDescriptionAndBudget } from "@/features/budget/lib/budget-analytics";
 import { CategoryDeleteSheet } from "@/features/categories/components/category-delete-sheet";
 import {
   buildCategoryTree,
@@ -86,7 +87,7 @@ function InlineEditor({
   );
 }
 
-function CategoryTile({
+function CategoryRowItem({
   node,
   month,
   transactions,
@@ -125,31 +126,85 @@ function CategoryTile({
     <button
       type="button"
       className={cn(
-        "flex items-center gap-3 rounded-[var(--radius-control)] px-3 py-2 transition-all text-left border select-none",
+        "flex w-full items-center gap-3 px-3 py-2.5 transition-colors text-left",
         selected 
-          ? "bg-secondary/70 border-border text-foreground ring-1 ring-ring/25" 
-          : "bg-secondary/20 border-border/45 hover:bg-secondary/40 text-muted-foreground hover:text-foreground"
+          ? "bg-secondary/70 text-foreground" 
+          : "hover:bg-secondary/50 text-muted-foreground hover:text-foreground"
       )}
       onClick={onClick}
     >
-      <CategoryIcon icon={node.icon} glyphClassName={cn("size-4 shrink-0 text-muted-foreground", selected && "text-foreground")} />
-      <div className="flex flex-col min-w-0">
-        <span className="type-body-14 font-medium truncate text-foreground">{node.name}</span>
-        <span className="type-body-12 opacity-85 whitespace-nowrap mt-0.5">
-          {total.amount !== null ? (
-            <MoneyAmount amount={total.amount} currency={defaultCurrency} display="absolute" className="font-semibold inline" />
-          ) : (
-            "—"
-          )}
-          {" / "}
+      <CategoryIcon icon={node.icon} glyphClassName={cn("h-[18px] w-[18px] shrink-0 text-muted-foreground", selected && "text-foreground")} />
+      <div className="min-w-0 flex-1">
+        <p className={cn("type-body-14 truncate font-medium text-foreground", selected && "font-semibold")}>{node.name}</p>
+        <p className="type-body-12 truncate text-muted-foreground mt-0.5">
           {parsed.plannedBudget !== null ? (
-            <MoneyAmount amount={parsed.plannedBudget} currency={defaultCurrency} display="absolute" className="inline text-muted-foreground" />
+            <>
+              {"Plan: "}
+              <MoneyAmount amount={parsed.plannedBudget} currency={defaultCurrency} display="absolute" className="inline text-muted-foreground" />
+            </>
           ) : (
-            "—"
+            "No budget"
           )}
-        </span>
+        </p>
+      </div>
+      <div className="text-right shrink-0">
+        {total.amount !== null ? (
+          <MoneyAmount amount={total.amount} currency={defaultCurrency} display="absolute" className="text-sm font-medium tabular-nums text-foreground" />
+        ) : (
+          "—"
+        )}
       </div>
     </button>
+  );
+}
+
+function InlineBudgetInput({
+  category,
+  onSave,
+}: {
+  category: Category;
+  onSave: (values: CategoryInput) => void;
+}) {
+  const parsed = useMemo(() => parseCategoryDescriptionAndBudget(category.description), [category.description]);
+  const [value, setValue] = useState(parsed.plannedBudget !== null ? String(parsed.plannedBudget) : "");
+
+  useMemo(() => {
+    setValue(parsed.plannedBudget !== null ? String(parsed.plannedBudget) : "");
+  }, [parsed.plannedBudget]);
+
+  const handleBlurOrSubmit = () => {
+    const trimmed = value.trim();
+    const budgetVal = trimmed === "" ? null : parseFloat(trimmed);
+    const oldBudget = parsed.plannedBudget;
+    if (budgetVal === oldBudget) return;
+
+    onSave({
+      name: category.name,
+      description: serializeCategoryDescriptionAndBudget(parsed.description, budgetVal) || null,
+      icon: category.icon,
+      type: category.type,
+      parent_id: category.parent_id,
+    });
+  };
+
+  return (
+    <div className="flex items-center gap-2 mt-1">
+      <Input
+        type="number"
+        step="any"
+        min="0"
+        placeholder="—"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={handleBlurOrSubmit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.currentTarget.blur();
+          }
+        }}
+        className="w-28 h-8 px-2 text-sm tabular-nums bg-background"
+      />
+    </div>
   );
 }
 
@@ -227,7 +282,7 @@ function CategoryDetailsPanel({
   }
 
   return (
-    <Surface tone="panel" padding="md" className="mt-4 flex flex-col gap-4">
+    <Surface tone="panel" padding="md" className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
         <button type="button" onClick={() => onSelectCategory(null)} className="hover:underline">
           {node.type === "expense" ? t("sections.expensesTitle") : t("sections.incomeTitle")}
@@ -300,7 +355,7 @@ function CategoryDetailsPanel({
           <span className="type-body-12 text-muted-foreground uppercase tracking-wider block">
             {t("category.actual")}
           </span>
-          <span className="type-h3 font-semibold tabular-nums mt-0.5 block">
+          <span className="type-h3 font-semibold tabular-nums mt-1 block">
             {total.amount !== null ? (
               <MoneyAmount amount={total.amount} currency={defaultCurrency} display="absolute" />
             ) : (
@@ -309,16 +364,20 @@ function CategoryDetailsPanel({
           </span>
         </div>
         <div>
-          <span className="type-body-12 text-muted-foreground uppercase tracking-wider block">
+          <span className="type-body-12 text-muted-foreground uppercase tracking-wider block font-medium">
             {t("category.planned")}
           </span>
-          <span className="type-h3 font-semibold tabular-nums mt-0.5 block">
-            {parsed.plannedBudget !== null ? (
-              <MoneyAmount amount={parsed.plannedBudget} currency={defaultCurrency} display="absolute" />
-            ) : (
-              "—"
-            )}
-          </span>
+          {editMode ? (
+            <span className="type-h3 font-semibold tabular-nums mt-1 block">
+              {parsed.plannedBudget !== null ? (
+                <MoneyAmount amount={parsed.plannedBudget} currency={defaultCurrency} display="absolute" />
+              ) : (
+                "—"
+              )}
+            </span>
+          ) : (
+            <InlineBudgetInput category={node} onSave={(values) => onSave(editor || { mode: "edit", category: node }, values)} />
+          )}
         </div>
       </div>
 
@@ -327,9 +386,9 @@ function CategoryDetailsPanel({
           <span className="type-body-12 text-muted-foreground uppercase tracking-wider">
             {t("category.childCount", { count: node.children.length })}
           </span>
-          <div className="flex flex-wrap gap-2.5">
+          <div className="flex flex-col border border-border/40 rounded-[var(--radius-control)] bg-secondary/5 divide-y divide-border/30">
             {sortNodesByActivity(node.children).map((child) => (
-              <CategoryTile
+              <CategoryRowItem
                 key={child.id}
                 node={child}
                 month={month}
@@ -409,26 +468,26 @@ function CategorySection({
 }) {
   const commonT = useTranslations("common.actions");
   const addingRoot = editor?.mode === "add" && editor.type === type && editor.parentId === null;
-  const isAnyCategorySelected = useMemo(() => {
-    if (!selectedCategoryId) return false;
-    return snapshot.categories.find((c) => c.id === selectedCategoryId && c.type === type) !== undefined;
-  }, [selectedCategoryId, snapshot.categories, type]);
 
   return (
-    <section className="border-t border-border/40 px-4 py-5 sm:px-6 lg:px-7">
-      <div className="mb-4 flex items-center justify-between gap-3">
+    <div className="flex flex-col">
+      <div className="mb-2 flex items-center justify-between gap-3 px-1">
         <h2 className="type-body-12 font-semibold uppercase tracking-[0.18em] text-muted-foreground">{title}</h2>
         {editMode ? (
           <Button type="button" variant="ghost" size="sm" onClick={() => onEditState({ mode: "add", type, parentId: null })}>
-            <Plus data-icon="inline-start" />{commonT("add")}
+            <Plus className="size-4 mr-1" />{commonT("add")}
           </Button>
         ) : null}
       </div>
-      {addingRoot ? <InlineEditor editor={editor} categories={manageableCategories} onSave={(values) => onSave(editor, values)} onCancel={() => onEditState(null)} /> : null}
+      {addingRoot ? (
+        <div className="mb-3">
+          <InlineEditor editor={editor} categories={manageableCategories} onSave={(values) => onSave(editor, values)} onCancel={() => onEditState(null)} />
+        </div>
+      ) : null}
       {nodes.length ? (
-        <div className="flex flex-wrap gap-2.5">
+        <div className="flex flex-col border border-border/40 rounded-[var(--radius-control)] bg-secondary/5 divide-y divide-border/30">
           {nodes.map((node) => (
-            <CategoryTile
+            <CategoryRowItem
               key={node.id}
               node={node}
               month={month}
@@ -439,25 +498,10 @@ function CategorySection({
             />
           ))}
         </div>
-      ) : !addingRoot ? <EmptyState title={emptyMessage} description="" /> : null}
-
-      {isAnyCategorySelected && selectedCategoryId ? (
-        <CategoryDetailsPanel
-          key={selectedCategoryId}
-          nodeId={selectedCategoryId}
-          month={month}
-          transactions={transactions}
-          snapshot={snapshot}
-          editMode={editMode}
-          editor={editor}
-          manageableCategories={manageableCategories}
-          onSelectCategory={onSelectCategory}
-          onEditState={onEditState}
-          onSave={onSave}
-          onDelete={onDelete}
-        />
+      ) : !addingRoot ? (
+        <EmptyState title={emptyMessage} description="" className="py-6" />
       ) : null}
-    </section>
+    </div>
   );
 }
 
@@ -529,7 +573,7 @@ export function BudgetView({
 
   return (
     <>
-      <div className="mobile-nav-scroll-clearance h-full overflow-y-auto bg-background [scroll-padding-bottom:calc(76px+env(safe-area-inset-bottom))]">
+      <div className="mobile-nav-scroll-clearance h-full overflow-y-auto bg-background [scroll-padding-bottom:calc(76px+env(safe-area-inset-bottom))] lg:[scroll-padding-bottom:1rem]">
         <PageHeader
           title={t("view.title")}
           actions={
@@ -566,8 +610,41 @@ export function BudgetView({
           </div>
         </section>
 
-        <CategorySection title={t("sections.expensesTitle")} type="expense" nodes={expenseNodes} emptyMessage={t("sections.expensesEmpty")} {...sectionProps} />
-        <CategorySection title={t("sections.incomeTitle")} type="income" nodes={incomeNodes} emptyMessage={t("sections.incomeEmpty")} {...sectionProps} />
+        {/* Two-Panel Layout */}
+        <div className="grid grid-cols-1 gap-6 px-4 pb-8 sm:px-6 lg:grid-cols-[400px_minmax(0,1fr)] lg:px-7">
+          {/* Left Column: Category Inventory */}
+          <div className="flex flex-col gap-8">
+            <CategorySection title={t("sections.expensesTitle")} type="expense" nodes={expenseNodes} emptyMessage={t("sections.expensesEmpty")} {...sectionProps} />
+            <CategorySection title={t("sections.incomeTitle")} type="income" nodes={incomeNodes} emptyMessage={t("sections.incomeEmpty")} {...sectionProps} />
+          </div>
+
+          {/* Right Column: Selected Category Details / Register */}
+          <div className="flex flex-col">
+            {selectedCategoryId ? (
+              <CategoryDetailsPanel
+                key={selectedCategoryId}
+                nodeId={selectedCategoryId}
+                month={month}
+                transactions={monthTransactions}
+                snapshot={snapshot}
+                editMode={editMode}
+                editor={editor}
+                manageableCategories={manageableCategories}
+                onSelectCategory={setSelectedCategoryId}
+                onEditState={setEditor}
+                onSave={saveCategory}
+                onDelete={setDeletingCategory}
+              />
+            ) : (
+              <Surface tone="panel" padding="lg" className="flex h-full min-h-[300px] flex-col items-center justify-center text-center">
+                <EmptyState
+                  title={t("category.selectPrompt")}
+                  description={t("category.selectPromptDesc")}
+                />
+              </Surface>
+            )}
+          </div>
+        </div>
       </div>
 
       <CategoryDeleteSheet

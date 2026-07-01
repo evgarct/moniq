@@ -635,7 +635,9 @@
       "actual": "Actual",
       "planned": "Planned",
       "showTransactions": "Show transactions ({count})",
-      "hideTransactions": "Hide transactions"
+      "hideTransactions": "Hide transactions",
+      "selectPrompt": "Select a category to view details",
+      "selectPromptDesc": "Click any category row on the left to view subcategories, manage budgets, and trace transactions."
     },
     "monthChart": {
       "ariaLabel": "Monthly budget analysis",
