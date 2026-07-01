@@ -222,7 +222,7 @@ export const MobileInvestmentDetail: Story = {
     await userEvent.click(canvas.getByRole("button", { name: new RegExp(position.instrument.name) }));
     const body = within(canvasElement.ownerDocument.body);
     await expect(body.getByRole("heading", { name: position.instrument.name })).toBeInTheDocument();
-    await expect(body.getByRole("button", { name: "Close investment details" })).toBeInTheDocument();
+    await expect(body.getByRole("button", { name: "Back to balance" })).toBeInTheDocument();
   },
 };
 
