@@ -41,7 +41,7 @@ Moniq records technical performance events for Web Vitals, client fetches, API r
 
 - `wallets` are real balances.
 - `wallet_allocations` are logical reservations inside savings wallets only.
-- MCP exposes wallet/category/transaction context for agent workflows, but not `wallet_allocations`; savings free-vs-reserved buckets remain a Balance UI concept.
+- MCP exposes wallet/category/transaction context for agent workflows, excluding system categories and their transactions. It does not expose `wallet_allocations`; savings free-vs-reserved buckets remain a Balance UI concept.
 - MCP transaction batches and batch items are agent staging records. Pending draft items can be updated or rejected before approval; hard deletion is limited to pending drafts.
 - MCP direct transaction tools mutate `finance_transactions` through SECURITY DEFINER RPCs that resolve the API key hash to a user before applying normal ownership checks.
 - MCP tool results use structured content for model-visible summaries and a transaction result widget resource for ChatGPT UI rendering, with detailed operation payloads kept in private result metadata.

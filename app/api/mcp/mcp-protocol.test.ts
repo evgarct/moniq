@@ -245,6 +245,17 @@ describe("MCP tools", () => {
                 is_system: false,
                 created_at: "2026-01-01",
               },
+              {
+                id: "balance-adjustment",
+                user_id: "user-1",
+                name: "Balance adjustment",
+                description: null,
+                icon: null,
+                type: "expense",
+                parent_id: null,
+                is_system: true,
+                created_at: "2026-01-01",
+              },
             ],
             transactions: [
               {
@@ -293,6 +304,29 @@ describe("MCP tools", () => {
                 is_schedule_override: false,
                 allocation_id: null,
               },
+              {
+                id: "adjustment-1",
+                user_id: "user-1",
+                title: "Balance adjustment",
+                note: null,
+                occurred_at: "2026-04-07",
+                created_at: "2026-04-07",
+                status: "paid",
+                kind: "expense",
+                amount: 500,
+                destination_amount: null,
+                fx_rate: null,
+                principal_amount: null,
+                interest_amount: null,
+                extra_principal_amount: null,
+                category_id: "balance-adjustment",
+                source_account_id: "wallet-1",
+                destination_account_id: null,
+                schedule_id: null,
+                schedule_occurrence_date: null,
+                is_schedule_override: false,
+                allocation_id: null,
+              },
             ],
           },
           error: null,
@@ -321,6 +355,7 @@ describe("MCP tools", () => {
       name: "Living",
       totals: [{ currency: "EUR", amount: 250, percent_of_income: 25, percent_of_total_expenses: 100 }],
     });
+    expect(JSON.stringify(body.result.structuredContent)).not.toContain("Balance adjustment");
     expect(mocks.rpc).toHaveBeenCalledWith("mcp_get_category_spending_report_source", {
       p_key_hash: AUTH_KEY_HASH,
       p_start_date: "2026-04-01",
@@ -541,6 +576,15 @@ describe("MCP tools", () => {
                 parent_id: "cat-parent",
                 is_selectable: true,
               },
+              {
+                id: "cat-system",
+                type: "expense",
+                name: "Balance adjustment",
+                path: "Balance adjustment",
+                parent_id: null,
+                is_system: true,
+                is_selectable: true,
+              },
             ],
           },
           error: null,
@@ -566,6 +610,9 @@ describe("MCP tools", () => {
         path: "Food / Groceries",
         is_selectable: true,
       }),
+    );
+    expect(body.result.structuredContent.categories).not.toContainEqual(
+      expect.objectContaining({ id: "cat-system" }),
     );
     expect(mocks.rpc).toHaveBeenCalledWith("mcp_get_finance_context", { p_key_hash: AUTH_KEY_HASH });
   });
@@ -838,6 +885,56 @@ describe("MCP tools", () => {
       p_category_ids: ["cat-rent"],
       p_include_context: true,
     });
+  });
+
+  it("filters transactions whose categories are hidden from MCP context", async () => {
+    mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name);
+      if (authResponse) return authResponse;
+      if (name === "mcp_get_transactions_for_period") {
+        return Promise.resolve({
+          data: {
+            transactions: [
+              { id: "tx-visible", category_id: "cat-visible", amount: 20, currency: "EUR" },
+              { id: "tx-system", category_id: "cat-system", amount: 100, currency: "EUR" },
+              { id: "tx-transfer", category_id: null, amount: 30, currency: "EUR" },
+            ],
+          },
+          error: null,
+        });
+      }
+      if (name === "mcp_get_finance_context") {
+        return Promise.resolve({
+          data: {
+            wallets: [],
+            categories: [
+              { id: "cat-visible", name: "Food", type: "expense", is_system: false },
+              { id: "cat-system", name: "Balance adjustment", type: "expense", is_system: true },
+            ],
+          },
+          error: null,
+        });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    const response = await postMcp({
+      jsonrpc: "2.0",
+      id: "tx-system-category",
+      method: "tools/call",
+      params: {
+        name: "get_transactions",
+        arguments: { start_date: "2026-07-01", end_date: "2026-07-31" },
+      },
+    });
+
+    const body = await response.json();
+    expect(body.result.structuredContent.transactions.map((transaction: { id: string }) => transaction.id)).toEqual([
+      "tx-visible",
+      "tx-transfer",
+    ]);
+    expect(body.result.content[0].text).not.toContain("tx-system");
+    expect(body.result.content[0].text).not.toContain("Balance adjustment");
   });
 
   it("blocks MCP mutation tools without a billing entitlement", async () => {
