@@ -241,7 +241,7 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
         />
 
         {calendarOpen ? (
-          <section className="shrink-0 border-b border-border/30 bg-background px-4 pb-3">
+          <section className="shrink-0 border-b border-border/30 bg-card px-4 pb-3">
             <div className="flex items-center justify-center gap-0.5 py-2">
               {calendarNav}
             </div>

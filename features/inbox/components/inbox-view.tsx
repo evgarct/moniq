@@ -367,9 +367,9 @@ export function InboxView() {
       </div>
 
       <Sheet open={mobileDetailsOpen} onOpenChange={setMobileDetailsOpen}>
-        <SheetContent side="fullscreen" className="gap-0 p-0 lg:hidden" showCloseButton={false}>
+        <SheetContent side="fullscreen" className="gap-0 p-0 bg-card lg:hidden" showCloseButton={false}>
           <div className="flex h-full min-h-0 flex-col overflow-hidden">
-            <div className="shrink-0 bg-background/94 backdrop-blur supports-[backdrop-filter]:bg-background/84">
+            <div className="shrink-0 bg-card/94 backdrop-blur supports-[backdrop-filter]:bg-card/84">
               <div className="px-4 pt-5 pb-3">
                 <div className="flex items-center justify-between gap-3">
                   <h2 className="min-w-0 truncate font-heading text-[24px] leading-none tracking-[-0.03em] text-foreground">

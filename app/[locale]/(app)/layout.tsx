@@ -30,7 +30,7 @@ export default async function AuthenticatedLayout({
     <div className="mobile-shell h-dvh w-screen overflow-hidden bg-card">
       <div className="grid h-full min-h-0 w-full lg:grid-cols-[76px_minmax(0,1fr)]">
         <AppSidebar user={shellUser} onSignOut={signOut} />
-        <div className="flex min-h-0 min-w-0 flex-col overflow-hidden bg-background">
+        <div className="flex min-h-0 min-w-0 flex-col overflow-hidden bg-card lg:bg-background">
           <SyncStatusIndicator />
           <main className="min-h-0 flex-1 overflow-hidden">
             {children}

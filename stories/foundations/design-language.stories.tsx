@@ -40,6 +40,44 @@ const meta = {
                   <p className="type-body-12 mt-2">Compact tool surfaces for menus, quick add, and contextual actions.</p>
                 </Surface>
               </div>
+
+              <div className="mt-6 border-t border-black/5 pt-6">
+                <h2 className="type-h5 text-foreground mb-4">Core Constraints & Design Rules</h2>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="rounded-[16px] border border-black/5 bg-background/60 p-5">
+                    <p className="font-semibold text-sm text-foreground flex items-center gap-1.5">
+                      🚫 No cards. No chips. Ever.
+                    </p>
+                    <p className="type-body-12 mt-2 text-slate-600">
+                      Do not wrap individual list items, transactions, or accounts in their own card. Repeating items live as flat rows. Never render metadata as badge/chip/pill shapes. Use plain muted text instead.
+                    </p>
+                  </div>
+                  <div className="rounded-[16px] border border-black/5 bg-background/60 p-5">
+                    <p className="font-semibold text-sm text-foreground flex items-center gap-1.5">
+                      📱 Mobile Safe Areas & Backgrounds
+                    </p>
+                    <p className="type-body-12 mt-2 text-slate-600">
+                      To prevent iOS status bar and safe area color mismatches, the base background on mobile is strictly <code>bg-card</code> (#f0f0eb). Screen content and headers automatically blend with this color on mobile.
+                    </p>
+                  </div>
+                  <div className="rounded-[16px] border border-black/5 bg-background/60 p-5">
+                    <p className="font-semibold text-sm text-foreground flex items-center gap-1.5">
+                      📦 Surface Component is the Only Container
+                    </p>
+                    <p className="type-body-12 mt-2 text-slate-600">
+                      Never write arbitrary rounded/shadow utilities. Use <code>Surface</code> with appropriate tones: <strong>canvas</strong> (base), <strong>panel</strong> (work regions), <strong>floating</strong> (tools/popovers).
+                    </p>
+                  </div>
+                  <div className="rounded-[16px] border border-black/5 bg-background/60 p-5">
+                    <p className="font-semibold text-sm text-foreground flex items-center gap-1.5">
+                      🎨 Opaque Mobile Surfaces
+                    </p>
+                    <p className="type-body-12 mt-2 text-slate-600">
+                      Full-bleed screens (Budget, Balance, Calendar) must not wrap their top-level content in a Surface on desktop. On mobile, surfaces are full-width and opaque, blending directly with the screen.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </Surface>
 
