@@ -252,6 +252,7 @@ const meta = {
                     </Button>
                   </div>
                   <EmptyState
+                    illustration="wallet"
                     title="Select an account"
                     description="Choose a wallet or goal on the left to see transactions here."
                   />
@@ -439,6 +440,7 @@ const meta = {
               <div>
                 <p className="type-body-12 mb-2 text-muted-foreground">No selection</p>
                 <EmptyState
+                  illustration="wallet"
                   title="No account selected"
                   description="Choose a wallet from the list to see its transactions."
                 />
@@ -446,6 +448,7 @@ const meta = {
               <div>
                 <p className="type-body-12 mb-2 text-muted-foreground">No data yet</p>
                 <EmptyState
+                  illustration="transactions"
                   title="No transactions yet"
                   description="Transactions you add or import will appear here."
                   action={
@@ -459,6 +462,7 @@ const meta = {
               <div>
                 <p className="type-body-12 mb-2 text-muted-foreground">Filtered, no results</p>
                 <EmptyState
+                  illustration="search"
                   title="No results for this period"
                   description="Try a wider date range or clear the filter."
                   action={

@@ -143,7 +143,11 @@ export function ProjectedBalanceView({
   if (!snapshot.accounts.length) {
     return (
       <div className="h-full overflow-x-hidden overflow-y-auto p-4 sm:p-6">
-        <EmptyState title={t("empty.title")} description={t("empty.description")} />
+        <EmptyState
+          illustration="wallet"
+          title={t("empty.title")}
+          description={t("empty.description")}
+        />
       </div>
     );
   }
@@ -212,7 +216,11 @@ export function ProjectedBalanceView({
         </main>
       ) : (
         <div className="p-4 sm:p-6">
-          <EmptyState title={t("noSeries.title")} description={t("noSeries.description")} />
+          <EmptyState
+            illustration="reports"
+            title={t("noSeries.title")}
+            description={t("noSeries.description")}
+          />
         </div>
       )}
 

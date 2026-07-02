@@ -78,6 +78,7 @@ export function TransactionsView({
   if (!snapshot.accounts.length) {
     return (
       <EmptyState
+        illustration="wallet"
         title={t("view.emptyAccountsTitle")}
         description={t("view.emptyAccountsDescription")}
       />

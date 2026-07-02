@@ -303,7 +303,11 @@ function CategoryInventory({
             ))}
           </div>
         ) : (
-          <EmptyState title={viewT("emptyTitle")} description={viewT("emptyDescription")} />
+          <EmptyState
+            illustration="budget"
+            title={viewT("emptyTitle")}
+            description={viewT("emptyDescription")}
+          />
         )}
       </div>
     </Surface>

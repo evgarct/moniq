@@ -181,13 +181,13 @@ export function InboxView() {
 
   function renderSelectedSection(entry: InboxEntry | null) {
     if (!entry) {
-      return <EmptyState title={t("emptyTitle")} description={t("emptyDescription")} />;
+      return <EmptyState illustration="inbox" title={t("emptyTitle")} description={t("emptyDescription")} />;
     }
 
     if (entry.source === "claude") {
       const batch = mcpBatches.find((item) => item.id === entry.batchId);
       if (!batch) {
-        return <EmptyState title={t("emptyTitle")} description={t("emptyDescription")} />;
+        return <EmptyState illustration={null} title={t("emptyTitle")} description={t("emptyDescription")} />;
       }
       return (
         <McpBatchSection
@@ -200,13 +200,13 @@ export function InboxView() {
     }
 
     if (!bankingData) {
-      return <EmptyState title={t("emptyTitle")} description={t("emptyDescription")} />;
+      return <EmptyState illustration={null} title={t("emptyTitle")} description={t("emptyDescription")} />;
     }
 
     const batch = bankingData.batches.find((item) => item.id === entry.batchId);
     const txs = bankingData.draftTransactions.filter((tx) => tx.batch_id === entry.batchId);
     if (!batch || txs.length === 0) {
-      return <EmptyState title={t("emptyTitle")} description={t("emptyDescription")} />;
+      return <EmptyState illustration={null} title={t("emptyTitle")} description={t("emptyDescription")} />;
     }
 
     return (
@@ -298,6 +298,7 @@ export function InboxView() {
               </div>
             ) : filteredEntries.length === 0 ? (
               <EmptyState
+                illustration="inbox"
                 title={t("emptyTitle")}
                 description={t("emptyDescription")}
                 action={

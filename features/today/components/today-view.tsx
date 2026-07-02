@@ -185,12 +185,11 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
   const dayTransactionsList = (
     <>
       {isEmpty ? (
-        <div className="flex h-full flex-col items-center justify-center px-6 py-12">
-          <EmptyState
-            title={selectedDate ? t("board.selectedEmpty") : t("board.empty")}
-            description=""
-          />
-        </div>
+        <EmptyState
+          illustration="calendar"
+          title={selectedDate ? t("board.selectedEmpty") : t("board.empty")}
+          description=""
+        />
       ) : (
         <>
           {plannedTransactions.length > 0 ? (
@@ -262,9 +261,11 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
 
         <div className="mobile-nav-scroll-clearance min-h-0 flex-1 overflow-y-auto overscroll-contain [scroll-padding-bottom:calc(76px+env(safe-area-inset-bottom))] lg:[scroll-padding-bottom:1rem]">
           {mobileListEmpty ? (
-            <div className="flex h-full items-center justify-center px-6 py-12">
-              <EmptyState title={selectedDate ? t("board.selectedEmpty") : t("board.empty")} description="" />
-            </div>
+            <EmptyState
+              illustration="calendar"
+              title={selectedDate ? t("board.selectedEmpty") : t("board.empty")}
+              description=""
+            />
           ) : (
             <>
               {mobileListPlanned.length > 0 ? (

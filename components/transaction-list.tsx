@@ -2,8 +2,10 @@ import { format, parseISO } from "date-fns";
 import { useFormatter } from "next-intl";
 
 import { TransactionRow } from "@/components/transaction-row";
+import { ZeroState } from "@/components/zero-state";
 import { isVisibleTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
 import { calDate } from "@/lib/formatters";
+import { cn } from "@/lib/utils";
 import type { CurrencyCode } from "@/types/currency";
 import type { ExchangeRate, Transaction } from "@/types/finance";
 
@@ -141,10 +143,15 @@ export function TransactionList({
   };
 
   if (!visibleTransactions.length) {
-    return variant === "board" ? (
-      <div className="rounded-[var(--radius-surface)] border border-dashed border-white/14 px-4 py-8 text-sm text-[#7fa0a4]">{emptyMessage}</div>
-    ) : (
-      <div className="type-body-14 rounded-[var(--radius-surface)] border border-dashed border-border px-4 py-8 text-muted-foreground">{emptyMessage}</div>
+    return (
+      <ZeroState
+        illustration="transactions"
+        title={emptyMessage}
+        className={cn(
+          "py-8 min-h-[200px]",
+          variant === "board" && "text-[#7fa0a4]"
+        )}
+      />
     );
   }
 

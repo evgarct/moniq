@@ -308,6 +308,7 @@ export function ClaudeInboxView({
   if (batches.length === 0) {
     return (
       <EmptyState
+        illustration="inbox"
         title={t("empty.title")}
         description={t("empty.description")}
       />
