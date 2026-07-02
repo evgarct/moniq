@@ -597,7 +597,11 @@ export function BankingView() {
                     })}
                   </div>
                 ) : (
-                  <EmptyState title={t("upload.emptyTitle")} description={t("upload.batchesEmpty")} />
+                  <EmptyState
+                    illustration="reports"
+                    title={t("upload.emptyTitle")}
+                    description={t("upload.batchesEmpty")}
+                  />
                 )}
               </div>
             </div>
@@ -641,7 +645,11 @@ export function BankingView() {
 
           <div className="min-h-0 flex-1 overflow-auto px-3 pb-4 pt-2 sm:px-6 sm:pb-5 lg:px-7">
             {draftTransactions.length === 0 ? (
-              <EmptyState title={t("inbox.emptyTitle")} description={t("inbox.emptyDescription")} />
+              <EmptyState
+                illustration="inbox"
+                title={t("inbox.emptyTitle")}
+                description={t("inbox.emptyDescription")}
+              />
             ) : (
               <div className="flex flex-col gap-6">
                 {draftByDate.map(({ dateKey, dateLabel, transactions: dayTransactions }) => (

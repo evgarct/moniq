@@ -1,21 +1,27 @@
-import { cn } from "@/lib/utils";
+import React from "react";
+import { ZeroState, type ZeroStateIllustrationType } from "./zero-state";
 
 export function EmptyState({
   title,
   description,
   action,
   className,
+  illustration = "default",
 }: {
-  title: string;
-  description: string;
+  title: React.ReactNode;
+  description: React.ReactNode;
   action?: React.ReactNode;
   className?: string;
+  illustration?: ZeroStateIllustrationType | React.ReactNode;
 }) {
   return (
-    <div className={cn("rounded-[var(--radius-surface)] border border-dashed border-border bg-muted/30 px-4 py-8 text-center", className)}>
-      <p className="font-medium">{title}</p>
-      <p className="mt-2 text-sm text-muted-foreground">{description}</p>
-      {action ? <div className="mt-4 flex justify-center">{action}</div> : null}
-    </div>
+    <ZeroState
+      illustration={illustration}
+      title={title}
+      description={description}
+      action={action}
+      className={className}
+    />
   );
 }
+export { ZeroState };

@@ -558,7 +558,12 @@ function CategorySection({
           ))}
         </div>
       ) : !addingRoot ? (
-        <EmptyState title={emptyMessage} description="" className="py-6" />
+        <EmptyState
+          illustration={null}
+          title={emptyMessage}
+          description=""
+          className="py-6"
+        />
       ) : null}
     </div>
   );
@@ -695,8 +700,9 @@ export function BudgetView({
                 onDelete={setDeletingCategory}
               />
             ) : (
-              <Surface tone="panel" padding="lg" className="flex h-full min-h-[300px] flex-col items-center justify-center text-center">
+              <Surface tone="panel" padding="lg" className="h-full min-h-[300px]">
                 <EmptyState
+                  illustration="budget"
                   title={t("category.selectPrompt")}
                   description={t("category.selectPromptDesc")}
                 />

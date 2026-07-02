@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Bot, Copy, Check, Plus, Trash2, Key } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/empty-state";
 import { Surface, SurfaceDescription, SurfaceEyebrow, SurfaceHeader } from "@/components/surface";
 import { getAppUrl } from "@/lib/app-url";
 
@@ -305,7 +306,12 @@ export function McpSettings({
 
         {/* Keys list */}
         {keys.length === 0 ? (
-          <p className="py-6 text-center type-body-14 text-muted-foreground">{t("noKeys")}</p>
+          <EmptyState
+            illustration="search"
+            title={t("noKeys")}
+            description=""
+            className="py-6"
+          />
         ) : (
           <div className="flex flex-col">
             {keys.map((key) => (
