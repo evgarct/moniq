@@ -61,7 +61,7 @@ export function FinanceBoardPanel({
         </div>
         {actions}
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-2">{children}</div>
+      <div className="mobile-nav-scroll-clearance min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-2 [scroll-padding-bottom:calc(76px+env(safe-area-inset-bottom))] lg:[scroll-padding-bottom:1rem]">{children}</div>
     </section>
   );
 }
