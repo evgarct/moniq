@@ -177,3 +177,6 @@ Right: category shown as plain muted text below the transaction title.
 - On this machine, git user identity is `evgarct <evgarct@gmail.com>`. If `git commit` fails with "Author identity unknown", run `git config user.email evgarct@gmail.com && git config user.name evgarct` before retrying.
 - Storybook picks the next available port if 6008 is occupied. When reporting the Storybook URL, read the actual port from startup output rather than assuming 6008.
 - In PowerShell, quote Next.js App Router paths that contain brackets or parentheses, such as `app/[locale]/(app)/settings/page.tsx`, when passing them to `git diff`, `Get-Content`, or other shell commands.
+- In this repo, on mobile viewports (below 1024px), all main page backgrounds, mobile-overlay headers, and fullscreen sheets must use the `bg-card` (#f0f0eb) background token to align with the iOS status bar and safe area colors exposed by `.mobile-shell`. Use `bg-card lg:bg-background` for containers and headers to preserve off-white backgrounds on desktop.
+- For any change, feature extension, or design update in this repo, agents must document all details in the corresponding Markdown files under `docs/` and capture/refresh visual mockup screenshots under `.codex-artifacts/` or the artifacts directory. No code changes should be published without aligning documentation and visual assets first.
+

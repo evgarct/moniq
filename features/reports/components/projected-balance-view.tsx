@@ -149,8 +149,8 @@ export function ProjectedBalanceView({
   }
 
   return (
-    <div className="flex h-full min-h-0 w-full max-w-full flex-col overflow-hidden bg-background pb-[calc(76px+env(safe-area-inset-bottom))] lg:pb-0">
-      <header className="shrink-0 bg-background">
+    <div className="flex h-full min-h-0 w-full max-w-full flex-col overflow-hidden bg-card lg:bg-background pb-[calc(76px+env(safe-area-inset-bottom))] lg:pb-0">
+      <header className="shrink-0 bg-card lg:bg-background">
         <div className="flex flex-col gap-3 px-3 pt-4 pb-3 sm:gap-4 sm:px-6 sm:pt-7 sm:pb-5 lg:px-7 lg:pt-8 lg:pb-6">
           <div className="flex items-start justify-between gap-2 px-1.5 sm:items-center sm:gap-3 sm:px-2.5">
             <div className="flex min-w-0 items-center gap-2">

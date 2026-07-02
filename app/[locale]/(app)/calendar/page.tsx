@@ -31,9 +31,5 @@ export default function CalendarPage() {
     );
   }
 
-  return (
-    <PageContainer>
-      <CalendarView snapshot={data ?? createEmptyFinanceSnapshot()} />
-    </PageContainer>
-  );
+  return <CalendarView snapshot={data ?? createEmptyFinanceSnapshot()} />;
 }

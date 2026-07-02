@@ -1,6 +1,5 @@
 import { redirect } from "@/i18n/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { PageContainer } from "@/components/page-container";
 import { InboxView } from "@/features/inbox/components/inbox-view";
 import type { AppLocale } from "@/i18n/routing";
 
@@ -19,9 +18,5 @@ export default async function InboxPage({
     return redirect({ href: "/login", locale: locale as AppLocale });
   }
 
-  return (
-    <PageContainer className="h-full overflow-hidden px-0 py-0 sm:px-0">
-      <InboxView />
-    </PageContainer>
-  );
+  return <InboxView />;
 }

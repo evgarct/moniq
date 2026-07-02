@@ -632,7 +632,7 @@ export function BudgetView({
 
   return (
     <>
-      <div className="mobile-nav-scroll-clearance h-full overflow-y-auto bg-background [scroll-padding-bottom:calc(76px+env(safe-area-inset-bottom))] lg:[scroll-padding-bottom:1rem]">
+      <div className="mobile-nav-scroll-clearance h-full overflow-y-auto bg-card lg:bg-background [scroll-padding-bottom:calc(76px+env(safe-area-inset-bottom))] lg:[scroll-padding-bottom:1rem]">
         <PageHeader
           title={t("view.title")}
           actions={

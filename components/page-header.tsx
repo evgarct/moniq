@@ -18,7 +18,7 @@ export function PageHeader({
   return (
     <div
       className={cn(
-        "bg-background/96 backdrop-blur transition-shadow supports-[backdrop-filter]:bg-background/88",
+        "bg-card/96 lg:bg-background/96 backdrop-blur transition-shadow supports-[backdrop-filter]:bg-card/88 lg:supports-[backdrop-filter]:bg-background/88",
         scrolled && "shadow-[0_10px_24px_-22px_rgba(28,22,17,0.75)]",
         className,
       )}
