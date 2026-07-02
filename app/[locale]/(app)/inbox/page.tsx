@@ -1,6 +1,5 @@
 import { redirect } from "@/i18n/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { PageContainer } from "@/components/page-container";
 import { InboxView } from "@/features/inbox/components/inbox-view";
 import type { AppLocale } from "@/i18n/routing";
 
