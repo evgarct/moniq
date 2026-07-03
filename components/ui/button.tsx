@@ -53,24 +53,44 @@ function isIconElement(children: React.ReactNode): boolean {
 
 function extractIconFromChildren(children: React.ReactNode): {
   icon?: React.ReactNode;
+  endContent?: React.ReactNode;
   content: React.ReactNode;
 } {
   const childrenArray = React.Children.toArray(children);
-  if (childrenArray.length > 1) {
-    const firstChild = childrenArray[0];
-    if (React.isValidElement(firstChild) && typeof firstChild.type !== "string") {
-      return {
-        icon: firstChild,
-        content: childrenArray.slice(1),
-      };
+  if (childrenArray.length === 0) {
+    return { content: children };
+  }
+
+  let icon: React.ReactNode | undefined;
+  let endContent: React.ReactNode | undefined;
+  let startIdx = 0;
+  let endIdx = childrenArray.length;
+
+  const firstChild = childrenArray[0];
+  if (React.isValidElement(firstChild) && typeof firstChild.type !== "string") {
+    icon = firstChild;
+    startIdx = 1;
+  }
+
+  if (endIdx > startIdx + 1) {
+    const lastChild = childrenArray[endIdx - 1];
+    if (React.isValidElement(lastChild) && typeof lastChild.type !== "string") {
+      endContent = lastChild;
+      endIdx = endIdx - 1;
     }
   }
-  return { content: children };
+
+  const content = childrenArray.slice(startIdx, endIdx);
+
+  return {
+    icon,
+    endContent,
+    content: content.length === 1 ? content[0] : content.length === 0 ? undefined : content,
+  };
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = "default", size = "default", children, static: isStatic, ...props }, ref) => {
-    // Map variant string to Astryx variant
     let astryxVariant: "primary" | "secondary" | "ghost" | "destructive" = "secondary";
     if (variant === "default") {
       astryxVariant = "primary";
@@ -80,7 +100,6 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       astryxVariant = "ghost";
     }
 
-    // Map size string to Astryx size
     let astryxSize: "sm" | "md" | "lg" = "md";
     if (size === "sm") {
       astryxSize = "sm";
@@ -88,7 +107,6 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       astryxSize = "lg";
     }
 
-    // Derive label for accessibility (required by Astryx)
     let label = "";
     if (typeof children === "string") {
       label = children;
@@ -116,7 +134,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       );
     }
 
-    const { icon: extractedIcon, content: remainingContent } = extractIconFromChildren(children);
+    const { icon: extractedIcon, endContent: extractedEndContent, content: remainingContent } = extractIconFromChildren(children);
 
     return (
       <AstryxButton
@@ -125,6 +143,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         size={astryxSize}
         variant={astryxVariant}
         icon={extractedIcon}
+        endContent={extractedEndContent}
         className={cn(buttonVariants({ variant, size }), className)}
         isDisabled={props.disabled}
         onClick={props.onClick as any}
