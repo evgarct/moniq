@@ -17,7 +17,7 @@ const ToggleGroupContext = React.createContext<{
 export interface ToggleGroupProps extends VariantProps<typeof toggleVariants> {
   className?: string;
   value?: string | string[];
-  onValueChange?: (value: any) => void;
+  onValueChange?: (value: string | string[]) => void;
   orientation?: "horizontal" | "vertical";
   children?: React.ReactNode;
   disabled?: boolean;
@@ -30,10 +30,7 @@ function ToggleGroup({
   onValueChange,
   children,
   disabled,
-  variant,
   size,
-  spacing,
-  orientation,
   ...props
 }: ToggleGroupProps) {
   const isArray = Array.isArray(value);
@@ -57,6 +54,11 @@ function ToggleGroup({
     astryxSize = "lg";
   }
 
+  const astryxProps = { ...props };
+  delete (astryxProps as Record<string, unknown>).variant;
+  delete (astryxProps as Record<string, unknown>).spacing;
+  delete (astryxProps as Record<string, unknown>).orientation;
+
   return (
     <ToggleGroupContext.Provider value={{ value: scalarValue, onChange: handleChange }}>
       <AstryxSegmentedControl
@@ -66,7 +68,7 @@ function ToggleGroup({
         isDisabled={disabled}
         size={astryxSize}
         className={cn("w-fit", className)}
-        {...(props as any)}
+        {...(astryxProps as Record<string, unknown>)}
       >
         {children}
       </AstryxSegmentedControl>
@@ -88,8 +90,6 @@ function ToggleGroupItem({
   children,
   disabled,
   "aria-label": ariaLabel,
-  variant,
-  size,
   ...props
 }: ToggleGroupItemProps) {
   // Derive label for accessibility (required by Astryx SegmentedControlItem)
@@ -102,13 +102,17 @@ function ToggleGroupItem({
     label = value;
   }
 
+  const astryxProps = { ...props };
+  delete (astryxProps as Record<string, unknown>).variant;
+  delete (astryxProps as Record<string, unknown>).size;
+
   return (
     <AstryxSegmentedControlItem
       value={value}
       label={label}
       isDisabled={disabled}
       className={className}
-      {...(props as any)}
+      {...(astryxProps as Record<string, unknown>)}
     >
       {children}
     </AstryxSegmentedControlItem>

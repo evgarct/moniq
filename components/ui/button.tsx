@@ -90,7 +90,7 @@ function extractIconFromChildren(children: React.ReactNode): {
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "default", size = "default", children, static: isStatic, ...props }, ref) => {
+  ({ className, variant = "default", size = "default", children, ...props }, ref) => {
     let astryxVariant: "primary" | "secondary" | "ghost" | "destructive" = "secondary";
     if (variant === "default") {
       astryxVariant = "primary";
@@ -118,18 +118,21 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     const isIcon = (size === "icon" || size === "icon-sm") && isIconElement(children);
 
+    const astryxProps = { ...props };
+    delete (astryxProps as Record<string, unknown>).static;
+
     if (isIcon) {
       return (
         <AstryxIconButton
-          ref={ref as any}
+          ref={ref as unknown as React.Ref<HTMLButtonElement>}
           label={label}
           size={astryxSize}
           variant={astryxVariant}
           className={cn(buttonVariants({ variant, size }), className)}
           isDisabled={props.disabled}
-          onClick={props.onClick as any}
+          onClick={props.onClick as unknown as React.MouseEventHandler<HTMLButtonElement>}
           icon={children}
-          {...(props as any)}
+          {...(astryxProps as Record<string, unknown>)}
         />
       );
     }
@@ -138,7 +141,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     return (
       <AstryxButton
-        ref={ref as any}
+        ref={ref as unknown as React.Ref<HTMLButtonElement>}
         label={label}
         size={astryxSize}
         variant={astryxVariant}
@@ -146,8 +149,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         endContent={extractedEndContent}
         className={cn(buttonVariants({ variant, size }), className)}
         isDisabled={props.disabled}
-        onClick={props.onClick as any}
-        {...(props as any)}
+        onClick={props.onClick as unknown as React.MouseEventHandler<HTMLButtonElement>}
+        {...(astryxProps as Record<string, unknown>)}
       >
         {remainingContent}
       </AstryxButton>

@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { Badge as AstryxBadge } from "@astryxdesign/core/Badge";
-import { cn } from "@/lib/utils";
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   variant?: "default" | "secondary" | "destructive" | "outline" | "ghost" | "link";
@@ -25,7 +24,7 @@ function Badge({
       variant={astryxVariant}
       label={children}
       className={className}
-      {...(props as any)}
+      {...(props as Record<string, unknown>)}
     />
   );
 }

@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { Switch as AstryxSwitch } from "@astryxdesign/core/Switch";
-import { cn } from "@/lib/utils";
 
 export interface SwitchProps {
   checked?: boolean;

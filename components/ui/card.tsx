@@ -16,7 +16,7 @@ function Card({
         "group/card flex flex-col gap-4 overflow-hidden rounded-[var(--radius-surface)] bg-card text-sm text-card-foreground ring-1 ring-foreground/10",
         className
       )}
-      {...(props as any)}
+      {...(props as Record<string, unknown>)}
     />
   )
 }

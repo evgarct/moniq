@@ -41,20 +41,20 @@ function Avatar({
       size={astryxSize}
       status={status}
       className={cn("select-none", className)}
-      {...(props as any)}
+      {...(props as Record<string, unknown>)}
     />
   );
 }
 
-function AvatarImage({ className, ...props }: any) {
+function AvatarImage() {
   return null;
 }
 
-function AvatarFallback({ className, ...props }: any) {
+function AvatarFallback() {
   return null;
 }
 
-function AvatarBadge({ className, ...props }: any) {
+function AvatarBadge() {
   return null;
 }
 
@@ -81,7 +81,7 @@ function AvatarGroup({
     <AstryxAvatarGroup
       size={astryxSize}
       className={className}
-      {...(props as any)}
+      {...(props as Record<string, unknown>)}
     >
       {children}
     </AstryxAvatarGroup>
@@ -105,7 +105,7 @@ function AvatarGroupCount({
       count={count}
       onClick={onClick}
       className={className}
-      {...(props as any)}
+      {...(props as Record<string, unknown>)}
     />
   );
 }

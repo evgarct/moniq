@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { TextArea as AstryxTextArea } from "@astryxdesign/core/TextArea";
-import { cn } from "@/lib/utils";
 
 const Textarea = React.forwardRef<HTMLTextAreaElement, React.ComponentProps<"textarea">>(
   ({ className, value, defaultValue, onChange, ...props }, ref) => {
@@ -19,7 +18,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, React.ComponentProps<"tex
 
     return (
       <AstryxTextArea
-        ref={ref as any}
+        ref={ref as unknown as React.Ref<HTMLTextAreaElement>}
         label=""
         isLabelHidden
         value={currentVal}
@@ -27,7 +26,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, React.ComponentProps<"tex
         className={className}
         isDisabled={props.disabled}
         placeholder={props.placeholder}
-        {...(props as any)}
+        {...(props as Record<string, unknown>)}
       />
     );
   }

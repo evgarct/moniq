@@ -27,7 +27,7 @@ const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
         label=""
         isLabelHidden
         className={cn("size-4", className)}
-        {...(props as any)}
+        {...(props as Record<string, unknown>)}
       />
     );
   }

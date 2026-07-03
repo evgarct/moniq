@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { Skeleton as AstryxSkeleton } from "@astryxdesign/core/Skeleton";
-import { cn } from "@/lib/utils";
 
 interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
   index?: number;

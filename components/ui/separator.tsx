@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { Divider as AstryxDivider } from "@astryxdesign/core/Divider";
-import { cn } from "@/lib/utils";
 
 interface SeparatorProps {
   className?: string;
