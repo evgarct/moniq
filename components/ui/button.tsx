@@ -89,6 +89,18 @@ function extractIconFromChildren(children: React.ReactNode): {
   };
 }
 
+function extractTextFromChildren(children: React.ReactNode): string {
+  let text = "";
+  React.Children.forEach(children, (child) => {
+    if (typeof child === "string" || typeof child === "number") {
+      text += child;
+    } else if (React.isValidElement(child) && child.props && (child.props as Record<string, unknown>).children) {
+      text += extractTextFromChildren((child.props as Record<string, unknown>).children as React.ReactNode);
+    }
+  });
+  return text.trim();
+}
+
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = "default", size = "default", children, ...props }, ref) => {
     let astryxVariant: "primary" | "secondary" | "ghost" | "destructive" = "secondary";
@@ -107,11 +119,12 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       astryxSize = "lg";
     }
 
+    const textLabel = extractTextFromChildren(children);
     let label = "";
-    if (typeof children === "string") {
-      label = children;
-    } else if (props["aria-label"]) {
+    if (props["aria-label"]) {
       label = props["aria-label"];
+    } else if (textLabel) {
+      label = textLabel;
     } else {
       label = "action";
     }

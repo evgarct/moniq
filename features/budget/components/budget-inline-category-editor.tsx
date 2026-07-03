@@ -80,7 +80,7 @@ export function BudgetInlineCategoryEditor({
       </FormField>
 
       <FormField id="budget-category-icon" label={t("fields.icon")}>
-        <CategoryIconPicker id="budget-category-icon" value={icon} onValueChange={setIcon} />
+        <CategoryIconPicker id="budget-category-icon" value={icon} onValueChange={setIcon} aria-label={t("fields.icon")} />
       </FormField>
 
       <FormSelectField
