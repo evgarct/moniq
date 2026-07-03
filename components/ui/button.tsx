@@ -21,8 +21,8 @@ const buttonVariants = cva(
         default: "h-11 px-4 py-2 lg:h-10",
         sm: "h-11 px-3 lg:h-10",
         lg: "h-11 px-5",
-        icon: "size-11 lg:size-10",
-        "icon-sm": "size-11 lg:size-10",
+        icon: "size-11 lg:size-10 p-0",
+        "icon-sm": "size-11 lg:size-10 p-0",
       },
     },
     defaultVariants: {
@@ -37,6 +37,35 @@ export interface ButtonProps
     VariantProps<typeof buttonVariants> {
   asChild?: boolean;
   static?: boolean;
+}
+
+function isIconElement(children: React.ReactNode): boolean {
+  const childrenArray = React.Children.toArray(children);
+  if (childrenArray.length !== 1) {
+    return false;
+  }
+  const child = childrenArray[0];
+  if (!React.isValidElement(child)) {
+    return false;
+  }
+  return typeof child.type !== "string";
+}
+
+function extractIconFromChildren(children: React.ReactNode): {
+  icon?: React.ReactNode;
+  content: React.ReactNode;
+} {
+  const childrenArray = React.Children.toArray(children);
+  if (childrenArray.length > 1) {
+    const firstChild = childrenArray[0];
+    if (React.isValidElement(firstChild) && typeof firstChild.type !== "string") {
+      return {
+        icon: firstChild,
+        content: childrenArray.slice(1),
+      };
+    }
+  }
+  return { content: children };
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -69,7 +98,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       label = "action";
     }
 
-    const isIcon = size === "icon" || size === "icon-sm";
+    const isIcon = (size === "icon" || size === "icon-sm") && isIconElement(children);
 
     if (isIcon) {
       return (
@@ -78,7 +107,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           label={label}
           size={astryxSize}
           variant={astryxVariant}
-          className={cn(className, variant === "link" && "underline")}
+          className={cn(buttonVariants({ variant, size }), className)}
           isDisabled={props.disabled}
           onClick={props.onClick as any}
           icon={children}
@@ -87,18 +116,21 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       );
     }
 
+    const { icon: extractedIcon, content: remainingContent } = extractIconFromChildren(children);
+
     return (
       <AstryxButton
         ref={ref as any}
         label={label}
         size={astryxSize}
         variant={astryxVariant}
-        className={cn(className, variant === "link" && "underline")}
+        icon={extractedIcon}
+        className={cn(buttonVariants({ variant, size }), className)}
         isDisabled={props.disabled}
         onClick={props.onClick as any}
         {...(props as any)}
       >
-        {children}
+        {remainingContent}
       </AstryxButton>
     );
   }

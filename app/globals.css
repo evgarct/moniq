@@ -63,6 +63,16 @@
 }
 
 :root {
+  color-scheme: light;
+  --font-family-body: var(--font-inter), sans-serif !important;
+  --font-family-heading: var(--font-pt-serif), serif !important;
+  --font-family-code: var(--font-jetbrains-mono), monospace !important;
+  --font-size-4xs: 0.75rem !important;
+  --font-size-3xs: 0.75rem !important;
+  --font-size-2xs: 0.75rem !important;
+  --font-size-xs: 0.75rem !important;
+  --font-size-sm: 0.875rem !important;
+  --font-size-base: 1rem !important;
   --safe-area-inset-top: env(safe-area-inset-top);
   --background: #fafaf7;
   --foreground: #191919;
