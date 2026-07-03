@@ -180,3 +180,29 @@ Right: category shown as plain muted text below the transaction title.
 - In this repo, on mobile viewports (below 1024px), all main page backgrounds, mobile-overlay headers, and fullscreen sheets must use the `bg-card` (#f0f0eb) background token to align with the iOS status bar and safe area colors exposed by `.mobile-shell`. Use `bg-card lg:bg-background` for containers and headers to preserve off-white backgrounds on desktop.
 - For any change, feature extension, or design update in this repo, agents must document all details in the corresponding Markdown files under `docs/` and capture/refresh visual mockup screenshots under `.codex-artifacts/` or the artifacts directory. No code changes should be published without aligning documentation and visual assets first.
 
+<!-- ASTRYX:START -->
+Astryx v0.1.2 · 148 components
+CLI: run every command as `npx astryx <cmd>` (shown below as `astryx ...`).
+
+SETUP (once, in your app entry e.g. main.tsx) — without these, components render unstyled:
+  import "@astryxdesign/core/reset.css";
+  import "@astryxdesign/core/astryx.css";
+
+WORKFLOW — discover, don't guess. Before writing UI:
+1. `astryx build "<idea>"` — START HERE: returns a kit (closest [page] + [block]s + [component]s). No args = full playbook.
+2. `astryx template <name> [--skeleton]` — scaffold the [page]/[block]s it named, or study their layout. Templates are reference code.
+3. `astryx component <Name>` — props + examples for every component you use.
+
+RULES:
+- No <div> — components do all layout/spacing. Full page → AppShell; sidebar nav → SideNav.
+- Custom styling: component props first; else Tailwind utilities backed by tokens (bg-surface, text-primary, rounded-lg) via tailwind-theme.css. No raw hex/px.
+- Tokens for every value (`astryx docs tokens`). Brand/accent via `astryx theme` — never override --color-* in :root.
+
+MORE CLI:
+  search "<query>"   find any component / hook / doc / template / block
+  component --list   148 components by category
+  template --list    page + block recipes
+  docs <topic>       color, elevation, icons, illustrations, migration, motion, principles, shape, spacing, styling, theme, tokens, typography
+  swizzle <Name>     eject component source (--gap reports why)
+  upgrade --apply    run after any @astryxdesign/core bump
+<!-- ASTRYX:END -->

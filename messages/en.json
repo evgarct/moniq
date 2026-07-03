@@ -264,6 +264,14 @@
       "amountValue": "CZK 128.40",
       "walletLabel": "Wallet",
       "walletValue": "Everyday wallet · CZK"
+    },
+    "astryxDemo": {
+      "title": "Astryx Design System",
+      "description": "Verification story demonstrating Astryx component rendering, theme variables, layout spacing, and responsiveness.",
+      "buttonLabel": "Astryx Button",
+      "heading": "Typography & Spacing Test",
+      "body": "This card-less interface coexists with Tailwind v4, utilizing shared warm neutral custom properties and direct Astryx component layout. Resize the viewport to check mobile layout scaling.",
+      "themeLabel": "Current Mode: Neutral theme"
     }
   },
   "auth": {
