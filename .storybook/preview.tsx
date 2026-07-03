@@ -44,7 +44,7 @@ const preview: Preview = {
   },
   decorators: [
     (Story) => (
-      <Theme theme={neutralTheme}>
+      <Theme theme={neutralTheme} mode="light">
         <AppProviders>
           <NextIntlClientProvider locale="en" messages={messages} timeZone="Europe/Prague">
             <div>

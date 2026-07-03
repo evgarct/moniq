@@ -1,8 +1,9 @@
 "use client";
 
-import { Button as ButtonPrimitive } from "@base-ui/react/button";
+import * as React from "react";
+import { Button as AstryxButton } from "@astryxdesign/core/Button";
+import { IconButton as AstryxIconButton } from "@astryxdesign/core/IconButton";
 import { cva, type VariantProps } from "class-variance-authority";
-
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
@@ -31,24 +32,78 @@ const buttonVariants = cva(
   },
 );
 
-function Button({
-  className,
-  variant,
-  size,
-  static: isStatic,
-  ...props
-}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants> & { static?: boolean }) {
-  return (
-    <ButtonPrimitive
-      data-slot="button"
-      className={cn(
-        buttonVariants({ variant, size }),
-        !isStatic && "active:not-disabled:scale-[0.96]",
-        className,
-      )}
-      {...props}
-    />
-  );
+export interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {
+  asChild?: boolean;
+  static?: boolean;
 }
+
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant = "default", size = "default", children, static: isStatic, ...props }, ref) => {
+    // Map variant string to Astryx variant
+    let astryxVariant: "primary" | "secondary" | "ghost" | "destructive" = "secondary";
+    if (variant === "default") {
+      astryxVariant = "primary";
+    } else if (variant === "outline" || variant === "secondary") {
+      astryxVariant = "secondary";
+    } else if (variant === "ghost" || variant === "link") {
+      astryxVariant = "ghost";
+    }
+
+    // Map size string to Astryx size
+    let astryxSize: "sm" | "md" | "lg" = "md";
+    if (size === "sm") {
+      astryxSize = "sm";
+    } else if (size === "lg") {
+      astryxSize = "lg";
+    }
+
+    // Derive label for accessibility (required by Astryx)
+    let label = "";
+    if (typeof children === "string") {
+      label = children;
+    } else if (props["aria-label"]) {
+      label = props["aria-label"];
+    } else {
+      label = "action";
+    }
+
+    const isIcon = size === "icon" || size === "icon-sm";
+
+    if (isIcon) {
+      return (
+        <AstryxIconButton
+          ref={ref as any}
+          label={label}
+          size={astryxSize}
+          variant={astryxVariant}
+          className={cn(className, variant === "link" && "underline")}
+          isDisabled={props.disabled}
+          onClick={props.onClick as any}
+          icon={children}
+          {...(props as any)}
+        />
+      );
+    }
+
+    return (
+      <AstryxButton
+        ref={ref as any}
+        label={label}
+        size={astryxSize}
+        variant={astryxVariant}
+        className={cn(className, variant === "link" && "underline")}
+        isDisabled={props.disabled}
+        onClick={props.onClick as any}
+        {...(props as any)}
+      >
+        {children}
+      </AstryxButton>
+    );
+  }
+);
+
+Button.displayName = "Button";
 
 export { Button, buttonVariants };
