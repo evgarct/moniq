@@ -24,6 +24,31 @@ export interface ToggleGroupProps extends VariantProps<typeof toggleVariants> {
   spacing?: number;
 }
 
+function extractIconFromChildren(children: React.ReactNode): {
+  icon?: React.ReactNode;
+  content: React.ReactNode;
+} {
+  const childrenArray = React.Children.toArray(children);
+  if (childrenArray.length === 0) {
+    return { content: children };
+  }
+
+  let icon: React.ReactNode | undefined;
+  let startIdx = 0;
+
+  const firstChild = childrenArray[0];
+  if (React.isValidElement(firstChild) && typeof firstChild.type !== "string") {
+    icon = firstChild;
+    startIdx = 1;
+  }
+
+  const content = childrenArray.slice(startIdx);
+  return {
+    icon,
+    content: content.length === 1 ? content[0] : content.length === 0 ? undefined : content,
+  };
+}
+
 function ToggleGroup({
   className,
   value,
@@ -92,14 +117,15 @@ function ToggleGroupItem({
   "aria-label": ariaLabel,
   ...props
 }: ToggleGroupItemProps) {
-  // Derive label for accessibility (required by Astryx SegmentedControlItem)
-  let label = "";
-  if (typeof children === "string") {
-    label = children;
+  const { icon: extractedIcon, content: remainingContent } = extractIconFromChildren(children);
+
+  let labelStr = "";
+  if (typeof remainingContent === "string") {
+    labelStr = remainingContent;
   } else if (ariaLabel) {
-    label = ariaLabel;
+    labelStr = ariaLabel;
   } else {
-    label = value;
+    labelStr = value;
   }
 
   const astryxProps = { ...props };
@@ -109,13 +135,12 @@ function ToggleGroupItem({
   return (
     <AstryxSegmentedControlItem
       value={value}
-      label={label}
+      label={labelStr}
+      icon={extractedIcon}
       isDisabled={disabled}
       className={className}
       {...(astryxProps as Record<string, unknown>)}
-    >
-      {children}
-    </AstryxSegmentedControlItem>
+    />
   );
 }
 

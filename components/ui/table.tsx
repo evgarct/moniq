@@ -1,16 +1,17 @@
 "use client";
 
 import * as React from "react";
-import { TableHeader as AstryxTableHeader } from "@astryxdesign/core/TableHeader";
-import { TableBody as AstryxTableBody } from "@astryxdesign/core/TableBody";
-import { TableFooter as AstryxTableFooter } from "@astryxdesign/core/TableFooter";
-import { TableRow as AstryxTableRow } from "@astryxdesign/core/TableRow";
-import { TableCell as AstryxTableCell } from "@astryxdesign/core/TableCell";
-import { TableHeaderCell as AstryxTableHeaderCell } from "@astryxdesign/core/TableHeaderCell";
+import {
+  TableHeader as AstryxTableHeader,
+  TableBody as AstryxTableBody,
+  TableFooter as AstryxTableFooter,
+  TableRow as AstryxTableRow,
+  TableCell as AstryxTableCell,
+  TableHeaderCell as AstryxTableHeaderCell,
+} from "@astryxdesign/core/Table";
 import { cn } from "@/lib/utils";
 
 function Table({ className, ...props }: React.ComponentProps<"table">) {
-  // Astryx Table wraps layout scroll styles and maps children
   return (
     <div className="relative w-full overflow-auto">
       <table
@@ -22,27 +23,31 @@ function Table({ className, ...props }: React.ComponentProps<"table">) {
   );
 }
 
-function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
+function TableHeader({ className, children, ...props }: React.ComponentProps<"thead">) {
   return (
     <AstryxTableHeader
       data-slot="table-header"
       className={cn("[&_tr]:border-b border-border", className)}
       {...(props as Record<string, unknown>)}
-    />
+    >
+      {children}
+    </AstryxTableHeader>
   );
 }
 
-function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
+function TableBody({ className, children, ...props }: React.ComponentProps<"tbody">) {
   return (
     <AstryxTableBody
       data-slot="table-body"
       className={cn("[&_tr:last-child]:border-0", className)}
       {...(props as Record<string, unknown>)}
-    />
+    >
+      {children}
+    </AstryxTableBody>
   );
 }
 
-function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
+function TableFooter({ className, children, ...props }: React.ComponentProps<"tfoot">) {
   return (
     <AstryxTableFooter
       data-slot="table-footer"
@@ -51,11 +56,13 @@ function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
         className
       )}
       {...(props as Record<string, unknown>)}
-    />
+    >
+      {children}
+    </AstryxTableFooter>
   );
 }
 
-function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
+function TableRow({ className, children, ...props }: React.ComponentProps<"tr">) {
   return (
     <AstryxTableRow
       data-slot="table-row"
@@ -64,11 +71,13 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
         className
       )}
       {...(props as Record<string, unknown>)}
-    />
+    >
+      {children}
+    </AstryxTableRow>
   );
 }
 
-function TableHead({ className, ...props }: React.ComponentProps<"th">) {
+function TableHead({ className, children, ...props }: React.ComponentProps<"th">) {
   return (
     <AstryxTableHeaderCell
       data-slot="table-head"
@@ -77,11 +86,13 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
         className
       )}
       {...(props as Record<string, unknown>)}
-    />
+    >
+      {children}
+    </AstryxTableHeaderCell>
   );
 }
 
-function TableCell({ className, ...props }: React.ComponentProps<"td">) {
+function TableCell({ className, children, ...props }: React.ComponentProps<"td">) {
   return (
     <AstryxTableCell
       data-slot="table-cell"
@@ -90,7 +101,9 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
         className
       )}
       {...(props as Record<string, unknown>)}
-    />
+    >
+      {children}
+    </AstryxTableCell>
   );
 }
 
