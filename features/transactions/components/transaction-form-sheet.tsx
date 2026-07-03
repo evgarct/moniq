@@ -288,7 +288,7 @@ export function TransactionFormSheet({
       <SheetContent
         side="responsive"
         showCloseButton={false}
-        className="gap-0 border-0 bg-background p-0 sm:max-w-none"
+        className="gap-0 border-0 bg-background p-0 sm:max-w-none data-[side=responsive]:sm:inset-y-0 data-[side=responsive]:sm:h-full data-[side=responsive]:sm:rounded-none"
       >
         <TransactionFormProvider
           open={open}

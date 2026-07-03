@@ -1,94 +1,110 @@
-"use client"
+"use client";
 
-import * as React from "react"
-
-import { cn } from "@/lib/utils"
+import * as React from "react";
+import {
+  TableHeader as AstryxTableHeader,
+  TableBody as AstryxTableBody,
+  TableFooter as AstryxTableFooter,
+  TableRow as AstryxTableRow,
+  TableCell as AstryxTableCell,
+  TableHeaderCell as AstryxTableHeaderCell,
+} from "@astryxdesign/core/Table";
+import { cn } from "@/lib/utils";
 
 function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
-    <div
-      data-slot="table-container"
-      className="relative w-full overflow-x-auto"
-    >
+    <div className="relative w-full overflow-auto">
       <table
         data-slot="table"
-        className={cn("w-full caption-bottom text-sm", className)}
+        className={cn("w-full caption-bottom text-sm border-collapse", className)}
         {...props}
       />
     </div>
-  )
+  );
 }
 
-function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
+function TableHeader({ className, children, ...props }: React.ComponentProps<"thead">) {
   return (
-    <thead
+    <AstryxTableHeader
       data-slot="table-header"
-      className={cn("[&_tr]:border-b", className)}
-      {...props}
-    />
-  )
+      className={cn("[&_tr]:border-b border-border", className)}
+      {...(props as Record<string, unknown>)}
+    >
+      {children}
+    </AstryxTableHeader>
+  );
 }
 
-function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
+function TableBody({ className, children, ...props }: React.ComponentProps<"tbody">) {
   return (
-    <tbody
+    <AstryxTableBody
       data-slot="table-body"
       className={cn("[&_tr:last-child]:border-0", className)}
-      {...props}
-    />
-  )
+      {...(props as Record<string, unknown>)}
+    >
+      {children}
+    </AstryxTableBody>
+  );
 }
 
-function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
+function TableFooter({ className, children, ...props }: React.ComponentProps<"tfoot">) {
   return (
-    <tfoot
+    <AstryxTableFooter
       data-slot="table-footer"
       className={cn(
         "border-t bg-muted/50 font-medium [&>tr]:last:border-b-0",
         className
       )}
-      {...props}
-    />
-  )
+      {...(props as Record<string, unknown>)}
+    >
+      {children}
+    </AstryxTableFooter>
+  );
 }
 
-function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
+function TableRow({ className, children, ...props }: React.ComponentProps<"tr">) {
   return (
-    <tr
+    <AstryxTableRow
       data-slot="table-row"
       className={cn(
-        "border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted",
+        "border-b border-border transition-colors hover:bg-secondary/50 data-[state=selected]:bg-secondary/50",
         className
       )}
-      {...props}
-    />
-  )
+      {...(props as Record<string, unknown>)}
+    >
+      {children}
+    </AstryxTableRow>
+  );
 }
 
-function TableHead({ className, ...props }: React.ComponentProps<"th">) {
+function TableHead({ className, children, ...props }: React.ComponentProps<"th">) {
   return (
-    <th
+    <AstryxTableHeaderCell
       data-slot="table-head"
       className={cn(
         "h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0",
         className
       )}
-      {...props}
-    />
-  )
+      {...(props as Record<string, unknown>)}
+    >
+      {children}
+    </AstryxTableHeaderCell>
+  );
 }
 
-function TableCell({ className, ...props }: React.ComponentProps<"td">) {
+function TableCell({ className, children, ...props }: React.ComponentProps<"td">) {
   return (
-    <td
+    <AstryxTableCell
       data-slot="table-cell"
       className={cn(
         "p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0",
         className
       )}
-      {...props}
-    />
-  )
+      {...(props as Record<string, unknown>)}
+    >
+      {children}
+    </AstryxTableCell>
+  );
 }
 
 function TableCaption({
@@ -101,7 +117,7 @@ function TableCaption({
       className={cn("mt-4 text-sm text-muted-foreground", className)}
       {...props}
     />
-  )
+  );
 }
 
 export {
@@ -109,8 +125,8 @@ export {
   TableHeader,
   TableBody,
   TableFooter,
-  TableHead,
   TableRow,
+  TableHead,
   TableCell,
   TableCaption,
-}
+};

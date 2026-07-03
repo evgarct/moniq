@@ -1,5 +1,5 @@
 import * as React from "react"
-
+import { Card as AstryxCard } from "@astryxdesign/core/Card"
 import { cn } from "@/lib/utils"
 
 function Card({
@@ -7,15 +7,16 @@ function Card({
   size = "default",
   ...props
 }: React.ComponentProps<"div"> & { size?: "default" | "sm" }) {
+  const astryxPadding = size === "sm" ? 3 : 4;
+
   return (
-    <div
-      data-slot="card"
-      data-size={size}
+    <AstryxCard
+      padding={astryxPadding}
       className={cn(
-        "group/card flex flex-col gap-4 overflow-hidden rounded-[var(--radius-surface)] bg-card py-4 text-sm text-card-foreground ring-1 ring-foreground/10 has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:gap-3 data-[size=sm]:py-3 data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-[var(--radius-surface)] *:[img:last-child]:rounded-b-[var(--radius-surface)]",
+        "group/card flex flex-col gap-4 overflow-hidden rounded-[var(--radius-surface)] bg-card text-sm text-card-foreground ring-1 ring-foreground/10",
         className
       )}
-      {...props}
+      {...(props as Record<string, unknown>)}
     />
   )
 }

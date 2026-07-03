@@ -1,89 +1,147 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Toggle as TogglePrimitive } from "@base-ui/react/toggle"
-import { ToggleGroup as ToggleGroupPrimitive } from "@base-ui/react/toggle-group"
-import { type VariantProps } from "class-variance-authority"
+import * as React from "react";
+import {
+  SegmentedControl as AstryxSegmentedControl,
+  SegmentedControlItem as AstryxSegmentedControlItem,
+} from "@astryxdesign/core/SegmentedControl";
+import { type VariantProps } from "class-variance-authority";
+import { toggleVariants } from "@/components/ui/toggle";
+import { cn } from "@/lib/utils";
 
-import { cn } from "@/lib/utils"
-import { toggleVariants } from "@/components/ui/toggle"
+const ToggleGroupContext = React.createContext<{
+  value?: string;
+  onChange?: (value: string) => void;
+}>({});
 
-const ToggleGroupContext = React.createContext<
-  VariantProps<typeof toggleVariants> & {
-    spacing?: number
-    orientation?: "horizontal" | "vertical"
+export interface ToggleGroupProps extends VariantProps<typeof toggleVariants> {
+  className?: string;
+  value?: string | string[];
+  onValueChange?: (value: string | string[]) => void;
+  orientation?: "horizontal" | "vertical";
+  children?: React.ReactNode;
+  disabled?: boolean;
+  spacing?: number;
+}
+
+function extractIconFromChildren(children: React.ReactNode): {
+  icon?: React.ReactNode;
+  content: React.ReactNode;
+} {
+  const childrenArray = React.Children.toArray(children);
+  if (childrenArray.length === 0) {
+    return { content: children };
   }
->({
-  size: "default",
-  variant: "default",
-  spacing: 0,
-  orientation: "horizontal",
-})
+
+  let icon: React.ReactNode | undefined;
+  let startIdx = 0;
+
+  const firstChild = childrenArray[0];
+  if (React.isValidElement(firstChild) && typeof firstChild.type !== "string") {
+    icon = firstChild;
+    startIdx = 1;
+  }
+
+  const content = childrenArray.slice(startIdx);
+  return {
+    icon,
+    content: content.length === 1 ? content[0] : content.length === 0 ? undefined : content,
+  };
+}
 
 function ToggleGroup({
   className,
-  variant,
-  size,
-  spacing = 0,
-  orientation = "horizontal",
+  value,
+  onValueChange,
   children,
+  disabled,
+  size,
   ...props
-}: ToggleGroupPrimitive.Props &
-  VariantProps<typeof toggleVariants> & {
-    spacing?: number
-    orientation?: "horizontal" | "vertical"
-  }) {
+}: ToggleGroupProps) {
+  const isArray = Array.isArray(value);
+  const scalarValue = isArray ? (value as string[])[0] || "" : (value as string || "");
+
+  const handleChange = (nextValue: string) => {
+    if (onValueChange) {
+      if (isArray) {
+        onValueChange([nextValue]);
+      } else {
+        onValueChange(nextValue);
+      }
+    }
+  };
+
+  // Map size to Astryx size ('sm' | 'md' | 'lg')
+  let astryxSize: "sm" | "md" | "lg" = "md";
+  if (size === "sm") {
+    astryxSize = "sm";
+  } else if (size === "lg") {
+    astryxSize = "lg";
+  }
+
+  const astryxProps = { ...props };
+  delete (astryxProps as Record<string, unknown>).variant;
+  delete (astryxProps as Record<string, unknown>).spacing;
+  delete (astryxProps as Record<string, unknown>).orientation;
+
   return (
-    <ToggleGroupPrimitive
-      data-slot="toggle-group"
-      data-variant={variant}
-      data-size={size}
-      data-spacing={spacing}
-      data-orientation={orientation}
-      style={{ "--gap": spacing } as React.CSSProperties}
-      className={cn(
-        "group/toggle-group flex w-fit flex-row items-center gap-[--spacing(var(--gap))] rounded-[var(--radius-control)] data-vertical:flex-col data-vertical:items-stretch",
-        className
-      )}
-      {...props}
-    >
-      <ToggleGroupContext.Provider
-        value={{ variant, size, spacing, orientation }}
+    <ToggleGroupContext.Provider value={{ value: scalarValue, onChange: handleChange }}>
+      <AstryxSegmentedControl
+        value={scalarValue}
+        onChange={handleChange}
+        label="Toggle Group"
+        isDisabled={disabled}
+        size={astryxSize}
+        className={cn("w-fit", className)}
+        {...(astryxProps as Record<string, unknown>)}
       >
         {children}
-      </ToggleGroupContext.Provider>
-    </ToggleGroupPrimitive>
-  )
+      </AstryxSegmentedControl>
+    </ToggleGroupContext.Provider>
+  );
+}
+
+export interface ToggleGroupItemProps extends VariantProps<typeof toggleVariants> {
+  className?: string;
+  value: string;
+  children?: React.ReactNode;
+  disabled?: boolean;
+  "aria-label"?: string;
 }
 
 function ToggleGroupItem({
   className,
+  value,
   children,
-  variant = "default",
-  size = "default",
+  disabled,
+  "aria-label": ariaLabel,
   ...props
-}: TogglePrimitive.Props & VariantProps<typeof toggleVariants>) {
-  const context = React.useContext(ToggleGroupContext)
+}: ToggleGroupItemProps) {
+  const { icon: extractedIcon, content: remainingContent } = extractIconFromChildren(children);
+
+  let labelStr = "";
+  if (typeof remainingContent === "string") {
+    labelStr = remainingContent;
+  } else if (ariaLabel) {
+    labelStr = ariaLabel;
+  } else {
+    labelStr = value;
+  }
+
+  const astryxProps = { ...props };
+  delete (astryxProps as Record<string, unknown>).variant;
+  delete (astryxProps as Record<string, unknown>).size;
 
   return (
-    <TogglePrimitive
-      data-slot="toggle-group-item"
-      data-variant={context.variant || variant}
-      data-size={context.size || size}
-      data-spacing={context.spacing}
-      className={cn(
-        "shrink-0 group-data-[spacing=0]/toggle-group:rounded-none group-data-[spacing=0]/toggle-group:px-2 focus:z-10 focus-visible:z-10 group-data-[spacing=0]/toggle-group:has-data-[icon=inline-end]:pr-1.5 group-data-[spacing=0]/toggle-group:has-data-[icon=inline-start]:pl-1.5 group-data-horizontal/toggle-group:data-[spacing=0]:first:rounded-l-lg group-data-vertical/toggle-group:data-[spacing=0]:first:rounded-t-lg group-data-horizontal/toggle-group:data-[spacing=0]:last:rounded-r-lg group-data-vertical/toggle-group:data-[spacing=0]:last:rounded-b-lg group-data-horizontal/toggle-group:data-[spacing=0]:data-[variant=outline]:border-l-0 group-data-vertical/toggle-group:data-[spacing=0]:data-[variant=outline]:border-t-0 group-data-horizontal/toggle-group:data-[spacing=0]:data-[variant=outline]:first:border-l group-data-vertical/toggle-group:data-[spacing=0]:data-[variant=outline]:first:border-t",
-        toggleVariants({
-          variant: context.variant || variant,
-          size: context.size || size,
-        }),
-        className
-      )}
-      {...props}
-    >
-      {children}
-    </TogglePrimitive>
-  )
+    <AstryxSegmentedControlItem
+      value={value}
+      label={labelStr}
+      icon={extractedIcon}
+      isDisabled={disabled}
+      className={className}
+      {...(astryxProps as Record<string, unknown>)}
+    />
+  );
 }
 
-export { ToggleGroup, ToggleGroupItem }
+export { ToggleGroup, ToggleGroupItem };

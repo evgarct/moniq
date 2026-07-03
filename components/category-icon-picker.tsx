@@ -20,10 +20,12 @@ export function CategoryIconPicker({
   id,
   value,
   onValueChange,
+  "aria-label": ariaLabel,
 }: {
   id?: string;
   value: string | null | undefined;
   onValueChange: (value: string) => void;
+  "aria-label"?: string;
 }) {
   const t = useTranslations("categories.form.iconPicker");
   const [open, setOpen] = useState(false);
@@ -33,7 +35,7 @@ export function CategoryIconPicker({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         render={
-          <Button id={id} type="button" variant="outline" className="w-full justify-between" />
+          <Button id={id} type="button" variant="outline" className="w-full justify-between" aria-label={ariaLabel} />
         }
       >
         <span className="flex min-w-0 items-center gap-2">

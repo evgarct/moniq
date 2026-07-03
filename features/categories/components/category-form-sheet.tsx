@@ -115,6 +115,7 @@ export function CategoryFormSheet({
                   id="category-icon"
                   value={field.value}
                   onValueChange={field.onChange}
+                  aria-label={t("fields.icon")}
                 />
               </FormField>
             )}

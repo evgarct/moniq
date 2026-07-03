@@ -78,6 +78,7 @@ export default async function RootLayout({
     <html
       lang={locale}
       data-scroll-behavior="smooth"
+      data-theme="light"
       className={`${inter.variable} ${jetBrainsMono.variable} ${ptSerif.variable} h-full antialiased`}
     >
       <body className="min-h-full bg-background font-sans text-foreground">
