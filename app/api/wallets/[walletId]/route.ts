@@ -17,12 +17,15 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ wa
       const currentWallet = snapshotBefore.accounts.find((a) => a.id === walletId);
       const oldBalance = currentWallet?.balance ?? 0;
 
+      const isNegativeKind = currentWallet?.type === "credit_card" || currentWallet?.type === "debt";
+      const normalizedNewBalance = isNegativeKind ? -Math.abs(payload.balance) : Math.abs(payload.balance);
+
       // Update metadata keeping old balance so RPC doesn't overwrite it directly
       await withMutationPerformance(request, "update_wallet", () => updateWallet(walletId, { ...payload, balance: oldBalance }));
 
       // If balance changed, create an adjustment transaction (trigger updates wallet balance)
-      if (Math.abs(payload.balance - oldBalance) >= 0.001) {
-        await withMutationPerformance(request, "adjust_wallet_balance", () => adjustWalletBalance(walletId, payload.balance, null));
+      if (Math.abs(normalizedNewBalance - oldBalance) >= 0.001) {
+        await withMutationPerformance(request, "adjust_wallet_balance", () => adjustWalletBalance(walletId, normalizedNewBalance, null));
       }
 
       return NextResponse.json(await getFinanceSnapshot());

@@ -832,7 +832,9 @@ export async function createWallet(values: WalletInput, preferredId?: string, mu
       .single();
 
     if (newWallet?.id) {
-      await insertBalanceTransaction(supabase, user.id, newWallet.id, values.balance, "Opening balance", null, mutationId);
+      const isNegativeKind = values.type === "credit_card" || values.type === "debt";
+      const normalizedBalance = isNegativeKind ? -Math.abs(values.balance) : Math.abs(values.balance);
+      await insertBalanceTransaction(supabase, user.id, newWallet.id, normalizedBalance, "Opening balance", null, mutationId);
     }
   }
 }
