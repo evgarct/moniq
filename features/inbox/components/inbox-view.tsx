@@ -228,7 +228,6 @@ export function InboxView() {
           <PageHeader
             title={t("title")}
             scrolled={leftPanelScrolled}
-            className="bg-card/96 supports-[backdrop-filter]:bg-card/88"
             actions={
               <>
                 <Tooltip>

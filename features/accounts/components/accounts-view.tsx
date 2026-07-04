@@ -190,10 +190,6 @@ export function AccountsView({
           <PageHeader
             title={t("view.title")}
             scrolled={leftPanelScrolled}
-            className={cn(
-              "border-b border-transparent bg-card/96 backdrop-blur transition-[background-color,border-color] supports-[backdrop-filter]:bg-card/88",
-              leftPanelScrolled && "border-border/45",
-            )}
             actions={
               <div
                 className="flex shrink-0 items-center gap-1 sm:gap-2"

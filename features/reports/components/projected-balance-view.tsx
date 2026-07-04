@@ -157,7 +157,7 @@ export function ProjectedBalanceView({
     <div className="flex h-full min-h-0 w-full max-w-full flex-col overflow-hidden bg-card lg:bg-background pb-[calc(76px+env(safe-area-inset-bottom))] lg:pb-0">
       <PageHeader
         title={t("title")}
-        className="shrink-0 bg-card lg:bg-background"
+        className="shrink-0"
         actions={
           <div
             className="flex min-w-0 shrink items-center justify-end gap-1 sm:gap-2"
