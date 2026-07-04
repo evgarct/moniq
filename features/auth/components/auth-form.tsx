@@ -8,7 +8,7 @@ import { useTranslations } from "next-intl";
 
 import type { AuthActionState } from "@/features/auth/actions";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Surface, SurfaceHeader, SurfaceTitle, SurfaceDescription } from "@/components/surface";
 import { Input } from "@/components/ui/input";
 import { Link } from "@/i18n/navigation";
 
@@ -45,12 +45,12 @@ export function AuthForm({ mode, action }: AuthFormProps) {
   const alternateHref = mode === "login" ? "/signup" : "/login";
 
   return (
-    <Card className="w-full max-w-md border-border shadow-none">
-      <CardHeader className="space-y-2">
-        <CardTitle className="text-2xl">{t(`auth.${mode}.title`)}</CardTitle>
-        <CardDescription>{t(`auth.${mode}.description`)}</CardDescription>
-      </CardHeader>
-      <CardContent>
+    <Surface tone="panel" padding="lg" className="w-full max-w-md border border-border">
+      <SurfaceHeader className="flex flex-col gap-1 mb-5 px-0">
+        <SurfaceTitle className="text-2xl">{t(`auth.${mode}.title`)}</SurfaceTitle>
+        <SurfaceDescription>{t(`auth.${mode}.description`)}</SurfaceDescription>
+      </SurfaceHeader>
+      <div className="px-0">
         <form action={formAction} className="space-y-4">
           <input type="hidden" name="next" value={next} />
 
@@ -111,7 +111,7 @@ export function AuthForm({ mode, action }: AuthFormProps) {
             {t(`auth.${mode}.alternate`)}
           </Link>
         </p>
-      </CardContent>
-    </Card>
+      </div>
+    </Surface>
   );
 }

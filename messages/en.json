@@ -1006,6 +1006,50 @@
         "selected": "{count, plural, one {# account} other {# accounts}}",
         "reset": "Reset"
       }
+    },
+    "fireReport": {
+      "income": "Income",
+      "expenses": "Expenses",
+      "investmentIncome": "Passive Income (SWR)",
+      "loading": {
+        "title": "Loading Cash Flow & FIRE report",
+        "description": "Calculating historical balances, transactions, and portfolio value."
+      },
+      "error": {
+        "title": "Unable to load FIRE report",
+        "description": "The report data could not be loaded."
+      },
+      "eyebrow": "Reports",
+      "title": "Cash Flow & FIRE",
+      "description": "Analyze your historical income, expenses, and passive SWR income.",
+      "chart": {
+        "ariaLabel": "FIRE and cash flow chart comparing income, expenses, and passive income over time. Use the left and right arrow keys to inspect dates.",
+        "selectedDate": "Financial status for {date}"
+      },
+      "empty": {
+        "title": "Add accounts first",
+        "description": "FIRE report needs at least one account with a balance."
+      },
+      "noSeries": {
+        "title": "No report lines available",
+        "description": "Select at least one account with an available exchange rate."
+      },
+      "period": {
+        "label": "Historical period",
+        "months": "{count, plural, one {# month} other {# months}}"
+      },
+      "accountPicker": {
+        "title": "Portfolio",
+        "description": "Choose which accounts are included in the SWR portfolio calculation.",
+        "merged": "Merged",
+        "all": "All accounts",
+        "selected": "{count, plural, one {# account} other {# accounts}}",
+        "reset": "Reset"
+      }
+    },
+    "typeSelector": {
+      "projected": "Forecast",
+      "fire": "Cash Flow & FIRE"
     }
   },
   "settings": {

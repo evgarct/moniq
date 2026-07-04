@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 
 import { CategoryIcon } from "@/components/category-icon";
 import { Button } from "@/components/ui/button";
+import { Field, FieldLabel } from "@/components/ui/field";
 import {
   Select,
   SelectContent,
@@ -58,7 +59,7 @@ export function CategoryDeleteSheet({
 
         <div className="flex flex-1 flex-col p-4">
           <div className="space-y-4">
-            <div className="rounded-[var(--radius-surface)] border border-border bg-muted/40 px-4 py-3">
+            <div className="rounded-surface border border-border bg-muted/40 px-4 py-3">
               <p className="flex items-center gap-2 text-sm font-medium text-foreground">
                 <CategoryIcon icon={category?.icon} glyphClassName="text-foreground" />
                 <span>{category?.name}</span>
@@ -67,10 +68,10 @@ export function CategoryDeleteSheet({
             </div>
 
             {transactionCount > 0 ? (
-              <div className="space-y-2">
-                <label className="text-sm font-medium">{t("replacementCategory")}</label>
+              <Field className="space-y-2">
+                <FieldLabel htmlFor="replacement-category-select">{t("replacementCategory")}</FieldLabel>
                 <Select value={replacementCategoryId ?? undefined} onValueChange={setReplacementCategoryId}>
-                  <SelectTrigger className="w-full bg-white">
+                  <SelectTrigger id="replacement-category-select" className="w-full bg-white">
                     <SelectValue placeholder={t("placeholder")} />
                   </SelectTrigger>
                   <SelectContent>
@@ -82,14 +83,14 @@ export function CategoryDeleteSheet({
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
+              </Field>
             ) : null}
           </div>
 
           <SheetFooter className="mt-auto border-t px-0 pb-0">
             <Button
-              variant="default"
-              className="w-full bg-rose-600 text-white hover:bg-rose-700"
+              variant="destructive"
+              className="w-full"
               disabled={transactionCount > 0 && !replacementCategoryId}
               onClick={() => {
                 onSubmit(transactionCount > 0 ? replacementCategoryId : null);

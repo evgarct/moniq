@@ -313,6 +313,7 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
           <PageHeader
             title={t("view.title")}
             actions={calendarNav}
+            tone="panel"
           />
           <div className="mobile-nav-scroll-clearance flex-1 overflow-y-auto overscroll-contain px-2.5 pt-4 pb-6 sm:px-[26px] lg:px-[30px]">
             {calendarGrid}

@@ -8,18 +8,32 @@ export function PageHeader({
   title,
   actions,
   scrolled = false,
+  tone = "canvas",
   className,
 }: {
   title: string;
   actions?: React.ReactNode;
   scrolled?: boolean;
+  tone?: "canvas" | "panel";
   className?: string;
 }) {
+  const toneClasses = {
+    canvas: scrolled
+      ? "bg-card/90 backdrop-blur supports-[backdrop-filter]:bg-card/80 lg:bg-background/90 lg:supports-[backdrop-filter]:bg-background/80"
+      : "bg-card lg:bg-background",
+    panel: scrolled
+      ? "bg-card/90 backdrop-blur supports-[backdrop-filter]:bg-card/80"
+      : "bg-card",
+  };
+
   return (
     <div
       className={cn(
-        "bg-card/96 lg:bg-background/96 backdrop-blur transition-shadow supports-[backdrop-filter]:bg-card/88 lg:supports-[backdrop-filter]:bg-background/88",
-        scrolled && "shadow-[0_10px_24px_-22px_rgba(28,22,17,0.75)]",
+        "transition-[background-color,border-color,box-shadow] duration-200",
+        toneClasses[tone],
+        scrolled
+          ? "border-b border-border/40 shadow-[0_4px_12px_-4px_rgba(28,22,17,0.08)]"
+          : "border-b border-transparent",
         className,
       )}
     >

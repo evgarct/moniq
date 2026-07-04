@@ -10,50 +10,74 @@ Storybook is the review surface for Moniq UI work.
 
 ## Atomic Structure
 
+- `Foundations`
+  - `DesignLanguage`
+  - `UIPlaybook`
+  - `Typography`
+  - `RadiusSystem`
+  - `VisualTokens`
+  - `BalancePanelPatterns`
 - `Atoms`
   - `MoneyAmount`
-  - `AccountTypeBadge`
+  - `Surface`
 - `Molecules`
-  - `AccountCard`
+  - `AccountRow`
   - `TransactionRow`
-  - `AllocationItem`
   - `EmptyState`
+  - `ZeroState`
+  - `DetailField`
+  - `FormPrimitives`
+  - `FormSheet`
+  - `DateRangePicker`
+  - `TransactionList`
 - `Organisms`
   - `AccountList`
   - `AppSidebar`
-  - `AppHeader`
-  - `AuthForm`
+  - `MobileBottomNav`
+- `Features`
+  - `Accounts` (`AccountFormSheet`, `AccountsView`, `BalanceRegisterPanel`)
+  - `Auth` (`AuthForm`)
+  - `Banking` (`BankingView`, `ImportApprovalList`)
+  - `Budget` (`BudgetBarChart`)
+  - `Categories` (`CategoryFormSheet`)
+  - `Goals` (`GoalFormSheet`)
+  - `Inbox` (`CsvBatchSection`, `McpBatchSection`)
+  - `Settings` (`McpSettings`, `BillingSettings`)
+  - `Sync` (`SyncStatusIndicator`)
 - `Templates`
-  - `AccountsView`
   - `WorkspaceShell`
+  - `PendingTransactionRow`
 - `Pages`
-  - `Dashboard`
-  - `Calendar`
   - `Today`
   - `Accounts`
-  - `Imports`
+  - `Transactions`
+  - `Budget`
+  - `Calendar`
+  - `Settings`
+  - `ClaudeInbox`
+  - `McpResultWidget`
+  - `ProjectedBalance`
 
 ## Commands
 
-- `npm run storybook`
-- `npm run build-storybook`
-- `npm run test-storybook`
-- `npm run preview:live`
-- `npm run preview:refresh`
+- `npm run storybook` - Starts the local Storybook dev server on a verified port (default: `6008`)
+- `npm run build-storybook` - Builds Storybook statically
+- `npm run test-storybook` - Runs automated browser tests via Vitest (with Playwright + axe-core accessibility checks)
+- `npm run preview:live` - Starts both the App and Storybook preview dev servers synchronously
+- `npm run preview:refresh` - Clean restarts preview dev servers
 
-## Current Preview Source Of Truth
+## Automated Accessibility (a11y) Testing
 
-- use `npm run preview:live` for local UI work
-- it restarts both live dev servers in place on stable URLs: app `http://localhost:3008` and Storybook `http://localhost:6008`
-- the command verifies both over HTTP and writes the current status to `.codex-artifacts/current-previews.json`
-- `npm run preview:refresh` is now just an alias to the same stable live-preview flow
+Moniq enforces strict accessibility guidelines. The test runner executes **axe-core** checks automatically on every story rendering in Vitest.
+- Visual elements are audited for contrast ratios, proper ARIA labeling, keyboard focusability, and structure.
+- Parameters set in `.storybook/preview.tsx` with `a11y: { test: "error" }` ensure that any accessibility violation will immediately fail the Storybook test run.
+- Keep components compliant with accessibility standards (ARIA properties, semantic elements, text contrast, screen reader friendliness).
 
 ## Rules
 
-- UI work starts in Storybook: component states first, composed screen second, application integration last
-- every meaningful UI surface and state must be represented in Storybook in the same pull request
-- stories should use mock data and stay independent from Supabase
-- page stories should reflect realistic Moniq layouts, not isolated demo fragments
-- stateful review surfaces such as the import inbox should have a focused story that opens directly into the target interaction state
-- `npm run check:storybook-first` blocks runtime UI changes without a story change; `.storybook/non-visual-change.md` is only for a documented, genuinely non-visual exception
-- local-first stories cover cached, syncing, offline, pending, reconnecting, conflict, storage-failure, and expired-authorization states without contacting PowerSync or Supabase
+- **Storybook-First Rule:** ALL visual and UI work—including creating new UI elements, styling modifications, or adding states—must be initiated and verified inside Storybook first. Direct editing of the live app UI without a story cover is prohibited.
+- **Story for Every State:** Every new screen, stateful component, panel, empty state, and edge case (e.g. pending, offline, error) must have a corresponding story.
+- **CI Enforcement:** `npm run check:storybook-first` blocks pull requests with runtime UI modifications if no story files have been edited, unless explicitly waived in `.storybook/non-visual-change.md`.
+- **Offline / Sync Mocking:** Stories should use isolated mock data and cover offline, local-first syncing, storage failures, or expired auth session states without connecting to Supabase or PowerSync.
+- **Design Tokens:** Always build UI components using defined design tokens. Do not write arbitrary rounded or shadow classes.
+- **Accessibility Compliance:** Do not sign off on a UI component if it introduces accessibility warnings or errors. Inspect accessibility results using the **Accessibility** addon panel in the Storybook UI or the Vitest CLI reporter.

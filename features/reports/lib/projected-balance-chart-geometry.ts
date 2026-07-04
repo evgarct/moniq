@@ -1,11 +1,11 @@
 import type { ProjectedBalancePoint } from "@/features/reports/lib/projected-balance";
 
-export type ChartGeometryPoint = ProjectedBalancePoint & {
+export type ChartGeometryPoint<T = ProjectedBalancePoint> = T & {
   x: number;
   y: number;
 };
 
-export function getProjectedBalanceRange(series: { points: ProjectedBalancePoint[] }[]) {
+export function getProjectedBalanceRange(series: { points: { balance: number }[] }[]) {
   const values = series.flatMap((item) => item.points.map((point) => point.balance));
   if (!values.length) {
     return { min: 0, max: 1 };
@@ -22,8 +22,8 @@ export function getProjectedBalanceRange(series: { points: ProjectedBalancePoint
   };
 }
 
-export function projectBalancePoints(options: {
-  points: ProjectedBalancePoint[];
+export function projectBalancePoints<T extends { balance: number }>(options: {
+  points: T[];
   min: number;
   max: number;
   width: number;
@@ -32,7 +32,7 @@ export function projectBalancePoints(options: {
   right: number;
   top: number;
   bottom: number;
-}): ChartGeometryPoint[] {
+}): ChartGeometryPoint<T>[] {
   const plotWidth = Math.max(1, options.width - options.left - options.right);
   const plotHeight = Math.max(1, options.height - options.top - options.bottom);
   const valueRange = Math.max(1, options.max - options.min);
@@ -45,7 +45,7 @@ export function projectBalancePoints(options: {
   }));
 }
 
-export function buildStepPath(points: Pick<ChartGeometryPoint, "x" | "y">[]) {
+export function buildStepPath(points: Pick<ChartGeometryPoint<unknown>, "x" | "y">[]) {
   if (!points.length) return "";
 
   return points.slice(1).reduce(

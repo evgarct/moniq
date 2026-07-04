@@ -53,8 +53,10 @@ export function BalanceRegisterHeader({
   return (
     <div
       className={cn(
-        "sticky top-0 z-10 border-b border-transparent bg-card/94 lg:bg-background/94 backdrop-blur transition-[background-color,border-color] supports-[backdrop-filter]:bg-card/84 lg:supports-[backdrop-filter]:bg-background/84",
-        scrolled && "border-border/45",
+        "sticky top-0 z-10 transition-[background-color,border-color,box-shadow] duration-200",
+        scrolled
+          ? "bg-card/90 backdrop-blur border-b border-border/40 supports-[backdrop-filter]:bg-card/80 lg:bg-background/90 lg:supports-[backdrop-filter]:bg-background/80 shadow-[0_4px_12px_-4px_rgba(28,22,17,0.08)]"
+          : "bg-card lg:bg-background border-b border-transparent",
         className,
       )}
     >

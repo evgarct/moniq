@@ -15,7 +15,7 @@ import { getCreditCardMetrics, isCreditCardAccount, isDebtAccount } from "@/feat
 import { cn } from "@/lib/utils";
 import type { Account, WalletAllocation } from "@/types/finance";
 
-export function AccountCard({
+export function AccountRow({
   account,
   selected = false,
   onSelect,

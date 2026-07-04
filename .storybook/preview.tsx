@@ -22,6 +22,9 @@ const preview: Preview = {
     nextjs: {
       appDirectory: true,
     },
+    a11y: {
+      test: "todo",
+    },
     controls: {
       matchers: {
         color: /(background|color)$/i,
@@ -30,7 +33,7 @@ const preview: Preview = {
     },
     options: {
       storySort: {
-        order: ["Foundations", "Atoms", "Molecules", "Organisms", "Templates", "Pages"],
+        order: ["Foundations", "Atoms", "Molecules", "Organisms", "Features", "Templates", "Pages"],
       },
     },
     backgrounds: {

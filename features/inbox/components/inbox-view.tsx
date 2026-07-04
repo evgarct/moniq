@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Bot, FileUp, Info, Upload } from "lucide-react";
 
 import { EmptyState } from "@/components/empty-state";
+import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -224,41 +225,35 @@ export function InboxView() {
     <>
       <div className="grid h-full min-h-0 w-full grid-cols-1 lg:grid-cols-[360px_minmax(0,1fr)]">
         <section className="flex min-h-0 flex-col overflow-hidden border-b border-border/40 bg-card lg:border-r lg:border-b-0 lg:border-r-border/25">
-          <div
-            className={cn(
-              "bg-card/96 backdrop-blur transition-shadow supports-[backdrop-filter]:bg-card/88",
-              leftPanelScrolled && "shadow-[0_10px_24px_-22px_rgba(28,22,17,0.75)]",
-            )}
-          >
-            <div className="flex flex-col gap-3 px-3 pt-4 pb-3 sm:gap-4 sm:px-6 sm:pt-7 sm:pb-5 lg:px-7 lg:pt-8 lg:pb-6">
-              <div className="flex items-start justify-between gap-3 px-1.5 sm:items-center sm:px-2.5">
-                <div className="flex min-w-0 items-center gap-2">
-                  <h1 className="min-w-0 truncate font-heading text-[28px] leading-none tracking-[-0.035em] text-foreground sm:type-h1">
-                    {t("title")}
-                  </h1>
-                  <Tooltip>
-                    <TooltipTrigger
-                      render={
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          className="bg-transparent text-muted-foreground hover:bg-secondary/70 hover:text-foreground active:bg-secondary"
-                          aria-label={t("description")}
-                        />
-                      }
-                    >
-                      <Info className="size-4 translate-y-[2px]" />
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-72 text-balance">{t("description")}</TooltipContent>
-                  </Tooltip>
-                </div>
+          <PageHeader
+            title={t("title")}
+            scrolled={leftPanelScrolled}
+            tone="panel"
+            actions={
+              <>
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        className="bg-transparent text-muted-foreground hover:bg-secondary/70 hover:text-foreground active:bg-secondary"
+                        aria-label={t("description")}
+                      />
+                    }
+                  >
+                    <Info className="size-4 translate-y-[2px]" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-72 text-balance">{t("description")}</TooltipContent>
+                </Tooltip>
 
                 <Button size="sm" variant="outline" className="shrink-0 gap-1.5" onClick={() => setUploadOpen(true)}>
                   <Upload className="h-3.5 w-3.5" />
                   {t("importCsv")}
                 </Button>
-              </div>
-
+              </>
+            }
+          />
               {!isLoading && totalCount > 0 ? (
                 <div className="flex flex-wrap gap-2 px-1.5 sm:px-2.5">
                   <FilterPill
@@ -283,8 +278,6 @@ export function InboxView() {
                   />
                 </div>
               ) : null}
-            </div>
-          </div>
 
           <div
             className="mobile-nav-scroll-clearance min-h-0 flex-1 overflow-auto px-3 py-2 [scroll-padding-bottom:calc(76px+env(safe-area-inset-bottom))] sm:px-6 sm:py-4 lg:px-7 lg:[scroll-padding-bottom:1rem]"
