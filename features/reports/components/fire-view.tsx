@@ -114,9 +114,9 @@ export function FireView({
         accountIds: selection.accountIds,
         periodMonths,
         labels: {
-          income: t("income" as Parameters<typeof t>[0]) || "Income",
-          expenses: t("expenses" as Parameters<typeof t>[0]) || "Expenses",
-          investmentIncome: t("investmentIncome" as Parameters<typeof t>[0]) || "Passive Income (SWR)",
+          income: t("income") || "Income",
+          expenses: t("expenses") || "Expenses",
+          investmentIncome: t("investmentIncome") || "Passive Income (SWR)",
         },
       }),
     [periodMonths, selection, snapshot, t],

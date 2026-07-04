@@ -108,10 +108,10 @@ function ReportsPageContent() {
           aria-label="Report selector"
         >
           <ToggleGroupItem value="projected">
-            {tCommon("typeSelector.projected" as Parameters<typeof tCommon>[0]) || "Forecast"}
+            {tCommon("typeSelector.projected") || "Forecast"}
           </ToggleGroupItem>
           <ToggleGroupItem value="fire">
-            {tCommon("typeSelector.fire" as Parameters<typeof tCommon>[0]) || "Cash Flow & FIRE"}
+            {tCommon("typeSelector.fire") || "Cash Flow & FIRE"}
           </ToggleGroupItem>
         </ToggleGroup>
       </div>
