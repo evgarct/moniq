@@ -1,14 +1,14 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, fireEvent, fn, userEvent, within } from "storybook/test";
 
-import { AccountCard } from "@/components/account-card";
+import { AccountRow } from "@/components/account-row";
 import { StoryDemoFrame, makeFinanceSnapshot } from "@/stories/fixtures/story-data";
 
 const snapshot = makeFinanceSnapshot();
 
 const meta = {
-  title: "Molecules/AccountCard",
-  component: AccountCard,
+  title: "Molecules/AccountRow",
+  component: AccountRow,
   args: {
     account: snapshot.accounts[1],
     onSelect: fn(),
@@ -23,7 +23,7 @@ const meta = {
       </StoryDemoFrame>
     ),
   ],
-} satisfies Meta<typeof AccountCard>;
+} satisfies Meta<typeof AccountRow>;
 
 export default meta;
 

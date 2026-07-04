@@ -1,7 +1,7 @@
 import { Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 
-import { AccountCard } from "@/components/account-card";
+import { AccountRow } from "@/components/account-row";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Account, WalletAllocation } from "@/types/finance";
@@ -71,7 +71,7 @@ export function AccountGroup({
       {accounts.length ? (
         <div className="flex flex-col gap-0.5 sm:gap-1">
           {accounts.map((account) => (
-            <AccountCard
+            <AccountRow
               key={account.id}
               account={account}
               selected={account.id === selectedAccountId}

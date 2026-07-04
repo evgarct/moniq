@@ -6,6 +6,7 @@ import { Eye, EyeOff, Info, WalletCards } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { AccountList } from "@/components/account-list";
+import { PageHeader } from "@/components/page-header";
 import { PageHeaderIconButton } from "@/components/page-header-icon-button";
 import { TransactionList } from "@/components/transaction-list";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -186,47 +187,40 @@ export function AccountsView({
     <>
       <div className="grid h-full w-full grid-cols-1 lg:grid-cols-[400px_minmax(0,1fr)]">
         <section className="flex min-h-0 flex-col overflow-hidden border-b border-border/40 bg-card lg:border-r lg:border-b-0 lg:border-r-border/25">
-          <div
+          <PageHeader
+            title={t("view.title")}
+            scrolled={leftPanelScrolled}
             className={cn(
               "border-b border-transparent bg-card/96 backdrop-blur transition-[background-color,border-color] supports-[backdrop-filter]:bg-card/88",
               leftPanelScrolled && "border-border/45",
             )}
-          >
-            <div className="flex flex-col gap-3 px-3 pt-4 pb-3 sm:gap-4 sm:px-6 sm:pt-7 sm:pb-5 lg:px-7 lg:pt-8 lg:pb-6">
-              <div className="flex items-start justify-between gap-2 px-1.5 sm:gap-3 sm:px-2.5">
-                <div className="flex min-w-0 items-center gap-2">
-                  <h1 className="font-heading text-[28px] leading-none tracking-[-0.035em] text-foreground sm:type-h1">
-                    {t("view.title")}
-                  </h1>
-                  <PageHeaderIconButton
-                    icon={Info}
-                    label={walletsEditMode ? copy("view.editModeDescription") : t("view.description")}
-                      className="hidden shrink-0 lg:inline-flex"
-                  />
-                </div>
-
-                <div
-                  className="flex shrink-0 items-center gap-1 sm:gap-2"
-                  role="toolbar"
-                  aria-label={t("view.title")}
-                >
-                  <PageHeaderIconButton
-                    icon={showMinorUnits ? Eye : EyeOff}
-                    label={showMinorUnits ? copy("view.hideMinorUnits") : copy("view.showMinorUnits")}
-                    pressed={showMinorUnits}
-                    onClick={() => setShowMinorUnits((current) => !current)}
-                  />
-
-                  <PageHeaderIconButton
-                    icon={WalletCards}
-                    label={walletsEditMode ? t("view.finishWalletEditing") : t("view.addWallet")}
-                    pressed={walletsEditMode}
-                    onClick={() => setWalletsEditMode((current) => !current)}
-                    disabled={pending}
-                  />
-                </div>
+            actions={
+              <div
+                className="flex shrink-0 items-center gap-1 sm:gap-2"
+                role="toolbar"
+                aria-label={t("view.title")}
+              >
+                <PageHeaderIconButton
+                  icon={Info}
+                  label={walletsEditMode ? copy("view.editModeDescription") : t("view.description")}
+                  className="hidden shrink-0 lg:inline-flex"
+                />
+                <PageHeaderIconButton
+                  icon={showMinorUnits ? Eye : EyeOff}
+                  label={showMinorUnits ? copy("view.hideMinorUnits") : copy("view.showMinorUnits")}
+                  pressed={showMinorUnits}
+                  onClick={() => setShowMinorUnits((current) => !current)}
+                />
+                <PageHeaderIconButton
+                  icon={WalletCards}
+                  label={walletsEditMode ? t("view.finishWalletEditing") : t("view.addWallet")}
+                  pressed={walletsEditMode}
+                  onClick={() => setWalletsEditMode((current) => !current)}
+                  disabled={pending}
+                />
               </div>
-
+            }
+          />
               {!hasAccounts ? (
                 <div className="rounded-[var(--radius-control)] border border-dashed border-border/70 bg-background/65 px-4 py-3 type-body-14 text-muted-foreground">
                   {walletsEditMode ? copy("view.emptyEditHint") : copy("view.emptyHint")}
@@ -238,8 +232,6 @@ export function AccountsView({
                   {actionError}
                 </div>
               ) : null}
-            </div>
-          </div>
 
           <div
             className="mobile-nav-scroll-clearance min-h-0 flex-1 overflow-auto px-3 py-2 [scroll-padding-bottom:calc(76px+env(safe-area-inset-bottom))] sm:px-6 sm:py-4 lg:px-7 lg:[scroll-padding-bottom:1rem]"

@@ -21,7 +21,7 @@ Storybook is the review surface for Moniq UI work.
   - `MoneyAmount`
   - `Surface`
 - `Molecules`
-  - `AccountCard`
+  - `AccountRow`
   - `TransactionRow`
   - `EmptyState`
   - `ZeroState`
