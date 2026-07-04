@@ -190,6 +190,7 @@ export function AccountsView({
           <PageHeader
             title={t("view.title")}
             scrolled={leftPanelScrolled}
+            tone="panel"
             actions={
               <div
                 className="flex shrink-0 items-center gap-1 sm:gap-2"

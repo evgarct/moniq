@@ -228,6 +228,7 @@ export function InboxView() {
           <PageHeader
             title={t("title")}
             scrolled={leftPanelScrolled}
+            tone="panel"
             actions={
               <>
                 <Tooltip>
