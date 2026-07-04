@@ -21,8 +21,8 @@ import { TransactionFormSheet, type TransactionFormSubmitPayload } from "@/featu
 import { useTransactionActions } from "@/features/transactions/hooks/use-transaction-actions";
 import { isSettledTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
 import { getTransactionsForAccount } from "@/lib/finance-selectors";
-import { cn } from "@/lib/utils";
 import type { CurrencyCode } from "@/types/currency";
+
 import type { Account, Category, InvestmentPosition, Transaction, WalletAllocation } from "@/types/finance";
 
 export function AccountsView({

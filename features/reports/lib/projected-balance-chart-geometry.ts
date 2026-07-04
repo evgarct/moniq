@@ -45,7 +45,7 @@ export function projectBalancePoints<T extends { balance: number }>(options: {
   }));
 }
 
-export function buildStepPath(points: Pick<ChartGeometryPoint<any>, "x" | "y">[]) {
+export function buildStepPath(points: Pick<ChartGeometryPoint<unknown>, "x" | "y">[]) {
   if (!points.length) return "";
 
   return points.slice(1).reduce(

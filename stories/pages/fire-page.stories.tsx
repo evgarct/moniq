@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { subMonths, format } from "date-fns";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, within } from "storybook/test";
 
 import { FireView } from "@/features/reports/components/fire-view";
 import { makeFinanceSnapshot } from "@/stories/fixtures/story-data";

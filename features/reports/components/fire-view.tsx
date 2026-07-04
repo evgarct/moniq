@@ -82,7 +82,7 @@ export function FireView({
     const urlPeriod = searchParams.get("period");
     const parsedPeriod = urlPeriod ? parseInt(urlPeriod, 10) : null;
     const finalPeriod =
-      parsedPeriod && FIRE_REPORT_PRESET_MONTHS.includes(parsedPeriod as any)
+      parsedPeriod && FIRE_REPORT_PRESET_MONTHS.includes(parsedPeriod as typeof FIRE_REPORT_PRESET_MONTHS[number])
         ? parsedPeriod
         : remembered?.periodMonths ?? 12;
 
@@ -114,9 +114,9 @@ export function FireView({
         accountIds: selection.accountIds,
         periodMonths,
         labels: {
-          income: t("income" as any) || "Income",
-          expenses: t("expenses" as any) || "Expenses",
-          investmentIncome: t("investmentIncome" as any) || "Passive Income (SWR)",
+          income: t("income" as Parameters<typeof t>[0]) || "Income",
+          expenses: t("expenses" as Parameters<typeof t>[0]) || "Expenses",
+          investmentIncome: t("investmentIncome" as Parameters<typeof t>[0]) || "Passive Income (SWR)",
         },
       }),
     [periodMonths, selection, snapshot, t],
@@ -135,7 +135,7 @@ export function FireView({
   }
 
   function updatePeriod(months: number) {
-    if (!FIRE_REPORT_PRESET_MONTHS.includes(months as any)) return;
+    if (!FIRE_REPORT_PRESET_MONTHS.includes(months as typeof FIRE_REPORT_PRESET_MONTHS[number])) return;
     setPeriodMonths(months);
     rememberPreferences(selection, months);
     replaceUrlState("fire", months, selection);

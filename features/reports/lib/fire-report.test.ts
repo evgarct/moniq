@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { Account, ExchangeRate, InvestmentPosition, Transaction } from "@/types/finance";
+import type { Account, InvestmentPosition, Transaction } from "@/types/finance";
 import { buildFireReport } from "./fire-report";
 
 const now = new Date("2026-06-15T12:00:00Z");
@@ -96,25 +96,7 @@ function mockInvestmentPosition(
   };
 }
 
-const usdEurRate: ExchangeRate = {
-  provider: "frankfurter",
-  base_currency: "USD",
-  quote_currency: "EUR",
-  requested_date: "2026-06-30",
-  rate_date: "2026-06-30",
-  rate: 0.9,
-  fetched_at: "2026-06-30T10:00:00Z",
-};
 
-const eurUsdRate: ExchangeRate = {
-  provider: "frankfurter",
-  base_currency: "EUR",
-  quote_currency: "USD",
-  requested_date: "2026-06-30",
-  rate_date: "2026-06-30",
-  rate: 1.11,
-  fetched_at: "2026-06-30T10:00:00Z",
-};
 
 describe("fire report calculation", () => {
   it("builds the series matching labels and filters by accountIds", () => {
