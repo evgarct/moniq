@@ -163,7 +163,7 @@ export function AccountRow({
           <div className="mb-2.5 h-px bg-foreground/6 sm:mb-3" />
 
           <div className="space-y-2.5 pl-6 sm:pl-[28px]">
-            <div className="grid grid-cols-[minmax(0,1fr)_minmax(104px,auto)] items-start gap-3">
+            <div className="grid grid-cols-[minmax(0,1fr)_minmax(96px,auto)] items-start gap-2 sm:gap-3">
               <div className="min-w-0">
                 <p className="type-body-12 text-muted-foreground">{t("metrics.free")}</p>
               </div>
@@ -171,7 +171,6 @@ export function AccountRow({
                 <MoneyAmount
                   amount={free}
                   currency={account.currency}
-                  display="absolute"
                   showMinorUnits={showMinorUnits}
                   tone={isOverfunded ? "negative" : "muted"}
                   className="text-[13px] leading-[18px] font-medium tabular-nums"
@@ -192,7 +191,7 @@ export function AccountRow({
                       <ContextMenuTrigger
                         render={<div className="group rounded-[var(--radius-tight)] py-1 transition-colors hover:bg-secondary/70" />}
                       >
-                      <div className="grid grid-cols-[minmax(0,1fr)_minmax(104px,auto)] items-center gap-3">
+                      <div className="grid grid-cols-[minmax(0,1fr)_minmax(96px,auto)] items-center gap-2 sm:gap-3">
                         <div className="flex min-w-0 items-center gap-1.5">
                           {allocation.kind === "goal_targeted" ? (
                             <Target className="size-3 shrink-0 text-muted-foreground/50" />

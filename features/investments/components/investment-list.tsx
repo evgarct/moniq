@@ -66,28 +66,31 @@ export function InvestmentList({
                 type="button"
                 key={position.id}
                 className={cn(
-                  "flex min-h-14 w-full items-center gap-2 rounded-sm px-1.5 py-1.5 text-left transition-[background-color] hover:bg-secondary/70 active:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/25 sm:gap-2.5 sm:px-2.5 sm:py-2.5",
-                  selectedId === position.id && "bg-secondary/60",
+                  "min-w-0 w-full rounded-sm px-1.5 py-1.5 text-left outline-none transition-[background-color] hover:bg-secondary/70 active:bg-secondary focus-visible:ring-2 focus-visible:ring-ring/25 sm:px-2.5 sm:py-2.5",
+                  selectedId === position.id ? "bg-secondary text-foreground hover:bg-secondary" : "bg-transparent",
+                  "grid grid-cols-[minmax(0,1fr)_minmax(96px,auto)] items-center gap-2 sm:gap-3",
                 )}
                 onClick={() => onSelect(position.id)}
               >
-                <TrendingUp className="size-[18px] shrink-0 text-muted-foreground" strokeWidth={1.75} />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[13px] leading-[18px] font-medium tracking-[0.01em] text-foreground sm:type-h6">
-                    {position.instrument.name}
-                  </span>
-                  <span className="block truncate type-body-12 text-muted-foreground">
-                    {position.instrument.ticker} {"\u00b7"} {position.instrument.exchange} {"\u00b7"} {t("units", { value: String(units) })}
-                  </span>
-                </span>
+                <div className="flex min-w-0 items-center gap-2 sm:gap-2.5">
+                  <TrendingUp className="size-[18px] shrink-0 text-muted-foreground" strokeWidth={1.75} />
+                  <div className="min-w-0">
+                    <p className="truncate text-[13px] leading-[18px] font-medium tracking-[0.01em] text-foreground sm:type-h6">
+                      {position.instrument.name}
+                    </p>
+                    <p className="truncate type-body-12 text-muted-foreground">
+                      {position.instrument.ticker} {"\u00b7"} {position.instrument.exchange} {"\u00b7"} {t("units", { value: String(units) })}
+                    </p>
+                  </div>
+                </div>
                 {value == null ? (
-                  <span className="shrink-0 type-body-12 text-muted-foreground">{t("quoteUnavailable")}</span>
+                  <span className="justify-self-end type-body-12 text-muted-foreground">{t("quoteUnavailable")}</span>
                 ) : (
                   <MoneyAmount
                     amount={value}
                     currency={position.latest_quote!.currency}
                     display="absolute"
-                    className="shrink-0 type-body-14 font-medium"
+                    className="w-full justify-self-end text-[13px] leading-[18px] font-medium sm:text-[14px] sm:leading-5"
                   />
                 )}
               </button>

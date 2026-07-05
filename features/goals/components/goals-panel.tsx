@@ -76,7 +76,6 @@ export function GoalsPanel({
               amount={free}
               currency={currency}
               tone={isOverfunded ? "negative" : "muted"}
-              display="absolute"
               showMinorUnits
               className="text-[13px] leading-[18px] font-medium sm:text-[14px] sm:leading-5"
             />
