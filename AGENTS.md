@@ -43,6 +43,8 @@ Right: category shown as plain muted text below the transaction title.
 - Row hover: `hover:bg-secondary/50`. Never use border-based hover states.
 - Account/category icons: Lucide outline icons at `h-[18px] w-[18px]` with `strokeWidth={1.75}` and `text-muted-foreground`. No filled icons, no bordered chips.
 - Amounts: always use `MoneyAmount`. Use `tabular-nums` class. Hero balances: `text-[32px] font-semibold`. Row amounts: `text-sm font-medium tabular-nums`.
+- Avoid using `display="absolute"` for balances or allocations that can become negative (like the `Free` balance); let them display signed to show deficits clearly.
+- Align subgoal rows with the parent row's grid columns (e.g. using `minmax(96px,auto)` and matching gaps) to ensure that their amounts are vertically aligned.
 - Do not repeat group context (type label, currency label) inside the row if the group heading already provides it.
 - For compact read-only key/value metadata inside sheets or review panels, use `DetailField` and `DetailFieldGrid`. Do not recreate rounded label/value blocks locally.
 
@@ -50,6 +52,7 @@ Right: category shown as plain muted text below the transaction title.
 - Primary action: default `Button` (black fill). One per surface.
 - Secondary: `Button variant="outline"`. Escape/cancel paths only.
 - Ghost: `Button variant="ghost"`. In-row or low-emphasis actions.
+- Use `variant="ghost"` for page header icon buttons to keep them visually light and aligned with the magazine-style layout, while preserving accessibility targets (44px mobile, 40px desktop).
 - Never use bright colors (`bg-blue-*`, `bg-indigo-*`, etc.) for buttons. Use the token system.
 - Icon-only buttons require `aria-label` and a Tooltip.
 - Shared interactive controls must provide at least a 44px target below `lg` and 40px at desktop widths.
