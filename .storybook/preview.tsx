@@ -1,5 +1,6 @@
 import type { Preview } from "@storybook/nextjs-vite";
 import { NextIntlClientProvider } from "next-intl";
+import { withThemeByClassName } from "@storybook/addon-themes";
 
 import "@fontsource/inter/400.css";
 import "@fontsource/inter/500.css";
@@ -9,8 +10,6 @@ import "@fontsource/jetbrains-mono/500.css";
 
 import { AppProviders } from "@/components/providers/app-providers";
 import messages from "@/messages/en.json";
-import { Theme } from "@astryxdesign/core/theme";
-import { neutralTheme } from "@astryxdesign/theme-neutral/built";
 
 import "../app/globals.css";
 import "@astryxdesign/theme-neutral/theme.css";
@@ -46,42 +45,47 @@ const preview: Preview = {
     },
   },
   decorators: [
+    withThemeByClassName({
+      themes: {
+        light: "",
+        dark: "dark",
+      },
+      defaultTheme: "light",
+    }),
     (Story) => (
-      <Theme theme={neutralTheme} mode="light">
-        <AppProviders>
-          <NextIntlClientProvider locale="en" messages={messages} timeZone="Europe/Prague">
-            <div>
-              <style>
-                {`
-                  html,
-                  body,
-                  #storybook-root,
-                  #root {
-                    height: auto !important;
-                    min-height: 100% !important;
-                    overflow: auto !important;
-                  }
-                `}
-              </style>
-              <div
-                className="font-sans text-slate-900"
-                style={
-                  {
-                    ["--font-inter" as string]:
-                      'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-                    ["--font-jetbrains-mono" as string]:
-                      '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-                    ["--font-heading" as string]:
-                      '"PT Serif", Georgia, Cambria, "Times New Roman", serif',
-                  } as React.CSSProperties
+      <AppProviders>
+        <NextIntlClientProvider locale="en" messages={messages} timeZone="Europe/Prague">
+          <div>
+            <style>
+              {`
+                html,
+                body,
+                #storybook-root,
+                #root {
+                  height: auto !important;
+                  min-height: 100% !important;
+                  overflow: auto !important;
                 }
-              >
-                <Story />
-              </div>
+              `}
+            </style>
+            <div
+              className="font-sans text-slate-900"
+              style={
+                {
+                  ["--font-inter" as string]:
+                    'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                  ["--font-jetbrains-mono" as string]:
+                    '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                  ["--font-heading" as string]:
+                    '"PT Serif", Georgia, Cambria, "Times New Roman", serif',
+                } as React.CSSProperties
+              }
+            >
+              <Story />
             </div>
-          </NextIntlClientProvider>
-        </AppProviders>
-      </Theme>
+          </div>
+        </NextIntlClientProvider>
+      </AppProviders>
     ),
   ],
 };

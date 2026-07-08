@@ -1,6 +1,6 @@
 "use client";
 
-import { Controller, useFormContext } from "react-hook-form";
+import { useWatch, Controller, useFormContext } from "react-hook-form";
 import { useTranslations } from "next-intl";
 
 import { FieldMessage, FormPickerRow, FormRow, FormSection } from "@/components/form-primitives";
@@ -9,12 +9,16 @@ import { MoneyInput } from "@/components/money-input";
 import { useTransactionFormContext } from "../context";
 import { AccountSelect } from "../account-select";
 import { SharedFields } from "./shared-fields";
+import { getGoalAllocationsForSource, GoalSelect } from "../goal-select";
 import type { TransactionFormInputs } from "../types";
 
 export function TransferSection() {
   const t = useTranslations("transactions.form");
-  const { accounts, sourceCurrencySymbol, destinationCurrencySymbol } = useTransactionFormContext();
+  const { accounts, allocations, sourceCurrencySymbol, destinationCurrencySymbol } = useTransactionFormContext();
   const { control, formState: { errors } } = useFormContext<TransactionFormInputs>();
+
+  const destinationAccountId = useWatch({ control, name: "destination_account_id" });
+  const destinationAllocations = getGoalAllocationsForSource(accounts, allocations, destinationAccountId);
 
   return (
     <FormSection>
@@ -25,6 +29,12 @@ export function TransferSection() {
       <FormPickerRow>
         <AccountSelect name="destination_account_id" accounts={accounts} placeholder={t("placeholders.destinationAccount")} />
       </FormPickerRow>
+
+      {destinationAllocations.length > 0 && (
+        <FormPickerRow>
+          <GoalSelect allocations={destinationAllocations} />
+        </FormPickerRow>
+      )}
 
       <FormRow label={t("fields.amount")}>
         <div className="flex flex-col items-end gap-1">

@@ -952,7 +952,11 @@
       "pauseSeries": "Pause series",
       "resumeSeries": "Resume series",
       "deleteSeries": "Delete series",
-      "delete": "Delete transaction"
+      "delete": "Delete transaction",
+      "reschedule": "Reschedule",
+      "tomorrow": "Tomorrow",
+      "in3Days": "In 3 days",
+      "inAWeek": "In 1 week"
     },
     "row": {
       "unlinkedAccount": "Unlinked account",
@@ -1393,7 +1397,14 @@
       "subscriptionRequired": "An active Moniq subscription is required to change data. Read-only tools remain available.",
       "unauthorizedApiKey": "Unauthorized: provide a valid Moniq API key as Bearer token.",
       "parseError": "Parse error.",
-      "methodNotFound": "Method not found: {method}"
+      "methodNotFound": "Method not found: {method}",
+      "walletIdRequired": "wallet_id is required.",
+      "goalNameRequired": "name is required.",
+      "goalKindInvalid": "kind must be goal_open or goal_targeted.",
+      "goalIdRequired": "goal_id is required.",
+      "createGoalFailed": "Failed to create savings goal.",
+      "updateGoalFailed": "Failed to update savings goal.",
+      "deleteGoalFailed": "Failed to delete savings goal."
     },
     "success": {
       "recurringLoaded": "Recurring transactions loaded.",

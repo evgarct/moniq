@@ -14,22 +14,42 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   const [mode, setMode] = useState<"light" | "dark">("light");
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const syncTheme = (e: MediaQueryListEvent | MediaQueryList) => {
-      const isDark = e.matches;
-      setMode(isDark ? "dark" : "light");
-      if (isDark) {
-        document.documentElement.setAttribute("data-theme", "dark");
-        document.documentElement.classList.add("dark");
-      } else {
-        document.documentElement.setAttribute("data-theme", "light");
-        document.documentElement.classList.remove("dark");
-      }
-    };
+    const isStorybook = typeof window !== "undefined" && window.location.href.includes("iframe.html");
 
-    syncTheme(mediaQuery);
-    mediaQuery.addEventListener("change", syncTheme);
-    return () => mediaQuery.removeEventListener("change", syncTheme);
+    if (isStorybook) {
+      const observer = new MutationObserver(() => {
+        const isDark = document.documentElement.classList.contains("dark");
+        setMode(isDark ? "dark" : "light");
+        document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
+      });
+
+      const isDark = document.documentElement.classList.contains("dark");
+      setMode(isDark ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
+
+      observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ["class"],
+      });
+      return () => observer.disconnect();
+    } else {
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      const syncTheme = (e: MediaQueryListEvent | MediaQueryList) => {
+        const isDark = e.matches;
+        setMode(isDark ? "dark" : "light");
+        if (isDark) {
+          document.documentElement.setAttribute("data-theme", "dark");
+          document.documentElement.classList.add("dark");
+        } else {
+          document.documentElement.setAttribute("data-theme", "light");
+          document.documentElement.classList.remove("dark");
+        }
+      };
+
+      syncTheme(mediaQuery);
+      mediaQuery.addEventListener("change", syncTheme);
+      return () => mediaQuery.removeEventListener("change", syncTheme);
+    }
   }, []);
 
   return (

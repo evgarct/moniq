@@ -980,6 +980,62 @@ function getMcpTools() {
         },
         ...recurringToolAliases(),
         {
+          name: "create_savings_goal",
+          title: "Create savings goal",
+          description:
+            "Create a new savings goal (allocation) under a savings wallet. Confirm details (amount, name, target_amount, wallet_id) with the user before calling. wallet_id must be a savings wallet.",
+          annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
+          inputSchema: {
+            type: "object",
+            title: "Savings goal properties",
+            required: ["wallet_id", "name", "kind", "amount"],
+            additionalProperties: false,
+            properties: {
+              wallet_id: { type: "string", title: "Wallet ID", description: "The savings wallet ID." },
+              name: { type: "string", title: "Goal Name", description: "Title or name of the savings goal." },
+              kind: { type: "string", title: "Kind", enum: ["goal_open", "goal_targeted"], description: "Goal kind: goal_open (no specific target) or goal_targeted (requires target_amount)." },
+              amount: { type: "number", title: "Amount", description: "Currently allocated starting amount (>= 0)." },
+              target_amount: { type: ["number", "null"], title: "Target Amount", description: "Targeted amount for targeted goals." },
+            },
+          },
+        },
+        {
+          name: "update_savings_goal",
+          title: "Update savings goal",
+          description:
+            "Update an existing savings goal's properties (amount, name, kind, target_amount). Always confirm details in plain language with the user first.",
+          annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
+          inputSchema: {
+            type: "object",
+            title: "Savings goal update properties",
+            required: ["goal_id", "name", "kind", "amount"],
+            additionalProperties: false,
+            properties: {
+              goal_id: { type: "string", title: "Goal ID", description: "The savings goal (allocation) ID to update." },
+              name: { type: "string", title: "Goal Name", description: "Title or name of the savings goal." },
+              kind: { type: "string", title: "Kind", enum: ["goal_open", "goal_targeted"], description: "Goal kind: goal_open or goal_targeted." },
+              amount: { type: "number", title: "Amount", description: "Allocated amount (>= 0)." },
+              target_amount: { type: ["number", "null"], title: "Target Amount", description: "Targeted amount." },
+            },
+          },
+        },
+        {
+          name: "delete_savings_goal",
+          title: "Delete savings goal",
+          description:
+            "Delete an existing savings goal. Only use after explicit user confirmation.",
+          annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false, idempotentHint: false },
+          inputSchema: {
+            type: "object",
+            title: "Savings goal delete properties",
+            required: ["goal_id"],
+            additionalProperties: false,
+            properties: {
+              goal_id: { type: "string", title: "Goal ID", description: "The savings goal ID to delete." },
+            },
+          },
+        },
+        {
           name: "list_transaction_batches",
           title: "List Moniq Inbox batches",
           description:
@@ -1820,6 +1876,7 @@ function sanitizeFinanceContext(data: unknown) {
   const source = isRecord(data) ? data : {};
   const wallets = Array.isArray(source.wallets) ? source.wallets : [];
   const categories = Array.isArray(source.categories) ? source.categories : [];
+  const goals = Array.isArray(source.goals) ? source.goals : [];
 
   return {
     wallets: wallets.filter(isRecord).map((wallet) => ({
@@ -1845,6 +1902,14 @@ function sanitizeFinanceContext(data: unknown) {
         is_system: category.is_system,
         is_selectable: category.is_selectable,
       })),
+    goals: goals.filter(isRecord).map((goal) => ({
+      id: goal.id,
+      wallet_id: goal.wallet_id,
+      name: goal.name,
+      kind: goal.kind,
+      amount: goal.amount,
+      target_amount: goal.target_amount ?? null,
+    })),
     rules: source.rules,
   };
 }
@@ -2436,6 +2501,150 @@ async function handleDeleteTransaction(
   );
 }
 
+async function handleCreateSavingsGoal(
+  id: string | number | null,
+  params: Record<string, unknown>,
+  keyHash: string,
+  t: McpTranslator,
+): Promise<McpResponse> {
+  const args = (params.arguments ?? {}) as Record<string, unknown>;
+  const walletId = optionalString(args.wallet_id);
+  const name = optionalString(args.name);
+  const kind = optionalString(args.kind);
+  const amount = typeof args.amount === "number" ? args.amount : 0;
+  const targetAmount = typeof args.target_amount === "number" ? args.target_amount : null;
+
+  if (!walletId) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.walletIdRequired") } };
+  if (!name) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.goalNameRequired") } };
+  if (kind !== "goal_open" && kind !== "goal_targeted") {
+    return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.goalKindInvalid") } };
+  }
+
+  const db = createAnonClient();
+  const { data, error } = await db.rpc("mcp_create_wallet_allocation", {
+    p_key_hash: keyHash,
+    p_wallet_id: walletId,
+    p_name: name,
+    p_kind: kind,
+    p_amount: amount,
+    p_target_amount: targetAmount,
+  });
+
+  if (error || !data) {
+    return {
+      jsonrpc: "2.0",
+      id,
+      error: { code: -32000, message: error?.message ?? t("mcp.errors.createGoalFailed") },
+    };
+  }
+
+  return {
+    jsonrpc: "2.0",
+    id,
+    result: {
+      content: [
+        {
+          type: "text",
+          text: `Savings goal "${name}" created successfully.`,
+        },
+      ],
+      goal: data,
+    },
+  };
+}
+
+async function handleUpdateSavingsGoal(
+  id: string | number | null,
+  params: Record<string, unknown>,
+  keyHash: string,
+  t: McpTranslator,
+): Promise<McpResponse> {
+  const args = (params.arguments ?? {}) as Record<string, unknown>;
+  const allocationId = optionalString(args.goal_id);
+  const name = optionalString(args.name);
+  const kind = optionalString(args.kind);
+  const amount = typeof args.amount === "number" ? args.amount : 0;
+  const targetAmount = typeof args.target_amount === "number" ? args.target_amount : null;
+
+  if (!allocationId) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.goalIdRequired") } };
+  if (!name) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.goalNameRequired") } };
+  if (kind !== "goal_open" && kind !== "goal_targeted") {
+    return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.goalKindInvalid") } };
+  }
+
+  const db = createAnonClient();
+  const { data, error } = await db.rpc("mcp_update_wallet_allocation", {
+    p_key_hash: keyHash,
+    p_allocation_id: allocationId,
+    p_name: name,
+    p_kind: kind,
+    p_amount: amount,
+    p_target_amount: targetAmount,
+  });
+
+  if (error || !data) {
+    return {
+      jsonrpc: "2.0",
+      id,
+      error: { code: -32000, message: error?.message ?? t("mcp.errors.updateGoalFailed") },
+    };
+  }
+
+  return {
+    jsonrpc: "2.0",
+    id,
+    result: {
+      content: [
+        {
+          type: "text",
+          text: `Savings goal "${name}" updated successfully.`,
+        },
+      ],
+      goal: data,
+    },
+  };
+}
+
+async function handleDeleteSavingsGoal(
+  id: string | number | null,
+  params: Record<string, unknown>,
+  keyHash: string,
+  t: McpTranslator,
+): Promise<McpResponse> {
+  const args = (params.arguments ?? {}) as Record<string, unknown>;
+  const allocationId = optionalString(args.goal_id);
+
+  if (!allocationId) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.goalIdRequired") } };
+
+  const db = createAnonClient();
+  const { data, error } = await db.rpc("mcp_delete_wallet_allocation", {
+    p_key_hash: keyHash,
+    p_allocation_id: allocationId,
+  });
+
+  if (error || !data) {
+    return {
+      jsonrpc: "2.0",
+      id,
+      error: { code: -32000, message: error?.message ?? t("mcp.errors.deleteGoalFailed") },
+    };
+  }
+
+  return {
+    jsonrpc: "2.0",
+    id,
+    result: {
+      content: [
+        {
+          type: "text",
+          text: `Savings goal deleted successfully.`,
+        },
+      ],
+      goal: data,
+    },
+  };
+}
+
 async function handleListTransactionBatches(
   id: string | number | null,
   args: Record<string, unknown>,
@@ -2625,6 +2834,18 @@ async function handleToolCall(
 
   if (toolName === "delete_transaction") {
     return handleDeleteTransaction(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash, t);
+  }
+
+  if (toolName === "create_savings_goal") {
+    return handleCreateSavingsGoal(id, params, auth.keyHash, t);
+  }
+
+  if (toolName === "update_savings_goal") {
+    return handleUpdateSavingsGoal(id, params, auth.keyHash, t);
+  }
+
+  if (toolName === "delete_savings_goal") {
+    return handleDeleteSavingsGoal(id, params, auth.keyHash, t);
   }
 
   if (toolName === "list_transaction_batches") {

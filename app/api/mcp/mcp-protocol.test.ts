@@ -162,6 +162,9 @@ describe("MCP tools", () => {
       "mark_recurring_occurrence_paid",
       "skip_recurring_occurrence",
       "delete_recurring_occurrence",
+      "create_savings_goal",
+      "update_savings_goal",
+      "delete_savings_goal",
       "list_transaction_batches",
       "get_transaction_batch",
       "update_transaction_draft",
@@ -363,19 +366,15 @@ describe("MCP tools", () => {
     });
   });
 
-  it("does not expose savings bucket management through MCP tool schemas", async () => {
+  it("exposes savings bucket management through MCP tool schemas", async () => {
     const tools = await getListedTools();
     const names = tools.map((tool) => tool.name);
     const schemaText = JSON.stringify(tools).toLowerCase();
 
-    expect(names).not.toContain("get_wallet_allocations");
-    expect(names).not.toContain("create_wallet_allocation");
-    expect(names).not.toContain("update_wallet_allocation");
-    expect(names).not.toContain("delete_wallet_allocation");
-    expect(names).not.toContain("spend_from_goal");
-    expect(schemaText).not.toContain("wallet_allocations");
-    expect(schemaText).not.toContain("allocation_id");
-    expect(schemaText).not.toContain("savings goal");
+    expect(names).toContain("create_savings_goal");
+    expect(names).toContain("update_savings_goal");
+    expect(names).toContain("delete_savings_goal");
+    expect(schemaText).toContain("savings goal");
   });
 
   it("exposes human-readable metadata for ChatGPT confirmations", async () => {

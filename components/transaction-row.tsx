@@ -1,8 +1,8 @@
 "use client";
 
 import { useRef } from "react";
-import { isBefore, parseISO, startOfDay, startOfToday } from "date-fns";
-import { CheckCircle2, Pause, Pencil, Play, Repeat, SkipForward, Trash2 } from "lucide-react";
+import { addDays, format, isBefore, parseISO, startOfDay, startOfToday } from "date-fns";
+import { CalendarDays, CheckCircle2, Pause, Pencil, Play, Repeat, SkipForward, Trash2 } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 
 import {
@@ -11,8 +11,12 @@ import {
   ContextMenuItem,
   ContextMenuSeparator,
   ContextMenuTrigger,
+  ContextMenuSub,
+  ContextMenuSubTrigger,
+  ContextMenuSubContent,
 } from "@/components/ui/context-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useTransactionActions } from "@/features/transactions/hooks/use-transaction-actions";
 
 import { MoneyAmount } from "@/components/money-amount";
 import { convertMoney } from "@/features/finance/lib/exchange-rates";
@@ -176,6 +180,39 @@ export function TransactionRow({
   const formatDate = useFormatter();
   const suppressClickUntil = useRef(0);
 
+  const { rescheduleFromDate, updateTransaction } = useTransactionActions();
+
+  const baseDate = startOfToday();
+  const tomorrow = format(addDays(baseDate, 1), "yyyy-MM-dd");
+  const in3Days = format(addDays(baseDate, 3), "yyyy-MM-dd");
+  const inAWeek = format(addDays(baseDate, 7), "yyyy-MM-dd");
+
+  const handleReschedule = (newDate: string) => {
+    if (transaction.schedule_id) {
+      rescheduleFromDate(transaction.schedule_id, transaction.occurred_at, newDate);
+    } else {
+      updateTransaction(transaction.id, {
+        title: transaction.title,
+        note: transaction.note,
+        occurred_at: newDate,
+        status: "planned",
+        kind: transaction.kind,
+        amount: transaction.amount,
+        destination_amount: transaction.destination_amount,
+        fx_rate: transaction.fx_rate,
+        principal_amount: transaction.principal_amount,
+        interest_amount: transaction.interest_amount,
+        extra_principal_amount: transaction.extra_principal_amount,
+        category_id: transaction.category_id,
+        source_account_id: transaction.source_account_id,
+        destination_account_id: transaction.destination_account_id,
+        allocation_id: transaction.allocation_id,
+        investment_instrument_id: transaction.investment_instrument_id ?? null,
+        investment_units: transaction.investment_units ?? null,
+      });
+    }
+  };
+
   const isRecurring = Boolean(transaction.schedule_id && transaction.schedule);
   const isPlanned = transaction.status === "planned";
   const isOverdue = isPlanned && isBefore(startOfDay(parseISO(transaction.occurred_at)), startOfToday());
@@ -231,6 +268,25 @@ export function TransactionRow({
                 <SkipForward />
                 {t("actions.skipOccurrence")}
               </ContextMenuItem>
+            ) : null}
+            {isPlanned ? (
+              <ContextMenuSub>
+                <ContextMenuSubTrigger>
+                  <CalendarDays className="size-4" />
+                  {t("actions.reschedule")}
+                </ContextMenuSubTrigger>
+                <ContextMenuSubContent className="w-48">
+                  <ContextMenuItem onClick={() => handleReschedule(tomorrow)}>
+                    {t("actions.tomorrow")}
+                  </ContextMenuItem>
+                  <ContextMenuItem onClick={() => handleReschedule(in3Days)}>
+                    {t("actions.in3Days")}
+                  </ContextMenuItem>
+                  <ContextMenuItem onClick={() => handleReschedule(inAWeek)}>
+                    {t("actions.inAWeek")}
+                  </ContextMenuItem>
+                </ContextMenuSubContent>
+              </ContextMenuSub>
             ) : null}
             {onEditOccurrence ? (
               <ContextMenuItem onClick={() => onEditOccurrence(transaction)}>

@@ -260,12 +260,20 @@ export function TransactionFormProvider({
   const isBatchMode = mode === "add" && supportsBatchItems(kind) && !investmentInstrumentId;
 
   useEffect(() => {
-    const source = accounts.find((account) => account.id === sourceAccountId);
+    if (!allocationId) return;
     const allocation = allocations.find((item) => item.id === allocationId);
-    if (allocationId && (source?.type !== "saving" || allocation?.wallet_id !== source.id)) {
-      form.setValue("allocation_id", null, { shouldDirty: true, shouldValidate: true });
+    if (kind === "transfer") {
+      const dest = accounts.find((account) => account.id === destinationAccountId);
+      if (dest?.type !== "saving" || allocation?.wallet_id !== dest.id) {
+        form.setValue("allocation_id", null, { shouldDirty: true, shouldValidate: true });
+      }
+    } else {
+      const source = accounts.find((account) => account.id === sourceAccountId);
+      if (source?.type !== "saving" || allocation?.wallet_id !== source.id) {
+        form.setValue("allocation_id", null, { shouldDirty: true, shouldValidate: true });
+      }
     }
-  }, [accounts, allocationId, allocations, form, sourceAccountId]);
+  }, [accounts, allocationId, allocations, form, sourceAccountId, destinationAccountId, kind]);
 
   useEffect(() => {
     if (kind === "expense" && !isRecurring && isInvestmentCategory(categories, categoryId)) return;

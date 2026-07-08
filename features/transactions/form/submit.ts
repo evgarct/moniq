@@ -24,7 +24,7 @@ export function normalizePayload(values: TransactionFormInputs): TransactionInpu
     category_id: isMoveKind(values.kind) ? null : (values.category_id ?? null),
     source_account_id: values.source_account_id ?? null,
     destination_account_id: values.destination_account_id ?? null,
-    allocation_id: values.kind === "expense" ? (values.allocation_id ?? null) : null,
+    allocation_id: (values.kind === "expense" || values.kind === "transfer") ? (values.allocation_id ?? null) : null,
     investment_instrument_id: values.kind === "expense" ? values.investment_instrument_id : null,
     investment_units: values.kind === "expense" ? values.investment_units : null,
   };
