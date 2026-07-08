@@ -31,6 +31,7 @@ Right: category shown as plain muted text below the transaction title.
 - **Typography**: Use the four heading classes (`type-h1`–`type-h4` for serif editorial, `type-h5`–`type-h6` for UI), `type-body-14`, `type-body-12`. Do not use arbitrary font sizes like `text-[15px]`.
 - **Radius**: Always use `radius-tight` / `radius-control` / `radius-surface` / `radius-floating`. Do not write `rounded-2xl`, `rounded-3xl`, or any arbitrary `rounded-[Xpx]` value outside the Surface component.
 - **Shadows**: Only the Surface component introduces shadow. Do not add `shadow-*` or `box-shadow` values on other elements.
+- **Dark mode color-scheme**: Inside the `.dark` selector (e.g. in globals.css), always define `color-scheme: dark;` so that third-party UI library variables utilizing CSS `light-dark()` correctly resolve to their dark mode variants.
 
 ## Building a new screen
 1. Wrap the page content in the inner content area — no new shell wrappers.
