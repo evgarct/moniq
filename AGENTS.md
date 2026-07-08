@@ -96,8 +96,9 @@ Right: category shown as plain muted text below the transaction title.
 - Before opening a PR in this repo, update the relevant documentation first, then prepare the PR.
 - After completing reviewable work in this repo, create a pull request unless the user explicitly says not to.
 - Do not send a final response for reviewable implementation work in this repo until the pull request exists, or until a concrete blocker to creating it has been reported.
-- After finishing implementation work, always run the relevant local verification for this repo.
+- After finishing implementation work, always run the relevant local verification for this repo. This includes running a full TypeScript compile check (`npm exec -- tsc --noEmit`) and production build (`npm run build`) before pushing, as Vitest unit tests do not verify compile/import issues.
 - Run Storybook tests with `npm run test-storybook` directly; this Vitest-backed command does not support Jest's `--runInBand` option.
+- In Storybook stories or Vitest tests, avoid using static mock dates that will eventually expire relative to the real current date; use dynamic future dates or mock the system clock to prevent tests from failing as time passes.
 - For wallet, allocation, and other finance-state mutations in this repo, keep invariants in pure domain helpers and cover them with node-level tests. Do not leave critical create/edit/delete rules only inside React component handlers.
 - In this repo, deterministic reversible mutations are optimistic by default: update the relevant query cache and close validated forms immediately, persist in the background, then reconcile or roll back with a localized toast. Do not await the backend response to dismiss a form.
 - Treat file parsing/upload, authentication, and external integration calls as explicit blocking exceptions because their result cannot be predicted locally. During mutation audits, classify every remaining awaited submit or `mutateAsync` call as an intentional exception or convert it to the optimistic action layer.
