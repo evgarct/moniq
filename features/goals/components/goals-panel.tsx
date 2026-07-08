@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 
 import { MoneyAmount } from "@/components/money-amount";
 import { Button } from "@/components/ui/button";
+import { getEffectiveAllocations } from "@/lib/finance-selectors";
 import { cn } from "@/lib/utils";
 import type { CurrencyCode } from "@/types/currency";
 import type { WalletAllocation } from "@/types/finance";
@@ -39,7 +40,8 @@ export function GoalsPanel({
   onDelete?: (allocation: WalletAllocation) => void;
 }) {
   const t = useTranslations("accounts.goals.panel");
-  const totalAllocated = allocations.reduce((sum, a) => sum + a.amount, 0);
+  const effectiveAllocations = getEffectiveAllocations(balance, allocations);
+  const totalAllocated = effectiveAllocations.reduce((sum, a) => sum + a.amount, 0);
   const free = balance - totalAllocated;
   const isOverfunded = free < -0.001;
 
@@ -76,14 +78,13 @@ export function GoalsPanel({
               amount={free}
               currency={currency}
               tone={isOverfunded ? "negative" : "muted"}
-              display="absolute"
               showMinorUnits
               className="text-[13px] leading-[18px] font-medium sm:text-[14px] sm:leading-5"
             />
           </div>
         </div>
 
-        {allocations.map((allocation) => {
+        {effectiveAllocations.map((allocation) => {
           const progressPercent =
             allocation.kind === "goal_targeted" && allocation.target_amount
               ? Math.min(100, Math.round((allocation.amount / allocation.target_amount) * 100))

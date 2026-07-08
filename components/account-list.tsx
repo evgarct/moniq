@@ -23,6 +23,8 @@ export function AccountList({
   onAddGoal,
   onEditGoal,
   onDeleteGoal,
+  selectedAllocationId,
+  onSelectGoal,
 }: {
   accounts: Account[];
   selectedAccountId: string | null;
@@ -37,6 +39,8 @@ export function AccountList({
   onAddGoal?: (walletId: string) => void;
   onEditGoal?: (allocation: WalletAllocation) => void;
   onDeleteGoal?: (allocation: WalletAllocation) => void;
+  selectedAllocationId?: string | null;
+  onSelectGoal?: (allocationId: string) => void;
 }) {
   const t = useTranslations("accounts.groups");
   const cashAccounts = getCashAccounts(accounts);
@@ -73,6 +77,8 @@ export function AccountList({
         onAddGoal={onAddGoal}
         onEditGoal={onEditGoal}
         onDeleteGoal={onDeleteGoal}
+        selectedAllocationId={selectedAllocationId}
+        onSelectGoal={onSelectGoal}
       />
       <AccountGroup
         title={t("creditCards")}

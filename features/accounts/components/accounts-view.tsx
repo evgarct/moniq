@@ -46,6 +46,7 @@ export function AccountsView({
   const defaultRegisterDateFrom = format(startOfMonth(new Date()), "yyyy-MM-dd");
   const defaultRegisterDateTo = format(endOfMonth(new Date()), "yyyy-MM-dd");
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
+  const [selectedAllocationId, setSelectedAllocationId] = useState<string | null>(null);
   const [walletSheetOpen, setWalletSheetOpen] = useState(false);
   const [walletSheetMode, setWalletSheetMode] = useState<"add" | "edit">("add");
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
@@ -76,7 +77,10 @@ export function AccountsView({
     });
   }
 
-  const selectedAccount = selectedAccountId ? accounts.find((account) => account.id === selectedAccountId) ?? null : null;
+  const selectedAllocation = selectedAllocationId ? allocations.find((a) => a.id === selectedAllocationId) ?? null : null;
+  const selectedAccount = selectedAccountId
+    ? accounts.find((account) => account.id === selectedAccountId) ?? null
+    : (selectedAllocation ? accounts.find((account) => account.id === selectedAllocation.wallet_id) ?? null : null);
   const selectedInvestment = selectedInvestmentId
     ? investmentPositions.find((position) => position.id === selectedInvestmentId) ?? null
     : null;
@@ -92,9 +96,11 @@ export function AccountsView({
         .sort((left, right) => right.occurred_at.localeCompare(left.occurred_at)),
     [transactions],
   );
-  const register = selectedAccount
-    ? getTransactionsForAccount(settledTransactions, selectedAccount.id)
-    : settledTransactions;
+  const register = selectedAllocation
+    ? settledTransactions.filter((transaction) => transaction.allocation_id === selectedAllocation.id)
+    : (selectedAccount
+      ? getTransactionsForAccount(settledTransactions, selectedAccount.id)
+      : settledTransactions);
   const filteredRegister = register.filter((transaction) => {
     const occurredOn = transaction.occurred_at.slice(0, 10);
     if (registerDateFrom && occurredOn < registerDateFrom) return false;
@@ -103,13 +109,14 @@ export function AccountsView({
   });
   const pending = false;
   const hasAccounts = accounts.length > 0;
-  const registerTitle = selectedAccount ? selectedAccount.name : t("view.activity");
+  const registerTitle = selectedAllocation ? selectedAllocation.name : (selectedAccount ? selectedAccount.name : t("view.activity"));
   const isDesktopViewport = () =>
     typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches;
 
   function closeMobileRegister() {
     setMobileRegisterOpen(false);
     setSelectedAccountId(null);
+    setSelectedAllocationId(null);
   }
 
   function openTransactionEditor(transaction: Transaction) {
@@ -245,11 +252,12 @@ export function AccountsView({
                   const nextId = current === accountId ? null : accountId;
 
                   if (!isDesktopViewport()) {
-                    setMobileRegisterOpen(Boolean(nextId));
+                     setMobileRegisterOpen(Boolean(nextId));
                   }
 
                   return nextId;
                 });
+                setSelectedAllocationId(null);
                 setSelectedInvestmentId(null);
               }}
               onAddAccount={openAddWallet}
@@ -270,6 +278,20 @@ export function AccountsView({
                 setGoalSheetOpen(true);
               }}
               onDeleteGoal={(allocation) => deleteGoalOptimistic(allocation.id)}
+              selectedAllocationId={selectedAllocationId}
+              onSelectGoal={(allocationId) => {
+                setSelectedAllocationId((current) => {
+                  const nextId = current === allocationId ? null : allocationId;
+
+                  if (!isDesktopViewport()) {
+                    setMobileRegisterOpen(Boolean(nextId));
+                  }
+
+                  return nextId;
+                });
+                setSelectedAccountId(null);
+                setSelectedInvestmentId(null);
+              }}
             />
             <InvestmentList
               positions={investmentPositions}
@@ -282,6 +304,7 @@ export function AccountsView({
                 setSelectedInvestmentId(positionId);
                 if (!isDesktopViewport()) setMobileInvestmentOpen(true);
               }}
+              showMinorUnits={showMinorUnits}
             />
             </div>
           </div>
@@ -322,7 +345,16 @@ export function AccountsView({
           }}
           onClearSelection={() => {
             setSelectedAccountId(null);
+            setSelectedAllocationId(null);
           }}
+          title={registerTitle}
+          emptyMessage={
+            selectedAllocation
+              ? t("messages.noTransactionsForWallet")
+              : (selectedAccount
+                ? t("messages.noTransactionsForWallet")
+                : tr("common.empty.noTransactionsYet"))
+          }
         />}
       </div>
 
@@ -349,9 +381,10 @@ export function AccountsView({
               onEndDateChange={setRegisterDateTo}
               onClearSelection={() => {
                 setSelectedAccountId(null);
+                setSelectedAllocationId(null);
                 setMobileRegisterOpen(false);
               }}
-              showClearSelection={Boolean(selectedAccount)}
+              showClearSelection={Boolean(selectedAccount || selectedAllocation)}
               onAddTransaction={openAddTransaction}
               onBack={closeMobileRegister}
               scrolled={mobileRegisterScrolled}
@@ -361,9 +394,11 @@ export function AccountsView({
               <TransactionList
                 transactions={filteredRegister}
                 emptyMessage={
-                  selectedAccount
+                  selectedAllocation
                     ? t("messages.noTransactionsForWallet")
-                    : tr("common.empty.noTransactionsYet")
+                    : (selectedAccount
+                      ? t("messages.noTransactionsForWallet")
+                      : tr("common.empty.noTransactionsYet"))
                 }
                 groupByDate
                 showMinorUnits={showMinorUnits}

@@ -47,6 +47,135 @@ export function applyPaidTransactionEffect(
   return next;
 }
 
+export function enforceAllocationsLimit(snapshot: FinanceSnapshot, walletId: string): FinanceSnapshot {
+  const wallet = snapshot.accounts.find((a) => a.id === walletId);
+  if (!wallet || wallet.type !== "saving") return snapshot;
+
+  const walletAllocations = snapshot.allocations.filter((a) => a.wallet_id === walletId);
+  const totalAllocated = walletAllocations.reduce((sum, a) => sum + a.amount, 0);
+
+  if (totalAllocated <= wallet.balance) return snapshot;
+
+  // Sort allocations by updated_at desc, created_at desc so that we reduce the newest/most recently updated ones first.
+  const sortedAllocations = [...walletAllocations].sort((a, b) => {
+    const timeA = new Date(a.updated_at || a.created_at).getTime();
+    const timeB = new Date(b.updated_at || b.created_at).getTime();
+    return timeB - timeA;
+  });
+
+  let excess = totalAllocated - wallet.balance;
+  const reducedAmounts = new Map<string, number>();
+
+  for (const allocation of sortedAllocations) {
+    if (excess <= 0) break;
+    const reduction = Math.min(allocation.amount, excess);
+    reducedAmounts.set(allocation.id, allocation.amount - reduction);
+    excess -= reduction;
+  }
+
+  const nextSnapshot = {
+    ...snapshot,
+    allocations: snapshot.allocations.map((a) => {
+      if (reducedAmounts.has(a.id)) {
+        return {
+          ...a,
+          amount: reducedAmounts.get(a.id)!,
+          updated_at: new Date().toISOString(),
+        };
+      }
+      return a;
+    }),
+  };
+
+  // Keep nested allocations on transaction records in sync
+  const nextAllocationsMap = new Map(nextSnapshot.allocations.map((a) => [a.id, a]));
+  nextSnapshot.transactions = nextSnapshot.transactions.map((t) => {
+    if (t.allocation_id && nextAllocationsMap.has(t.allocation_id)) {
+      return {
+        ...t,
+        allocation: nextAllocationsMap.get(t.allocation_id)!,
+      };
+    }
+    return t;
+  });
+
+  return nextSnapshot;
+}
+
+export function syncAllocationsOnTransactionChange(
+  snapshot: FinanceSnapshot,
+  oldTransaction: Transaction | null,
+  newTransaction: Transaction | null,
+): FinanceSnapshot {
+  let currentAllocations = [...snapshot.allocations];
+  const affectedWallets = new Set<string>();
+
+  // 1. Reverse the effect of old transaction if it was paid
+  if (oldTransaction && oldTransaction.status === "paid" && oldTransaction.allocation_id) {
+    currentAllocations = currentAllocations.map((a) => {
+      if (a.id === oldTransaction.allocation_id) {
+        affectedWallets.add(a.wallet_id);
+        const amountChange = oldTransaction.kind === "expense" ? oldTransaction.amount : -oldTransaction.amount;
+        return {
+          ...a,
+          amount: Math.max(0, a.amount + amountChange),
+          updated_at: new Date().toISOString(),
+        };
+      }
+      return a;
+    });
+  }
+
+  // 2. Apply the effect of new transaction if it is paid
+  if (newTransaction && newTransaction.status === "paid" && newTransaction.allocation_id) {
+    currentAllocations = currentAllocations.map((a) => {
+      if (a.id === newTransaction.allocation_id) {
+        affectedWallets.add(a.wallet_id);
+        const amountChange = newTransaction.kind === "expense" ? -newTransaction.amount : newTransaction.amount;
+        return {
+          ...a,
+          amount: Math.max(0, a.amount + amountChange),
+          updated_at: new Date().toISOString(),
+        };
+      }
+      return a;
+    });
+  }
+
+  let nextSnapshot = {
+    ...snapshot,
+    allocations: currentAllocations,
+  };
+
+  // 3. Enforce limits on all affected wallets (including those affected by wallet balance updates)
+  if (oldTransaction) {
+    if (oldTransaction.source_account_id) affectedWallets.add(oldTransaction.source_account_id);
+    if (oldTransaction.destination_account_id) affectedWallets.add(oldTransaction.destination_account_id);
+  }
+  if (newTransaction) {
+    if (newTransaction.source_account_id) affectedWallets.add(newTransaction.source_account_id);
+    if (newTransaction.destination_account_id) affectedWallets.add(newTransaction.destination_account_id);
+  }
+
+  for (const walletId of affectedWallets) {
+    nextSnapshot = enforceAllocationsLimit(nextSnapshot, walletId);
+  }
+
+  // Keep nested allocations on transaction records in sync
+  const nextAllocationsMap = new Map(nextSnapshot.allocations.map((a) => [a.id, a]));
+  nextSnapshot.transactions = nextSnapshot.transactions.map((t) => {
+    if (t.allocation_id && nextAllocationsMap.has(t.allocation_id)) {
+      return {
+        ...t,
+        allocation: nextAllocationsMap.get(t.allocation_id)!,
+      };
+    }
+    return t;
+  });
+
+  return nextSnapshot;
+}
+
 function resolveTransactionRelations(snapshot: FinanceSnapshot, values: TransactionInput) {
   return {
     category: values.category_id
@@ -107,11 +236,12 @@ export function addTransaction(
   id?: string,
 ) {
   const transaction = makeOptimisticTransaction(snapshot, values, id);
-  return {
+  const snapshotWithBalance = {
     ...snapshot,
     accounts: applyPaidTransactionEffect(snapshot.accounts, transaction, 1),
     transactions: [transaction, ...snapshot.transactions],
   };
+  return syncAllocationsOnTransactionChange(snapshotWithBalance, null, transaction);
 }
 
 export function addTransactionEntry(
@@ -145,23 +275,25 @@ export function updateTransaction(snapshot: FinanceSnapshot, transactionId: stri
     ...resolveTransactionRelations(snapshot, values),
   };
   const reversedAccounts = applyPaidTransactionEffect(snapshot.accounts, existing, -1);
-  return {
+  const snapshotWithBalance = {
     ...snapshot,
     accounts: applyPaidTransactionEffect(reversedAccounts, nextTransaction, 1),
     transactions: snapshot.transactions.map((transaction) =>
       transaction.id === transactionId ? nextTransaction : transaction,
     ),
   };
+  return syncAllocationsOnTransactionChange(snapshotWithBalance, existing, nextTransaction);
 }
 
 export function removeTransaction(snapshot: FinanceSnapshot, transactionId: string) {
   const existing = snapshot.transactions.find((transaction) => transaction.id === transactionId);
   if (!existing) return snapshot;
-  return {
+  const snapshotWithBalance = {
     ...snapshot,
     accounts: applyPaidTransactionEffect(snapshot.accounts, existing, -1),
     transactions: snapshot.transactions.filter((transaction) => transaction.id !== transactionId),
   };
+  return syncAllocationsOnTransactionChange(snapshotWithBalance, existing, null);
 }
 
 export function setTransactionStatus(
@@ -172,7 +304,7 @@ export function setTransactionStatus(
   const existing = snapshot.transactions.find((transaction) => transaction.id === transactionId);
   if (!existing || existing.status === status) return snapshot;
   const next = { ...existing, status };
-  return {
+  const snapshotWithBalance = {
     ...snapshot,
     accounts: applyPaidTransactionEffect(
       applyPaidTransactionEffect(snapshot.accounts, existing, -1),
@@ -183,6 +315,7 @@ export function setTransactionStatus(
       transaction.id === transactionId ? next : transaction,
     ),
   };
+  return syncAllocationsOnTransactionChange(snapshotWithBalance, existing, next);
 }
 
 export function updateSchedule(
@@ -367,12 +500,13 @@ export function deleteWallet(snapshot: FinanceSnapshot, walletId: string) {
 }
 
 export function adjustWalletBalance(snapshot: FinanceSnapshot, walletId: string, newBalance: number) {
-  return {
+  const nextSnapshot = {
     ...snapshot,
     accounts: snapshot.accounts.map((account) =>
       account.id === walletId ? { ...account, balance: newBalance } : account,
     ),
   };
+  return enforceAllocationsLimit(nextSnapshot, walletId);
 }
 
 export function saveCategory(

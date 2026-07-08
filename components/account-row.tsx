@@ -12,6 +12,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { getCreditCardMetrics, isCreditCardAccount, isDebtAccount } from "@/features/accounts/lib/account-utils";
+import { getEffectiveAllocations } from "@/lib/finance-selectors";
 import { cn } from "@/lib/utils";
 import type { Account, WalletAllocation } from "@/types/finance";
 
@@ -27,6 +28,8 @@ export function AccountRow({
   onAddGoal,
   onEditGoal,
   onDeleteGoal,
+  selectedAllocationId,
+  onSelectGoal,
 }: {
   account: Account;
   selected?: boolean;
@@ -39,6 +42,8 @@ export function AccountRow({
   onAddGoal?: () => void;
   onEditGoal?: (allocation: WalletAllocation) => void;
   onDeleteGoal?: (allocation: WalletAllocation) => void;
+  selectedAllocationId?: string | null;
+  onSelectGoal?: (allocationId: string) => void;
 }) {
   const t = useTranslations("accounts");
   const debt = isDebtAccount(account);
@@ -59,7 +64,7 @@ export function AccountRow({
   const hasActions = Boolean(onEdit || onDelete || onAdjustBalance || onAddGoal);
   const suppressClickUntil = useRef(0);
   const showGoals = account.type === "saving" && allocations !== undefined;
-  const accountAllocations = allocations ?? [];
+  const accountAllocations = getEffectiveAllocations(account.balance, allocations ?? []);
   const totalAllocated = showGoals ? accountAllocations.reduce((sum, a) => sum + a.amount, 0) : 0;
   const free = account.balance - totalAllocated;
   const isOverfunded = free < -0.001;
@@ -163,7 +168,7 @@ export function AccountRow({
           <div className="mb-2.5 h-px bg-foreground/6 sm:mb-3" />
 
           <div className="space-y-2.5 pl-6 sm:pl-[28px]">
-            <div className="grid grid-cols-[minmax(0,1fr)_minmax(104px,auto)] items-start gap-3">
+            <div className="grid grid-cols-[minmax(0,1fr)_minmax(96px,auto)] items-start gap-2 sm:gap-3">
               <div className="min-w-0">
                 <p className="type-body-12 text-muted-foreground">{t("metrics.free")}</p>
               </div>
@@ -171,7 +176,6 @@ export function AccountRow({
                 <MoneyAmount
                   amount={free}
                   currency={account.currency}
-                  display="absolute"
                   showMinorUnits={showMinorUnits}
                   tone={isOverfunded ? "negative" : "muted"}
                   className="text-[13px] leading-[18px] font-medium tabular-nums"
@@ -190,9 +194,23 @@ export function AccountRow({
                   return (
                     <ContextMenu key={allocation.id} disabled={!onEditGoal && !onDeleteGoal}>
                       <ContextMenuTrigger
-                        render={<div className="group rounded-[var(--radius-tight)] py-1 transition-colors hover:bg-secondary/70" />}
+                        render={
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onSelectGoal?.(allocation.id);
+                            }}
+                            className={cn(
+                              "group w-full text-left rounded-[var(--radius-tight)] py-1 px-1.5 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-ring/25",
+                              selectedAllocationId === allocation.id
+                                ? "bg-secondary text-foreground font-semibold"
+                                : "bg-transparent text-foreground hover:bg-secondary/50"
+                            )}
+                          />
+                        }
                       >
-                      <div className="grid grid-cols-[minmax(0,1fr)_minmax(104px,auto)] items-center gap-3">
+                      <div className="grid grid-cols-[minmax(0,1fr)_minmax(96px,auto)] items-center gap-2 sm:gap-3">
                         <div className="flex min-w-0 items-center gap-1.5">
                           {allocation.kind === "goal_targeted" ? (
                             <Target className="size-3 shrink-0 text-muted-foreground/50" />

@@ -22,11 +22,11 @@ export function PageHeaderIconButton({
       <TooltipTrigger
         render={
           <Button
-            variant="secondary"
+            variant="ghost"
             size="icon-sm"
             className={cn(
-              "border border-border/60 bg-secondary/75 text-muted-foreground hover:bg-secondary hover:text-foreground active:bg-secondary",
-              pressed && "border-foreground/15 bg-secondary text-foreground",
+              "border-none bg-transparent text-muted-foreground hover:bg-secondary/70 hover:text-foreground active:bg-secondary/85",
+              pressed && "bg-secondary text-foreground hover:bg-secondary/90",
               className,
             )}
             aria-label={label}
