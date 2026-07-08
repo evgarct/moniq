@@ -952,7 +952,11 @@
       "pauseSeries": "Поставить серию на паузу",
       "resumeSeries": "Возобновить серию",
       "deleteSeries": "Удалить серию",
-      "delete": "Удалить транзакцию"
+      "delete": "Удалить транзакцию",
+      "reschedule": "Перенести",
+      "tomorrow": "На завтра",
+      "in3Days": "На 3 дня",
+      "inAWeek": "На неделю"
     },
     "row": {
       "unlinkedAccount": "Не привязанный счёт",
@@ -1393,7 +1397,14 @@
       "subscriptionRequired": "An active Moniq subscription is required to change data. Read-only tools remain available.",
       "unauthorizedApiKey": "??? ???????: ????????? ?????????????? API-???? Moniq ??? Bearer token.",
       "parseError": "?????? ????????.",
-      "methodNotFound": "????? ?? ??????: {method}"
+      "methodNotFound": "Метод не найден: {method}",
+      "walletIdRequired": "Необходим wallet_id.",
+      "goalNameRequired": "Необходимо имя цели (name).",
+      "goalKindInvalid": "Неверный тип цели: должен быть goal_open или goal_targeted.",
+      "goalIdRequired": "Необходим goal_id.",
+      "createGoalFailed": "Не удалось создать цель сбережений.",
+      "updateGoalFailed": "Не удалось обновить цель сбережений.",
+      "deleteGoalFailed": "Не удалось удалить цель сбережений."
     },
     "success": {
       "recurringLoaded": "?????????? ?????????? ?????????.",
