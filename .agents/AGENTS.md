@@ -31,6 +31,7 @@ Right: category shown as plain muted text below the transaction title.
 - **Typography**: Use the four heading classes (`type-h1`–`type-h4` for serif editorial, `type-h5`–`type-h6` for UI), `type-body-14`, `type-body-12`. Do not use arbitrary font sizes like `text-[15px]`.
 - **Radius**: Always use `radius-tight` / `radius-control` / `radius-surface` / `radius-floating`. Do not write `rounded-2xl`, `rounded-3xl`, or any arbitrary `rounded-[Xpx]` value outside the Surface component.
 - **Shadows**: Only the Surface component introduces shadow. Do not add `shadow-*` or `box-shadow` values on other elements.
+- **Dark mode color-scheme**: Inside the `.dark` selector (e.g. in globals.css), always define `color-scheme: dark;` so that third-party UI library variables utilizing CSS `light-dark()` correctly resolve to their dark mode variants.
 
 ## Building a new screen
 1. Wrap the page content in the inner content area — no new shell wrappers.
@@ -93,7 +94,7 @@ Right: category shown as plain muted text below the transaction title.
 - Before opening a PR in this repo, update the relevant documentation first, then prepare the PR.
 - After completing reviewable work in this repo, create a pull request unless the user explicitly says not to.
 - Do not send a final response for reviewable implementation work in this repo until the pull request exists, or until a concrete blocker to creating it has been reported.
-- After finishing implementation work, always run the relevant local verification for this repo. This includes running a full TypeScript compile check (`npm exec -- tsc --noEmit`) and production build (`npm run build`) before pushing, as Vitest unit tests do not verify compile/import issues.
+- After finishing implementation work, always run the full suite of local verification checks before pushing to origin. This includes running `npm run check:storybook-first`, `npm run lint`, TypeScript compilation checks (`npm exec -- tsc --noEmit`), unit tests (`npm run test:unit`), Storybook tests (`npm run test-storybook`), and the Next.js production build (`npm run build`). Do not push code that has not passed all these checks locally.
 - Run Storybook tests with `npm run test-storybook` directly; this Vitest-backed command does not support Jest's `--runInBand` option.
 - In Storybook stories or Vitest tests, avoid using static mock dates that will eventually expire relative to the real current date; use dynamic future dates or mock the system clock to prevent tests from failing as time passes.
 - For wallet, allocation, and other finance-state mutations in this repo, keep invariants in pure domain helpers and cover them with node-level tests. Do not leave critical create/edit/delete rules only inside React component handlers.

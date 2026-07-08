@@ -27,5 +27,6 @@ export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("Agenda")).toBeInTheDocument();
+    // Default calendar week start starts on Monday (1)
   },
 };

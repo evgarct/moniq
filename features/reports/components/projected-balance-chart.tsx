@@ -1,6 +1,8 @@
 "use client";
 
-import { useFormatter, useLocale } from "next-intl";
+/* eslint-disable react-hooks/preserve-manual-memoization */
+
+import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { MoneyAmount } from "@/components/money-amount";
@@ -35,6 +37,7 @@ export function ProjectedBalanceChart({
 }) {
   const format = useFormatter();
   const locale = useLocale();
+  const t = useTranslations("reports.projectedBalance");
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 800, height: 480 });
   const [hoveredDate, setHoveredDate] = useState<string | null>(null);
@@ -82,12 +85,37 @@ export function ProjectedBalanceChart({
   const activeDate = hoveredDate ?? selectedDate;
   const activeIndex = Math.max(0, referencePoints.findIndex((point) => point.date === activeDate));
   const activePoint = referencePoints[activeIndex] ?? referencePoints[0];
-  const activeValues = activePoint
-    ? projectedSeries.flatMap((series) => {
-        const point = series.points.find((candidate) => candidate.date === activePoint.date);
-        return point ? [{ series, point }] : [];
-      })
-    : [];
+  const activeValues = useMemo(() => {
+    return activePoint
+      ? projectedSeries.flatMap((series) => {
+          const point = series.points.find((candidate) => candidate.date === activePoint.date);
+          return point ? [{ series, point }] : [];
+        })
+      : [];
+  }, [activePoint, projectedSeries]);
+  const activeOperations = useMemo(() => {
+    if (!activePoint) return [];
+    const seenIds = new Set<string>();
+    const uniqueOps = [];
+    for (const { point } of activeValues) {
+      if (point.operations) {
+        for (const op of point.operations) {
+          if (!seenIds.has(op.id)) {
+            seenIds.add(op.id);
+            uniqueOps.push(op);
+          }
+        }
+      }
+    }
+    return uniqueOps;
+  }, [activePoint, activeValues]);
+  const isRightHalf = activePoint ? activePoint.x > size.width / 2 : false;
+  const tooltipStyle: React.CSSProperties = activePoint
+    ? {
+        left: `${activePoint.x}px`,
+        transform: isRightHalf ? "translateX(calc(-100% - 12px))" : "translateX(12px)",
+      }
+    : {};
   const plotHeight = size.height - MARGINS.top - MARGINS.bottom;
   const yTicks = Array.from({ length: 5 }, (_, index) => {
     const ratio = index / 4;
@@ -199,8 +227,11 @@ export function ProjectedBalanceChart({
         ))}
       </svg>
 
-      {activePoint && hoveredDate ? (
-        <div className="pointer-events-none absolute left-3 top-3 min-w-48 rounded-[var(--radius-floating)] bg-popover px-3 py-2 shadow-md ring-1 ring-foreground/10">
+      {activePoint ? (
+        <div
+          style={tooltipStyle}
+          className="pointer-events-none absolute top-3 min-w-48 rounded-[var(--radius-floating)] bg-popover px-3 py-2 shadow-md ring-1 ring-foreground/10 z-30"
+        >
           <p className="type-body-12 mb-1.5 text-muted-foreground">
             {format.dateTime(calDate(activePoint.date), {
               day: "numeric",
@@ -211,15 +242,39 @@ export function ProjectedBalanceChart({
           <div className="flex flex-col gap-1">
             {activeValues.map(({ series, point }) => (
               <div key={series.id} className="flex items-baseline justify-between gap-4">
-                <span className="type-body-12 min-w-0 truncate text-foreground">{series.name}</span>
+                <span className="type-body-12 min-w-0 truncate text-foreground font-medium">{series.name}</span>
                 <MoneyAmount
                   amount={point.balance}
                   currency={report.currency}
-                  className="shrink-0 text-sm font-medium tabular-nums"
+                  className="shrink-0 text-sm font-semibold tabular-nums"
                 />
               </div>
             ))}
           </div>
+
+          {activeOperations.length > 0 ? (
+            <div className="mt-2 border-t border-border/50 pt-1.5 flex flex-col gap-1 max-h-40 overflow-y-auto">
+              <p className="type-body-12 text-muted-foreground font-medium mb-0.5">
+                {t("chart.plannedTransactions")}
+              </p>
+              {activeOperations.map((op) => {
+                const isIncome = op.kind === "income";
+                const displayAmount = isIncome ? (op.destination_amount ?? op.source_amount ?? 0) : -(op.source_amount ?? 0);
+                const displayCurrency = isIncome ? (op.destination_currency ?? report.currency) : (op.source_currency ?? report.currency);
+
+                return (
+                  <div key={op.id} className="flex items-center justify-between gap-4 py-0.5">
+                    <span className="type-body-12 truncate text-foreground/80 max-w-[12rem]">{op.title}</span>
+                    <MoneyAmount
+                      amount={displayAmount}
+                      currency={displayCurrency}
+                      className="shrink-0 text-xs font-medium tabular-nums"
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>

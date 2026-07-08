@@ -21,6 +21,7 @@ function Calendar({
   locale,
   formatters,
   components,
+  weekStartsOn = 1,
   ...props
 }: React.ComponentProps<typeof DayPicker> & {
   buttonVariant?: React.ComponentProps<typeof Button>["variant"];
@@ -32,6 +33,7 @@ function Calendar({
       showOutsideDays={showOutsideDays}
       captionLayout={captionLayout}
       locale={locale}
+      weekStartsOn={weekStartsOn}
       className={cn(
         "group/calendar bg-background p-2 [--cell-radius:var(--radius-control)] [--cell-size:--spacing(8)] in-data-[slot=card-content]:bg-transparent in-data-[slot=popover-content]:bg-transparent",
         String.raw`rtl:**:[.rdp-button\_next>svg]:rotate-180`,
