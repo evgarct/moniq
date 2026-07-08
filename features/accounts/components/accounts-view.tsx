@@ -304,6 +304,7 @@ export function AccountsView({
                 setSelectedInvestmentId(positionId);
                 if (!isDesktopViewport()) setMobileInvestmentOpen(true);
               }}
+              showMinorUnits={showMinorUnits}
             />
             </div>
           </div>

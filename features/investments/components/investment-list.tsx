@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { MoneyAmount } from "@/components/money-amount";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { InlineIcon } from "@/components/ui/inline-icon";
 import { getPositionMarketValue, getPositionUnits } from "@/features/investments/lib/positions";
 import { cn } from "@/lib/utils";
 import type { InvestmentPosition, Transaction } from "@/types/finance";
@@ -17,6 +18,7 @@ export function InvestmentList({
   onSelect,
   onAdd,
   editing = false,
+  showMinorUnits = true,
 }: {
   positions: InvestmentPosition[];
   transactions: Transaction[];
@@ -24,6 +26,7 @@ export function InvestmentList({
   onSelect: (id: string) => void;
   onAdd: () => void;
   editing?: boolean;
+  showMinorUnits?: boolean;
 }) {
   const t = useTranslations("investments");
 
@@ -73,7 +76,7 @@ export function InvestmentList({
                 onClick={() => onSelect(position.id)}
               >
                 <div className="flex min-w-0 items-center gap-2 sm:gap-2.5">
-                  <TrendingUp className="size-[18px] shrink-0 text-muted-foreground" strokeWidth={1.75} />
+                  <InlineIcon icon={TrendingUp} iconClassName={selectedId === position.id ? "text-foreground" : "text-muted-foreground"} />
                   <div className="min-w-0">
                     <p className="truncate text-[13px] leading-[18px] font-medium tracking-[0.01em] text-foreground sm:type-h6">
                       {position.instrument.name}
@@ -90,6 +93,7 @@ export function InvestmentList({
                     amount={value}
                     currency={position.latest_quote!.currency}
                     display="absolute"
+                    showMinorUnits={showMinorUnits}
                     className="w-full justify-self-end text-[13px] leading-[18px] font-medium sm:text-[14px] sm:leading-5"
                   />
                 )}
