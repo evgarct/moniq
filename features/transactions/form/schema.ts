@@ -80,7 +80,8 @@ export function buildSchema(msgs: SchemaMessages, mode: TransactionFormMode) {
       if (
         values.source_account_id &&
         values.destination_account_id &&
-        values.source_account_id === values.destination_account_id
+        values.source_account_id === values.destination_account_id &&
+        !(values.kind === "transfer" && values.allocation_id)
       ) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["destination_account_id"], message: v.differentDestination });
       }

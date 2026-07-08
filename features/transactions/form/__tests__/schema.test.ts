@@ -109,13 +109,20 @@ describe("buildSchema – add mode", () => {
     expect(paths).toContain("destination_account_id");
   });
 
-  it("rejects same source and destination account", () => {
+  it("rejects same source and destination account when no allocation is set", () => {
     const result = schema.safeParse(
-      base({ kind: "transfer", source_account_id: "acc-1", destination_account_id: "acc-1", destination_amount: 100 }),
+      base({ kind: "transfer", source_account_id: "acc-1", destination_account_id: "acc-1", destination_amount: 100, allocation_id: null }),
     );
     expect(result.success).toBe(false);
     const msgs2 = result.error!.issues.map((i) => i.message);
     expect(msgs2).toContain("differentDestination");
+  });
+
+  it("accepts same source and destination account when transfer has allocation_id set", () => {
+    const result = schema.safeParse(
+      base({ kind: "transfer", source_account_id: "acc-1", destination_account_id: "acc-1", destination_amount: 100, allocation_id: "goal-1" }),
+    );
+    expect(result.success).toBe(true);
   });
 
   it("rejects transfer without destination_amount", () => {

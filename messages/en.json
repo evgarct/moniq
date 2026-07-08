@@ -988,7 +988,8 @@
       },
       "chart": {
         "ariaLabel": "Projected account balance chart. Use the left and right arrow keys to inspect dates.",
-        "selectedDate": "Projected balances for {date}"
+        "selectedDate": "Projected balances for {date}",
+        "plannedTransactions": "Planned transactions"
       },
       "missingRate": {
         "title": "Some lines cannot be calculated",

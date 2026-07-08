@@ -55,6 +55,8 @@ export type ProjectedBalanceOperation = {
   destination_account_id: string | null;
   source_amount: number | null;
   destination_amount: number | null;
+  source_currency: CurrencyCode | null;
+  destination_currency: CurrencyCode | null;
 };
 
 export type ProjectedBalancePoint = {
@@ -136,7 +138,10 @@ function applyPlannedTransaction(
   }
 }
 
-function toOperation(transaction: Transaction): ProjectedBalanceOperation {
+function toOperation(
+  transaction: Transaction,
+  accountsById: Map<string, Account>,
+): ProjectedBalanceOperation {
   return {
     id: transaction.id,
     title: transaction.title,
@@ -146,6 +151,12 @@ function toOperation(transaction: Transaction): ProjectedBalanceOperation {
     source_amount: transaction.source_account_id ? transaction.amount : null,
     destination_amount: transaction.destination_account_id
       ? transaction.destination_amount ?? transaction.amount
+      : null,
+    source_currency: transaction.source_account_id
+      ? accountsById.get(transaction.source_account_id)?.currency ?? null
+      : null,
+    destination_currency: transaction.destination_account_id
+      ? accountsById.get(transaction.destination_account_id)?.currency ?? null
       : null,
   };
 }
@@ -262,7 +273,7 @@ export function buildProjectedBalanceReport(options: {
             (transaction.destination_account_id &&
               seriesAccountIds.has(transaction.destination_account_id)),
         )
-        .map(toOperation);
+        .map((t) => toOperation(t, accountsById));
       const points = pointsBySeries.get(series.id) ?? [];
 
       points.push({
