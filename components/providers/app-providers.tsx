@@ -24,6 +24,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       });
 
       const isDark = document.documentElement.classList.contains("dark");
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setMode(isDark ? "dark" : "light");
       document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
 
