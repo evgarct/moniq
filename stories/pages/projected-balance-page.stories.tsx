@@ -232,3 +232,14 @@ export const SeparateAccounts: Story = {
     },
   },
 };
+
+export const TooltipWithPlannedTransactions: Story = {
+  args: {
+    snapshot: reportSnapshot,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const heading = canvas.getByRole("heading", { name: "Projected balance" });
+    await expect(heading).toBeInTheDocument();
+  },
+};
