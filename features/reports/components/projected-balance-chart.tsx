@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable react-hooks/preserve-manual-memoization */
+
 import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -83,12 +85,14 @@ export function ProjectedBalanceChart({
   const activeDate = hoveredDate ?? selectedDate;
   const activeIndex = Math.max(0, referencePoints.findIndex((point) => point.date === activeDate));
   const activePoint = referencePoints[activeIndex] ?? referencePoints[0];
-  const activeValues = activePoint
-    ? projectedSeries.flatMap((series) => {
-        const point = series.points.find((candidate) => candidate.date === activePoint.date);
-        return point ? [{ series, point }] : [];
-      })
-    : [];
+  const activeValues = useMemo(() => {
+    return activePoint
+      ? projectedSeries.flatMap((series) => {
+          const point = series.points.find((candidate) => candidate.date === activePoint.date);
+          return point ? [{ series, point }] : [];
+        })
+      : [];
+  }, [activePoint, projectedSeries]);
   const activeOperations = useMemo(() => {
     if (!activePoint) return [];
     const seenIds = new Set<string>();
