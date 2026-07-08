@@ -34,6 +34,9 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [initialKind, setInitialKind] = useState<Transaction["kind"]>("expense");
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [leftScrolled, setLeftScrolled] = useState(false);
+  const [rightScrolled, setRightScrolled] = useState(false);
+  const [mobileScrolled, setMobileScrolled] = useState(false);
 
   const { plannedTransactions, paidTransactions } = useMemo(() => {
     const agenda = selectTodayAgenda(snapshot.transactions, today, selectedDate);
@@ -215,7 +218,7 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
   return (
     <>
       {/* ── Mobile: agenda with collapsible calendar ─────────────────────── */}
-      <div className="flex h-full flex-col lg:hidden">
+      <div className="flex h-full flex-col lg:hidden bg-background">
         <PageHeader
           title={panelLabel}
           actions={
@@ -237,6 +240,8 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
               <TransactionAddButton onSelect={openAdd} variant="icon" />
             </>
           }
+          tone="canvas"
+          scrolled={mobileScrolled}
         />
 
         {calendarOpen ? (
@@ -259,7 +264,10 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
           </div>
         ) : null}
 
-        <div className="mobile-nav-scroll-clearance min-h-0 flex-1 overflow-y-auto overscroll-contain [scroll-padding-bottom:calc(76px+env(safe-area-inset-bottom))] lg:[scroll-padding-bottom:1rem]">
+        <div
+          className="mobile-nav-scroll-clearance min-h-0 flex-1 overflow-y-auto overscroll-contain [scroll-padding-bottom:calc(76px+env(safe-area-inset-bottom))] lg:[scroll-padding-bottom:1rem]"
+          onScroll={(e) => setMobileScrolled(e.currentTarget.scrollTop > 0)}
+        >
           {mobileListEmpty ? (
             <EmptyState
               illustration="calendar"
@@ -306,7 +314,7 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
       </div>
 
       {/* ── Desktop: two-column layout ───────────────────────────────────── */}
-      <div className="hidden h-full w-full lg:grid lg:grid-cols-[minmax(520px,1.1fr)_minmax(0,1fr)]">
+      <div className="hidden h-full w-full lg:grid lg:grid-cols-[minmax(520px,1.1fr)_minmax(0,1fr)] bg-background">
 
         {/* Left: calendar */}
         <section className="flex min-h-0 flex-col overflow-hidden border-r border-border/40 bg-card">
@@ -314,14 +322,18 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
             title={t("view.title")}
             actions={calendarNav}
             tone="panel"
+            scrolled={leftScrolled}
           />
-          <div className="mobile-nav-scroll-clearance flex-1 overflow-y-auto overscroll-contain px-2.5 pt-4 pb-6 sm:px-[26px] lg:px-[30px]">
+          <div
+            className="mobile-nav-scroll-clearance flex-1 overflow-y-auto overscroll-contain px-2.5 pt-4 pb-6 sm:px-[26px] lg:px-[30px]"
+            onScroll={(e) => setLeftScrolled(e.currentTarget.scrollTop > 0)}
+          >
             {calendarGrid}
           </div>
         </section>
 
         {/* Right: planned + paid */}
-        <section className="flex min-h-0 flex-col overflow-hidden">
+        <section className="flex min-h-0 flex-col overflow-hidden bg-background">
           <PageHeader
             title={panelLabel}
             actions={
@@ -339,6 +351,8 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
                 <TransactionAddButton onSelect={openAdd} variant="icon" />
               </>
             }
+            tone="canvas"
+            scrolled={rightScrolled}
           />
 
           {actionError ? (
@@ -347,7 +361,10 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
             </div>
           ) : null}
 
-          <div className="mobile-nav-scroll-clearance min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          <div
+            className="mobile-nav-scroll-clearance min-h-0 flex-1 overflow-y-auto overscroll-contain"
+            onScroll={(e) => setRightScrolled(e.currentTarget.scrollTop > 0)}
+          >
             {dayTransactionsList}
           </div>
         </section>
