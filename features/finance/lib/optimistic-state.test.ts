@@ -129,6 +129,7 @@ describe("optimistic finance state", () => {
       status: "paid",
       kind: "expense",
       amount: 150,
+      note: null,
       destination_amount: null,
       fx_rate: null,
       principal_amount: null,

@@ -30,7 +30,7 @@ function entitlement(values: Partial<BillingEntitlement>): BillingEntitlement {
     stripe_subscription_id: "sub_story",
     subscription_status: "active",
     trial_end: null,
-    current_period_end: "2026-07-05T12:00:00.000Z",
+    current_period_end: "2030-07-05T12:00:00.000Z",
     cancel_at_period_end: false,
     access_override: null,
     ...values,
@@ -42,7 +42,7 @@ export const Trialing: Story = {
     <BillingSettings
       entitlement={entitlement({
         subscription_status: "trialing",
-        trial_end: "2026-07-05T12:00:00.000Z",
+        trial_end: "2030-07-05T12:00:00.000Z",
       })}
     />,
   play: async ({ canvasElement }) => {

@@ -333,3 +333,19 @@ export const WithGoals: Story = {
     await expect(canvas.getAllByText("Free").length).toBeGreaterThan(0);
   },
 };
+
+export const GoalSelected: Story = {
+  args: {
+    data: makeGoalsData(),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const savingsBtn = canvas.getAllByRole("button").find((b) => b.textContent?.includes("Euro Reserve"));
+    if (savingsBtn) await userEvent.click(savingsBtn);
+    
+    const goalBtn = canvas.getByRole("button", { name: /Rent next month/ });
+    await userEvent.click(goalBtn);
+    
+    await expect(canvas.getByRole("heading", { name: "Rent next month", level: 3 })).toBeInTheDocument();
+  },
+};

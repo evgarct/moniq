@@ -6,7 +6,7 @@ import { isVisibleTransactionStatus } from "@/features/transactions/lib/transact
 import { getTransactionAnalyticsAmount, getTransactionPrimaryAccount, getTransactionSignedAmount } from "@/features/transactions/lib/transaction-utils";
 import { SUPPORTED_CURRENCY_CODES } from "@/lib/currencies";
 import type { CurrencyCode } from "@/types/currency";
-import type { Account, CategoryTreeNode, FinanceSnapshot, Transaction } from "@/types/finance";
+import type { Account, CategoryTreeNode, FinanceSnapshot, Transaction, WalletAllocation } from "@/types/finance";
 
 export type CurrencyTotal = {
   currency: CurrencyCode;

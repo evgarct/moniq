@@ -26,17 +26,17 @@ describe("finance-selectors", () => {
 
     it("returns allocations unmodified if total is below balance", () => {
       const allocations: WalletAllocation[] = [
-        { id: "1", wallet_id: "w1", user_id: "u1", name: "A", amount: 200, created_at: "2026-07-08T10:00:00Z", kind: "goal_open", target_amount: null, sort_order: 1 },
-        { id: "2", wallet_id: "w1", user_id: "u1", name: "B", amount: 300, created_at: "2026-07-08T11:00:00Z", kind: "goal_open", target_amount: null, sort_order: 2 }
+        { id: "1", wallet_id: "w1", user_id: "u1", name: "A", amount: 200, created_at: "2026-07-08T10:00:00Z", updated_at: "2026-07-08T10:00:00Z", kind: "goal_open", target_amount: null },
+        { id: "2", wallet_id: "w1", user_id: "u1", name: "B", amount: 300, created_at: "2026-07-08T11:00:00Z", updated_at: "2026-07-08T11:00:00Z", kind: "goal_open", target_amount: null }
       ];
       expect(getEffectiveAllocations(1000, allocations)).toEqual(allocations);
     });
 
     it("reduces/caps allocations from newest to oldest when exceeding balance", () => {
       const allocations: WalletAllocation[] = [
-        { id: "1", wallet_id: "w1", user_id: "u1", name: "A", amount: 600, created_at: "2026-07-08T10:00:00Z", kind: "goal_open", target_amount: null, sort_order: 1 },
-        { id: "2", wallet_id: "w1", user_id: "u1", name: "B", amount: 300, created_at: "2026-07-08T11:00:00Z", kind: "goal_open", target_amount: null, sort_order: 2 },
-        { id: "3", wallet_id: "w1", user_id: "u1", name: "C", amount: 200, created_at: "2026-07-08T12:00:00Z", kind: "goal_open", target_amount: null, sort_order: 3 }
+        { id: "1", wallet_id: "w1", user_id: "u1", name: "A", amount: 600, created_at: "2026-07-08T10:00:00Z", updated_at: "2026-07-08T10:00:00Z", kind: "goal_open", target_amount: null },
+        { id: "2", wallet_id: "w1", user_id: "u1", name: "B", amount: 300, created_at: "2026-07-08T11:00:00Z", updated_at: "2026-07-08T11:00:00Z", kind: "goal_open", target_amount: null },
+        { id: "3", wallet_id: "w1", user_id: "u1", name: "C", amount: 200, created_at: "2026-07-08T12:00:00Z", updated_at: "2026-07-08T12:00:00Z", kind: "goal_open", target_amount: null }
       ];
       // Total = 1100. Balance = 700. Excess = 400.
       // Ordered by newest: C (12:00), B (11:00), A (10:00)
@@ -44,9 +44,9 @@ describe("finance-selectors", () => {
       // B is reduced by min(300, 200) = 200 -> B becomes 100. Remaining excess = 0.
       // A remains 600.
       const expected = [
-        { id: "1", wallet_id: "w1", user_id: "u1", name: "A", amount: 600, created_at: "2026-07-08T10:00:00Z", kind: "goal_open", target_amount: null, sort_order: 1 },
-        { id: "2", wallet_id: "w1", user_id: "u1", name: "B", amount: 100, created_at: "2026-07-08T11:00:00Z", kind: "goal_open", target_amount: null, sort_order: 2 },
-        { id: "3", wallet_id: "w1", user_id: "u1", name: "C", amount: 0, created_at: "2026-07-08T12:00:00Z", kind: "goal_open", target_amount: null, sort_order: 3 }
+        { id: "1", wallet_id: "w1", user_id: "u1", name: "A", amount: 600, created_at: "2026-07-08T10:00:00Z", updated_at: "2026-07-08T10:00:00Z", kind: "goal_open", target_amount: null },
+        { id: "2", wallet_id: "w1", user_id: "u1", name: "B", amount: 100, created_at: "2026-07-08T11:00:00Z", updated_at: "2026-07-08T11:00:00Z", kind: "goal_open", target_amount: null },
+        { id: "3", wallet_id: "w1", user_id: "u1", name: "C", amount: 0, created_at: "2026-07-08T12:00:00Z", updated_at: "2026-07-08T12:00:00Z", kind: "goal_open", target_amount: null }
       ];
       expect(getEffectiveAllocations(700, allocations)).toEqual(expected);
     });
