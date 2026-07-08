@@ -23,7 +23,8 @@
     "db:staging:create": "node scripts/create-staging-branch.mjs",
     "db:staging:seed": "node scripts/seed-staging.mjs",
     "db:verify": "node scripts/verify-db.mjs",
-    "check:storybook-first": "node scripts/check-storybook-first.mjs"
+    "check:storybook-first": "node scripts/check-storybook-first.mjs",
+    "verify:local": "npm run check:storybook-first && npm run lint && npm exec -- tsc --noEmit && npm run test:unit && npm run build-storybook && npm run test-storybook && npm run build"
   },
   "dependencies": {
     "@astryxdesign/cli": "^0.1.2",
