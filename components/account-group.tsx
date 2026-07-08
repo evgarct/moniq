@@ -21,6 +21,8 @@ export function AccountGroup({
   onAddGoal,
   onEditGoal,
   onDeleteGoal,
+  selectedAllocationId,
+  onSelectGoal,
 }: {
   title: string;
   accounts: Account[];
@@ -36,6 +38,8 @@ export function AccountGroup({
   onAddGoal?: (walletId: string) => void;
   onEditGoal?: (allocation: WalletAllocation) => void;
   onDeleteGoal?: (allocation: WalletAllocation) => void;
+  selectedAllocationId?: string | null;
+  onSelectGoal?: (allocationId: string) => void;
 }) {
   const tr = useTranslations();
   const t = useTranslations("accounts");
@@ -84,6 +88,8 @@ export function AccountGroup({
               onAddGoal={onAddGoal ? () => onAddGoal(account.id) : undefined}
               onEditGoal={onEditGoal}
               onDeleteGoal={onDeleteGoal}
+              selectedAllocationId={selectedAllocationId}
+              onSelectGoal={onSelectGoal}
             />
           ))}
         </div>

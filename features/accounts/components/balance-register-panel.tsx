@@ -179,6 +179,8 @@ export function BalanceRegisterPanel({
   onMarkPaid,
   onSkipOccurrence,
   className,
+  title,
+  emptyMessage,
 }: {
   selectedAccount: Account | null;
   transactions: Transaction[];
@@ -196,14 +198,16 @@ export function BalanceRegisterPanel({
   onMarkPaid?: (transaction: Transaction) => void;
   onSkipOccurrence?: (transaction: Transaction) => void;
   className?: string;
+  title?: string;
+  emptyMessage?: string;
 }) {
   const tr = useTranslations();
   const t = useTranslations("accounts");
   const [scrolled, setScrolled] = useState(false);
-  const registerTitle = selectedAccount ? selectedAccount.name : t("view.activity");
-  const emptyMessage = selectedAccount
+  const registerTitle = title ?? (selectedAccount ? selectedAccount.name : t("view.activity"));
+  const computedEmptyMessage = emptyMessage ?? (selectedAccount
     ? t("messages.noTransactionsForWallet")
-    : tr("common.empty.noTransactionsYet");
+    : tr("common.empty.noTransactionsYet"));
 
   return (
     <section className={cn("hidden min-h-0 flex-col bg-background lg:flex", className)}>
@@ -219,7 +223,7 @@ export function BalanceRegisterPanel({
           onStartDateChange={onStartDateChange}
           onEndDateChange={onEndDateChange}
           onClearSelection={onClearSelection}
-          showClearSelection={Boolean(selectedAccount)}
+          showClearSelection={Boolean(selectedAccount || title)}
           onAddTransaction={onAddTransaction}
           scrolled={scrolled}
         />
@@ -227,7 +231,7 @@ export function BalanceRegisterPanel({
         <div className="px-3 pb-4 pt-2 sm:px-6 sm:pb-5 lg:px-7">
           <TransactionList
             transactions={transactions}
-            emptyMessage={emptyMessage}
+            emptyMessage={computedEmptyMessage}
             groupByDate
             showMinorUnits={showMinorUnits}
             onTransactionClick={onTransactionClick}

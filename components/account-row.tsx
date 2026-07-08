@@ -12,6 +12,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { getCreditCardMetrics, isCreditCardAccount, isDebtAccount } from "@/features/accounts/lib/account-utils";
+import { getEffectiveAllocations } from "@/lib/finance-selectors";
 import { cn } from "@/lib/utils";
 import type { Account, WalletAllocation } from "@/types/finance";
 
@@ -27,6 +28,8 @@ export function AccountRow({
   onAddGoal,
   onEditGoal,
   onDeleteGoal,
+  selectedAllocationId,
+  onSelectGoal,
 }: {
   account: Account;
   selected?: boolean;
@@ -39,6 +42,8 @@ export function AccountRow({
   onAddGoal?: () => void;
   onEditGoal?: (allocation: WalletAllocation) => void;
   onDeleteGoal?: (allocation: WalletAllocation) => void;
+  selectedAllocationId?: string | null;
+  onSelectGoal?: (allocationId: string) => void;
 }) {
   const t = useTranslations("accounts");
   const debt = isDebtAccount(account);
@@ -59,7 +64,7 @@ export function AccountRow({
   const hasActions = Boolean(onEdit || onDelete || onAdjustBalance || onAddGoal);
   const suppressClickUntil = useRef(0);
   const showGoals = account.type === "saving" && allocations !== undefined;
-  const accountAllocations = allocations ?? [];
+  const accountAllocations = getEffectiveAllocations(account.balance, allocations ?? []);
   const totalAllocated = showGoals ? accountAllocations.reduce((sum, a) => sum + a.amount, 0) : 0;
   const free = account.balance - totalAllocated;
   const isOverfunded = free < -0.001;
@@ -189,7 +194,21 @@ export function AccountRow({
                   return (
                     <ContextMenu key={allocation.id} disabled={!onEditGoal && !onDeleteGoal}>
                       <ContextMenuTrigger
-                        render={<div className="group rounded-[var(--radius-tight)] py-1 transition-colors hover:bg-secondary/70" />}
+                        render={
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onSelectGoal?.(allocation.id);
+                            }}
+                            className={cn(
+                              "group w-full text-left rounded-[var(--radius-tight)] py-1 px-1.5 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-ring/25",
+                              selectedAllocationId === allocation.id
+                                ? "bg-secondary text-foreground font-semibold"
+                                : "bg-transparent text-foreground hover:bg-secondary/50"
+                            )}
+                          />
+                        }
                       >
                       <div className="grid grid-cols-[minmax(0,1fr)_minmax(96px,auto)] items-center gap-2 sm:gap-3">
                         <div className="flex min-w-0 items-center gap-1.5">

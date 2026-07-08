@@ -121,3 +121,35 @@ export function getCategoryTree(snapshot: FinanceSnapshot): CategoryTreeNode[] {
 export function getNetTransactionEffect(transactions: Transaction[]) {
   return transactions.reduce((sum, transaction) => sum + getTransactionSignedAmount(transaction), 0);
 }
+
+export function getEffectiveAllocations(balance: number, allocations: WalletAllocation[]): WalletAllocation[] {
+  if (allocations.length === 0) return [];
+  const totalAllocated = allocations.reduce((sum, a) => sum + a.amount, 0);
+  if (totalAllocated <= balance) return allocations;
+
+  const sorted = [...allocations].sort((a, b) => {
+    const timeA = new Date(a.updated_at || a.created_at).getTime();
+    const timeB = new Date(b.updated_at || b.created_at).getTime();
+    return timeB - timeA;
+  });
+
+  let excess = totalAllocated - balance;
+  const reducedAmounts = new Map<string, number>();
+
+  for (const allocation of sorted) {
+    if (excess <= 0) break;
+    const reduction = Math.min(allocation.amount, excess);
+    reducedAmounts.set(allocation.id, allocation.amount - reduction);
+    excess -= reduction;
+  }
+
+  return allocations.map((a) => {
+    if (reducedAmounts.has(a.id)) {
+      return {
+        ...a,
+        amount: reducedAmounts.get(a.id)!,
+      };
+    }
+    return a;
+  });
+}
