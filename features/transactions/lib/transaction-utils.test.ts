@@ -120,4 +120,93 @@ describe("validateTransactionRelationships", () => {
       "Investment purchases must use the investment category.",
     );
   });
+
+  it("validates allocation relationship for expenses and transfers", () => {
+    const allocations = [
+      {
+        id: "alloc-savings",
+        user_id: "user-1",
+        wallet_id: "savings",
+        name: "Savings Goal",
+        kind: "goal_open" as const,
+        amount: 100,
+        target_amount: null,
+        created_at: "",
+        updated_at: "",
+        sync_version: 1,
+      },
+    ];
+
+    // Valid expense with goal belonging to source account
+    expect(() =>
+      validateTransactionRelationships(
+        {
+          title: "Expense Goal",
+          occurred_at: "2026-07-09",
+          status: "paid",
+          kind: "expense",
+          amount: 50,
+          category_id: "cat-expense",
+          source_account_id: "savings",
+          destination_account_id: null,
+          allocation_id: "alloc-savings",
+        },
+        { accounts, categories, allocations },
+      ),
+    ).not.toThrow();
+
+    // Valid transfer with goal belonging to destination account
+    expect(() =>
+      validateTransactionRelationships(
+        {
+          title: "Transfer Goal",
+          occurred_at: "2026-07-09",
+          status: "paid",
+          kind: "transfer",
+          amount: 50,
+          category_id: null,
+          source_account_id: "cash",
+          destination_account_id: "savings",
+          allocation_id: "alloc-savings",
+        },
+        { accounts, categories, allocations },
+      ),
+    ).not.toThrow();
+
+    // Invalid: expense goal doesn't belong to source account
+    expect(() =>
+      validateTransactionRelationships(
+        {
+          title: "Expense Goal Mismatch",
+          occurred_at: "2026-07-09",
+          status: "paid",
+          kind: "expense",
+          amount: 50,
+          category_id: "cat-expense",
+          source_account_id: "cash",
+          destination_account_id: null,
+          allocation_id: "alloc-savings",
+        },
+        { accounts, categories, allocations },
+      ),
+    ).toThrow("Expense goal allocation must belong to the source account.");
+
+    // Invalid: transfer goal doesn't belong to destination account
+    expect(() =>
+      validateTransactionRelationships(
+        {
+          title: "Transfer Goal Mismatch",
+          occurred_at: "2026-07-09",
+          status: "paid",
+          kind: "transfer",
+          amount: 50,
+          category_id: null,
+          source_account_id: "savings",
+          destination_account_id: "cash",
+          allocation_id: "alloc-savings",
+        },
+        { accounts, categories, allocations },
+      ),
+    ).toThrow("Transfer goal allocation must belong to the destination account.");
+  });
 });

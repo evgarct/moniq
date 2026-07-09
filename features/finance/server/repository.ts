@@ -562,6 +562,7 @@ export async function getFinanceSnapshot(
     validation_error: getScheduleValidationError(schedule, {
       accounts: mappedAccounts,
       categories: mappedCategories,
+      allocations: earlyMappedAllocations,
     }),
   }));
 

@@ -1,5 +1,5 @@
 import type { TransactionInput } from "@/types/finance-schemas";
-import type { Account, Category, InvestmentPosition, Transaction } from "@/types/finance";
+import type { Account, Category, InvestmentPosition, Transaction, WalletAllocation } from "@/types/finance";
 import { isInvestmentCategory } from "@/features/categories/lib/category-tree";
 import { isSettledTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
 
@@ -45,6 +45,7 @@ export function validateTransactionRelationships(
     accounts: Account[];
     categories: Category[];
     investment_positions?: InvestmentPosition[];
+    allocations?: WalletAllocation[];
   },
 ) {
   const sourceAccount = values.source_account_id
@@ -114,6 +115,28 @@ export function validateTransactionRelationships(
     )
   ) {
     throw new Error("Investment purchases must use an ETF position.");
+  }
+
+  if (values.allocation_id) {
+    if (!options.allocations) {
+      throw new Error("Allocations not loaded.");
+    }
+    const allocation = options.allocations.find((a) => a.id === values.allocation_id);
+    if (!allocation) {
+      throw new Error("Goal allocation not found.");
+    }
+
+    if (values.kind === "expense") {
+      if (allocation.wallet_id !== values.source_account_id) {
+        throw new Error("Expense goal allocation must belong to the source account.");
+      }
+    } else if (values.kind === "transfer") {
+      if (allocation.wallet_id !== values.destination_account_id) {
+        throw new Error("Transfer goal allocation must belong to the destination account.");
+      }
+    } else {
+      throw new Error("Goal allocations are only supported for expenses and transfers.");
+    }
   }
 }
 
