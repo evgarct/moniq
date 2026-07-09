@@ -26,7 +26,11 @@ export function normalizePayload(values: TransactionFormInputs): TransactionInpu
     destination_account_id: values.destination_account_id ?? null,
     allocation_id: (values.kind === "expense" || values.kind === "transfer") ? (values.allocation_id ?? null) : null,
     investment_instrument_id: values.kind === "expense" ? values.investment_instrument_id : null,
-    investment_units: values.kind === "expense" ? values.investment_units : null,
+    investment_units: values.kind === "expense"
+      ? (typeof values.investment_units === "string" && values.investment_units !== ""
+          ? Number(values.investment_units.replace(",", "."))
+          : (typeof values.investment_units === "number" ? values.investment_units : null))
+      : null,
   };
 }
 

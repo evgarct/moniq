@@ -29,7 +29,7 @@ export type TransactionFormInputs = {
   destination_account_id: string | null;
   allocation_id: string | null;
   investment_instrument_id: string | null;
-  investment_units: number | null;
+  investment_units: number | string | null;
   is_recurring: boolean;
   recurrence_frequency: TransactionSchedule["frequency"];
   recurrence_interval_weeks: number;
