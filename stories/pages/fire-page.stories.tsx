@@ -151,7 +151,7 @@ export const Default: Story = {
   args: {
     snapshot: reportSnapshot,
   },
-  // Visually verified: curves are smooth (Bezier) and only asset accounts are selected by default (no credit cards or debts).
+  // Visually verified: only asset accounts are selected by default (no credit cards or debts) and lines are straight/precise.
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     // Verify header title

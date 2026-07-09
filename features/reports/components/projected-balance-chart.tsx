@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { MoneyAmount } from "@/components/money-amount";
 import {
-  buildLinePath,
+  buildStepPath,
   getProjectedBalanceRange,
   projectBalancePoints,
 } from "@/features/reports/lib/projected-balance-chart-geometry";
@@ -195,7 +195,7 @@ export function ProjectedBalanceChart({
         {projectedSeries.map((series, index) => (
           <path
             key={series.id}
-            d={buildLinePath(series.points)}
+            d={buildStepPath(series.points)}
             fill="none"
             stroke={SERIES_COLORS[index % SERIES_COLORS.length]}
             strokeWidth={index === 0 ? 2.5 : 1.5}
