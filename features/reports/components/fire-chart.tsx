@@ -18,10 +18,45 @@ const MARGINS = { left: 12, right: 54, top: 16, bottom: 30 };
 
 function buildLinePath(points: { x: number; y: number }[]) {
   if (!points.length) return "";
-  return points.slice(1).reduce(
-    (path, point) => `${path} L ${point.x} ${point.y}`,
-    `M ${points[0].x} ${points[0].y}`,
-  );
+  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
+  if (points.length === 2) {
+    return `M ${points[0].x} ${points[0].y} L ${points[1].x} ${points[1].y}`;
+  }
+
+  const smoothing = 0.15;
+
+  const controlPoint = (
+    current: { x: number; y: number },
+    previous: { x: number; y: number } | undefined,
+    next: { x: number; y: number } | undefined,
+    isEnd: boolean,
+  ) => {
+    const p = previous ?? current;
+    const n = next ?? current;
+
+    const lengthX = n.x - p.x;
+    const lengthY = n.y - p.y;
+
+    const length = Math.sqrt(lengthX * lengthX + lengthY * lengthY);
+    const angle = Math.atan2(lengthY, lengthX);
+
+    const dist = length * smoothing;
+
+    return {
+      x: current.x + Math.cos(angle + (isEnd ? Math.PI : 0)) * dist,
+      y: current.y + Math.sin(angle + (isEnd ? Math.PI : 0)) * dist,
+    };
+  };
+
+  let d = `M ${points[0].x} ${points[0].y}`;
+
+  for (let i = 0; i < points.length - 1; i++) {
+    const cp1 = controlPoint(points[i], points[i - 1], points[i + 1], false);
+    const cp2 = controlPoint(points[i + 1], points[i], points[i + 2], true);
+    d += ` C ${cp1.x.toFixed(1)} ${cp1.y.toFixed(1)}, ${cp2.x.toFixed(1)} ${cp2.y.toFixed(1)}, ${points[i + 1].x.toFixed(1)} ${points[i + 1].y.toFixed(1)}`;
+  }
+
+  return d;
 }
 
 export function FireChart({

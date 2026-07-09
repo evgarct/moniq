@@ -269,8 +269,8 @@ export function buildFireReport(options: {
       portfolioValue += conversion.amount;
     }
 
-    // Passive SWR Income (4% per year, divided by 12 months)
-    const swrIncome = (portfolioValue * 0.04) / 12;
+    // Passive SWR Income (4% per year, divided by 12 months, bounded to 0 as it cannot be negative)
+    const swrIncome = Math.max(0, (portfolioValue * 0.04) / 12);
 
     incomePoints.push({ date: monthEndStr, balance: monthlyIncome });
     expensesPoints.push({ date: monthEndStr, balance: monthlyExpenses });

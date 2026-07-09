@@ -75,6 +75,10 @@ export function FireView({
   const searchParams = useSearchParams();
 
   const allAccountIds = useMemo(() => snapshot.accounts.map((a) => a.id), [snapshot.accounts]);
+  const defaultFireAccountIds = useMemo(
+    () => snapshot.accounts.filter((a) => a.type !== "credit_card" && a.type !== "debt").map((a) => a.id),
+    [snapshot.accounts],
+  );
   const remembered = useMemo(() => readRememberedPreferences(allAccountIds), [allAccountIds]);
 
   // Initial State from URL or local storage
@@ -89,7 +93,7 @@ export function FireView({
     const urlAccounts = searchParams.get("accounts");
     const parsedAccountIds = urlAccounts ? urlAccounts.split(",").filter((id) => allAccountIds.includes(id)) : [];
     const finalAccountIds =
-      parsedAccountIds.length > 0 ? parsedAccountIds : remembered?.accountIds ?? allAccountIds;
+      parsedAccountIds.length > 0 ? parsedAccountIds : remembered?.accountIds ?? defaultFireAccountIds;
 
     return {
       periodMonths: finalPeriod,
@@ -98,7 +102,7 @@ export function FireView({
         merged: true,
       },
     };
-  }, [allAccountIds, remembered, searchParams]);
+  }, [allAccountIds, defaultFireAccountIds, remembered, searchParams]);
 
   const [periodMonths, setPeriodMonths] = useState(initialState.periodMonths);
   const [selection, setSelection] = useState<ProjectedBalanceSelection>(initialState.selection);
