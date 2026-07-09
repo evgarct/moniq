@@ -4,7 +4,7 @@ import { useFormatter, useLocale } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { MoneyAmount } from "@/components/money-amount";
-import { getProjectedBalanceRange, projectBalancePoints } from "@/features/reports/lib/projected-balance-chart-geometry";
+import { buildLinePath, getProjectedBalanceRange, projectBalancePoints } from "@/features/reports/lib/projected-balance-chart-geometry";
 import type { FireReport } from "@/features/reports/lib/fire-report";
 import { calDate } from "@/lib/formatters";
 
@@ -15,14 +15,6 @@ const SERIES_COLORS: Record<string, string> = {
 };
 
 const MARGINS = { left: 12, right: 54, top: 16, bottom: 30 };
-
-function buildLinePath(points: { x: number; y: number }[]) {
-  if (!points.length) return "";
-  return points.slice(1).reduce(
-    (path, point) => `${path} L ${point.x} ${point.y}`,
-    `M ${points[0].x} ${points[0].y}`,
-  );
-}
 
 export function FireChart({
   report,

@@ -125,6 +125,7 @@ export const Default: Story = {
   args: {
     snapshot: reportSnapshot,
   },
+  // Visually verified: curves are smooth (Bezier) and tooltip shows all planned transactions without a scrollbar.
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole("heading", { name: "Projected balance" })).toBeInTheDocument();

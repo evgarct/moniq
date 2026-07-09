@@ -226,4 +226,27 @@ describe("fire report calculation", () => {
     const maySWR = report.series[2].points[1];
     expect(maySWR.balance).toBeCloseTo(40.8333, 4);
   });
+
+  it("bounds SWR income to 0 when portfolio value is negative", () => {
+    const acc = mockAccount("acc", -10_000, "USD");
+
+    const report = buildFireReport({
+      accounts: [acc],
+      transactions: [],
+      exchangeRates: [],
+      defaultCurrency: "USD",
+      investmentPositions: [],
+      accountIds: ["acc"],
+      periodMonths: 3,
+      now,
+      labels: {
+        income: "Income",
+        expenses: "Expenses",
+        investmentIncome: "SWR",
+      },
+    });
+
+    const juneSWR = report.series[2].points[2];
+    expect(juneSWR.balance).toBe(0);
+  });
 });

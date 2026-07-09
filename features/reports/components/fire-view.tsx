@@ -74,7 +74,11 @@ export function FireView({
   const formatDate = useFormatter();
   const searchParams = useSearchParams();
 
-  const allAccountIds = useMemo(() => snapshot.accounts.map((a) => a.id), [snapshot.accounts]);
+  const fireAccounts = useMemo(
+    () => snapshot.accounts.filter((a) => a.type !== "credit_card" && a.type !== "debt"),
+    [snapshot.accounts],
+  );
+  const allAccountIds = useMemo(() => fireAccounts.map((a) => a.id), [fireAccounts]);
   const remembered = useMemo(() => readRememberedPreferences(allAccountIds), [allAccountIds]);
 
   // Initial State from URL or local storage
@@ -162,7 +166,7 @@ export function FireView({
           >
             <PageHeaderIconButton icon={Info} label={t("description")} className="hidden shrink-0 lg:inline-flex" />
             <ProjectedBalanceControls
-              accounts={snapshot.accounts}
+              accounts={fireAccounts}
               selection={selection}
               onSelectionChange={updateSelection}
               periodMonths={FIRE_REPORT_PRESET_MONTHS}
