@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { MoneyAmount } from "@/components/money-amount";
 import {
-  buildStepPath,
+  buildLinePath,
   getProjectedBalanceRange,
   projectBalancePoints,
 } from "@/features/reports/lib/projected-balance-chart-geometry";
@@ -195,7 +195,7 @@ export function ProjectedBalanceChart({
         {projectedSeries.map((series, index) => (
           <path
             key={series.id}
-            d={buildStepPath(series.points)}
+            d={buildLinePath(series.points)}
             fill="none"
             stroke={SERIES_COLORS[index % SERIES_COLORS.length]}
             strokeWidth={index === 0 ? 2.5 : 1.5}
@@ -253,7 +253,7 @@ export function ProjectedBalanceChart({
           </div>
 
           {activeOperations.length > 0 ? (
-            <div className="mt-2 border-t border-border/50 pt-1.5 flex flex-col gap-1 max-h-40 overflow-y-auto">
+            <div className="mt-2 border-t border-border/50 pt-1.5 flex flex-col gap-1">
               <p className="type-body-12 text-muted-foreground font-medium mb-0.5">
                 {t("chart.plannedTransactions")}
               </p>
