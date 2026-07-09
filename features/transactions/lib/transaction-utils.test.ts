@@ -141,9 +141,8 @@ describe("validateTransactionRelationships", () => {
     expect(() =>
       validateTransactionRelationships(
         {
+          ...debtPayment("savings"),
           title: "Expense Goal",
-          occurred_at: "2026-07-09",
-          status: "paid",
           kind: "expense",
           amount: 50,
           category_id: "cat-expense",
@@ -159,9 +158,8 @@ describe("validateTransactionRelationships", () => {
     expect(() =>
       validateTransactionRelationships(
         {
+          ...debtPayment("savings"),
           title: "Transfer Goal",
-          occurred_at: "2026-07-09",
-          status: "paid",
           kind: "transfer",
           amount: 50,
           category_id: null,
@@ -177,9 +175,8 @@ describe("validateTransactionRelationships", () => {
     expect(() =>
       validateTransactionRelationships(
         {
+          ...debtPayment("savings"),
           title: "Expense Goal Mismatch",
-          occurred_at: "2026-07-09",
-          status: "paid",
           kind: "expense",
           amount: 50,
           category_id: "cat-expense",
@@ -195,9 +192,8 @@ describe("validateTransactionRelationships", () => {
     expect(() =>
       validateTransactionRelationships(
         {
+          ...debtPayment("cash"),
           title: "Transfer Goal Mismatch",
-          occurred_at: "2026-07-09",
-          status: "paid",
           kind: "transfer",
           amount: 50,
           category_id: null,

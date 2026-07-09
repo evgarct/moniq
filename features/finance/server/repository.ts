@@ -313,6 +313,7 @@ function getScheduleValidationError(
   options: {
     accounts: Account[];
     categories: Category[];
+    allocations?: WalletAllocation[];
   },
 ) {
   try {
