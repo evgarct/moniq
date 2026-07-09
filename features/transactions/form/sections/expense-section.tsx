@@ -78,7 +78,7 @@ export function ExpenseSection() {
                 className="w-44 border-0 text-right shadow-none"
                 inputMode="decimal"
                 value={field.value ?? ""}
-                onChange={(event) => field.onChange(event.target.value ? Number(event.target.value) : null)}
+                onChange={(event) => field.onChange(event.target.value)}
               />
             )}
           />

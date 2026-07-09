@@ -184,6 +184,8 @@ Right: category shown as plain muted text below the transaction title.
 - In PowerShell, quote Next.js App Router paths that contain brackets or parentheses, such as `app/[locale]/(app)/settings/page.tsx`, when passing them to `git diff`, `Get-Content`, or other shell commands.
 - In this repo, on mobile viewports (below 1024px), all main page backgrounds, mobile-overlay headers, and fullscreen sheets must use the `bg-card` (#f0f0eb) background token to align with the iOS status bar and safe area colors exposed by `.mobile-shell`. Use `bg-card lg:bg-background` for containers and headers to preserve off-white backgrounds on desktop.
 - For any change, feature extension, or design update in this repo, agents must document all details in the corresponding Markdown files under `docs/` and capture/refresh visual mockup screenshots under `.codex-artifacts/` or the artifacts directory. No code changes should be published without aligning documentation and visual assets first.
+- In database triggers, avoid running balance-based allocation limits or validations on transient/intermediate tables updates. Use session-local config flags (e.g. `current_setting('moniq.disallow_allocation_enforcement', true)`) to skip enforcement during transient updates and run them once at the end of the transaction.
+- For text inputs mapping to numeric fields in React Hook Form + Zod, use strings in form state and preprocess them in Zod to prevent characters like decimal points from being aggressively formatted/lost during active typing.
 
 <!-- ASTRYX:START -->
 Astryx v0.1.2 · 148 components

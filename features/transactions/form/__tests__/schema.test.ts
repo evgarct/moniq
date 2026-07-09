@@ -251,6 +251,35 @@ describe("buildSchema – add mode", () => {
     expect(result.success).toBe(true);
   });
 
+  it("accepts fractional investment units as strings or numbers", () => {
+    const result1 = schema.safeParse(
+      base({
+        investment_instrument_id: "inst-1",
+        investment_units: "0.25",
+      }),
+    );
+    expect(result1.success).toBe(true);
+    expect(result1.data?.investment_units).toBe(0.25);
+
+    const result2 = schema.safeParse(
+      base({
+        investment_instrument_id: "inst-1",
+        investment_units: 1.5,
+      }),
+    );
+    expect(result2.success).toBe(true);
+    expect(result2.data?.investment_units).toBe(1.5);
+
+    const result3 = schema.safeParse(
+      base({
+        investment_instrument_id: "inst-1",
+        investment_units: "0,123",
+      }),
+    );
+    expect(result3.success).toBe(true);
+    expect(result3.data?.investment_units).toBe(0.123);
+  });
+
   it("accepts weekly recurring transactions with an interval", () => {
     const result = schema.safeParse(
       base({

@@ -231,7 +231,8 @@ export function TransactionFormProvider({
   );
 
   const form = useForm<TransactionFormInputs>({
-    resolver: zodResolver(schema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(schema) as any,
     defaultValues: makeDefaults({ transaction, schedule, initialKind, initialDate, mode, defaultSourceAccountId, initialInvestmentInstrumentId, initialCategoryId }),
   });
 

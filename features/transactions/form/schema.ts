@@ -54,7 +54,15 @@ export function buildSchema(msgs: SchemaMessages, mode: TransactionFormMode) {
       destination_account_id: opaqueId,
       allocation_id: opaqueId,
       investment_instrument_id: opaqueId,
-      investment_units: z.number().positive(v.amountPositive).nullable(),
+      investment_units: z.preprocess((val) => {
+        if (val === "" || val === null || val === undefined) return null;
+        if (typeof val === "string") {
+          const cleaned = val.replace(",", ".");
+          const num = Number(cleaned);
+          return isNaN(num) ? val : num;
+        }
+        return val;
+      }, z.number().positive(v.amountPositive).nullable()),
       is_recurring: z.boolean(),
       recurrence_frequency: z.enum(["daily", "weekly", "monthly", "yearly"]),
       recurrence_interval_weeks: z.number().int().min(1),

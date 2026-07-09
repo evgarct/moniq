@@ -113,6 +113,28 @@ describe("normalizePayload", () => {
     expect(result.interest_amount).toBe(120);
     expect(result.extra_principal_amount).toBe(0);
   });
+
+  it("coerces investment_units strings to numbers", () => {
+    const result = normalizePayload(
+      base({
+        kind: "expense",
+        investment_instrument_id: "inst-1",
+        investment_units: "1.2345",
+      }),
+    );
+    expect(result.investment_units).toBe(1.2345);
+  });
+
+  it("coerces investment_units comma-strings to dot-numbers", () => {
+    const result = normalizePayload(
+      base({
+        kind: "expense",
+        investment_instrument_id: "inst-1",
+        investment_units: "0,5",
+      }),
+    );
+    expect(result.investment_units).toBe(0.5);
+  });
 });
 
 describe("buildSubmitPayload – add income single (non-batch kind)", () => {
