@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import type { Account, WalletAllocation, Transaction } from "@/types/finance";
 import { buildSchema } from "../schema";
 
 const msgs = {
@@ -22,6 +23,7 @@ const msgs = {
     lineItemsRequired: "lineItemsRequired",
     recurringMustBePlanned: "recurringMustBePlanned",
     recurrenceUntilBeforeStart: "recurrenceUntilBeforeStart",
+    freeBalanceExceeded: "freeBalanceExceeded",
   },
 };
 
@@ -332,5 +334,128 @@ describe("buildSchema – edit-transaction mode", () => {
     const result = schema.safeParse(base({ kind: "expense", line_items: [] }));
     const paths = result.error?.issues.map((i) => i.path.join(".")) ?? [];
     expect(paths).not.toContain("line_items");
+  });
+});
+
+describe("buildSchema – savings goal transfer validations", () => {
+  const mockAccounts: Account[] = [
+    {
+      id: "acc-saving",
+      user_id: "user-1",
+      name: "Savings Wallet",
+      type: "saving",
+      balance: 1000,
+      currency: "EUR",
+      created_at: "2026-04-18",
+    },
+  ];
+
+  const mockAllocations: WalletAllocation[] = [
+    {
+      id: "alloc-1",
+      user_id: "user-1",
+      wallet_id: "acc-saving",
+      name: "Goal 1",
+      kind: "goal_targeted",
+      amount: 400,
+      target_amount: 1000,
+      created_at: "2026-04-18",
+      updated_at: "2026-04-18",
+    },
+  ];
+
+  // Schema with accounts and allocations passed
+  const schema = buildSchema(msgs, "edit-transaction", mockAccounts, mockAllocations, null);
+
+  it("accepts transfer within free balance to the same account when allocation is selected", () => {
+    const result = schema.safeParse(
+      base({
+        kind: "transfer",
+        source_account_id: "acc-saving",
+        destination_account_id: "acc-saving",
+        allocation_id: "alloc-1",
+        amount: 200, // free balance = 1000 - 400 = 600, so 200 is fine
+        destination_amount: 200,
+      }),
+    );
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects transfer exceeding free balance to the same account when allocation is selected", () => {
+    const result = schema.safeParse(
+      base({
+        kind: "transfer",
+        source_account_id: "acc-saving",
+        destination_account_id: "acc-saving",
+        allocation_id: "alloc-1",
+        amount: 700, // free balance = 600, so 700 is too much
+        destination_amount: 700,
+      }),
+    );
+    expect(result.success).toBe(false);
+    const issues = result.error!.issues.map((i) => i.message);
+    expect(issues).toContain("freeBalanceExceeded");
+  });
+
+  it("takes into account the existing transaction amount when editing a transaction", () => {
+    const existingTransaction: Transaction = {
+      id: "tx-existing",
+      user_id: "user-1",
+      title: "Existing",
+      note: null,
+      occurred_at: "2026-04-18",
+      created_at: "2026-04-18",
+      status: "paid",
+      kind: "transfer",
+      amount: 300,
+      destination_amount: 300,
+      fx_rate: null,
+      principal_amount: null,
+      interest_amount: null,
+      extra_principal_amount: null,
+      category_id: null,
+      source_account_id: "acc-saving",
+      destination_account_id: "acc-saving",
+      schedule_id: null,
+      schedule_occurrence_date: null,
+      is_schedule_override: false,
+      category: null,
+      source_account: mockAccounts[0],
+      destination_account: mockAccounts[0],
+      schedule: null,
+      allocation_id: "alloc-1",
+      allocation: mockAllocations[0],
+    };
+
+    const editSchema = buildSchema(msgs, "edit-transaction", mockAccounts, mockAllocations, existingTransaction);
+
+    // If existing transaction is 300, free balance is 600, but 300 of that 400 allocated belongs to this transaction.
+    // So actual available for allocation = 600 + 300 = 900.
+    const result1 = editSchema.safeParse(
+      base({
+        id: "tx-existing",
+        kind: "transfer",
+        source_account_id: "acc-saving",
+        destination_account_id: "acc-saving",
+        allocation_id: "alloc-1",
+        amount: 800, // 800 <= 900, so it should be allowed
+        destination_amount: 800,
+      }),
+    );
+    expect(result1.success).toBe(true);
+
+    const result2 = editSchema.safeParse(
+      base({
+        id: "tx-existing",
+        kind: "transfer",
+        source_account_id: "acc-saving",
+        destination_account_id: "acc-saving",
+        allocation_id: "alloc-1",
+        amount: 950, // 950 > 900, so it should fail
+        destination_amount: 950,
+      }),
+    );
+    expect(result2.success).toBe(false);
+    expect(result2.error!.issues.map((i) => i.message)).toContain("freeBalanceExceeded");
   });
 });

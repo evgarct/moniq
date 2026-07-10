@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import type { Account, WalletAllocation, Transaction } from "@/types/finance";
 import type { TransactionFormMode } from "./types";
 import { supportsBatchItems, isMoveKind } from "./helpers";
 import { normalizeDebtPaymentBreakdown } from "./debt-payment-breakdown";
@@ -24,10 +25,17 @@ export type SchemaMessages = {
     lineItemsRequired: string;
     recurringMustBePlanned: string;
     recurrenceUntilBeforeStart: string;
+    freeBalanceExceeded: string;
   };
 };
 
-export function buildSchema(msgs: SchemaMessages, mode: TransactionFormMode) {
+export function buildSchema(
+  msgs: SchemaMessages,
+  mode: TransactionFormMode,
+  accounts?: Account[],
+  allocations?: WalletAllocation[],
+  transaction?: Transaction | null,
+) {
   const { validation: v } = msgs;
   const opaqueId = z.string().trim().min(1).nullable();
   const lineItemSchema = z.object({
@@ -137,6 +145,43 @@ export function buildSchema(msgs: SchemaMessages, mode: TransactionFormMode) {
       }
       if (Boolean(values.investment_instrument_id) !== Boolean(values.investment_units)) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["investment_units"], message: v.amountPositive });
+      }
+
+      // Check if transferring to a goal in the same savings wallet
+      if (
+        values.kind === "transfer" &&
+        values.source_account_id &&
+        values.destination_account_id &&
+        values.source_account_id === values.destination_account_id &&
+        values.allocation_id &&
+        accounts &&
+        allocations
+      ) {
+        const wallet = accounts.find((a) => a.id === values.source_account_id);
+        if (wallet && wallet.type === "saving") {
+          const walletAllocations = allocations.filter((a) => a.wallet_id === wallet.id);
+          const totalAllocated = walletAllocations.reduce((sum, a) => sum + a.amount, 0);
+          const freeBefore = wallet.balance - totalAllocated;
+
+          const existingTransactionContribution =
+            transaction &&
+            transaction.status === "paid" &&
+            transaction.allocation_id === values.allocation_id &&
+            transaction.kind === "transfer" &&
+            transaction.source_account_id === values.source_account_id
+              ? transaction.amount
+              : 0;
+
+          const maxAllowed = freeBefore + existingTransactionContribution;
+
+          if (values.amount > maxAllowed) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ["amount"],
+              message: v.freeBalanceExceeded,
+            });
+          }
+        }
       }
     });
 }

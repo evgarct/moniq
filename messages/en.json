@@ -934,6 +934,7 @@
         "categoryRequired": "Choose a category.",
         "transferNoCategory": "Transfers do not use a category.",
         "differentDestination": "Choose a different destination account.",
+        "freeBalanceExceeded": "This amount exceeds the available free balance.",
         "debtBreakdownRequired": "Provide at least one debt payment amount.",
         "debtBreakdownMismatch": "Amount must equal principal + interest + extra principal.",
         "destinationAmountRequired": "Destination amount is required for account-to-account moves.",

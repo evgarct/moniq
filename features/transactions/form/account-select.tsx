@@ -7,6 +7,7 @@ import { FieldMessage } from "@/components/form-primitives";
 import { InlineIcon } from "@/components/ui/inline-icon";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { formatMoney } from "@/lib/formatters";
 import type { Account } from "@/types/finance";
 
 import { toSelectValue } from "./helpers";
@@ -55,11 +56,18 @@ export function AccountSelect({
               }}
             >
               <SelectTrigger className="h-auto w-full justify-start border-0 bg-transparent px-0 py-0 text-sm shadow-none outline-none focus:outline-none focus-visible:border-transparent focus-visible:ring-0">
-                <div className="flex min-w-0 items-center gap-2">
-                  <InlineIcon icon={AccountIcon} />
-                  <span className={cn("truncate text-left", selectedAccount ? "text-foreground" : "text-muted-foreground")}>
-                    {selectedAccount?.name ?? placeholder}
-                  </span>
+                <div className="flex min-w-0 items-center justify-between w-full gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <InlineIcon icon={AccountIcon} />
+                    <span className={cn("truncate text-left", selectedAccount ? "text-foreground" : "text-muted-foreground")}>
+                      {selectedAccount?.name ?? placeholder}
+                    </span>
+                  </div>
+                  {selectedAccount && (
+                    <span className="text-muted-foreground text-xs font-normal tabular-nums ml-auto shrink-0 mr-4">
+                      {formatMoney(selectedAccount.balance, selectedAccount.currency)}
+                    </span>
+                  )}
                 </div>
               </SelectTrigger>
               <SelectContent>
@@ -68,9 +76,14 @@ export function AccountSelect({
                     const Icon = getAccountIcon(account);
                     return (
                       <SelectItem key={account.id} value={account.id}>
-                        <div className="flex min-w-0 items-center gap-2">
-                          <InlineIcon icon={Icon} />
-                          <span className="truncate">{account.name}</span>
+                        <div className="flex min-w-0 w-full items-center justify-between gap-4">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <InlineIcon icon={Icon} />
+                            <span className="truncate">{account.name}</span>
+                          </div>
+                          <span className="text-muted-foreground text-xs tabular-nums shrink-0">
+                            {formatMoney(account.balance, account.currency)}
+                          </span>
                         </div>
                       </SelectItem>
                     );
