@@ -84,6 +84,7 @@ function addTransactionValidation<
     category_id?: string | null;
     source_account_id?: string | null;
     destination_account_id?: string | null;
+    allocation_id?: string | null;
     investment_instrument_id?: string | null;
     investment_units?: number | null;
   }>
@@ -109,7 +110,12 @@ function addTransactionValidation<
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["category_id"], message: "Transfers do not use a category." });
     }
 
-    if (values.source_account_id && values.destination_account_id && values.source_account_id === values.destination_account_id) {
+    if (
+      values.source_account_id &&
+      values.destination_account_id &&
+      values.source_account_id === values.destination_account_id &&
+      !(values.kind === "transfer" && values.allocation_id)
+    ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["destination_account_id"],

@@ -223,11 +223,15 @@ export function TransactionFormProvider({
             lineItemsRequired: t("validation.lineItemsRequired"),
             recurringMustBePlanned: t("validation.recurringMustBePlanned"),
             recurrenceUntilBeforeStart: t("validation.recurrenceUntilBeforeStart"),
+            freeBalanceExceeded: t("validation.freeBalanceExceeded"),
           },
         },
         mode,
+        accounts,
+        allocations,
+        transaction,
       ),
-    [mode, t],
+    [mode, t, accounts, allocations, transaction],
   );
 
   const form = useForm<TransactionFormInputs>({
