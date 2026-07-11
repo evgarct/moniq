@@ -3,6 +3,7 @@ import { redirect } from "@/i18n/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PageContainer } from "@/components/page-container";
 import { BillingSettings } from "@/features/settings/components/billing-settings";
+import { ThemeSettings } from "@/features/settings/components/theme-settings";
 import { CurrencySettings } from "@/features/settings/components/currency-settings";
 import { McpSettings } from "@/features/settings/components/mcp-settings";
 import { getUserPreferencesWithDefault } from "@/features/finance/server/repository";
@@ -55,6 +56,7 @@ export default async function SettingsPage({
       </div>
       <div className="flex flex-col gap-8">
         <BillingSettings entitlement={billingEntitlement} />
+        <ThemeSettings />
         <CurrencySettings
           initialDefaultCurrency={preferences.default_currency}
           initialDefaultCurrencySource={preferences.default_currency_source}

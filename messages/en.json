@@ -1077,6 +1077,18 @@
       "saved": "Default currency saved.",
       "saveError": "Unable to save default currency."
     },
+    "theme": {
+      "eyebrow": "Preferences",
+      "title": "Appearance",
+      "description": "Choose your preferred color theme for the Moniq interface.",
+      "fieldLabel": "Theme",
+      "options": {
+        "light": "Light",
+        "dark": "Dark",
+        "system": "System"
+      },
+      "saved": "Theme updated."
+    },
     "billing": {
       "eyebrow": "Billing",
       "title": "Subscription",

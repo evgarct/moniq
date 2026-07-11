@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono, PT_Serif } from "next/font/google";
 import { getLocale } from "next-intl/server";
+import { cookies } from "next/headers";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
@@ -78,20 +79,30 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const locale = await getLocale();
+  const cookieStore = await cookies();
+  const theme = cookieStore.get("theme")?.value ?? "system";
+  const themeClass = theme === "dark" ? "dark" : "";
+  const themeDataAttr = theme === "dark" ? "dark" : theme === "light" ? "light" : undefined;
 
   return (
     <html
       lang={locale}
       data-scroll-behavior="smooth"
       suppressHydrationWarning
-      className={`${inter.variable} ${jetBrainsMono.variable} ${ptSerif.variable} h-full antialiased`}
+      className={`${inter.variable} ${jetBrainsMono.variable} ${ptSerif.variable} h-full antialiased ${themeClass}`}
+      data-theme={themeDataAttr}
     >
       <head>
         <script
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                var theme = localStorage.getItem('theme');
+                if (!theme) {
+                  var match = document.cookie.split('; ').find(function(row) { return row.startsWith('theme='); });
+                  theme = match ? match.split('=')[1] : 'system';
+                }
+                var isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
                 if (isDark) {
                   document.documentElement.setAttribute('data-theme', 'dark');
                   document.documentElement.classList.add('dark');

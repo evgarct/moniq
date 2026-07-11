@@ -34,22 +34,63 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       });
       return () => observer.disconnect();
     } else {
-      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-      const syncTheme = (e: MediaQueryListEvent | MediaQueryList) => {
-        const isDark = e.matches;
-        setMode(isDark ? "dark" : "light");
-        if (isDark) {
+      type ThemeValue = "light" | "dark" | "system";
+
+      const getStoredTheme = (): ThemeValue => {
+        try {
+          const stored = localStorage.getItem("theme");
+          if (stored === "light" || stored === "dark" || stored === "system") {
+            return stored;
+          }
+        } catch {}
+        return "system";
+      };
+
+      const applyTheme = (themeValue: ThemeValue) => {
+        let activeTheme: "light" | "dark" = "light";
+        if (themeValue === "dark") {
+          activeTheme = "dark";
+        } else if (themeValue === "light") {
+          activeTheme = "light";
+        } else {
+          const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          activeTheme = isDark ? "dark" : "light";
+        }
+
+        if (activeTheme === "dark") {
           document.documentElement.setAttribute("data-theme", "dark");
           document.documentElement.classList.add("dark");
         } else {
           document.documentElement.setAttribute("data-theme", "light");
           document.documentElement.classList.remove("dark");
         }
+
+        return activeTheme;
       };
 
-      syncTheme(mediaQuery);
-      mediaQuery.addEventListener("change", syncTheme);
-      return () => mediaQuery.removeEventListener("change", syncTheme);
+      const syncTheme = () => {
+        const themeValue = getStoredTheme();
+        const activeMode = applyTheme(themeValue);
+        setMode(activeMode);
+      };
+
+      syncTheme();
+
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      const handleMediaChange = () => {
+        const themeValue = getStoredTheme();
+        if (themeValue === "system") {
+          syncTheme();
+        }
+      };
+
+      mediaQuery.addEventListener("change", handleMediaChange);
+      window.addEventListener("themechange", syncTheme);
+
+      return () => {
+        mediaQuery.removeEventListener("change", handleMediaChange);
+        window.removeEventListener("themechange", syncTheme);
+      };
     }
   }, []);
 
