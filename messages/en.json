@@ -1464,5 +1464,82 @@
       "interest": "interest",
       "extraPrincipal": "extra principal"
     }
+  },
+  "landing": {
+    "nav": {
+      "features": "Features",
+      "pricing": "Pricing",
+      "mcp": "MCP",
+      "docs": "Docs",
+      "login": "Log In",
+      "getStarted": "Get Started"
+    },
+    "hero": {
+      "eyebrow": "Personal Finance Workspace",
+      "title": "A calm workspace for your personal finances.",
+      "subtitle": "Moniq helps you track balances, forecast your future, and manage plans with a focus on simplicity, keyboard navigation, and local-first performance.",
+      "cta": "Get Started for Free",
+      "secondaryCta": "Watch Demo"
+    },
+    "features": {
+      "title": "Designed for clarity and control.",
+      "subtitle": "No complex dashboards, no noisy notifications. Just your numbers, clear and calm.",
+      "multicurrency": {
+        "title": "Multi-Currency Tracking",
+        "description": "Keep cash, bank accounts, and investments separate. View your assets in their native currencies without mixing values."
+      },
+      "calm": {
+        "title": "Calm Budgeting",
+        "description": "Focus on allocations and savings plans instead of rigid, stressful limits. Plan your wealth step by step."
+      },
+      "local": {
+        "title": "Local-First Sync",
+        "description": "Offline-ready, lightning fast. Your data is stored locally in SQLite and synced automatically to Supabase when you connect."
+      },
+      "mcp": {
+        "title": "AI & MCP Integration",
+        "description": "Use Model Context Protocol to securely connect your LLM assistants directly to your financial workspace."
+      }
+    },
+    "demo": {
+      "title": "Interactive Preview",
+      "subtitle": "See how Moniq structures your financial records in real time.",
+      "balanceSheet": "Balance Sheet",
+      "ledger": "Recent Activity",
+      "netWorth": "Net Worth"
+    },
+    "pricing": {
+      "title": "Simple, honest pricing.",
+      "subtitle": "Start tracking for free, upgrade to Pro when you need advanced capabilities.",
+      "free": {
+        "name": "Free",
+        "price": "$0",
+        "period": "forever",
+        "cta": "Start for Free",
+        "features": {
+          "wallets": "Up to 3 active wallets",
+          "history": "30-day transaction history",
+          "local": "Local-first storage (offline)",
+          "sync": "Manual backups"
+        }
+      },
+      "pro": {
+        "name": "Pro",
+        "price": "$9",
+        "period": "per month",
+        "cta": "Get Pro Access",
+        "features": {
+          "wallets": "Unlimited wallets & accounts",
+          "history": "Full transaction history",
+          "sync": "Automatic real-time sync",
+          "mcp": "Model Context Protocol API keys",
+          "stripe": "Secure Stripe billing"
+        }
+      }
+    },
+    "footer": {
+      "tagline": "A calm workspace for your personal finances.",
+      "copyright": "© {year} Moniq. All rights reserved."
+    }
   }
 }

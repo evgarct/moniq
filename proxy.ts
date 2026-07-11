@@ -68,10 +68,13 @@ export async function proxy(request: NextRequest) {
   const isAuthenticated = Boolean(claims?.sub);
 
   if (localizedPathname === "/" || internalPathname === "/") {
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = `/${locale}/${isAuthenticated ? "today" : "login"}`;
-    redirectUrl.search = "";
-    return applyCookies(NextResponse.redirect(redirectUrl));
+    if (isAuthenticated) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = `/${locale}/today`;
+      redirectUrl.search = "";
+      return applyCookies(NextResponse.redirect(redirectUrl));
+    }
+    return applyCookies(i18nResponse);
   }
 
   if (!isAuthenticated && !isPublicPath(internalPathname)) {
