@@ -1464,5 +1464,123 @@
       "interest": "interest",
       "extraPrincipal": "extra principal"
     }
+  },
+  "landing": {
+    "nav": {
+      "features": "Features",
+      "pricing": "Pricing",
+      "mcp": "MCP",
+      "docs": "Docs",
+      "login": "Log In",
+      "getStarted": "Get Started"
+    },
+    "hero": {
+      "eyebrow": "Personal Finance Workspace",
+      "title": "A calm workspace for your personal finances.",
+      "subtitle": "Moniq helps you track balances, forecast your future, and manage plans with a focus on simplicity, keyboard navigation, and local-first performance.",
+      "cta": "Get Started for Free",
+      "secondaryCta": "Watch Demo"
+    },
+    "features": {
+      "title": "Designed for clarity and control.",
+      "subtitle": "No complex dashboards, no noisy notifications. Just your numbers, clear and calm.",
+      "multicurrency": {
+        "title": "Multi-Currency Tracking",
+        "description": "Keep cash, bank accounts, and investments separate. View your assets in their native currencies without mixing values."
+      },
+      "calm": {
+        "title": "Calm Budgeting",
+        "description": "Focus on allocations and savings plans instead of rigid, stressful limits. Plan your wealth step by step."
+      },
+      "local": {
+        "title": "Local-First Sync",
+        "description": "Offline-ready, lightning fast. Your data is stored locally in SQLite and synced automatically to Supabase when you connect.",
+        "sqlite": "Local SQLite",
+        "sync": "PowerSync Sync",
+        "supabase": "Supabase Cloud"
+      },
+      "mcp": {
+        "title": "AI & MCP Integration",
+        "description": "Use Model Context Protocol to securely connect your LLM assistants directly to your financial workspace.",
+        "headline": "Integrate with your AI workflows.",
+        "terminalLabel": "MCP Config",
+        "sub1Title": "Zero-trust access",
+        "sub1Desc": "Your API keys remain stored locally and requests are fully auditable.",
+        "sub2Title": "Natural queries",
+        "sub2Desc": "Ask your assistant: \"How much did I spend on coffee this week?\" or \"Run my July net worth projection.\""
+      }
+    },
+    "demo": {
+      "title": "Interactive Preview",
+      "subtitle": "See how Moniq structures your financial records in real time.",
+      "balanceSheet": "Balance Sheet",
+      "ledger": "Recent Activity",
+      "netWorth": "Net Worth",
+      "keyboardTip": "Press [Enter] to inspect",
+      "mock": {
+        "workspace": "WORKSPACE",
+        "cashBanks": "CASH & BANKS",
+        "checking": "Checking",
+        "savings": "Savings",
+        "debts": "DEBTS",
+        "card": "Card",
+        "tx1Title": "Coffee at Stumptown",
+        "tx1Category": "Food & Drinks",
+        "tx1Date": "Today",
+        "tx2Title": "Monthly Salary Deposit",
+        "tx2Category": "Income",
+        "tx2Date": "Today",
+        "tx3Title": "SaaS Subscription",
+        "tx3Category": "Software",
+        "tx3Date": "Yesterday",
+        "txNewTitle": "Grocery Store Run",
+        "txNewCategory": "Groceries",
+        "txNewDate": "Just now",
+        "wallet1": "Euro Wallet",
+        "wallet2": "US Dollar Checking",
+        "wallet3": "Ruble Cash",
+        "goal1": "Emergency Fund",
+        "goal2": "Vacation Travel"
+      }
+    },
+    "pricing": {
+      "title": "Simple, honest pricing.",
+      "subtitle": "Start tracking for free, upgrade to Pro when you need advanced capabilities.",
+      "monthly": "Monthly",
+      "annual": "Annually",
+      "save20": "Save 20%",
+      "stripeBilling": "Stripe Billing",
+      "free": {
+        "name": "Free",
+        "price": "$0",
+        "period": "forever",
+        "cta": "Start for Free",
+        "features": {
+          "wallets": "Up to 3 active wallets",
+          "history": "30-day transaction history",
+          "local": "Local-first storage (offline)",
+          "sync": "Manual backups"
+        }
+      },
+      "pro": {
+        "name": "Pro",
+        "priceMonthly": "$9",
+        "periodMonthly": "billed monthly",
+        "priceAnnual": "$7.20",
+        "periodAnnual": "billed annually",
+        "cta": "Get Pro Access",
+        "features": {
+          "wallets": "Unlimited wallets & accounts",
+          "history": "Full transaction history",
+          "sync": "Automatic real-time sync",
+          "mcp": "Model Context Protocol API keys",
+          "stripe": "Secure Stripe billing"
+        }
+      }
+    },
+    "footer": {
+      "tagline": "A calm workspace for your personal finances.",
+      "copyright": "© {year} Moniq. All rights reserved."
+    }
   }
 }
