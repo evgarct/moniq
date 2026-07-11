@@ -1502,6 +1502,7 @@
       "mcp": {
         "title": "AI & MCP Integration",
         "description": "Use Model Context Protocol to securely connect your LLM assistants directly to your financial workspace.",
+        "headline": "Integrate with your AI workflows.",
         "terminalLabel": "MCP Config",
         "sub1Title": "Zero-trust access",
         "sub1Desc": "Your API keys remain stored locally and requests are fully auditable.",
@@ -1515,7 +1516,32 @@
       "balanceSheet": "Balance Sheet",
       "ledger": "Recent Activity",
       "netWorth": "Net Worth",
-      "keyboardTip": "Press [Enter] to inspect"
+      "keyboardTip": "Press [Enter] to inspect",
+      "mock": {
+        "workspace": "WORKSPACE",
+        "cashBanks": "CASH & BANKS",
+        "checking": "Checking",
+        "savings": "Savings",
+        "debts": "DEBTS",
+        "card": "Card",
+        "tx1Title": "Coffee at Stumptown",
+        "tx1Category": "Food & Drinks",
+        "tx1Date": "Today",
+        "tx2Title": "Monthly Salary Deposit",
+        "tx2Category": "Income",
+        "tx2Date": "Today",
+        "tx3Title": "SaaS Subscription",
+        "tx3Category": "Software",
+        "tx3Date": "Yesterday",
+        "txNewTitle": "Grocery Store Run",
+        "txNewCategory": "Groceries",
+        "txNewDate": "Just now",
+        "wallet1": "Euro Wallet",
+        "wallet2": "US Dollar Checking",
+        "wallet3": "Ruble Cash",
+        "goal1": "Emergency Fund",
+        "goal2": "Vacation Travel"
+      }
     },
     "pricing": {
       "title": "Simple, honest pricing.",
@@ -1523,6 +1549,7 @@
       "monthly": "Monthly",
       "annual": "Annually",
       "save20": "Save 20%",
+      "stripeBilling": "Stripe Billing",
       "free": {
         "name": "Free",
         "price": "$0",

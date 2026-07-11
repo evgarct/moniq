@@ -32,19 +32,19 @@ export function LandingView() {
   const [billingCycle, setBillingCycle] = React.useState<"monthly" | "annual">("annual");
   
   const [mockTransactions, setMockTransactions] = React.useState([
-    { id: 1, title: "Coffee at Stumptown", category: "Food & Drinks", amount: -4.50, currency: "USD", date: "Today", keyTip: "N" },
-    { id: 2, title: "Monthly Salary Deposit", category: "Income", amount: 4200.00, currency: "USD", date: "Today", keyTip: "⌘I" },
-    { id: 3, title: "SaaS Subscription", category: "Software", amount: -19.00, currency: "USD", date: "Yesterday", keyTip: "E" },
+    { id: 1, title: t("demo.mock.tx1Title"), category: t("demo.mock.tx1Category"), amount: -4.50, currency: "USD", date: t("demo.mock.tx1Date"), keyTip: "N" },
+    { id: 2, title: t("demo.mock.tx2Title"), category: t("demo.mock.tx2Category"), amount: 4200.00, currency: "USD", date: t("demo.mock.tx2Date"), keyTip: "⌘I" },
+    { id: 3, title: t("demo.mock.tx3Title"), category: t("demo.mock.tx3Category"), amount: -19.00, currency: "USD", date: t("demo.mock.tx3Date"), keyTip: "E" },
   ]);
 
   const addMockTransaction = () => {
     const newTx = {
       id: Date.now(),
-      title: "Grocery Store Run",
-      category: "Groceries",
+      title: t("demo.mock.txNewTitle"),
+      category: t("demo.mock.txNewCategory"),
       amount: -64.20,
       currency: "USD",
-      date: "Just now",
+      date: t("demo.mock.txNewDate"),
       keyTip: "E"
     };
     setMockTransactions([newTx, ...mockTransactions]);
@@ -221,7 +221,7 @@ export function LandingView() {
                   <span className="text-[11px] font-mono text-muted-foreground ml-2">moniq.fyi/today</span>
                 </div>
                 <div className="flex items-center gap-1 bg-background/50 px-2 py-0.5 rounded-[var(--radius-control)] border border-border/20">
-                  <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">WORKSPACE</span>
+                  <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">{t("demo.mock.workspace")}</span>
                 </div>
               </div>
 
@@ -242,28 +242,26 @@ export function LandingView() {
                     </div>
                   </div>
 
-                  <div className="h-px bg-border/30" />
-
-                  {/* Account category rows */}
+                  <div className="h-px bg-border/30" />                   {/* Account category rows */}
                   <div className="space-y-2.5">
                     <div className="group/item flex flex-col">
-                      <span className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground mb-1">CASH & BANKS</span>
+                      <span className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground mb-1">{t("demo.mock.cashBanks")}</span>
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between text-xs hover:text-foreground transition-colors">
-                          <span className="text-muted-foreground group-hover/item:text-foreground">Checking</span>
+                          <span className="text-muted-foreground group-hover/item:text-foreground">{t("demo.mock.checking")}</span>
                           <span className="tabular-nums font-medium">$3,560</span>
                         </div>
                         <div className="flex items-center justify-between text-xs hover:text-foreground transition-colors">
-                          <span className="text-muted-foreground group-hover/item:text-foreground">Savings</span>
+                          <span className="text-muted-foreground group-hover/item:text-foreground">{t("demo.mock.savings")}</span>
                           <span className="tabular-nums font-medium">$4,860</span>
                         </div>
                       </div>
                     </div>
 
                     <div className="group/item flex flex-col">
-                      <span className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground mb-1">DEBTS</span>
+                      <span className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground mb-1">{t("demo.mock.debts")}</span>
                       <div className="flex items-center justify-between text-xs text-destructive">
-                        <span>Card</span>
+                        <span>{t("demo.mock.card")}</span>
                         <span className="tabular-nums font-medium">-$350</span>
                       </div>
                     </div>
@@ -391,15 +389,15 @@ export function LandingView() {
               {/* Currency Balance stack mockup */}
               <div className="space-y-2 border-t border-border/20 pt-4">
                 <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Euro Wallet</span>
+                  <span className="text-muted-foreground">{t("demo.mock.wallet1")}</span>
                   <span className="font-semibold tabular-nums">4 820,00 €</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">US Dollar checking</span>
+                  <span className="text-muted-foreground">{t("demo.mock.wallet2")}</span>
                   <span className="font-semibold tabular-nums">$3,560.00</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Ruble Cash</span>
+                  <span className="text-muted-foreground">{t("demo.mock.wallet3")}</span>
                   <span className="font-semibold tabular-nums">120 000 ₽</span>
                 </div>
               </div>
@@ -437,12 +435,11 @@ export function LandingView() {
                   {t("features.calm.description")}
                 </p>
               </div>
-
               {/* Allocation bars mockup */}
               <div className="space-y-4 border-t border-border/20 pt-4">
                 <div>
                   <div className="flex justify-between text-xs mb-1">
-                    <span className="text-muted-foreground">Emergency Fund</span>
+                    <span className="text-muted-foreground">{t("demo.mock.goal1")}</span>
                     <span className="font-medium">60% ($3,000 / $5,000)</span>
                   </div>
                   <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
@@ -451,7 +448,7 @@ export function LandingView() {
                 </div>
                 <div>
                   <div className="flex justify-between text-xs mb-1">
-                    <span className="text-muted-foreground">Vacation Travel</span>
+                    <span className="text-muted-foreground">{t("demo.mock.goal2")}</span>
                     <span className="font-medium">90% ($1,800 / $2,000)</span>
                   </div>
                   <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
@@ -476,7 +473,7 @@ export function LandingView() {
                 {t("features.mcp.title")}
               </span>
               <h2 className="font-heading text-3xl md:text-4xl font-bold mb-6 tracking-tight leading-tight">
-                Integrate with your AI workflows.
+                {t("features.mcp.headline")}
               </h2>
               <p className="type-body-14 text-muted-foreground mb-8 leading-relaxed">
                 {t("features.mcp.description")}
@@ -605,7 +602,7 @@ export function LandingView() {
             <div className="p-8 md:p-12 flex flex-col justify-between hover:bg-card/20 transition-all bg-card/10 relative">
               <div className="absolute top-4 right-6 inline-flex items-center gap-1">
                 <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground px-2 py-0.5 rounded-full bg-secondary">
-                  Stripe Billing
+                  {t("pricing.stripeBilling")}
                 </span>
               </div>
               <div>
