@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, within } from "storybook/test";
 
 import { McpSettings } from "@/features/settings/components/mcp-settings";
+import { ThemeSettings } from "@/features/settings/components/theme-settings";
 import { CurrencySettings } from "@/features/settings/components/currency-settings";
 import { BillingSettings } from "@/features/settings/components/billing-settings";
 import { PageContainer } from "@/components/page-container";
@@ -40,6 +41,7 @@ function SettingsPageTemplate({ keys }: { keys: typeof sampleKeys }) {
             <h1 className="text-xl font-semibold text-foreground">Settings</h1>
           </div>
           <div className="flex flex-col gap-8">
+            <ThemeSettings />
             <CurrencySettings
               initialDefaultCurrency={snapshot.preferences.default_currency}
               initialDefaultCurrencySource={snapshot.preferences.default_currency_source}
@@ -82,6 +84,7 @@ export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("Settings")).toBeInTheDocument();
+    await expect(canvas.getByText("Appearance")).toBeInTheDocument();
     await expect(canvas.getByText("Default currency")).toBeInTheDocument();
     await expect(canvas.getByText("Subscription")).toBeInTheDocument();
     await expect(canvas.getByText("Claude MCP Connector")).toBeInTheDocument();
