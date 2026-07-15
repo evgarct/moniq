@@ -72,7 +72,7 @@ export function buildSchema(
         return val;
       }, z.number().positive(v.amountPositive).nullable()),
       is_recurring: z.boolean(),
-      recurrence_frequency: z.enum(["daily", "weekly", "monthly", "yearly"]),
+      recurrence_frequency: z.enum(["daily", "weekly", "monthly", "quarterly", "yearly"]),
       recurrence_interval_weeks: z.number().int().min(1),
       recurrence_until: z.string().trim().nullable(),
       line_items: z.array(lineItemSchema),

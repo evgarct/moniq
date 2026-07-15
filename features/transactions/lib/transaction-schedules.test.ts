@@ -114,6 +114,25 @@ describe("transaction-schedules", () => {
     ]);
   });
 
+  it("generates quarterly occurrences", () => {
+    expect(
+      generateScheduleOccurrences(
+        {
+          start_date: "2026-01-15",
+          frequency: "quarterly",
+          until_date: null,
+        },
+        "2026-01-01",
+        "2026-10-31",
+      ),
+    ).toEqual([
+      { occurrenceDate: "2026-01-15" },
+      { occurrenceDate: "2026-04-15" },
+      { occurrenceDate: "2026-07-15" },
+      { occurrenceDate: "2026-10-15" },
+    ]);
+  });
+
   it("clamps yearly leap-day occurrences to February 28 in non-leap years", () => {
     expect(
       generateScheduleOccurrences(

@@ -198,7 +198,7 @@ export const transactionInputSchema = addTransactionValidation(z.object(transact
   normalizeTransactionValues(values),
 );
 
-const scheduleFrequencyValues = ["daily", "weekly", "monthly", "yearly"] satisfies [TransactionScheduleFrequency, ...TransactionScheduleFrequency[]];
+const scheduleFrequencyValues = ["daily", "weekly", "monthly", "quarterly", "yearly"] satisfies [TransactionScheduleFrequency, ...TransactionScheduleFrequency[]];
 
 function normalizeRecurrenceValues<T extends { frequency: TransactionScheduleFrequency; interval_weeks?: number | null }>(
   values: T,

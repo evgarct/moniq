@@ -240,6 +240,18 @@ describe("buildSchema – add mode", () => {
     expect(result.success).toBe(true);
   });
 
+  it("accepts quarterly recurring transactions", () => {
+    const result = schema.safeParse(
+      base({
+        is_recurring: true,
+        status: "planned",
+        recurrence_frequency: "quarterly",
+        line_items: [{ category_id: "cat-1", amount: 100, note: "" }],
+      }),
+    );
+    expect(result.success).toBe(true);
+  });
+
   it("accepts a recurring investment-category expense without purchase details", () => {
     const result = schema.safeParse(
       base({

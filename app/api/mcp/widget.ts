@@ -43,6 +43,7 @@ export type MoniqWidgetCopy = {
   daily: string;
   weekly: string;
   monthly: string;
+  quarterly: string;
   yearly: string;
   principal: string;
   interest: string;

@@ -25,6 +25,7 @@ const COPY: MoniqWidgetCopy = {
   daily: "Daily",
   weekly: "Weekly",
   monthly: "Monthly",
+  quarterly: "Quarterly",
   yearly: "Yearly",
   principal: "principal",
   interest: "interest",
