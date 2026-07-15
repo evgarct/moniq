@@ -108,7 +108,7 @@ export type Account = {
 
 export type TransactionStatus = "planned" | "paid" | "skipped";
 export type TransactionKind = "income" | "expense" | "transfer" | "debt_payment";
-export type TransactionScheduleFrequency = "daily" | "weekly" | "monthly" | "yearly";
+export type TransactionScheduleFrequency = "daily" | "weekly" | "monthly" | "quarterly" | "yearly";
 export type TransactionScheduleState = "active" | "paused";
 
 export type TransactionSchedule = {

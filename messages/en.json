@@ -870,6 +870,7 @@
         "daily": "Daily",
         "weekly": "Weekly",
         "monthly": "Monthly",
+        "quarterly": "Every 3 months",
         "yearly": "Yearly"
       },
       "status": {
@@ -1471,6 +1472,7 @@
       "daily": "Daily",
       "weekly": "Weekly",
       "monthly": "Monthly",
+      "quarterly": "Quarterly",
       "yearly": "Yearly",
       "principal": "principal",
       "interest": "interest",

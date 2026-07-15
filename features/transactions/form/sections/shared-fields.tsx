@@ -105,6 +105,7 @@ export function SharedFields({
                         <SelectItem value="daily" className="capitalize">{t("recurrence.daily")}</SelectItem>
                         <SelectItem value="weekly" className="capitalize">{t("recurrence.weekly")}</SelectItem>
                         <SelectItem value="monthly" className="capitalize">{t("recurrence.monthly")}</SelectItem>
+                        <SelectItem value="quarterly" className="capitalize">{t("recurrence.quarterly")}</SelectItem>
                         <SelectItem value="yearly" className="capitalize">{t("recurrence.yearly")}</SelectItem>
                       </SelectGroup>
                     </SelectContent>

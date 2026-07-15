@@ -228,4 +228,17 @@ describe("buildSubmitPayload – recurring add entry", () => {
       expect(result.values.recurrence).toMatchObject({ frequency: "yearly", interval_weeks: 1 });
     }
   });
+
+  it("includes quarterly recurrence", () => {
+    const result = buildSubmitPayload(
+      base({ kind: "income", source_account_id: null, destination_account_id: "acc-2", is_recurring: true, status: "planned", recurrence_frequency: "quarterly" }),
+      "add",
+      accounts,
+      categories,
+    );
+    expect(result?.kind).toBe("entry");
+    if (result?.kind === "entry") {
+      expect(result.values.recurrence).toMatchObject({ frequency: "quarterly", interval_weeks: 1 });
+    }
+  });
 });

@@ -49,7 +49,7 @@ export async function OPTIONS() {
 const TRANSACTION_KINDS = ["income", "expense", "transfer", "debt_payment"] as const;
 const DIRECT_TRANSACTION_STATUSES = ["paid", "planned"] as const;
 const READ_TRANSACTION_STATUSES = ["paid", "planned", "skipped"] as const;
-const SCHEDULE_FREQUENCIES = ["daily", "weekly", "monthly", "yearly"] as const;
+const SCHEDULE_FREQUENCIES = ["daily", "weekly", "monthly", "quarterly", "yearly"] as const;
 const SCHEDULE_STATES = ["active", "paused"] as const;
 type TransactionKind = (typeof TRANSACTION_KINDS)[number];
 type DirectTransactionStatus = (typeof DIRECT_TRANSACTION_STATUSES)[number];
@@ -82,6 +82,7 @@ function getMoniqWidgetCopy(t: McpTranslator): MoniqWidgetCopy {
     daily: t("mcp.widget.daily"),
     weekly: t("mcp.widget.weekly"),
     monthly: t("mcp.widget.monthly"),
+    quarterly: t("mcp.widget.quarterly"),
     yearly: t("mcp.widget.yearly"),
     principal: t("mcp.widget.principal"),
     interest: t("mcp.widget.interest"),
@@ -1707,7 +1708,7 @@ function validateRecurringSchedule(schedule: unknown, labelPrefix = "Recurring t
   if (!schedule.title || typeof schedule.title !== "string" || !schedule.title.trim()) return `${labelPrefix} must have a title`;
   if (!isPositiveNumber(schedule.amount)) return `${labelPrefix} "${label}" must have a positive amount`;
   if (!isIsoDate(schedule.start_date)) return `${labelPrefix} "${label}" must have start_date in YYYY-MM-DD format`;
-  if (!isScheduleFrequency(schedule.frequency)) return `${labelPrefix} "${label}" frequency must be daily, weekly, monthly, or yearly`;
+  if (!isScheduleFrequency(schedule.frequency)) return `${labelPrefix} "${label}" frequency must be daily, weekly, monthly, quarterly, or yearly`;
   if (schedule.interval_weeks != null && !isPositiveInteger(schedule.interval_weeks)) {
     return `${labelPrefix} "${label}" interval_weeks must be an integer greater than or equal to 1`;
   }

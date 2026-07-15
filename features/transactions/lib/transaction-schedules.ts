@@ -47,6 +47,10 @@ function getNextDate(
     return clampMonthlyDate(anchorDate, addYears(date, 1));
   }
 
+  if (frequency === "quarterly") {
+    return clampMonthlyDate(anchorDate, addMonths(date, 3));
+  }
+
   return clampMonthlyDate(anchorDate, addMonths(date, 1));
 }
 
