@@ -387,11 +387,12 @@ export function useFinanceActions() {
           request: (resolveId) =>
             updateScheduleNoteFromDateRequest(
               resolveRequiredId(resolveId, scheduleId),
+              fromOccurrenceDate,
               newNote,
             ),
         },
         options,
-        (resolveId) => ({ type: "schedule.updateNote", targetId: resolveRequiredId(resolveId, scheduleId), baseVersion: entityVersion("schedule", scheduleId), payload: { note: newNote } }),
+        (resolveId) => ({ type: "schedule.updateNote", targetId: resolveRequiredId(resolveId, scheduleId), baseVersion: entityVersion("schedule", scheduleId), payload: { note: newNote, fromOccurrenceDate } }),
       );
     },
     saveWallet(

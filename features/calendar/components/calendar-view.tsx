@@ -191,7 +191,17 @@ export function CalendarView({ snapshot }: { snapshot: FinanceSnapshot }) {
                 { onError },
               );
             }
-            if (!payload.updateScheduleNote) {
+            const hasOccurrenceEdits =
+              ((payload.values.note || "") !== (editingTransaction.note || "") && !payload.updateScheduleNote) ||
+              (payload.values.occurred_at !== editingTransaction.occurred_at && !payload.rescheduleFrom) ||
+              payload.values.title !== editingTransaction.title ||
+              payload.values.amount !== editingTransaction.amount ||
+              payload.values.category_id !== (editingTransaction.category_id || null) ||
+              payload.values.source_account_id !== (editingTransaction.source_account_id || null) ||
+              payload.values.destination_account_id !== (editingTransaction.destination_account_id || null) ||
+              payload.values.kind !== editingTransaction.kind;
+
+            if (hasOccurrenceEdits) {
               transactionActions.updateTransaction(editingTransaction.id, payload.values, { onError });
             }
           } else if (payload.kind === "schedule" && editingSchedule) {

@@ -554,7 +554,15 @@ export const MobileRescheduleDialog: Story = {
   ),
 };
 
+/** Shows the confirmation overlay when a user changes the note of a recurring transaction */
 export const NoteChangeDialog: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story: "Confirmation prompt specifically tailored for note changes in a recurring transaction series.",
+      },
+    },
+  },
   render: () => (
     <StorySurface>
       <TransactionFormSheet

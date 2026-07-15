@@ -1394,8 +1394,23 @@ export async function updateTransactionSchedule(scheduleId: string, values: Tran
   await getFinanceSnapshot({ reconcileSchedules: true });
 }
 
-export async function updateTransactionScheduleNote(scheduleId: string, note: string | null) {
+export async function updateTransactionScheduleNote(
+  scheduleId: string,
+  note: string | null,
+  fromOccurrenceDate: string,
+) {
   const { supabase, user } = await getAuthenticatedSupabase();
+
+  // Mark planned occurrences before fromOccurrenceDate as overridden
+  // so they preserve their old note when reconciled
+  await supabase
+    .from("finance_transactions")
+    .update({ is_schedule_override: true })
+    .eq("schedule_id", scheduleId)
+    .eq("status", "planned")
+    .lt("schedule_occurrence_date", fromOccurrenceDate)
+    .eq("user_id", user.id);
+
   const { error } = await supabase
     .from("finance_transaction_schedules")
     .update({
