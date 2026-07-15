@@ -107,7 +107,8 @@ async function executeCommand(command: SyncCommand) {
     case "schedule.update": return updateTransactionSchedule(command.targetId!, transactionScheduleInputSchema.parse(payload));
     case "schedule.updateNote": {
       const note = typeof payload.note === "string" ? payload.note : null;
-      return updateTransactionScheduleNote(command.targetId!, note);
+      const fromOccurrenceDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).parse(payload.fromOccurrenceDate);
+      return updateTransactionScheduleNote(command.targetId!, note, fromOccurrenceDate);
     }
     case "schedule.state": return setTransactionScheduleState(command.targetId!, z.enum(["active", "paused"]).parse(payload.state));
     case "schedule.reschedule": return rescheduleScheduleFromDate(command.targetId!, z.string().parse(payload.fromOccurrenceDate), z.string().parse(payload.newOccurrenceDate));

@@ -39,8 +39,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ sc
         );
       } else if (payload.mode === "update-note") {
         const note = typeof payload.note === "string" ? payload.note : null;
+        const fromOccurrenceDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).parse(payload.fromOccurrenceDate);
         await withMutationPerformance(request, "update_transaction_schedule_note", () =>
-          updateTransactionScheduleNote(scheduleId, note),
+          updateTransactionScheduleNote(scheduleId, note, fromOccurrenceDate),
         );
       } else {
         const schedulePayload = transactionScheduleInputSchema.parse(payload.values);

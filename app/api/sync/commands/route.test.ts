@@ -44,6 +44,7 @@ vi.mock("@/features/finance/server/repository", () => ({
   markTransactionPaid: vi.fn(), rescheduleScheduleFromDate: vi.fn(),
   setTransactionScheduleState: vi.fn(), skipTransactionOccurrence: vi.fn(),
   updateCategory: vi.fn(), updateTransaction: vi.fn(), updateTransactionSchedule: vi.fn(),
+  updateTransactionScheduleNote: vi.fn(),
   updateUserPreferences: vi.fn(), updateWallet: state.updateWallet, updateWalletAllocation: vi.fn(),
 }));
 

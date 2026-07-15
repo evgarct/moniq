@@ -253,7 +253,7 @@ export function TransactionFormSheet({
       transaction.status === "planned"
     ) {
       const dateChanged = payload.values.occurred_at !== transaction.occurred_at;
-      const noteChanged = payload.values.note !== (transaction.note ?? "");
+      const noteChanged = (payload.values.note || "") !== (transaction.note || "");
 
       if (dateChanged || noteChanged) {
         setPendingPayload(payload);
@@ -274,7 +274,7 @@ export function TransactionFormSheet({
   const handleAllFollowing = () => {
     if (!pendingPayload || !transaction?.schedule_id) return;
     const dateChanged = pendingPayload.values.occurred_at !== transaction.occurred_at;
-    const noteChanged = pendingPayload.values.note !== (transaction.note ?? "");
+    const noteChanged = (pendingPayload.values.note || "") !== (transaction.note || "");
 
     const payload: TransactionFormSubmitPayload = {
       ...pendingPayload,

@@ -386,13 +386,14 @@ export async function updateUserPreferencesRequest(values: UserPreferencesInput)
 
 export async function updateScheduleNoteFromDateRequest(
   scheduleId: string,
+  fromOccurrenceDate: string,
   newNote: string | null,
 ): Promise<FinanceSnapshot> {
   const response = await fetchWithTimeout(`/api/transaction-schedules/${scheduleId}`, {
     method: "PATCH",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ mode: "update-note", note: newNote }),
+    body: JSON.stringify({ mode: "update-note", note: newNote, fromOccurrenceDate }),
   });
 
   return parseJsonResponse<FinanceSnapshot>(response);
