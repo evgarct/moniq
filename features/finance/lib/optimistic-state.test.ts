@@ -8,9 +8,10 @@ import {
   createOptimisticId,
   removeTransaction,
   setTransactionStatus,
+  updateScheduleNoteFromDate,
   updateTransaction,
 } from "@/features/finance/lib/optimistic-state";
-import type { Account, Transaction, WalletAllocation } from "@/types/finance";
+import type { Account, Transaction, TransactionSchedule, WalletAllocation } from "@/types/finance";
 import type { TransactionEntryInput } from "@/types/finance-schemas";
 
 const source = { id: "source", balance: 1000 } as Account;
@@ -192,5 +193,32 @@ describe("optimistic finance state", () => {
     const nextNew = next.allocations.find((a) => a.id === allocNew.id);
     expect(nextOld?.amount).toBe(400);
     expect(nextNew?.amount).toBe(200);
+  });
+
+  it("updates the schedule note and all future planned occurrences note starting from date", () => {
+    const scheduleId = "schedule-123";
+    const schedule = { id: scheduleId, note: "Old Note" } as TransactionSchedule;
+    const tx1 = { id: "tx-1", schedule_id: scheduleId, occurred_at: "2026-07-10", schedule_occurrence_date: "2026-07-10", status: "planned", note: "Old Note" } as Transaction;
+    const tx2 = { id: "tx-2", schedule_id: scheduleId, occurred_at: "2026-07-20", schedule_occurrence_date: "2026-07-20", status: "planned", note: "Old Note" } as Transaction;
+    const txPast = { id: "tx-past", schedule_id: scheduleId, occurred_at: "2026-07-05", schedule_occurrence_date: "2026-07-05", status: "paid", note: "Old Note" } as Transaction;
+    
+    const snapshot = {
+      ...createEmptyFinanceSnapshot(),
+      schedules: [schedule],
+      transactions: [tx1, tx2, txPast],
+    };
+
+    const next = updateScheduleNoteFromDate(snapshot, scheduleId, "2026-07-10", "New Super Note");
+
+    const updatedSchedule = next.schedules.find((s) => s.id === scheduleId);
+    expect(updatedSchedule?.note).toBe("New Super Note");
+
+    const u1 = next.transactions.find((t) => t.id === "tx-1");
+    const u2 = next.transactions.find((t) => t.id === "tx-2");
+    const uPast = next.transactions.find((t) => t.id === "tx-past");
+
+    expect(u1?.note).toBe("New Super Note");
+    expect(u2?.note).toBe("New Super Note");
+    expect(uPast?.note).toBe("Old Note");
   });
 });

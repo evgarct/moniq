@@ -1394,6 +1394,23 @@ export async function updateTransactionSchedule(scheduleId: string, values: Tran
   await getFinanceSnapshot({ reconcileSchedules: true });
 }
 
+export async function updateTransactionScheduleNote(scheduleId: string, note: string | null) {
+  const { supabase, user } = await getAuthenticatedSupabase();
+  const { error } = await supabase
+    .from("finance_transaction_schedules")
+    .update({
+      note: note ? note.trim() : null,
+    })
+    .eq("id", scheduleId)
+    .eq("user_id", user.id);
+
+  if (error) {
+    throw new Error(normalizeFinanceRepositoryError(error));
+  }
+
+  await getFinanceSnapshot({ reconcileSchedules: true });
+}
+
 export async function setTransactionScheduleState(scheduleId: string, state: TransactionSchedule["state"]) {
   const { supabase, user } = await getAuthenticatedSupabase();
   const { error } = await supabase

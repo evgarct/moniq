@@ -553,3 +553,51 @@ export const MobileRescheduleDialog: Story = {
     </StorySurface>
   ),
 };
+
+export const NoteChangeDialog: Story = {
+  render: () => (
+    <StorySurface>
+      <TransactionFormSheet
+        open
+        mode="edit-transaction"
+        transaction={recurringOccurrence}
+        accounts={snapshot.accounts}
+        categories={snapshot.categories}
+        transactions={snapshot.transactions}
+        onOpenChange={() => {}}
+        onSubmit={async () => {}}
+      />
+      <RescheduleConfirmOverlay
+        title="Change recurring note"
+        description="Do you want to change the note for only this occurrence, or this and all following occurrences?"
+        onOnlyThis={() => {}}
+        onAllFollowing={() => {}}
+        onCancel={() => {}}
+      />
+    </StorySurface>
+  ),
+};
+
+export const BothChangeDialog: Story = {
+  render: () => (
+    <StorySurface>
+      <TransactionFormSheet
+        open
+        mode="edit-transaction"
+        transaction={recurringOccurrence}
+        accounts={snapshot.accounts}
+        categories={snapshot.categories}
+        transactions={snapshot.transactions}
+        onOpenChange={() => {}}
+        onSubmit={async () => {}}
+      />
+      <RescheduleConfirmOverlay
+        title="Change recurring transaction"
+        description="Do you want to apply these changes to only this occurrence, or this and all following occurrences?"
+        onOnlyThis={() => {}}
+        onAllFollowing={() => {}}
+        onCancel={() => {}}
+      />
+    </StorySurface>
+  ),
+};

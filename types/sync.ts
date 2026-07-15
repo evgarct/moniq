@@ -37,6 +37,7 @@ export type SyncCommand =
   | SyncCommandBase<"transaction.create" | "transaction.update", Record<string, unknown>>
   | SyncCommandBase<"transaction.delete" | "transaction.markPaid" | "transaction.skip", Record<string, never>>
   | SyncCommandBase<"schedule.update", Record<string, unknown>>
+  | SyncCommandBase<"schedule.updateNote", { note: string | null }>
   | SyncCommandBase<"schedule.state", { state: "active" | "paused" }>
   | SyncCommandBase<"schedule.reschedule", { fromOccurrenceDate: string; newOccurrenceDate: string }>
   | SyncCommandBase<"schedule.delete", Record<string, never>>

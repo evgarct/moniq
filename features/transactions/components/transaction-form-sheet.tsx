@@ -246,16 +246,19 @@ export function TransactionFormSheet({
 }) {
   const [pendingPayload, setPendingPayload] = useState<(TransactionFormSubmitPayload & { kind: "transaction" }) | null>(null);
 
-  // Intercept submissions for scheduled occurrence edits where the date changed
   const wrappedOnSubmit = (payload: TransactionFormSubmitPayload) => {
     if (
       payload.kind === "transaction" &&
       transaction?.schedule_id &&
-      transaction.status === "planned" &&
-      payload.values.occurred_at !== transaction.occurred_at
+      transaction.status === "planned"
     ) {
-      setPendingPayload(payload);
-      return false;
+      const dateChanged = payload.values.occurred_at !== transaction.occurred_at;
+      const noteChanged = payload.values.note !== (transaction.note ?? "");
+
+      if (dateChanged || noteChanged) {
+        setPendingPayload(payload);
+        return false;
+      }
     }
     onSubmit(payload);
     return true;
@@ -270,18 +273,49 @@ export function TransactionFormSheet({
 
   const handleAllFollowing = () => {
     if (!pendingPayload || !transaction?.schedule_id) return;
+    const dateChanged = pendingPayload.values.occurred_at !== transaction.occurred_at;
+    const noteChanged = pendingPayload.values.note !== (transaction.note ?? "");
+
     const payload: TransactionFormSubmitPayload = {
       ...pendingPayload,
-      rescheduleFrom: {
-        scheduleId: transaction.schedule_id,
-        originalDate: transaction.occurred_at,
-        newDate: pendingPayload.values.occurred_at,
-      },
+      rescheduleFrom: dateChanged
+        ? {
+            scheduleId: transaction.schedule_id,
+            originalDate: transaction.occurred_at,
+            newDate: pendingPayload.values.occurred_at,
+          }
+        : undefined,
+      updateScheduleNote: noteChanged
+        ? {
+            scheduleId: transaction.schedule_id,
+            note: pendingPayload.values.note,
+            originalDate: transaction.occurred_at,
+          }
+        : undefined,
     };
     setPendingPayload(null);
     onSubmit(payload);
     onOpenChange(false);
   };
+
+  const dateChanged = pendingPayload
+    ? pendingPayload.values.occurred_at !== transaction?.occurred_at
+    : false;
+  const noteChanged = pendingPayload
+    ? pendingPayload.values.note !== (transaction?.note ?? "")
+    : false;
+
+  const t = useTranslations("transactions.form");
+  const overlayTitle = dateChanged && noteChanged
+    ? t("reschedule.updateBoth.title")
+    : noteChanged
+      ? t("reschedule.updateNote.title")
+      : t("reschedule.title");
+  const overlayDescription = dateChanged && noteChanged
+    ? t("reschedule.updateBoth.description")
+    : noteChanged
+      ? t("reschedule.updateNote.description")
+      : t("reschedule.description");
 
   return (
     <Sheet open={open} onOpenChange={(next) => { setPendingPayload(null); onOpenChange(next); }}>
@@ -313,6 +347,8 @@ export function TransactionFormSheet({
 
         {pendingPayload && (
           <RescheduleConfirmOverlay
+            title={overlayTitle}
+            description={overlayDescription}
             onOnlyThis={handleOnlyThis}
             onAllFollowing={handleAllFollowing}
             onCancel={() => setPendingPayload(null)}

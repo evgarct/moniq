@@ -46,7 +46,7 @@ export type RescheduleFrom = {
 export type TransactionFormSubmitPayload =
   | { kind: "entry"; values: TransactionEntryInput }
   | { kind: "entry-batch"; values: TransactionEntryBatchInput }
-  | { kind: "transaction"; values: TransactionInput; rescheduleFrom?: RescheduleFrom }
+  | { kind: "transaction"; values: TransactionInput; rescheduleFrom?: RescheduleFrom; updateScheduleNote?: { scheduleId: string; note: string | null; originalDate: string } }
   | { kind: "schedule"; values: TransactionScheduleInput };
 
 export type TransactionFormMode = "add" | "edit-transaction" | "edit-schedule";

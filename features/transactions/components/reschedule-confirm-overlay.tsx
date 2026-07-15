@@ -5,10 +5,14 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 
 export function RescheduleConfirmOverlay({
+  title,
+  description,
   onOnlyThis,
   onAllFollowing,
   onCancel,
 }: {
+  title?: string;
+  description?: string;
   onOnlyThis: () => void;
   onAllFollowing: () => void;
   onCancel: () => void;
@@ -18,8 +22,8 @@ export function RescheduleConfirmOverlay({
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-background/80 backdrop-blur-sm">
       <div className="mx-4 mb-6 w-full max-w-sm rounded-[var(--radius-floating)] border border-border/40 bg-background p-5 shadow-lg">
-        <p className="mb-1 text-[15px] font-medium text-foreground">{t("reschedule.title")}</p>
-        <p className="mb-4 text-sm text-muted-foreground">{t("reschedule.description")}</p>
+        <p className="mb-1 text-[15px] font-medium text-foreground">{title || t("reschedule.title")}</p>
+        <p className="mb-4 text-sm text-muted-foreground">{description || t("reschedule.description")}</p>
         <div className="flex flex-col gap-2">
           <Button
             type="button"

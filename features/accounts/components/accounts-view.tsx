@@ -458,7 +458,14 @@ export function AccountsView({
           if (payload.kind === "entry" || payload.kind === "entry-batch") {
             transactionActions.createEntry(payload.values, { onError });
           } else if (payload.kind === "transaction" && editingTransaction) {
-            transactionActions.updateTransactionOptimistic(editingTransaction.id, payload.values, { onError });
+            if (payload.updateScheduleNote) {
+              transactionActions.updateScheduleNoteFromDate(
+                payload.updateScheduleNote.scheduleId,
+                payload.updateScheduleNote.originalDate,
+                payload.updateScheduleNote.note,
+                { onError },
+              );
+            }
             if (payload.rescheduleFrom) {
               transactionActions.rescheduleFromDate(
                 payload.rescheduleFrom.scheduleId,
@@ -466,6 +473,9 @@ export function AccountsView({
                 payload.rescheduleFrom.newDate,
                 { onError },
               );
+            }
+            if (!payload.updateScheduleNote) {
+              transactionActions.updateTransactionOptimistic(editingTransaction.id, payload.values, { onError });
             }
           }
           setActionError(null);

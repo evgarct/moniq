@@ -175,7 +175,14 @@ export function CalendarView({ snapshot }: { snapshot: FinanceSnapshot }) {
           const onError = (error: unknown) =>
             setActionError(error instanceof Error ? error.message : transactionViewT("saveError"));
           if (payload.kind === "transaction" && editingTransaction) {
-            transactionActions.updateTransaction(editingTransaction.id, payload.values, { onError });
+            if (payload.updateScheduleNote) {
+              transactionActions.updateScheduleNoteFromDate(
+                payload.updateScheduleNote.scheduleId,
+                payload.updateScheduleNote.originalDate,
+                payload.updateScheduleNote.note,
+                { onError },
+              );
+            }
             if (payload.rescheduleFrom) {
               transactionActions.rescheduleFromDate(
                 payload.rescheduleFrom.scheduleId,
@@ -183,6 +190,9 @@ export function CalendarView({ snapshot }: { snapshot: FinanceSnapshot }) {
                 payload.rescheduleFrom.newDate,
                 { onError },
               );
+            }
+            if (!payload.updateScheduleNote) {
+              transactionActions.updateTransaction(editingTransaction.id, payload.values, { onError });
             }
           } else if (payload.kind === "schedule" && editingSchedule) {
             transactionActions.updateSchedule(editingSchedule.id, payload.values, { onError });

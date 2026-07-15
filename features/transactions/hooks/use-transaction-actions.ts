@@ -21,5 +21,6 @@ export function useTransactionActions() {
     deleteScheduleOptimistic: (scheduleId: string, onError?: (error: unknown) => void) =>
       actions.deleteSchedule(scheduleId, { onError }),
     rescheduleFromDate: actions.rescheduleSchedule,
+    updateScheduleNoteFromDate: actions.updateScheduleNoteFromDate,
   };
 }
