@@ -20,6 +20,7 @@ import {
   setTransactionScheduleStateRequest,
   skipTransactionOccurrenceRequest,
   updateCategoryRequest,
+  updateScheduleNoteFromDateRequest,
   updateTransactionRequest,
   updateTransactionScheduleRequest,
   updateUserPreferencesRequest,
@@ -45,6 +46,7 @@ import {
   setTransactionStatus,
   updateDefaultCurrency,
   updateSchedule,
+  updateScheduleNoteFromDate,
   updateTransaction,
 } from "@/features/finance/lib/optimistic-state";
 import {
@@ -365,6 +367,31 @@ export function useFinanceActions() {
         },
         options,
         (resolveId) => ({ type: "schedule.reschedule", targetId: resolveRequiredId(resolveId, scheduleId), baseVersion: entityVersion("schedule", scheduleId), payload: { fromOccurrenceDate, newOccurrenceDate } }),
+      );
+    },
+    updateScheduleNoteFromDate(
+      scheduleId: string,
+      fromOccurrenceDate: string,
+      newNote: string | null,
+      options?: ActionOptions,
+    ) {
+      return execute(
+        {
+          apply: (snapshot, resolveId) =>
+            updateScheduleNoteFromDate(
+              snapshot,
+              resolveRequiredId(resolveId, scheduleId),
+              fromOccurrenceDate,
+              newNote,
+            ),
+          request: (resolveId) =>
+            updateScheduleNoteFromDateRequest(
+              resolveRequiredId(resolveId, scheduleId),
+              newNote,
+            ),
+        },
+        options,
+        (resolveId) => ({ type: "schedule.updateNote", targetId: resolveRequiredId(resolveId, scheduleId), baseVersion: entityVersion("schedule", scheduleId), payload: { note: newNote } }),
       );
     },
     saveWallet(

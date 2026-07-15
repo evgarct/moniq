@@ -8,6 +8,7 @@ import {
   rescheduleScheduleFromDate,
   setTransactionScheduleState,
   updateTransactionSchedule,
+  updateTransactionScheduleNote,
 } from "@/features/finance/server/repository";
 import { requireMutationEntitlementForRequest } from "@/lib/billing/server";
 import { withApiPerformance, withMutationPerformance } from "@/lib/performance/api";
@@ -22,7 +23,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ sc
   return withApiPerformance(request, "transaction_schedule_update", async () => {
     try {
       await requireMutationEntitlementForRequest(request);
-      const payload = (await request.json()) as { mode?: "update" | "state" | "reschedule"; values?: unknown; state?: unknown; fromOccurrenceDate?: unknown; newOccurrenceDate?: unknown };
+      const payload = (await request.json()) as { mode?: "update" | "state" | "reschedule" | "update-note"; values?: unknown; state?: unknown; fromOccurrenceDate?: unknown; newOccurrenceDate?: unknown; note?: unknown };
       const { scheduleId } = await params;
 
       if (payload.mode === "state") {
@@ -35,6 +36,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ sc
         });
         await withMutationPerformance(request, "reschedule_transaction_schedule", () =>
           rescheduleScheduleFromDate(scheduleId, reschedulePayload.fromOccurrenceDate, reschedulePayload.newOccurrenceDate),
+        );
+      } else if (payload.mode === "update-note") {
+        const note = typeof payload.note === "string" ? payload.note : null;
+        await withMutationPerformance(request, "update_transaction_schedule_note", () =>
+          updateTransactionScheduleNote(scheduleId, note),
         );
       } else {
         const schedulePayload = transactionScheduleInputSchema.parse(payload.values);

@@ -33,6 +33,7 @@ import {
   updateCategory,
   updateTransaction,
   updateTransactionSchedule,
+  updateTransactionScheduleNote,
   updateUserPreferences,
   updateWallet,
   updateWalletAllocation,
@@ -45,7 +46,7 @@ const commandTypeSchema = z.enum([
   "wallet.create", "wallet.update", "wallet.adjust", "wallet.delete",
   "category.create", "category.update", "category.delete",
   "transaction.create", "transaction.update", "transaction.delete", "transaction.markPaid", "transaction.skip",
-  "schedule.update", "schedule.state", "schedule.reschedule", "schedule.delete",
+  "schedule.update", "schedule.updateNote", "schedule.state", "schedule.reschedule", "schedule.delete",
   "allocation.create", "allocation.update", "allocation.delete",
   "preferences.update",
 ]);
@@ -104,6 +105,10 @@ async function executeCommand(command: SyncCommand) {
     case "transaction.markPaid": return markTransactionPaid(command.targetId!);
     case "transaction.skip": return skipTransactionOccurrence(command.targetId!);
     case "schedule.update": return updateTransactionSchedule(command.targetId!, transactionScheduleInputSchema.parse(payload));
+    case "schedule.updateNote": {
+      const note = typeof payload.note === "string" ? payload.note : null;
+      return updateTransactionScheduleNote(command.targetId!, note);
+    }
     case "schedule.state": return setTransactionScheduleState(command.targetId!, z.enum(["active", "paused"]).parse(payload.state));
     case "schedule.reschedule": return rescheduleScheduleFromDate(command.targetId!, z.string().parse(payload.fromOccurrenceDate), z.string().parse(payload.newOccurrenceDate));
     case "schedule.delete": return deleteTransactionSchedule(command.targetId!);

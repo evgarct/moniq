@@ -911,7 +911,15 @@
         "title": "Change recurring date",
         "description": "Do you want to move only this occurrence, or shift this and all following occurrences?",
         "onlyThis": "Only this occurrence",
-        "allFollowing": "This and all following"
+        "allFollowing": "This and all following",
+        "updateNote": {
+          "title": "Change recurring note",
+          "description": "Do you want to change the note for only this occurrence, or this and all following occurrences?"
+        },
+        "updateBoth": {
+          "title": "Change recurring transaction",
+          "description": "Do you want to apply these changes to only this occurrence, or this and all following occurrences?"
+        }
       },
       "submit": {
         "add": "Save transaction",

@@ -615,3 +615,30 @@ export function updateDefaultCurrency(snapshot: FinanceSnapshot, defaultCurrency
     },
   };
 }
+
+export function updateScheduleNoteFromDate(
+  snapshot: FinanceSnapshot,
+  scheduleId: string,
+  fromOccurrenceDate: string,
+  newNote: string | null,
+) {
+  return {
+    ...snapshot,
+    schedules: snapshot.schedules.map((schedule) =>
+      schedule.id === scheduleId
+        ? { ...schedule, note: newNote }
+        : schedule,
+    ),
+    transactions: snapshot.transactions.map((transaction) =>
+      transaction.schedule_id === scheduleId &&
+      transaction.schedule_occurrence_date &&
+      transaction.schedule_occurrence_date >= fromOccurrenceDate &&
+      transaction.status === "planned"
+        ? {
+            ...transaction,
+            note: newNote,
+          }
+        : transaction,
+    ),
+  };
+}
