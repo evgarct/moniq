@@ -111,10 +111,33 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
   const [status, setStatus] = useState<SyncStatus>(defaultStatus);
   const [userId, setUserId] = useState<string | null>(null);
   const [syncEnabled, setSyncEnabled] = useState(enabled);
+  const [authUserId, setAuthUserId] = useState<string | null>(null);
   const persistTimer = useRef<number | null>(null);
 
   useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setAuthUserId(session?.user.id ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setAuthUserId(session?.user.id ?? null);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
     if (!enabled) return;
+    if (!authUserId) {
+      setDatabase(null);
+      setUserId(null);
+      setHydrated(true);
+      queryClient.removeQueries({ queryKey: financeSnapshotQueryKey });
+      return;
+    }
     let cancelled = false;
     let disposeChanges: (() => void) | undefined;
     let disposeStatus: (() => void) | undefined;
@@ -125,16 +148,7 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
       const startedAt = performance.now();
       try {
         const supabase = createClient();
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user.id) {
-          if (!cancelled) {
-            setUserId(null);
-            setDatabase(null);
-            setHydrated(true);
-          }
-          return;
-        }
-        const userId = session.user.id;
+        const userId = authUserId!;
         if (!cancelled) setUserId(userId);
 
         const { PowerSyncDatabase } = await import("@powersync/web");
@@ -352,7 +366,7 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
       if (activeDatabase === null) activeUserId = null;
       if (localDatabase) void localDatabase.close();
     };
-  }, [enabled, queryClient]);
+  }, [enabled, queryClient, authUserId]);
 
   const discardConflict = useCallback(async (id: string) => {
     if (!database) return;
