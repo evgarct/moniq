@@ -32,6 +32,7 @@ type LocalFirstContextValue = {
   hydrated: boolean;
   retryConflict: (id: string) => Promise<void>;
   status: SyncStatus;
+  userId?: string | null;
 };
 
 const defaultStatus: SyncStatus = {
@@ -108,6 +109,8 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
   const [conflicts, setConflicts] = useState<LocalSyncConflict[]>([]);
   const [hydrated, setHydrated] = useState(!enabled);
   const [status, setStatus] = useState<SyncStatus>(defaultStatus);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [syncEnabled, setSyncEnabled] = useState(enabled);
   const persistTimer = useRef<number | null>(null);
 
   useEffect(() => {
@@ -124,17 +127,15 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
         const supabase = createClient();
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user.id) {
-          if (!cancelled) setHydrated(true);
+          if (!cancelled) {
+            setUserId(null);
+            setDatabase(null);
+            setHydrated(true);
+          }
           return;
         }
         const userId = session.user.id;
-        const bootstrapResponse = await fetch("/api/sync/bootstrap", { credentials: "include", cache: "no-store" });
-        if (!bootstrapResponse.ok) throw new Error(`Sync bootstrap failed with ${bootstrapResponse.status}.`);
-        const bootstrap = await bootstrapResponse.json() as SyncBootstrap;
-        if (!bootstrap.enabled) {
-          setHydrated(true);
-          return;
-        }
+        if (!cancelled) setUserId(userId);
 
         const { PowerSyncDatabase } = await import("@powersync/web");
         localDatabase = new PowerSyncDatabase({
@@ -150,29 +151,22 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
         activeUserId = userId;
         setDatabase(localDatabase);
 
-        const online = navigator.onLine;
-        if (online) {
-          await markOnlineAuthVerified(localDatabase, userId);
-          void fetch("/api/finance/schedules/reconcile", {
-            method: "POST",
-            credentials: "include",
-          });
-        } else if (!(await hasValidOfflineAuthLease(localDatabase, userId))) {
-          setStatus({ ...defaultStatus, state: "expired" });
-          setHydrated(true);
-          return;
+        const synced = await readSyncedFinanceSnapshot(localDatabase);
+        const cached = await readCachedFinanceSnapshot(localDatabase, userId);
+        const initialSnapshot = synced ?? cached;
+        if (initialSnapshot) {
+          queryClient.setQueryData(financeSnapshotQueryKey, initialSnapshot);
         }
 
-        const cached = await readCachedFinanceSnapshot(localDatabase, userId);
-        if (cached) queryClient.setQueryData(financeSnapshotQueryKey, cached);
-        setHydrated(true);
-        setStatus({ ...statusFromDatabase(localDatabase), state: online ? "cached" : "offline" });
-        reportClientPerformanceEvent({
-          event_type: "navigation",
-          name: "first_local_data",
-          duration_ms: Math.round((performance.now() - startedAt) * 100) / 100,
-          metadata: { cache_hit: Boolean(cached) },
-        });
+        if (!cancelled) {
+          setHydrated(true);
+          reportClientPerformanceEvent({
+            event_type: "navigation",
+            name: "first_local_data",
+            duration_ms: Math.round((performance.now() - startedAt) * 100) / 100,
+            metadata: { cache_hit: Boolean(initialSnapshot) },
+          });
+        }
 
         unsubscribeQuery = queryClient.getQueryCache().subscribe((event) => {
           if (event.query.queryKey[0] !== financeSnapshotQueryKey[0]) return;
@@ -194,6 +188,38 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
           },
           { tables: [...POWER_SYNCED_TABLES], throttleMs: 100 },
         );
+
+        const bootstrapResponse = await fetch("/api/sync/bootstrap", { credentials: "include", cache: "no-store" });
+        if (!bootstrapResponse.ok) throw new Error(`Sync bootstrap failed with ${bootstrapResponse.status}.`);
+        const bootstrap = await bootstrapResponse.json() as SyncBootstrap;
+        if (!bootstrap.enabled) {
+          if (!cancelled) {
+            setSyncEnabled(false);
+            setDatabase(null);
+            activeDatabase = null;
+            activeUserId = null;
+          }
+          await localDatabase.disconnectAndClear();
+          return;
+        }
+
+        const online = navigator.onLine;
+        if (online) {
+          await markOnlineAuthVerified(localDatabase, userId);
+          void fetch("/api/finance/schedules/reconcile", {
+            method: "POST",
+            credentials: "include",
+          });
+        } else if (!(await hasValidOfflineAuthLease(localDatabase, userId))) {
+          if (!cancelled) {
+            setStatus({ ...defaultStatus, state: "expired" });
+          }
+          return;
+        }
+
+        if (!cancelled) {
+          setStatus({ ...statusFromDatabase(localDatabase), state: online ? "cached" : "offline" });
+        }
 
         async function refreshQueueStatus() {
           if (!localDatabase) return;
@@ -356,8 +382,8 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
   }, [database]);
 
   const value = useMemo(
-    () => ({ database, conflicts, discardConflict, enabled, hydrated, retryConflict, status }),
-    [database, conflicts, discardConflict, enabled, hydrated, retryConflict, status],
+    () => ({ database, conflicts, discardConflict, enabled: syncEnabled, hydrated, retryConflict, status, userId }),
+    [database, conflicts, discardConflict, syncEnabled, hydrated, retryConflict, status, userId],
   );
   return <LocalFirstContext.Provider value={value}>{children}</LocalFirstContext.Provider>;
 }
