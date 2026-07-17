@@ -186,6 +186,7 @@ Right: category shown as plain muted text below the transaction title.
 - For any change, feature extension, or design update in this repo, agents must document all details in the corresponding Markdown files under `docs/` and capture/refresh visual mockup screenshots under `.codex-artifacts/` or the artifacts directory. No code changes should be published without aligning documentation and visual assets first.
 - In database triggers, avoid running balance-based allocation limits or validations on transient/intermediate tables updates. Use session-local config flags (e.g. `current_setting('moniq.disallow_allocation_enforcement', true)`) to skip enforcement during transient updates and run them once at the end of the transaction.
 - For text inputs mapping to numeric fields in React Hook Form + Zod, use strings in form state and preprocess them in Zod to prevent characters like decimal points from being aggressively formatted/lost during active typing.
+- In local-first mode, avoid fetching from server endpoints like `/api/finance/snapshot` in query functions or letting bootstrap fetches block local database initialization. Load cached or synced database snapshots immediately on startup and defer sync connection tasks to the background.
 
 <!-- ASTRYX:START -->
 Astryx v0.1.2 · 148 components

@@ -126,7 +126,16 @@ export function ProjectedBalanceChart({
   });
   const xTicks = referencePoints.filter((_, index) => {
     const stride = Math.max(1, Math.floor(referencePoints.length / 4));
-    return index === 0 || index === referencePoints.length - 1 || index % stride === 0;
+    const isLast = index === referencePoints.length - 1;
+    const isFirst = index === 0;
+    const isStride = index % stride === 0;
+
+    if (isFirst || isLast) return true;
+    if (isStride) {
+      const distanceToLast = referencePoints.length - 1 - index;
+      return distanceToLast >= stride * 0.5;
+    }
+    return false;
   });
 
   function chooseNearestDate(clientX: number) {
