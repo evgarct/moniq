@@ -115,6 +115,9 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
   const persistTimer = useRef<number | null>(null);
 
   useEffect(() => {
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      return;
+    }
     const supabase = createClient();
     supabase.auth.getSession().then(({ data: { session } }) => {
       setAuthUserId(session?.user.id ?? null);
