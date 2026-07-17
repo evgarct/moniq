@@ -187,6 +187,7 @@ Right: category shown as plain muted text below the transaction title.
 - In database triggers, avoid running balance-based allocation limits or validations on transient/intermediate tables updates. Use session-local config flags (e.g. `current_setting('moniq.disallow_allocation_enforcement', true)`) to skip enforcement during transient updates and run them once at the end of the transaction.
 - For text inputs mapping to numeric fields in React Hook Form + Zod, use strings in form state and preprocess them in Zod to prevent characters like decimal points from being aggressively formatted/lost during active typing.
 - In local-first mode, avoid fetching from server endpoints like `/api/finance/snapshot` in query functions or letting bootstrap fetches block local database initialization. Load cached or synced database snapshots immediately on startup and defer sync connection tasks to the background.
+- In this repo, when fixing review comments on a pull request, always resolve the matching review threads on GitHub via the API or GraphQL immediately so the user can easily see they are resolved.
 
 <!-- ASTRYX:START -->
 Astryx v0.1.2 · 148 components
