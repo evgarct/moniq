@@ -22,6 +22,7 @@ private struct RootView: View {
     @State private var userID: UUID?
     @State private var isCheckingSession = true
     @State private var isLocked = false
+    @State private var foregroundRefreshTask: Task<Void, Never>?
 
     var body: some View {
         Group {
@@ -50,7 +51,8 @@ private struct RootView: View {
             if phase == .active, userID != nil, runtime.biometricLock.isEnabled {
                 Task { isLocked = !(await runtime.biometricLock.unlock()) }
             } else if phase == .active, let userID {
-                Task { await runtime.refreshBalance(userID: userID) }
+                foregroundRefreshTask?.cancel()
+                foregroundRefreshTask = Task { await runtime.refreshBalance(userID: userID) }
             } else if phase == .background, userID != nil, runtime.biometricLock.isEnabled {
                 isLocked = true
             }
@@ -72,6 +74,8 @@ private struct RootView: View {
     private func signOut() async {
         let signedOutUserID = userID
         userID = nil
+        foregroundRefreshTask?.cancel()
+        foregroundRefreshTask = nil
         try? await runtime.authClient.signOut()
         if let signedOutUserID { try? runtime.walletRepository.clear(userID: signedOutUserID) }
         runtime.biometricLock.reset()

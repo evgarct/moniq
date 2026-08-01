@@ -228,9 +228,11 @@ struct RemoteSchedule: Decodable, Sendable {
 
     func projectedTransactions(excluding materialized: Set<String>) -> [RemoteTransaction] {
         let calendar = Calendar(identifier: .iso8601)
-        let lower = calendar.startOfDay(for: .now)
+        let today = calendar.startOfDay(for: .now)
+        let lower = calendar.dateInterval(of: .month, for: today)?.start ?? today
         guard var occurrence = LocalDate.date(from: startDate),
-              let upper = calendar.date(byAdding: .day, value: 30, to: lower) else { return [] }
+              let upper = calendar.date(byAdding: .day, value: 30, to: today) else { return [] }
+        let anchor = occurrence
         let end = untilDate.flatMap(LocalDate.date(from:)) ?? upper
         var result: [RemoteTransaction] = []
         var safetyCounter = 0
@@ -247,21 +249,34 @@ struct RemoteSchedule: Decodable, Sendable {
                     scheduleID: id, scheduleOccurrenceDate: dateString
                 ))
             }
-            occurrence = next(after: occurrence, calendar: calendar) ?? .distantFuture
+            occurrence = next(after: occurrence, anchor: anchor, calendar: calendar) ?? .distantFuture
             safetyCounter += 1
         }
         return result
     }
 
-    private func next(after date: Date, calendar: Calendar) -> Date? {
+    private func next(after date: Date, anchor: Date, calendar: Calendar) -> Date? {
         switch frequency {
         case "daily": calendar.date(byAdding: .day, value: 1, to: date)
         case "weekly": calendar.date(byAdding: .weekOfYear, value: max(intervalWeeks, 1), to: date)
-        case "monthly": calendar.date(byAdding: .month, value: 1, to: date)
-        case "quarterly": calendar.date(byAdding: .month, value: 3, to: date)
-        case "yearly": calendar.date(byAdding: .year, value: 1, to: date)
+        case "monthly": anchoredDate(after: date, months: 1, anchor: anchor, calendar: calendar)
+        case "quarterly": anchoredDate(after: date, months: 3, anchor: anchor, calendar: calendar)
+        case "yearly": anchoredDate(after: date, months: 12, anchor: anchor, calendar: calendar)
         default: nil
         }
+    }
+
+    func anchoredDate(after date: Date, months: Int, anchor: Date, calendar: Calendar) -> Date? {
+        guard let target = calendar.date(byAdding: .month, value: months, to: date) else { return nil }
+        let targetParts = calendar.dateComponents([.year, .month], from: target)
+        let anchorDay = calendar.component(.day, from: anchor)
+        guard let targetMonth = calendar.date(from: targetParts),
+              let days = calendar.range(of: .day, in: .month, for: targetMonth) else { return nil }
+        return calendar.date(from: DateComponents(
+            year: targetParts.year,
+            month: targetParts.month,
+            day: min(anchorDay, days.count)
+        ))
     }
 }
 

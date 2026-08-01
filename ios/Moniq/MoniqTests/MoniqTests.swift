@@ -113,6 +113,23 @@ struct MoniqTests {
         #expect(projected.allSatisfy { $0.scheduleID == scheduleID })
     }
 
+    @Test func monthlyScheduleRestoresOriginalDayAfterShortMonth() throws {
+        let calendar = Calendar(identifier: .iso8601)
+        let schedule = RemoteSchedule(
+            id: UUID(), title: "Month end", note: nil,
+            startDate: "2026-01-31", frequency: "monthly", intervalWeeks: 1,
+            untilDate: "2026-03-31", kind: .expense, amount: 1,
+            destinationAmount: nil, categoryID: nil, sourceAccountID: UUID(), destinationAccountID: nil
+        )
+
+        let anchor = try #require(calendar.date(from: DateComponents(year: 2026, month: 1, day: 31)))
+        let february = try #require(schedule.anchoredDate(after: anchor, months: 1, anchor: anchor, calendar: calendar))
+        let march = try #require(schedule.anchoredDate(after: february, months: 1, anchor: anchor, calendar: calendar))
+
+        #expect(localDate(february) == "2026-02-28")
+        #expect(localDate(march) == "2026-03-31")
+    }
+
     private func localDate(_ date: Date) -> String {
         let parts = Calendar(identifier: .iso8601).dateComponents([.year, .month, .day], from: date)
         return String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
