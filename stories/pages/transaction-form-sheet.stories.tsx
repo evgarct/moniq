@@ -393,6 +393,48 @@ export const IncomeEdit: Story = {
   ),
 };
 
+const savingsGoal = {
+  id: "story-goal",
+  user_id: savingsAccount.user_id,
+  wallet_id: savingsAccount.id,
+  name: "Emergency fund",
+  kind: "goal_targeted" as const,
+  amount: 100,
+  target_amount: 1000,
+  created_at: "2026-01-01T00:00:00Z",
+  updated_at: "2026-01-01T00:00:00Z",
+};
+
+const savingsGoalTransferTransaction: Transaction = {
+  ...(transferTransaction as Transaction),
+  id: "tx-story-savings-goal-transfer",
+  title: "Emergency fund top-up",
+  destination_account_id: savingsAccount.id,
+  destination_account: savingsAccount,
+  allocation_id: savingsGoal.id,
+  allocation: savingsGoal,
+  category_id: investmentCategory.id,
+  category: investmentCategory,
+};
+
+export const SavingsGoalTransfer: Story = {
+  render: () => (
+    <StorySurface>
+      <TransactionFormSheet
+        open
+        mode="edit-transaction"
+        transaction={savingsGoalTransferTransaction}
+        accounts={snapshot.accounts}
+        categories={snapshot.categories}
+        transactions={snapshot.transactions}
+        allocations={[savingsGoal]}
+        onOpenChange={() => {}}
+        onSubmit={async () => {}}
+      />
+    </StorySurface>
+  ),
+};
+
 export const TransferEdit: Story = {
   render: () => (
     <StorySurface>

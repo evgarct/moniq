@@ -286,6 +286,64 @@ describe("buildCategorySpendingReport", () => {
     ]);
   });
 
+  it("counts a categorized goal-transfer toward its envelope but not toward cashflow totals", () => {
+    const report = buildCategorySpendingReport({
+      categories,
+      transactions: [
+        tx({
+          id: "salary-czk",
+          title: "Salary",
+          kind: "income",
+          amount: 1000,
+          occurred_at: "2026-04-05",
+          category_id: "salary",
+          destination_account_id: "czk-cash",
+        }),
+        tx({
+          id: "groceries-czk",
+          title: "Groceries",
+          kind: "expense",
+          amount: 250,
+          occurred_at: "2026-04-06",
+          category_id: "groceries",
+          source_account_id: "czk-cash",
+        }),
+        tx({
+          id: "goal-transfer-categorized",
+          title: "Rainy day fund",
+          kind: "transfer",
+          amount: 300,
+          occurred_at: "2026-04-07",
+          category_id: "investments",
+          source_account_id: "czk-cash",
+          destination_account_id: "czk-cash",
+        }),
+        tx({
+          id: "goal-transfer-uncategorized",
+          title: "Plain goal transfer",
+          kind: "transfer",
+          amount: 400,
+          occurred_at: "2026-04-08",
+          source_account_id: "czk-cash",
+          destination_account_id: "czk-cash",
+        }),
+      ],
+      period: { month: "2026-04" },
+    });
+
+    // cashflow totals ignore transfers entirely, categorized or not
+    expect(report.currencies).toEqual([
+      { currency: "CZK", income_total: 1000, expense_total: 250, net: 750 },
+    ]);
+
+    // but the categorized transfer's amount is bucketed into its envelope
+    const wealth = report.envelopes.find((item) => item.category_id === "wealth");
+    expect(wealth?.totals).toEqual([
+      { currency: "CZK", amount: 300, percent_of_income: 30, percent_of_total_expenses: 120 },
+    ]);
+    expect(wealth?.transactions.map((item) => item.id)).toEqual(["goal-transfer-categorized"]);
+  });
+
   it("returns uncategorized paid income and expenses", () => {
     const report = buildCategorySpendingReport({
       categories,

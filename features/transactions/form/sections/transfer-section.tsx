@@ -3,6 +3,7 @@
 import { useWatch, Controller, useFormContext } from "react-hook-form";
 import { useTranslations } from "next-intl";
 
+import { CategoryCascadePicker } from "@/components/category-cascade-picker";
 import { FieldMessage, FormPickerRow, FormRow, FormSection } from "@/components/form-primitives";
 import { MoneyInput } from "@/components/money-input";
 
@@ -14,10 +15,11 @@ import type { TransactionFormInputs } from "../types";
 
 export function TransferSection() {
   const t = useTranslations("transactions.form");
-  const { accounts, allocations, sourceCurrencySymbol, destinationCurrencySymbol } = useTransactionFormContext();
+  const { accounts, allocations, categoryOptions, sourceCurrencySymbol, destinationCurrencySymbol } = useTransactionFormContext();
   const { control, formState: { errors } } = useFormContext<TransactionFormInputs>();
 
   const destinationAccountId = useWatch({ control, name: "destination_account_id" });
+  const allocationId = useWatch({ control, name: "allocation_id" });
   const destinationAllocations = getGoalAllocationsForSource(accounts, allocations, destinationAccountId);
 
   return (
@@ -33,6 +35,28 @@ export function TransferSection() {
       {destinationAllocations.length > 0 && (
         <FormPickerRow>
           <GoalSelect allocations={destinationAllocations} />
+        </FormPickerRow>
+      )}
+
+      {allocationId && (
+        <FormPickerRow>
+          <div className="flex flex-col gap-1">
+            <Controller
+              control={control}
+              name="category_id"
+              render={({ field }) => (
+                <CategoryCascadePicker
+                  categories={categoryOptions}
+                  value={field.value}
+                  onSelect={field.onChange}
+                  placeholder={t("placeholders.category")}
+                  triggerClassName="h-auto w-full justify-start border-0 bg-transparent px-0 py-0 text-sm shadow-none hover:bg-transparent"
+                  contentClassName="min-w-[16rem]"
+                />
+              )}
+            />
+            <FieldMessage error={errors.category_id} />
+          </div>
         </FormPickerRow>
       )}
 

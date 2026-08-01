@@ -155,7 +155,7 @@ Each kind defines which accounts are involved and what data is required:
 |---|---|---|---|---|
 | `expense` | ✅ required | — | ✅ expense | |
 | `income` | — | ✅ required | ✅ income | |
-| `transfer` | ✅ required | ✅ required | — | may have `destination_amount` for FX |
+| `transfer` | ✅ required | ✅ required | optional, expense-type only | category allowed only when `allocation_id` is set (a transfer into a savings goal); may have `destination_amount` for FX |
 | `save_to_goal` | ✅ required | ✅ required | — | destination is savings wallet |
 | `spend_from_goal` | ✅ required | ✅ required | — | source is savings wallet |
 | `debt_payment` | ✅ required | ✅ debt or credit card account | — | has `principal_amount`, `interest_amount` |

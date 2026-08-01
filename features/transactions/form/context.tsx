@@ -216,6 +216,7 @@ export function TransactionFormProvider({
             sourceRequired: t("validation.sourceRequired"),
             destinationRequired: t("validation.destinationRequired"),
             categoryRequired: t("validation.categoryRequired"),
+            transferNoCategory: t("validation.transferNoCategory"),
             differentDestination: t("validation.differentDestination"),
             debtBreakdownRequired: t("validation.debtBreakdownRequired"),
             debtBreakdownMismatch: t("validation.debtBreakdownMismatch"),
@@ -271,6 +272,7 @@ export function TransactionFormProvider({
       const dest = accounts.find((account) => account.id === destinationAccountId);
       if (dest?.type !== "saving" || allocation?.wallet_id !== dest.id) {
         form.setValue("allocation_id", null, { shouldDirty: true, shouldValidate: true });
+        form.setValue("category_id", null, { shouldDirty: true, shouldValidate: true });
       }
     } else {
       const source = accounts.find((account) => account.id === sourceAccountId);
@@ -279,6 +281,13 @@ export function TransactionFormProvider({
       }
     }
   }, [accounts, allocationId, allocations, form, sourceAccountId, destinationAccountId, kind]);
+
+  // clear a stray category when a transfer's goal allocation is cleared directly
+  useEffect(() => {
+    if (kind === "transfer" && !allocationId && categoryId) {
+      form.setValue("category_id", null, { shouldDirty: true, shouldValidate: true });
+    }
+  }, [allocationId, categoryId, form, kind]);
 
   useEffect(() => {
     if (kind === "expense" && !isRecurring && isInvestmentCategory(categories, categoryId)) return;

@@ -89,6 +89,7 @@ Right: category shown as plain muted text below the transaction title.
 - Local-first finance changes must preserve the online snapshot path as a rollback until the staged rollout is complete, namespace local data by verified user ID, and clear the local database on logout.
 
 - This repo is developed directly on Windows/PowerShell. Do not use WSL for normal project commands unless the user explicitly asks for it.
+- When filtering or deleting Git branches via shell scripts, do not use naive substring matching for "main" as it can incorrectly match branches containing "main" (e.g., "domain"). Use exact matching or anchored regular expressions instead.
 - When starting a new feature in this repo, first update from the latest remote `main`, then create a fresh feature branch from that current base.
 - Before starting implementation, branching, or opening/updating a PR in this repo, run `git fetch origin` and verify the intended base against the freshly fetched `origin/main`. Do not rely on a pre-existing `main...origin/main` status line without fetching first.
 - Before producing an implementation plan for new feature work in this repo, run `git fetch origin` and inspect the relevant files on `origin/main`. If related functionality already exists on the fetched base, call that out in the plan and frame the work as reuse/extension instead of a greenfield build.
@@ -96,6 +97,7 @@ Right: category shown as plain muted text below the transaction title.
 - Before opening a PR in this repo, update the relevant documentation first, then prepare the PR.
 - After completing reviewable work in this repo, create a pull request unless the user explicitly says not to.
 - Do not send a final response for reviewable implementation work in this repo until the pull request exists, or until a concrete blocker to creating it has been reported.
+- After opening a pull request in this repo, the work is not done until: all CI checks are green, and there are no open/unresolved review comments (resolve them per the rule above as they're addressed). Only then merge the PR into `main`. Do not merge while checks are pending/red or comments remain open, and do not stop short of merging once both conditions are met unless the user says otherwise.
 - After finishing implementation work, always run the relevant local verification for this repo. This includes running a full TypeScript compile check (`npm exec -- tsc --noEmit`) and production build (`npm run build`) before pushing, as Vitest unit tests do not verify compile/import issues.
 - Run Storybook tests with `npm run test-storybook` directly; this Vitest-backed command does not support Jest's `--runInBand` option.
 - In Storybook stories or Vitest tests, avoid using static mock dates that will eventually expire relative to the real current date; use dynamic future dates or mock the system clock to prevent tests from failing as time passes.

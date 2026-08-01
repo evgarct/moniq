@@ -205,4 +205,89 @@ describe("validateTransactionRelationships", () => {
       ),
     ).toThrow("Transfer goal allocation must belong to the destination account.");
   });
+
+  it("allows a category on a transfer that carries a goal allocation", () => {
+    const allocations = [
+      {
+        id: "alloc-savings",
+        user_id: "user-1",
+        wallet_id: "savings",
+        name: "Savings Goal",
+        kind: "goal_open" as const,
+        amount: 100,
+        target_amount: null,
+        created_at: "",
+        updated_at: "",
+        sync_version: 1,
+      },
+    ];
+
+    expect(() =>
+      validateTransactionRelationships(
+        {
+          ...debtPayment("savings"),
+          title: "Categorized goal transfer",
+          kind: "transfer",
+          amount: 50,
+          category_id: "cat-expense",
+          source_account_id: "cash",
+          destination_account_id: "savings",
+          allocation_id: "alloc-savings",
+        },
+        { accounts, categories, allocations },
+      ),
+    ).not.toThrow();
+  });
+
+  it("rejects a non-expense category on a goal transfer", () => {
+    const allocations = [
+      {
+        id: "alloc-savings",
+        user_id: "user-1",
+        wallet_id: "savings",
+        name: "Savings Goal",
+        kind: "goal_open" as const,
+        amount: 100,
+        target_amount: null,
+        created_at: "",
+        updated_at: "",
+        sync_version: 1,
+      },
+    ];
+    const incomeCategory: Category = { ...categories[0], id: "cat-income", type: "income" };
+
+    expect(() =>
+      validateTransactionRelationships(
+        {
+          ...debtPayment("savings"),
+          title: "Categorized goal transfer",
+          kind: "transfer",
+          amount: 50,
+          category_id: "cat-income",
+          source_account_id: "cash",
+          destination_account_id: "savings",
+          allocation_id: "alloc-savings",
+        },
+        { accounts, categories: [...categories, incomeCategory], allocations },
+      ),
+    ).toThrow("Savings transfers can only use an expense category.");
+  });
+
+  it("rejects a category on a transfer without a goal allocation", () => {
+    expect(() =>
+      validateTransactionRelationships(
+        {
+          ...debtPayment("savings"),
+          title: "Plain transfer",
+          kind: "transfer",
+          amount: 50,
+          category_id: "cat-expense",
+          source_account_id: "cash",
+          destination_account_id: "savings",
+          allocation_id: null,
+        },
+        { accounts, categories },
+      ),
+    ).toThrow("Only transfers into a savings goal can use a category.");
+  });
 });
