@@ -30,3 +30,11 @@ Before changing implementation behavior, check this folder. When changing archit
 - Run `MoniqTests` and `MoniqUITests` before reporting completion (`.\scripts\remote-build.ps1 -Target test-ios` from Windows, or `make test-ios` directly on the Mac).
 - **Physical-device installs share Apple's free-account limit of 3 App IDs per 7-day rolling window with `second_brain`.** Before running `-Target device-install`/`-Target device-deliver`, check what's already installed (`ssh muse-mac "xcrun devicectl device info apps --device $env:ANQUI_DEVICE_ID"`) and confirm with the user before uninstalling anything — the freed slot doesn't necessarily reopen immediately, it's an account-level registration window, not a per-device install count.
 - **The Mac (`muse-mac`) and the test iPhone may be in concurrent use by other agents/sessions working on sibling projects (e.g. `second_brain`, `timeline`).** Before running device-level operations (`devicectl`, physical builds/installs), check with the user whether the shared Mac/device is free — don't assume exclusive access.
+
+## Shared-device fleet policy
+
+The test iPhone (`ANQUI_DEVICE_ID`) is shared across every app on this personal Apple Developer team, and a free account only gets 3 App IDs per rolling 7 days. The user's confirmed policy for this device:
+
+1. Exactly **three** product apps live on it at a time: `Anqui`, `Form`, `Moniq`. Don't install a fourth without the user freeing a slot first.
+2. Run UI tests on the **Simulator** (`-Target ui-test-ios` / `make ui-test-ios`), not the physical device.
+3. **Never run `second_brain`'s `MuseUITests-Runner` (or any UI-test target) against the physical iPhone.** Xcode reinstalls that runner app on the device every time UI tests run there, which silently evicts one of the three product-app slots. If a `second_brain`/Muse UI-test run on device is ever needed, warn the user first — it will likely have to displace `Moniq`, `Anqui`, or `Form`.
