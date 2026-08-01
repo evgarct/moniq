@@ -7,6 +7,11 @@ enum MoniqColor {
     static let surface = Color(light: "#f0f0eb", dark: "#262624")
     static let secondarySurface = Color(light: "#e5e4df", dark: "#30302e")
     static let destructive = Color(light: "#bf5d43", dark: "#bf5d43")
+    static let foreground = Color(light: "#191919", dark: "#fafaf7")
+    static let muted = Color(light: "#666663", dark: "#bfbfba")
+    static let border = Color(light: "#bfbfba", dark: "#40403e")
+    static let accent = Color(light: "#ebd8bc", dark: "#5a4938")
+    static let glassTint = Color(light: "#f0f0eb", dark: "#30302e")
 }
 
 extension Color {

@@ -5,6 +5,7 @@ import SwiftData
 @Model
 final class TransactionRecord {
     @Attribute(.unique) var id: UUID
+    var userID: UUID
     var title: String
     var note: String?
     var occurredAt: Date
@@ -16,6 +17,7 @@ final class TransactionRecord {
 
     init(
         id: UUID,
+        userID: UUID,
         title: String,
         note: String?,
         occurredAt: Date,
@@ -26,6 +28,7 @@ final class TransactionRecord {
         categoryId: UUID?
     ) {
         self.id = id
+        self.userID = userID
         self.title = title
         self.note = note
         self.occurredAt = occurredAt

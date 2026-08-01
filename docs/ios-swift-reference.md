@@ -141,7 +141,7 @@ struct Transaction {
 
 ## 4. Current status
 
-A skeleton exists at `ios/Moniq/` (Supabase auth + 5-tab navigation shell + SwiftData model scaffolding for `Wallet`/`Transaction`). No tab has real data or CRUD yet — every screen except `Auth` renders `FeaturePlaceholderView`. See `ios/Moniq/Documentation/ARCHITECTURE.md` for the current layer breakdown and why it's deliberately minimal: the next features to build should come from `docs/features/`'s PostHog-usage-ranked `priority` field once that data exists (see `docs/features/README.md`), not be guessed up front.
+The native app targets iOS 26.5+ with Swift 6 language mode. It now includes Supabase login, Debug-only demo access, Face ID session locking, PWA-aligned Today/Balance/Budget/Reports/Profile navigation, user-namespaced SwiftData, and a read-only local-first Balance inventory/register. Today, Budget, Reports and Inbox remain placeholders; CRUD and cloud synchronization remain future slices.
 
 ## 5. Agent Guidelines & Documentation Discipline
 

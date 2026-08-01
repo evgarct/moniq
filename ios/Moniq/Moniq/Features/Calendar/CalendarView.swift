@@ -4,6 +4,6 @@ import SwiftUI
 /// picked from the PostHog-ranked feature slice. See docs/ios-swift-reference.md.
 struct CalendarView: View {
     var body: some View {
-        FeaturePlaceholderView(title: "Calendar", systemImage: "calendar")
+        FeaturePlaceholderView(title: "calendar.title", systemImage: "calendar")
     }
 }

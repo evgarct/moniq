@@ -4,6 +4,6 @@ import SwiftUI
 /// from the PostHog-ranked feature slice. See docs/ios-swift-reference.md.
 struct TodayView: View {
     var body: some View {
-        FeaturePlaceholderView(title: "Today", systemImage: "sun.horizon")
+        FeaturePlaceholderView(title: "navigation.today", systemImage: "calendar")
     }
 }

@@ -2,12 +2,12 @@
   "id": "settings",
   "name": "Settings",
   "domain": "settings",
-  "description": "Account-level settings: currency preferences, billing/subscription management, and MCP API key configuration.",
+  "description": "Account-level settings: currency preferences, billing/subscription management, MCP API key configuration, and native Face ID app locking.",
   "routes": ["/settings"],
-  "keyActions": ["change default currency", "manage billing/subscription", "create/revoke MCP API key"],
+  "keyActions": ["change default currency", "manage billing/subscription", "create/revoke MCP API key", "enable or disable Face ID app locking"],
   "postHogEvents": [],
   "status": "active",
   "priority": null,
-  "platforms": ["web"],
+  "platforms": ["web", "ios"],
   "tags": ["account", "billing"]
 }

@@ -1,23 +1,51 @@
 import SwiftUI
 
-/// The 5-tab navigation shell described in docs/ios-swift-reference.md §2.
+enum AppTab: Hashable {
+    case today
+    case balance
+    case budget
+    case reports
+    case profile
+}
+
 struct RootTabView: View {
+    let userID: UUID
+    let onSignOut: () async -> Void
+    @State private var selection: AppTab
+
+    init(userID: UUID, onSignOut: @escaping () async -> Void) {
+        self.userID = userID
+        self.onSignOut = onSignOut
+#if DEBUG
+        _selection = State(initialValue: ProcessInfo.processInfo.arguments.contains("-MONIQ_INITIAL_PROFILE") ? .profile : .balance)
+#else
+        _selection = State(initialValue: .balance)
+#endif
+    }
+
     var body: some View {
-        TabView {
-            TodayView()
-                .tabItem { Label("Today", systemImage: "sun.horizon") }
+        TabView(selection: $selection) {
+            Tab("navigation.today", systemImage: "calendar", value: .today) {
+                NavigationStack { TodayView() }
+            }
 
-            BalanceView()
-                .tabItem { Label("Balance", systemImage: "wallet.pass") }
+            Tab("navigation.balance", systemImage: "scale.3d", value: .balance) {
+                NavigationStack { BalanceView(userID: userID) }
+            }
 
-            TransactionsView()
-                .tabItem { Label("Transactions", systemImage: "list.bullet.rectangle") }
+            Tab("navigation.budget", systemImage: "creditcard", value: .budget) {
+                NavigationStack { BudgetView() }
+            }
 
-            BudgetView()
-                .tabItem { Label("Budget", systemImage: "chart.bar") }
+            Tab("navigation.reports", systemImage: "chart.line.uptrend.xyaxis", value: .reports) {
+                NavigationStack { ReportsView() }
+            }
 
-            CalendarView()
-                .tabItem { Label("Calendar", systemImage: "calendar") }
+            Tab("navigation.profile", systemImage: "person", value: .profile) {
+                NavigationStack { ProfileView(userID: userID, onSignOut: onSignOut) }
+            }
         }
+        .tint(MoniqColor.foreground)
+        .accessibilityIdentifier("root.tabs")
     }
 }

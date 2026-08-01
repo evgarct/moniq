@@ -28,13 +28,23 @@ Status color applies to text/icons only — never bright fills for buttons or la
 - Status bar and navigation bar backgrounds must blend with the content area — configure `.background` to match the surface color for the current screen context (`#f0f0eb` or `#fafaf7`).
 - Bottom tab bar: standard 49pt + safe-area bottom inset. Scrollable content needs bottom clearance (~76pt) so lists scroll fully above the tab bar.
 
+## Liquid Glass roles (iOS 26.5+)
+
+Liquid Glass is a first-class part of native Moniq, adapted rather than hidden. `MoniqGlassSurface` is the shared implementation and native `TabView` supplies the system glass tab bar.
+
+1. **Canvas**: opaque warm `MoniqColor.background`, providing stable contrast and the scene behind glass.
+2. **Glass surface**: one functional region such as Login fields, a wallet group, Balance header or settings group. Use warm-neutral tint and the shared continuous shape.
+3. **Interactive glass**: buttons and controls use native `.glass`, `.glassProminent` or interactive glass effects. `.interactive()` is forbidden on read-only regions.
+
+Use `GlassEffectContainer` for related glass elements. Custom blur, gradients and hand-built translucent materials are prohibited. A wallet, goal or transaction row never receives its own glass container; rows remain flat inside one group surface. Reduce Transparency replaces the visual background with the opaque surface token, while Increase Contrast raises glass tint strength. Reduce Motion relies on native system behavior and must suppress nonessential transitions.
+
 ## Tabs
 
-Five tabs, matching `docs/ios-swift-reference.md` §2 and `RootTabView.swift`: Today, Balance, Transactions, Budget, Calendar. Each is a `FeaturePlaceholderView` today except Auth (a pre-tab-bar screen, not a tab itself).
+Five tabs match the current mobile PWA: Today, Balance, Budget, Reports and Profile. Every tab owns an independent `NavigationStack`; Profile contains Inbox, Settings and Sign Out.
 
 ## Money display
 
-Not yet built (no transaction/balance UI exists in the skeleton). When it is, follow `docs/design.md`'s money-display rules: currency symbol after the number with a small gap, tabular-nums numeric column, tone-based color (positive/negative/muted) applied to the whole value including the currency symbol.
+Balance uses monospaced digits, keeps the currency code after the amount, and applies one tone to the complete value. Cross-currency totals are not rendered.
 
 ## Typography
 
