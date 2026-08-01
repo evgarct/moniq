@@ -6,7 +6,7 @@ This document serves as the canonical technical and architectural blueprint for 
 
 ## 1. Core Visual Identity & SwiftUI Design Language
 
-The iOS app must strictly follow the Moniq design principles outlined in the web client's [AGENTS.md](file:///c:/Projects/moniq/AGENTS.md) and Storybook.
+The iOS app must strictly follow the Moniq design principles outlined in [`docs/design.md`](./design.md), the web client's single canonical design reference.
 
 ### 🚫 The Ultimate Rule: No Cards, No Chips, No Icon Badges
 *   **No Card-per-Item Layout**: List items, transactions, accounts, and categories must live as flat rows inside a shared scrollable canvas or surface. Do not wrap individual rows in rounded border/shadow card containers.
@@ -139,13 +139,17 @@ struct Transaction {
 
 ---
 
-## 4. Agent Guidelines & Documentation Discipline
+## 4. Current status
 
-To maintain visual and technical coherence, all developers and AI agents working in this repository must follow strict repository guidelines:
+A skeleton exists at `ios/Moniq/` (Supabase auth + 5-tab navigation shell + SwiftData model scaffolding for `Wallet`/`Transaction`). No tab has real data or CRUD yet — every screen except `Auth` renders `FeaturePlaceholderView`. See `ios/Moniq/Documentation/ARCHITECTURE.md` for the current layer breakdown and why it's deliberately minimal: the next features to build should come from `docs/features/`'s PostHog-usage-ranked `priority` field once that data exists (see `docs/features/README.md`), not be guessed up front.
+
+## 5. Agent Guidelines & Documentation Discipline
+
+To maintain visual and technical coherence, all developers and AI agents working on the iOS client must follow strict repository guidelines — see `ios/Moniq/Documentation/AI.md` for the full, iOS-specific contract. Summary:
 
 > [!IMPORTANT]
 > **Strict Documentation & Visual Alignment Rule**
 > Any modification, extension, or implementation of a new feature or design pattern must be documented immediately.
-> 1. **Markdown Sync**: Update the corresponding reference file in `docs/` (e.g., `docs/budget-feature.md`, `docs/ios-swift-reference.md`) to reflect the current state, logic, and component API.
-> 2. **Visual Proof**: Save a high-resolution visual screenshot/recording representing the UI state under `.codex-artifacts` or the artifacts directory.
-> 3. **Storybook-First Workflow**: Implement and verify UI changes inside a Storybook story before integrating it into page routing. Verify the story passes all integration tests in `npm run test-storybook`.
+> 1. **Markdown Sync**: Update the corresponding reference file (`docs/ios-swift-reference.md`, `ios/Moniq/Documentation/ARCHITECTURE.md`, and/or `ios/Moniq/Documentation/DESIGN_SYSTEM.md`) to reflect the current state, logic, and component API.
+> 2. **Visual Proof**: Save a screenshot/recording of the UI state (SwiftUI Preview or Simulator) alongside the change.
+> 3. **Native verification, not Storybook**: There is no Storybook equivalent for native Swift code — an earlier draft of this document wrongly copied that web-only rule. Verify UI changes with SwiftUI Previews and, once a Mac toolchain is available, Simulator builds and `MoniqUITests`/`MoniqTests`. Do not claim a build/run/test result that hasn't actually been checked.

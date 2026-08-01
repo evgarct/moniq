@@ -1,0 +1,4 @@
+MONIQ_SUPABASE_URL =
+MONIQ_SUPABASE_ANON_KEY =
+
+#include? "Cloud.local.xcconfig"

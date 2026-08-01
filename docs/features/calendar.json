@@ -1,0 +1,17 @@
+{
+  "id": "calendar",
+  "name": "Calendar",
+  "domain": "calendar",
+  "description": "Month-grid view of planned and paid transactions, with a day-agenda panel for reviewing or acting on a single day's activity.",
+  "routes": ["/calendar"],
+  "keyActions": [
+    "view month grid with per-day transaction indicators",
+    "open day agenda for a selected date",
+    "mark a planned transaction as paid or skipped from the agenda"
+  ],
+  "postHogEvents": [],
+  "status": "active",
+  "priority": null,
+  "platforms": ["web"],
+  "tags": ["finance-core", "planning"]
+}

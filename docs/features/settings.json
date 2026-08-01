@@ -1,0 +1,13 @@
+{
+  "id": "settings",
+  "name": "Settings",
+  "domain": "settings",
+  "description": "Account-level settings: currency preferences, billing/subscription management, and MCP API key configuration.",
+  "routes": ["/settings"],
+  "keyActions": ["change default currency", "manage billing/subscription", "create/revoke MCP API key"],
+  "postHogEvents": [],
+  "status": "active",
+  "priority": null,
+  "platforms": ["web"],
+  "tags": ["account", "billing"]
+}

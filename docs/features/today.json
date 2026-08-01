@@ -1,0 +1,18 @@
+{
+  "id": "today",
+  "name": "Today",
+  "domain": "today",
+  "description": "Daily planning and execution surface: per-currency hero balance totals and a rolling agenda of settled and upcoming transactions for the next 7 days.",
+  "routes": ["/today", "/dashboard"],
+  "keyActions": [
+    "view today's balances by currency",
+    "view rolling 7-day agenda",
+    "mark a planned transaction as paid or skipped",
+    "quick-add a transaction"
+  ],
+  "postHogEvents": [],
+  "status": "active",
+  "priority": null,
+  "platforms": ["web"],
+  "tags": ["finance-core", "planning"]
+}

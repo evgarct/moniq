@@ -1,0 +1,2 @@
+MONIQ_SUPABASE_URL = https:/$()/your-project.supabase.co
+MONIQ_SUPABASE_ANON_KEY = your-anon-key

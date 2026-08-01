@@ -1,0 +1,74 @@
+name: Moniq
+options:
+  bundleIdPrefix: com.evgarct
+  deploymentTarget:
+    iOS: "18.0"
+  minimumXcodeGenVersion: 2.45.4
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    ENABLE_USER_SCRIPT_SANDBOXING: true
+packages:
+  Supabase:
+    url: https://github.com/supabase/supabase-swift
+    from: 2.0.0
+targets:
+  Moniq:
+    type: application
+    supportedDestinations: [iOS]
+    configFiles:
+      Debug: Config/Cloud.defaults.xcconfig
+      Release: Config/Cloud.defaults.xcconfig
+    sources:
+      - path: Moniq
+    info:
+      path: Moniq/Resources/GeneratedInfo.plist
+      properties:
+        MoniqSupabaseURL: "$(MONIQ_SUPABASE_URL)"
+        MoniqSupabaseAnonKey: "$(MONIQ_SUPABASE_ANON_KEY)"
+    dependencies:
+      - package: Supabase
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.evgarct.moniq
+        PRODUCT_NAME: Moniq
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        GENERATE_INFOPLIST_FILE: true
+        INFOPLIST_KEY_CFBundleDisplayName: Moniq
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.finance
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: true
+        INFOPLIST_KEY_UILaunchScreen_Generation: true
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) MONIQ_APP"
+        MARKETING_VERSION: 0.1.0
+        CURRENT_PROJECT_VERSION: 1
+        TARGETED_DEVICE_FAMILY: "1,2"
+    scheme:
+      gatherCoverageData: true
+      testTargets:
+        - MoniqTests
+        - MoniqUITests
+  MoniqTests:
+    type: bundle.unit-test
+    supportedDestinations: [iOS]
+    sources:
+      - path: MoniqTests
+    dependencies:
+      - target: Moniq
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.evgarct.moniq.tests
+        GENERATE_INFOPLIST_FILE: true
+        "TEST_HOST[sdk=iphonesimulator*]": "$(BUILT_PRODUCTS_DIR)/Moniq.app/Moniq"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+  MoniqUITests:
+    type: bundle.ui-testing
+    supportedDestinations: [iOS]
+    sources:
+      - path: MoniqUITests
+    dependencies:
+      - target: Moniq
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.evgarct.moniq.uitests
+        GENERATE_INFOPLIST_FILE: true
