@@ -2,6 +2,8 @@
 
 Native SwiftUI client for Moniq, built for **iOS 26.5+** with Swift 6 language mode and the Swift 6.3 compiler. The current slice includes Supabase auth, Face ID app locking, the PWA-aligned five-tab shell, a local-first SwiftData store, and the read-only Balance inventory/register.
 
+The application target is iPhone-only. iPad is not a compatibility target and should not constrain the native layout or orientation contract.
+
 The required stable toolchain is Xcode 26.6. The shared `muse-mac` must be upgraded before release verification if `xcodebuild -version` reports an earlier build; Xcode 26.5 can compile the iOS 26.5 target for interim checks but is not the release baseline.
 
 Structure and conventions follow the user's other native project (`second_brain`/"Anqui"): XcodeGen-generated project, SwiftUI, Swift 6 strict concurrency, layered `App/Domain/Persistence/Cloud/Features` folders, `Documentation/` as the canonical doc set.
