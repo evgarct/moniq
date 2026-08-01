@@ -6,78 +6,9 @@ This version has breaking changes ? APIs, conventions, and file structure may al
 
 # UI Design System
 
-The canonical UI reference is `stories/foundations/ui-playbook.stories.tsx`. Read it before building any new screen. The Balance page (`Pages/Balance` in Storybook) is the gold standard of the full system in action.
+The canonical design reference is [`docs/design.md`](docs/design.md) — read it before building or modifying any UI. It covers product position, tokens, the `Surface` model, screen-building recipe, canonical screen contracts (Balance panel/register), anti-patterns, and Storybook discipline (all UI work is Storybook-first; `npm run check:storybook-first` enforces it in CI). The single most important rule in that document: **no cards, no chips, no icon badges — ever.**
 
-## No cards. No chips. Ever.
-
-This is the single most important visual rule in Moniq. It applies to every new page without exception — including settings screens, inbox views, and admin-style pages. There is no "this is a settings page so cards are fine" exemption.
-
-**No card-per-item layout.** Do not wrap individual list items, transactions, accounts, or categories in their own bordered/shadowed card. Items live as rows inside a shared Surface. A card is for a major content region — not for a repeating data unit.
-
-**No chips or pills for metadata.** Do not render category names, account types, statuses, or tags as `<Badge>`, pill, or rounded chip elements. Show this information as plain `type-body-12` text (muted) next to or below the primary label. If a status must be visually distinct, use color on the text only — not a filled or bordered container.
-
-**No icon badges.** All icons in this app — account type icons, category icons, status icons — must be raw inline outline marks rendered directly via `CategoryIcon` or a Lucide component. Never wrap any icon in a colored circle, square, rounded container, or chip background, regardless of context (tiles, rows, panels, grids).
-
-Wrong: every transaction row is its own rounded card with border and shadow.
-Wrong: category shown as `<span class="bg-blue-100 text-blue-700 rounded-full px-2">Food</span>`.
-Wrong: account type shown as a filled pill "CASH" or "CREDIT".
-Right: a flat row with icon + label + muted sub-text + right-aligned amount.
-Right: category shown as plain muted text below the transaction title.
-
-## Core visual identity
-- **Warm neutrals carry everything.** Use `bg-background` (#fafaf7), `bg-card` (#f0f0eb), `bg-secondary` (#e5e4df). Avoid bright brand color fills on surfaces.
-- **The `Surface` component** is the only approved container primitive. Three tones: `canvas` (base workspace), `panel` (primary work area, default), `floating` (tools, popovers). Never replicate its styles inline.
-- **Surface composition**: Inside a `Surface`, use `SurfaceHeader`, `SurfaceEyebrow`, `SurfaceTitle`, and `SurfaceDescription` for section headings before adding feature-local heading markup.
-- **Typography**: Use the four heading classes (`type-h1`–`type-h4` for serif editorial, `type-h5`–`type-h6` for UI), `type-body-14`, `type-body-12`. Do not use arbitrary font sizes like `text-[15px]`.
-- **Radius**: Always use `radius-tight` / `radius-control` / `radius-surface` / `radius-floating`. Do not write `rounded-2xl`, `rounded-3xl`, or any arbitrary `rounded-[Xpx]` value outside the Surface component.
-- **Shadows**: Only the Surface component introduces shadow. Do not add `shadow-*` or `box-shadow` values on other elements.
-
-## Building a new screen
-1. Wrap the page content in the inner content area — no new shell wrappers.
-2. Open with a `Surface tone="panel" padding="lg"` containing the section header: eyebrow (ALL-CAPS 12px tracked) + `type-h2` heading + optional `type-body-14` subtext.
-3. Use `gap-6` or `gap-8` between top-level Surface blocks. Use `gap-4`–`gap-5` inside a Surface. Use `gap-1`–`gap-3` between rows.
-4. For any screen listing items with a detail/register view, use the two-panel grid: `grid-cols-[280px_minmax(0,1fr)]`. Left = inventory, right = register/detail.
-5. Every list or register needs an `EmptyState` component.
-
-## Rows and lists
-- Row hover: `hover:bg-secondary/50`. Never use border-based hover states.
-- Account/category icons: Lucide outline icons at `h-[18px] w-[18px]` with `strokeWidth={1.75}` and `text-muted-foreground`. No filled icons, no bordered chips.
-- Amounts: always use `MoneyAmount`. Use `tabular-nums` class. Hero balances: `text-[32px] font-semibold`. Row amounts: `text-sm font-medium tabular-nums`.
-- Avoid using `display="absolute"` for balances or allocations that can become negative (like the `Free` balance); let them display signed to show deficits clearly.
-- Align subgoal rows with the parent row's grid columns (e.g. using `minmax(96px,auto)` and matching gaps) to ensure that their amounts are vertically aligned.
-- Do not repeat group context (type label, currency label) inside the row if the group heading already provides it.
-- For compact read-only key/value metadata inside sheets or review panels, use `DetailField` and `DetailFieldGrid`. Do not recreate rounded label/value blocks locally.
-
-## Buttons and actions
-- Primary action: default `Button` (black fill). One per surface.
-- Secondary: `Button variant="outline"`. Escape/cancel paths only.
-- Ghost: `Button variant="ghost"`. In-row or low-emphasis actions.
-- Use `variant="ghost"` for page header icon buttons to keep them visually light and aligned with the magazine-style layout, while preserving accessibility targets (44px mobile, 40px desktop).
-- Never use bright colors (`bg-blue-*`, `bg-indigo-*`, etc.) for buttons. Use the token system.
-- Icon-only buttons require `aria-label` and a Tooltip.
-- Shared interactive controls must provide at least a 44px target below `lg` and 40px at desktop widths.
-
-## Design guard
-- Run `npm run check:design-system` before completing UI work. Runtime product UI must use semantic warm-neutral tokens, Moniq radius tokens, and opaque mobile surfaces.
-- Raw palettes are allowed only inside explicitly documented data-visualization or committed workspace scenes. Do not use them for ordinary controls, navigation, forms, or statuses.
-
-## Colors for data
-- Do not use Tailwind semantic colors (blue, green, indigo) for income/expense or category highlights.
-- Use `chart-1` (#cc785c) through `chart-5` (#40403e) for data visualization.
-- Use `text-destructive` for negative/expense amounts and error states.
-
-## Full-bleed page views
-- Pages that fill the entire `main` area (Budget, Balance, Calendar) must NOT wrap their content in `Surface` — that creates a visible card box around the whole page. Use raw `<div>` or `<section>` elements directly on the background, exactly as `AccountsView` does.
-- Pages that own a full-height layout (viewport-fitting with internal section scrolls) must NOT use `PageContainer` — render the view directly from the route `page.tsx` so the view controls its own padding and `h-full` structure. `PageContainer` is only for simple padded-scroll pages.
-
-## Storybook & Visual Workflow
-- **All visual/UI development is Storybook-first:** Any visual change, layout refinement, color adjustment, or new component creation must be done and verified in Storybook first before integration.
-- Every new screen, stateful component, panel, or modal must get a story in `stories/pages/` or `features/**/components/` covering all possible states (empty, error, loading, populated).
-- **Automated Accessibility (a11y) Checks:** Storybook is integrated with `axe-core` and Vitest. Storybook tests run automatically in a headless browser and will fail if there are accessibility violations. Always verify accessibility using the Storybook Accessibility addon panel or CLI.
-- **UI Generation & Prototyping:** Leverage Storybook to prototype and generate new UI. Create isolated mock stories first, and only integrate them into the app router once the design, styling, and interactions are fully verified in Storybook.
-- Foundation stories in `stories/foundations/` (like Design Language) are references only — do not modify them to fix UI bugs. Fix the component instead.
-- Story `play` functions must not query inside portalled content (Sheet, Dialog, Popover) from the root canvas.
-- Storybook stories for full-height page views must use `<div className="h-screen">` (no padding) as the wrapper so the viewport-fitting layout renders correctly in the canvas.
+The canonical UI reference implementation is `stories/foundations/ui-playbook.stories.tsx`; `Pages/Balance` in Storybook is the gold-standard full system in action. Run `npm run check:design-system` before completing UI work.
 
 # Repo Workflow Rules
 

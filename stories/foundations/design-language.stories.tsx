@@ -42,41 +42,13 @@ const meta = {
               </div>
 
               <div className="mt-6 border-t border-black/5 pt-6">
-                <h2 className="type-h5 text-foreground mb-4">Core Constraints & Design Rules</h2>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <Surface tone="canvas" padding="lg" className="border border-black/5 bg-background/60">
-                    <p className="font-semibold text-sm text-foreground flex items-center gap-1.5">
-                      🚫 No cards. No chips. Ever.
-                    </p>
-                    <p className="type-body-12 mt-2 text-slate-600">
-                      Do not wrap individual list items, transactions, or accounts in their own card. Repeating items live as flat rows. Never render metadata as badge/chip/pill shapes. Use plain muted text instead.
-                    </p>
-                  </Surface>
-                  <Surface tone="canvas" padding="lg" className="border border-black/5 bg-background/60">
-                    <p className="font-semibold text-sm text-foreground flex items-center gap-1.5">
-                      📱 Mobile Safe Areas & Backgrounds
-                    </p>
-                    <p className="type-body-12 mt-2 text-slate-600">
-                      To prevent iOS status bar and safe area color mismatches, the base background on mobile is strictly <code>bg-card</code> (#f0f0eb). Screen content and headers automatically blend with this color on mobile.
-                    </p>
-                  </Surface>
-                  <Surface tone="canvas" padding="lg" className="border border-black/5 bg-background/60">
-                    <p className="font-semibold text-sm text-foreground flex items-center gap-1.5">
-                      📦 Surface Component is the Only Container
-                    </p>
-                    <p className="type-body-12 mt-2 text-slate-600">
-                      Never write arbitrary rounded/shadow utilities. Use <code>Surface</code> with appropriate tones: <strong>canvas</strong> (base), <strong>panel</strong> (work regions), <strong>floating</strong> (tools/popovers).
-                    </p>
-                  </Surface>
-                  <Surface tone="canvas" padding="lg" className="border border-black/5 bg-background/60">
-                    <p className="font-semibold text-sm text-foreground flex items-center gap-1.5">
-                      🎨 Opaque Mobile Surfaces
-                    </p>
-                    <p className="type-body-12 mt-2 text-slate-600">
-                      Full-bleed screens (Budget, Balance, Calendar) must not wrap their top-level content in a Surface on desktop. On mobile, surfaces are full-width and opaque, blending directly with the screen.
-                    </p>
-                  </Surface>
-                </div>
+                <Surface tone="canvas" padding="lg" className="border border-black/5 bg-background/60">
+                  <p className="font-semibold text-sm text-foreground">Written design rules live in one place</p>
+                  <p className="type-body-12 mt-2 text-slate-600">
+                    This story is a visual reference for the tokens and canonical Balance workspace below — it doesn&apos;t restate the rules. See{" "}
+                    <code>docs/design.md</code> for the full written spec: no cards/chips/icon badges, the Surface model, mobile safe areas, tokens, and canonical screen contracts.
+                  </p>
+                </Surface>
               </div>
             </div>
           </Surface>

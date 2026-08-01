@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://moniq.fyi/docs/features/schema.json",
+  "title": "Moniq feature catalog entry",
+  "description": "One entry per product feature domain. Used to catalog what exists, where it lives, and (once PostHog has usage data) how important/used it is — see docs/features/README.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "name", "domain", "description", "routes", "keyActions", "postHogEvents", "status", "priority", "platforms", "tags"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Stable kebab-case identifier, matches the features/<id> folder name where applicable.",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable feature name."
+    },
+    "domain": {
+      "type": "string",
+      "description": "Same as id; kept as an explicit field for readability in tooling that flattens entries."
+    },
+    "description": {
+      "type": "string",
+      "description": "One or two sentences: what this feature does and who it's for."
+    },
+    "routes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "App Router paths (locale-relative, e.g. /budget) that this feature owns. Empty for infrastructure/shared domains with no dedicated route."
+    },
+    "keyActions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "The primary user actions this feature supports, in plain language (e.g. \"create transaction\", \"approve bank import\")."
+    },
+    "postHogEvents": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "PostHog event names (snake_case) that should be emitted via lib/analytics/posthog.ts's trackFeatureEvent for this feature's key actions. May be empty if instrumentation hasn't been added yet — see docs/analytics.md."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["active", "planned"],
+      "description": "Whether this feature is shipped in the web app today, or planned/partial."
+    },
+    "priority": {
+      "type": ["number", "null"],
+      "description": "Ranked importance/usage score. Null until real PostHog usage data exists — see docs/features/README.md for how this gets computed."
+    },
+    "platforms": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["web", "ios"] },
+      "description": "Which client(s) currently implement this feature."
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Free-form classification tags (e.g. \"finance-core\", \"infra\", \"reporting\")."
+    }
+  }
+}

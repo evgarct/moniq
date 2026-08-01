@@ -1,0 +1,19 @@
+{
+  "id": "transactions",
+  "name": "Transactions",
+  "domain": "transactions",
+  "description": "Core transaction ledger and entry flow, covering every transaction kind (expense, income, transfer, save_to_goal, spend_from_goal, debt_payment, investment, refund, adjustment).",
+  "routes": ["/transactions"],
+  "keyActions": [
+    "create a transaction",
+    "edit a transaction",
+    "delete a transaction",
+    "filter/search the ledger",
+    "record a transfer/debt payment/adjustment"
+  ],
+  "postHogEvents": [],
+  "status": "active",
+  "priority": null,
+  "platforms": ["web"],
+  "tags": ["finance-core"]
+}

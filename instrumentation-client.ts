@@ -1,4 +1,7 @@
 import { reportClientPerformanceEvent } from "@/lib/performance/client";
+import { capturePageview, initPostHog } from "@/lib/analytics/posthog";
+
+initPostHog();
 
 export function onRouterTransitionStart(url: string, navigationType: "push" | "replace" | "traverse") {
   reportClientPerformanceEvent({
@@ -9,4 +12,5 @@ export function onRouterTransitionStart(url: string, navigationType: "push" | "r
       navigation_type: navigationType,
     },
   });
+  capturePageview(url);
 }

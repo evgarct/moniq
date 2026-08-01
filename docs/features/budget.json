@@ -1,0 +1,18 @@
+{
+  "id": "budget",
+  "name": "Budget",
+  "domain": "budget",
+  "description": "Retrospective monthly cashflow: a 13-month income/expense timeline plus expandable category trees showing where money went, using paid transactions only.",
+  "routes": ["/budget"],
+  "keyActions": [
+    "view monthly cashflow timeline",
+    "expand a category to see children and transactions",
+    "navigate between months",
+    "manage budget categories inline"
+  ],
+  "postHogEvents": [],
+  "status": "active",
+  "priority": null,
+  "platforms": ["web"],
+  "tags": ["finance-core", "reporting"]
+}

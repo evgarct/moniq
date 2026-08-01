@@ -1,0 +1,13 @@
+{
+  "id": "finance",
+  "name": "Finance Snapshot / Domain Layer",
+  "domain": "finance",
+  "description": "Shared finance domain layer: the finance snapshot query, exchange-rate handling, optimistic mutation coordination, and cross-feature invariants. Not a page — every finance feature depends on this.",
+  "routes": [],
+  "keyActions": ["compute finance snapshot", "apply optimistic mutation", "resolve FX rate for a transaction date"],
+  "postHogEvents": [],
+  "status": "active",
+  "priority": null,
+  "platforms": ["web"],
+  "tags": ["infra", "finance-core"]
+}

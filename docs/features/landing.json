@@ -1,0 +1,13 @@
+{
+  "id": "landing",
+  "name": "Landing / Marketing Page",
+  "domain": "landing",
+  "description": "Public, unauthenticated marketing page introducing Moniq before sign-up.",
+  "routes": ["/"],
+  "keyActions": ["view landing page", "navigate to signup"],
+  "postHogEvents": [],
+  "status": "active",
+  "priority": null,
+  "platforms": ["web"],
+  "tags": ["marketing"]
+}

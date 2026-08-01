@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "schema": "./schema.json",
+  "generatedAt": "2026-08-01",
+  "domains": [
+    "accounts",
+    "auth",
+    "banking",
+    "budget",
+    "calendar",
+    "categories",
+    "claude-inbox",
+    "finance",
+    "goals",
+    "inbox",
+    "investments",
+    "landing",
+    "reports",
+    "settings",
+    "sync",
+    "today",
+    "transactions"
+  ]
+}
