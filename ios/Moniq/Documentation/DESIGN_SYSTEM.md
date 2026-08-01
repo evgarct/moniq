@@ -33,10 +33,10 @@ Status color applies to text/icons only — never bright fills for buttons or la
 Liquid Glass is a first-class part of native Moniq, adapted rather than hidden. `MoniqGlassSurface` is the shared implementation and native `TabView` supplies the system glass tab bar.
 
 1. **Canvas**: opaque warm `MoniqColor.background`, providing stable contrast and the scene behind glass.
-2. **Glass surface**: one functional region such as Login fields, a wallet group, Balance header or settings group. Use warm-neutral tint and the shared continuous shape.
+2. **Glass surface**: one focused input or settings region such as Login fields or a settings group. Use warm-neutral tint and the shared continuous shape. Financial workspaces are explicitly excluded.
 3. **Interactive glass**: buttons and controls use native `.glass`, `.glassProminent` or interactive glass effects. `.interactive()` is forbidden on read-only regions.
 
-Use `GlassEffectContainer` for related glass elements. Custom blur, gradients and hand-built translucent materials are prohibited. A wallet, goal or transaction row never receives its own glass container; rows remain flat inside one group surface. Reduce Transparency replaces the visual background with the opaque surface token, while Increase Contrast raises glass tint strength. Reduce Motion relies on native system behavior and must suppress nonessential transitions.
+Use `GlassEffectContainer` for related glass controls. Custom blur, gradients and hand-built translucent materials are prohibited. Balance inventory and register content render directly on the warm opaque canvas: no glass header, no glass group, no card and no dashboard summary. Wallets, goals and transactions are flat editorial rows whose hierarchy comes from PWA-matched serif headings, SF Pro body text, spacing and aligned amounts. Reduce Transparency replaces glass controls with the opaque surface token, while Increase Contrast raises control tint strength. Reduce Motion relies on native system behavior and must suppress nonessential transitions.
 
 ## Tabs
 
@@ -44,7 +44,7 @@ Five tabs match the current mobile PWA: Today, Balance, Budget, Reports and Prof
 
 ## Money display
 
-Balance uses monospaced digits, keeps the currency code after the amount, and applies one tone to the complete value. Cross-currency totals are not rendered.
+Balance uses monospaced digits, keeps the localized currency symbol after the amount, and applies one tone to the complete value. Cross-currency totals are not rendered.
 
 ## Typography
 

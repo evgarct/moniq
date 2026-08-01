@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 import Testing
 @testable import Moniq
 
@@ -46,6 +47,24 @@ struct MoniqTests {
     }
 
     @MainActor
+    @Test func replacingSnapshotIsAtomicAndUserNamespaced() throws {
+        let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(for: WalletRecord.self, WalletAllocationRecord.self, TransactionRecord.self, configurations: configuration)
+        let repository = SwiftDataWalletRepository(context: container.mainContext)
+        let firstUser = UUID()
+        let secondUser = UUID()
+        let firstWallet = Wallet(id: UUID(), name: "First", type: .cash, balance: 10, currency: "EUR", creditLimit: nil)
+        let secondWallet = Wallet(id: UUID(), name: "Second", type: .saving, balance: 20, currency: "CZK", creditLimit: nil)
+
+        try repository.replaceSnapshot(BalanceSnapshot(wallets: [firstWallet], allocations: [], transactions: []), userID: firstUser)
+        try repository.replaceSnapshot(BalanceSnapshot(wallets: [secondWallet], allocations: [], transactions: []), userID: secondUser)
+        try repository.replaceSnapshot(.empty, userID: firstUser)
+
+        #expect(try repository.fetchSnapshot(userID: firstUser) == .empty)
+        #expect(try repository.fetchSnapshot(userID: secondUser).wallets == [secondWallet])
+    }
+
+    @MainActor
     @Test func biometricPreferenceRequiresSuccessfulAuthentication() async throws {
         let suite = "MoniqTests.\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: suite))
@@ -60,5 +79,59 @@ struct MoniqTests {
         let failure = BiometricLockService(defaults: defaults, automationResult: false)
         await #expect(throws: CancellationError.self) { try await failure.setEnabled(true) }
         #expect(!failure.isEnabled)
+    }
+
+    @Test func recurringScheduleProjectsRollingWindowWithoutMaterializedOccurrence() throws {
+        let calendar = Calendar(identifier: .iso8601)
+        let today = calendar.startOfDay(for: .now)
+        let tomorrow = try #require(calendar.date(byAdding: .day, value: 1, to: today))
+        let dayAfter = try #require(calendar.date(byAdding: .day, value: 2, to: today))
+        let scheduleID = UUID()
+        let walletID = UUID()
+        let schedule = RemoteSchedule(
+            id: scheduleID,
+            title: "Rent",
+            note: nil,
+            startDate: localDate(today),
+            frequency: "daily",
+            intervalWeeks: 1,
+            untilDate: localDate(dayAfter),
+            kind: .expense,
+            amount: 100,
+            destinationAmount: nil,
+            categoryID: nil,
+            sourceAccountID: walletID,
+            destinationAccountID: nil
+        )
+
+        let projected = schedule.projectedTransactions(
+            excluding: ["\(scheduleID.uuidString)|\(localDate(tomorrow))"]
+        )
+
+        #expect(projected.map(\.occurredAt) == [localDate(today), localDate(dayAfter)])
+        #expect(projected.allSatisfy { $0.status == .planned })
+        #expect(projected.allSatisfy { $0.scheduleID == scheduleID })
+    }
+
+    @Test func monthlyScheduleRestoresOriginalDayAfterShortMonth() throws {
+        let calendar = Calendar(identifier: .iso8601)
+        let schedule = RemoteSchedule(
+            id: UUID(), title: "Month end", note: nil,
+            startDate: "2026-01-31", frequency: "monthly", intervalWeeks: 1,
+            untilDate: "2026-03-31", kind: .expense, amount: 1,
+            destinationAmount: nil, categoryID: nil, sourceAccountID: UUID(), destinationAccountID: nil
+        )
+
+        let anchor = try #require(calendar.date(from: DateComponents(year: 2026, month: 1, day: 31)))
+        let february = try #require(schedule.anchoredDate(after: anchor, months: 1, anchor: anchor, calendar: calendar))
+        let march = try #require(schedule.anchoredDate(after: february, months: 1, anchor: anchor, calendar: calendar))
+
+        #expect(localDate(february) == "2026-02-28")
+        #expect(localDate(march) == "2026-03-31")
+    }
+
+    private func localDate(_ date: Date) -> String {
+        let parts = Calendar(identifier: .iso8601).dateComponents([.year, .month, .day], from: date)
+        return String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
     }
 }

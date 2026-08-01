@@ -18,13 +18,14 @@ final class BalanceViewModel {
         self.userID = userID
     }
 
-    func load() {
+    func loadLocal() {
         do {
             state = .loaded(try repository.fetchSnapshot(userID: userID))
         } catch {
             state = .failed
         }
     }
+
 }
 
 struct BalanceView: View {
@@ -47,7 +48,10 @@ struct BalanceView: View {
             guard viewModel == nil else { return }
             let model = BalanceViewModel(repository: runtime.walletRepository, userID: userID)
             viewModel = model
-            model.load()
+            model.loadLocal()
+        }
+        .onChange(of: runtime.balanceRevision) {
+            viewModel?.loadLocal()
         }
     }
 
@@ -81,21 +85,19 @@ private struct BalanceInventory: View {
 
     var body: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 30) {
+            LazyVStack(alignment: .leading, spacing: 38) {
                 BalanceHeader(compact: hasScrolled)
 
                 ForEach(groups, id: \.0) { type, title in
                     let wallets = snapshot.wallets.filter { $0.type == type }
-                    if !wallets.isEmpty {
-                        WalletGroup(title: title, wallets: wallets, snapshot: snapshot)
-                    }
+                    WalletGroup(title: title, wallets: wallets, snapshot: snapshot)
                 }
 
                 WalletGroup(title: "balance.group.investments", wallets: [], snapshot: snapshot)
             }
-            .padding(.horizontal, 18)
-            .padding(.top, 12)
-            .padding(.bottom, 36)
+            .padding(.horizontal, 20)
+            .padding(.top, 18)
+            .padding(.bottom, 44)
         }
         .onScrollGeometryChange(for: Bool.self) { geometry in
             geometry.contentOffset.y > 16
@@ -113,25 +115,20 @@ private struct BalanceHeader: View {
     let compact: Bool
 
     var body: some View {
-        MoniqGlassSurface {
-            HStack(alignment: .firstTextBaseline) {
-                VStack(alignment: .leading, spacing: compact ? 2 : 6) {
-                    Text("balance.title")
-                        .font(.system(compact ? .title : .largeTitle, design: .serif, weight: .semibold))
-                    if !compact {
-                        Text("balance.subtitle")
-                            .font(.subheadline)
-                            .foregroundStyle(MoniqColor.muted)
-                    }
-                }
-                Spacer()
-                Image(systemName: "eye.slash")
-                    .font(.system(size: 18, weight: .thin))
-                    .accessibilityLabel(Text("balance.hideMinorUnits"))
-            }
-            .padding(compact ? 16 : 20)
-            .animation(.easeOut(duration: 0.18), value: compact)
+        HStack(alignment: .firstTextBaseline) {
+            Text("balance.title")
+                .font(.system(compact ? .title : .largeTitle, design: .serif, weight: .regular))
+            Image(systemName: "info.circle")
+                .font(.system(size: 17, weight: .regular))
+                .foregroundStyle(MoniqColor.muted)
+                .accessibilityHidden(true)
+            Spacer()
+            Image(systemName: "eye.slash")
+                .font(.system(size: 19, weight: .light))
+                .foregroundStyle(MoniqColor.muted)
+                .accessibilityLabel(Text("balance.hideMinorUnits"))
         }
+        .animation(.easeOut(duration: 0.18), value: compact)
     }
 }
 
@@ -141,34 +138,25 @@ private struct WalletGroup: View {
     let snapshot: BalanceSnapshot
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 18) {
             Text(title)
-                .font(.caption.weight(.semibold))
-                .textCase(.uppercase)
-                .tracking(0.8)
-                .foregroundStyle(MoniqColor.muted)
-                .padding(.leading, 6)
+                .font(.system(.title2, design: .serif, weight: .regular))
 
-            MoniqGlassSurface {
-                VStack(spacing: 0) {
-                    if wallets.isEmpty {
-                        Text("balance.investments.empty")
-                            .font(.subheadline)
-                            .foregroundStyle(MoniqColor.muted)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(18)
-                    } else {
-                        ForEach(Array(wallets.enumerated()), id: \.element.id) { index, wallet in
-                            NavigationLink(value: wallet) {
-                                WalletRow(wallet: wallet, snapshot: snapshot)
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityIdentifier("balance.wallet.\(wallet.id.uuidString)")
-                            if index < wallets.count - 1 { Divider().padding(.leading, 54) }
+            VStack(spacing: 14) {
+                if wallets.isEmpty {
+                    Text("balance.group.empty")
+                        .font(.body)
+                        .foregroundStyle(MoniqColor.muted)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    ForEach(wallets) { wallet in
+                        NavigationLink(value: wallet) {
+                            WalletRow(wallet: wallet, snapshot: snapshot)
                         }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("balance.wallet.\(wallet.id.uuidString)")
                     }
                 }
-                .padding(.vertical, 4)
             }
         }
     }
@@ -179,53 +167,66 @@ private struct WalletRow: View {
     let snapshot: BalanceSnapshot
 
     var body: some View {
-        VStack(spacing: 10) {
-            HStack(spacing: 14) {
+        VStack(spacing: 9) {
+            HStack(spacing: 12) {
                 Image(systemName: wallet.symbol)
-                    .font(.system(size: 19, weight: .thin))
+                    .font(.system(size: 17, weight: .light))
                     .foregroundStyle(MoniqColor.muted)
-                    .frame(width: 22)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(wallet.name).font(.body.weight(.medium))
-                    if wallet.type == .creditCard, let limit = wallet.creditLimit {
-                        MoneyText(amount: limit + wallet.balance, currency: wallet.currency, tone: .muted)
-                            .font(.caption)
-                    }
-                }
+                    .frame(width: 20)
+                Text(wallet.name).font(.body.weight(.medium))
                 Spacer()
                 MoneyText(amount: wallet.balance, currency: wallet.currency)
-                    .font(.body.weight(.semibold))
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(MoniqColor.muted)
+                    .font(.body.weight(.medium))
             }
 
             if wallet.type == .creditCard, let limit = wallet.creditLimit, limit > 0 {
                 ProgressView(value: NSDecimalNumber(decimal: abs(wallet.balance) / limit).doubleValue)
                     .tint(MoniqColor.foreground)
-                    .padding(.leading, 36)
+                    .padding(.leading, 32)
+                HStack(spacing: 6) {
+                    Text("balance.available")
+                    MoneyText(amount: limit + wallet.balance, currency: wallet.currency, tone: .muted)
+                }
+                .font(.caption)
+                .foregroundStyle(MoniqColor.muted)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.leading, 32)
             }
 
             if wallet.type == .saving {
-                VStack(spacing: 8) {
+                Divider().padding(.leading, 32)
+                VStack(spacing: 12) {
+                    HStack {
+                        Text("balance.free").foregroundStyle(MoniqColor.muted)
+                        Spacer()
+                        MoneyText(amount: snapshot.freeBalance(for: wallet.id), currency: wallet.currency, tone: .muted)
+                    }
                     ForEach(snapshot.allocations.filter { $0.walletId == wallet.id }) { allocation in
-                        HStack {
-                            Text(allocation.name).font(.caption).foregroundStyle(MoniqColor.muted)
-                            Spacer()
-                            MoneyText(amount: allocation.amount, currency: wallet.currency, tone: .muted).font(.caption)
+                        VStack(spacing: 6) {
+                            HStack(spacing: 10) {
+                                Image(systemName: "scope")
+                                    .font(.system(size: 15, weight: .light))
+                                    .foregroundStyle(MoniqColor.muted)
+                                    .frame(width: 18)
+                                Text(allocation.name).font(.body.weight(.medium))
+                                Spacer()
+                                MoneyText(amount: allocation.amount, currency: wallet.currency).font(.body.weight(.medium))
+                            }
+                            if let target = allocation.targetAmount, target > 0 {
+                                let progress = min(max(allocation.amount / target, 0), 1)
+                                ProgressView(value: NSDecimalNumber(decimal: progress).doubleValue)
+                                    .tint(MoniqColor.muted)
+                                    .padding(.leading, 28)
+                            }
                         }
                     }
-                    HStack {
-                        Text("balance.free").font(.caption.weight(.medium))
-                        Spacer()
-                        MoneyText(amount: snapshot.freeBalance(for: wallet.id), currency: wallet.currency).font(.caption.weight(.medium))
-                    }
                 }
-                .padding(.leading, 36)
+                .font(.body)
+                .padding(.leading, 32)
             }
         }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 14)
+        .padding(.vertical, 2)
+        .padding(.bottom, wallet.type == .creditCard ? 18 : 0)
         .contentShape(.rect)
     }
 }
@@ -244,16 +245,13 @@ private struct WalletDetailView: View {
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 24) {
-                MoniqGlassSurface {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(wallet.name)
-                            .font(.system(.title, design: .serif, weight: .semibold))
-                        MoneyText(amount: wallet.balance, currency: wallet.currency)
-                            .font(.title2.weight(.semibold))
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(20)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(wallet.name)
+                        .font(.system(.title, design: .serif, weight: .regular))
+                    MoneyText(amount: wallet.balance, currency: wallet.currency)
+                        .font(.title2.weight(.medium))
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 if transactions.isEmpty {
                     ContentUnavailableView("balance.register.empty.title", systemImage: "list.bullet", description: Text("balance.register.empty.message"))
@@ -264,14 +262,10 @@ private struct WalletDetailView: View {
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(MoniqColor.muted)
                                 .padding(.leading, 6)
-                            MoniqGlassSurface {
-                                VStack(spacing: 0) {
-                                    ForEach(Array(items.enumerated()), id: \.element.id) { index, transaction in
-                                        TransactionRow(transaction: transaction, currency: wallet.currency)
-                                        if index < items.count - 1 { Divider().padding(.leading, 18) }
-                                    }
+                            VStack(spacing: 10) {
+                                ForEach(items) { transaction in
+                                    TransactionRow(transaction: transaction, currency: wallet.currency)
                                 }
-                                .padding(.vertical, 4)
                             }
                         }
                     }
@@ -315,10 +309,28 @@ private struct MoneyText: View {
     var tone: MoneyTone = .default
 
     var body: some View {
-        Text("\(amount.formatted(.number.precision(.fractionLength(0...2)))) \(currency)")
+        Text("\(amount.formatted(.number.precision(.fractionLength(0...2))))\u{00A0}\(currencySymbol)")
             .monospacedDigit()
             .foregroundStyle(tone == .negative ? MoniqColor.destructive : tone == .muted ? MoniqColor.muted : MoniqColor.foreground)
             .accessibilityLabel(Text("\(amount.formatted()) \(currency)"))
+    }
+
+    private var currencySymbol: String {
+        switch currency {
+        case "EUR": "€"
+        case "CZK": "Kč"
+        case "USD": "$"
+        case "GBP": "£"
+        case "JPY": "¥"
+        case "RUB": "₽"
+        case "CHF": "CHF"
+        case "PLN": "zł"
+        case "UAH": "₴"
+        case "AED": "د.إ"
+        case "TRY": "₺"
+        case "CAD": "C$"
+        default: currency
+        }
     }
 }
 
@@ -335,10 +347,7 @@ private extension Wallet {
 
 private extension Transaction {
     var displayAmount: Decimal {
-        switch kind {
-        case .income, .refund: abs(amount)
-        default: -abs(amount)
-        }
+        amount
     }
 }
 

@@ -2,12 +2,12 @@
   "id": "sync",
   "name": "Local-First Sync",
   "domain": "sync",
-  "description": "PowerSync-backed local-first data layer: keeps a local SQLite mirror in sync with Supabase and exposes sync status to the rest of the app. Not a page — infrastructure shared by every finance feature.",
+  "description": "Local-first data layer: PowerSync keeps the web SQLite mirror current, while the native iPhone client reconciles its user-namespaced SwiftData mirror through the Supabase Data API, Realtime invalidations, and periodic pulls. Supabase is the source of truth. Not a page — infrastructure shared by finance features.",
   "routes": [],
   "keyActions": ["initialize local database", "sync local/remote state", "surface sync status/errors"],
   "postHogEvents": [],
   "status": "active",
   "priority": null,
-  "platforms": ["web"],
+  "platforms": ["web", "ios"],
   "tags": ["infra", "offline"]
 }

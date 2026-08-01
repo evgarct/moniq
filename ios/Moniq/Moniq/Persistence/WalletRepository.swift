@@ -39,6 +39,7 @@ struct BalanceSnapshot: Sendable, Equatable {
 @MainActor
 protocol WalletRepository {
     func fetchSnapshot(userID: UUID) throws -> BalanceSnapshot
+    func replaceSnapshot(_ snapshot: BalanceSnapshot, userID: UUID) throws
     func clear(userID: UUID) throws
 }
 
@@ -76,6 +77,17 @@ final class SwiftDataWalletRepository: WalletRepository {
         try context.delete(model: WalletAllocationRecord.self, where: #Predicate { $0.userID == userID })
         try context.delete(model: TransactionRecord.self, where: #Predicate { $0.userID == userID })
         try context.save()
+    }
+
+    func replaceSnapshot(_ snapshot: BalanceSnapshot, userID: UUID) throws {
+        try context.transaction {
+            try context.delete(model: WalletRecord.self, where: #Predicate { $0.userID == userID })
+            try context.delete(model: WalletAllocationRecord.self, where: #Predicate { $0.userID == userID })
+            try context.delete(model: TransactionRecord.self, where: #Predicate { $0.userID == userID })
+            snapshot.wallets.forEach { context.insert(WalletRecord(id: $0.id, userID: userID, name: $0.name, type: $0.type, balance: $0.balance, currency: $0.currency, creditLimit: $0.creditLimit)) }
+            snapshot.allocations.forEach { context.insert(WalletAllocationRecord(id: $0.id, userID: userID, walletID: $0.walletId, name: $0.name, amount: $0.amount, targetAmount: $0.targetAmount)) }
+            snapshot.transactions.forEach { context.insert(TransactionRecord(id: $0.id, userID: userID, title: $0.title, note: $0.note, occurredAt: $0.occurredAt, status: $0.status, kind: $0.kind, amount: $0.amount, walletId: $0.walletId, categoryId: $0.categoryId)) }
+        }
     }
 }
 
