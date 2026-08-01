@@ -13,14 +13,27 @@ Structure and conventions follow the user's other native project (`second_brain`
 
 ## Windows → Mac workflow
 
-This repo's other Swift project (`second_brain`) has a Windows→Mac remote-build pipeline (`scripts/remote-build.ps1` over SSH) for building/testing/installing from a Windows machine. That pipeline is **not yet set up for this project** — set it up analogously if you want the same workflow, or build directly on a Mac.
+`scripts/remote-build.ps1` mirrors `second_brain/scripts/remote-build.ps1`: it snapshots this directory, ships it to the Mac (`muse-mac` by default) over scp, and runs the equivalent `make`/device-install target over ssh. It reuses the same Mac host and the same personal-team signing identity as `second_brain` (falls back to the `ANQUI_*` env vars when `MONIQ_*` ones aren't set).
+
+```powershell
+# From ios/Moniq on Windows
+.\scripts\remote-build.ps1 -Target build-ios      # simulator build only
+.\scripts\remote-build.ps1 -Target test-ios       # simulator unit tests
+.\scripts\remote-build.ps1 -Target ui-test-ios    # simulator UI tests
+.\scripts\remote-build.ps1 -Target device-install # build, sign, install on the physical iPhone
+.\scripts\remote-build.ps1 -Target device-deliver # test-ios, then device-install
+```
+
+Physical-device installs share Apple's free-account limit of **3 App IDs per rolling 7 days** with `second_brain` — check what's already on the device first (`ssh muse-mac "xcrun devicectl device info apps --device $env:ANQUI_DEVICE_ID"`), and note the Mac/device may be in concurrent use by other work on sibling projects.
+
+The Mac also needs `Config/Cloud.local.xcconfig` at `~/Documents/Moniq/Config/Cloud.local.xcconfig` (picked up automatically by the remote script) and the shared `AnquiBuild` signing keychain from `second_brain/scripts/setup-mac-signing.sh` for device builds.
 
 ## Testing
 
 - `MoniqTests` — unit tests (Swift Testing).
 - `MoniqUITests` — UI smoke tests (XCTest).
 
-Run both from Xcode or `xcodebuild test` once a Mac toolchain is available. See `Documentation/AI.md` for verification rules — do not report a build/test result that hasn't actually been run.
+Run both via `.\scripts\remote-build.ps1 -Target test-ios` / `-Target ui-test-ios` from Windows, or directly on the Mac with `make test-ios`/`make ui-test-ios`. See `Documentation/AI.md` for verification rules — do not report a build/test result that hasn't actually been run.
 
 ## Docs
 
