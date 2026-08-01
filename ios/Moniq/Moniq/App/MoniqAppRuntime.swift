@@ -58,6 +58,7 @@ final class MoniqAppRuntime {
 
     func refreshBalance(userID: UUID) async {
         guard !demoMode, let snapshot = try? await balanceSync.refresh(userID: userID) else { return }
+        guard !Task.isCancelled else { return }
         persist(snapshot, userID: userID)
     }
 

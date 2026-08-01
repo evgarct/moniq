@@ -80,4 +80,41 @@ struct MoniqTests {
         await #expect(throws: CancellationError.self) { try await failure.setEnabled(true) }
         #expect(!failure.isEnabled)
     }
+
+    @Test func recurringScheduleProjectsRollingWindowWithoutMaterializedOccurrence() throws {
+        let calendar = Calendar(identifier: .iso8601)
+        let today = calendar.startOfDay(for: .now)
+        let tomorrow = try #require(calendar.date(byAdding: .day, value: 1, to: today))
+        let dayAfter = try #require(calendar.date(byAdding: .day, value: 2, to: today))
+        let scheduleID = UUID()
+        let walletID = UUID()
+        let schedule = RemoteSchedule(
+            id: scheduleID,
+            title: "Rent",
+            note: nil,
+            startDate: localDate(today),
+            frequency: "daily",
+            intervalWeeks: 1,
+            untilDate: localDate(dayAfter),
+            kind: .expense,
+            amount: 100,
+            destinationAmount: nil,
+            categoryID: nil,
+            sourceAccountID: walletID,
+            destinationAccountID: nil
+        )
+
+        let projected = schedule.projectedTransactions(
+            excluding: ["\(scheduleID.uuidString)|\(localDate(tomorrow))"]
+        )
+
+        #expect(projected.map(\.occurredAt) == [localDate(today), localDate(dayAfter)])
+        #expect(projected.allSatisfy { $0.status == .planned })
+        #expect(projected.allSatisfy { $0.scheduleID == scheduleID })
+    }
+
+    private func localDate(_ date: Date) -> String {
+        let parts = Calendar(identifier: .iso8601).dateComponents([.year, .month, .day], from: date)
+        return String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
+    }
 }

@@ -70,8 +70,10 @@ private struct RootView: View {
     }
 
     private func signOut() async {
-        if let userID { try? runtime.walletRepository.clear(userID: userID) }
+        let signedOutUserID = userID
+        userID = nil
         try? await runtime.authClient.signOut()
+        if let signedOutUserID { try? runtime.walletRepository.clear(userID: signedOutUserID) }
         runtime.biometricLock.reset()
         self.userID = runtime.demoMode ? AppConfiguration.demoUserID : nil
     }

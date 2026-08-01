@@ -13,7 +13,7 @@ Current status: the native foundation and first read-only finance slice are impl
 
 ## Local-first launch contract
 
-Authenticated UI reads the user-scoped SwiftData snapshot synchronously on the main actor and renders it before network work. It then fetches `wallets`, `wallet_allocations`, and the latest 500 `finance_transactions` through RLS, atomically replaces the local namespace, and observes all three tables through Supabase Realtime. A periodic pull covers reconnects and delete events that cannot be safely filtered through Realtime. Supabase is always the source of truth; SwiftData is only the fast offline mirror. Logout deletes only the verified user's local rows and resets the Face ID preference.
+Authenticated UI reads the user-scoped SwiftData snapshot synchronously on the main actor and renders it before network work. It then fetches `wallets`, `wallet_allocations`, up to 1,000 recent `finance_transactions` bounded to the next 30 days, and active recurring schedules through RLS. Materialized schedule occurrences replace their projections, skipped occurrences stay hidden, and remaining schedules are projected only across the rolling 30-day window. The reconciled snapshot atomically replaces the local namespace, while Supabase Realtime and a periodic pull cover updates, reconnects, and delete events. Supabase is always the source of truth; SwiftData is only the fast offline mirror. Logout first cancels authenticated sync, then deletes only the verified user's local rows and resets the Face ID preference.
 
 ## Data model mapping
 

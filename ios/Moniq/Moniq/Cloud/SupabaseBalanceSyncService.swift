@@ -17,6 +17,9 @@ final class SupabaseBalanceSyncService: BalanceSyncing, Sendable {
     }
 
     func refresh(userID: UUID) async throws -> BalanceSnapshot {
+        let calendar = Calendar(identifier: .iso8601)
+        let futureBoundary = calendar.date(byAdding: .day, value: 30, to: calendar.startOfDay(for: .now)) ?? .now
+        let futureBoundaryString = LocalDate.string(from: futureBoundary)
         async let wallets: [RemoteWallet] = client
             .from("wallets")
             .select("id,user_id,name,type,balance,currency,credit_limit")
@@ -31,18 +34,29 @@ final class SupabaseBalanceSyncService: BalanceSyncing, Sendable {
             .value
         async let transactions: [RemoteTransaction] = client
             .from("finance_transactions")
-            .select("id,user_id,title,note,occurred_at,status,kind,amount,destination_amount,category_id,source_account_id,destination_account_id")
+            .select("id,user_id,title,note,occurred_at,status,kind,amount,destination_amount,category_id,source_account_id,destination_account_id,schedule_id,schedule_occurrence_date")
             .eq("user_id", value: userID.uuidString)
+            .lte("occurred_at", value: futureBoundaryString)
             .order("occurred_at", ascending: false)
-            .limit(500)
+            .limit(1_000)
+            .execute()
+            .value
+        async let schedules: [RemoteSchedule] = client
+            .from("finance_transaction_schedules")
+            .select("id,user_id,title,note,start_date,frequency,interval_weeks,until_date,state,kind,amount,destination_amount,category_id,source_account_id,destination_account_id")
+            .eq("user_id", value: userID.uuidString)
+            .eq("state", value: "active")
             .execute()
             .value
 
-        let (remoteWallets, remoteAllocations, remoteTransactions) = try await (wallets, allocations, transactions)
+        let (remoteWallets, remoteAllocations, remoteTransactions, remoteSchedules) = try await (wallets, allocations, transactions, schedules)
+        let materializedOccurrences = Set(remoteTransactions.compactMap(\.scheduleOccurrenceKey))
+        let projectedTransactions = remoteTransactions.filter { $0.status != .skipped }
+            + remoteSchedules.flatMap { $0.projectedTransactions(excluding: materializedOccurrences) }
         return BalanceSnapshot(
             wallets: remoteWallets.map(\.domain),
             allocations: remoteAllocations.map(\.domain),
-            transactions: remoteTransactions.flatMap(\.domainEntries)
+            transactions: projectedTransactions.flatMap(\.domainEntries)
         )
     }
 
@@ -130,7 +144,7 @@ private struct RemoteAllocation: Decodable, Sendable {
     var domain: WalletAllocation { WalletAllocation(id: id, walletId: walletID, name: name, amount: amount, targetAmount: targetAmount) }
 }
 
-private struct RemoteTransaction: Decodable, Sendable {
+struct RemoteTransaction: Decodable, Sendable {
     let id: UUID
     let title: String
     let note: String?
@@ -142,6 +156,8 @@ private struct RemoteTransaction: Decodable, Sendable {
     let categoryID: UUID?
     let sourceAccountID: UUID?
     let destinationAccountID: UUID?
+    let scheduleID: UUID?
+    let scheduleOccurrenceDate: String?
 
     enum CodingKeys: String, CodingKey {
         case id, title, note, status, kind, amount
@@ -150,10 +166,17 @@ private struct RemoteTransaction: Decodable, Sendable {
         case categoryID = "category_id"
         case sourceAccountID = "source_account_id"
         case destinationAccountID = "destination_account_id"
+        case scheduleID = "schedule_id"
+        case scheduleOccurrenceDate = "schedule_occurrence_date"
+    }
+
+    var scheduleOccurrenceKey: String? {
+        guard let scheduleID, let scheduleOccurrenceDate else { return nil }
+        return "\(scheduleID.uuidString)|\(scheduleOccurrenceDate)"
     }
 
     var domainEntries: [Transaction] {
-        let date = parsedDate
+        let date = LocalDate.date(from: occurredAt) ?? .distantPast
         var entries: [Transaction] = []
         if let sourceAccountID {
             entries.append(Transaction(id: derivedID(for: "source"), title: title, note: note, occurredAt: date, status: status, kind: kind, amount: -amount, walletId: sourceAccountID, categoryId: categoryID))
@@ -175,9 +198,93 @@ private struct RemoteTransaction: Decodable, Sendable {
         return UUID(uuid: uuid)
     }
 
-    private var parsedDate: Date {
-        let parts = occurredAt.split(separator: "-").compactMap { Int($0) }
-        guard parts.count == 3 else { return .distantPast }
-        return Calendar(identifier: .iso8601).date(from: DateComponents(year: parts[0], month: parts[1], day: parts[2])) ?? .distantPast
+}
+
+struct RemoteSchedule: Decodable, Sendable {
+    let id: UUID
+    let title: String
+    let note: String?
+    let startDate: String
+    let frequency: String
+    let intervalWeeks: Int
+    let untilDate: String?
+    let kind: TransactionKind
+    let amount: Decimal
+    let destinationAmount: Decimal?
+    let categoryID: UUID?
+    let sourceAccountID: UUID?
+    let destinationAccountID: UUID?
+
+    enum CodingKeys: String, CodingKey {
+        case id, title, note, frequency, kind, amount
+        case startDate = "start_date"
+        case intervalWeeks = "interval_weeks"
+        case untilDate = "until_date"
+        case destinationAmount = "destination_amount"
+        case categoryID = "category_id"
+        case sourceAccountID = "source_account_id"
+        case destinationAccountID = "destination_account_id"
     }
+
+    func projectedTransactions(excluding materialized: Set<String>) -> [RemoteTransaction] {
+        let calendar = Calendar(identifier: .iso8601)
+        let lower = calendar.startOfDay(for: .now)
+        guard var occurrence = LocalDate.date(from: startDate),
+              let upper = calendar.date(byAdding: .day, value: 30, to: lower) else { return [] }
+        let end = untilDate.flatMap(LocalDate.date(from:)) ?? upper
+        var result: [RemoteTransaction] = []
+        var safetyCounter = 0
+
+        while occurrence <= min(upper, end), safetyCounter < 2_000 {
+            let dateString = LocalDate.string(from: occurrence)
+            let key = "\(id.uuidString)|\(dateString)"
+            if occurrence >= lower, !materialized.contains(key) {
+                result.append(RemoteTransaction(
+                    id: stableUUID(base: id, label: dateString), title: title, note: note,
+                    occurredAt: dateString, status: .planned, kind: kind, amount: amount,
+                    destinationAmount: destinationAmount, categoryID: categoryID,
+                    sourceAccountID: sourceAccountID, destinationAccountID: destinationAccountID,
+                    scheduleID: id, scheduleOccurrenceDate: dateString
+                ))
+            }
+            occurrence = next(after: occurrence, calendar: calendar) ?? .distantFuture
+            safetyCounter += 1
+        }
+        return result
+    }
+
+    private func next(after date: Date, calendar: Calendar) -> Date? {
+        switch frequency {
+        case "daily": calendar.date(byAdding: .day, value: 1, to: date)
+        case "weekly": calendar.date(byAdding: .weekOfYear, value: max(intervalWeeks, 1), to: date)
+        case "monthly": calendar.date(byAdding: .month, value: 1, to: date)
+        case "quarterly": calendar.date(byAdding: .month, value: 3, to: date)
+        case "yearly": calendar.date(byAdding: .year, value: 1, to: date)
+        default: nil
+        }
+    }
+}
+
+private enum LocalDate {
+    static func date(from value: String) -> Date? {
+        let parts = value.split(separator: "-").compactMap { Int($0) }
+        guard parts.count == 3 else { return nil }
+        return Calendar(identifier: .iso8601).date(from: DateComponents(year: parts[0], month: parts[1], day: parts[2]))
+    }
+
+    static func string(from date: Date) -> String {
+        let parts = Calendar(identifier: .iso8601).dateComponents([.year, .month, .day], from: date)
+        return String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
+    }
+}
+
+private func stableUUID(base: UUID, label: String) -> UUID {
+    let bytes = Array(base.uuidString.utf8) + Array(label.utf8)
+    var hash: UInt64 = 0xcbf29ce484222325
+    for byte in bytes { hash = (hash ^ UInt64(byte)) &* 0x100000001b3 }
+    var uuid = base.uuid
+    withUnsafeMutableBytes(of: &uuid) { raw in
+        for index in 0..<8 { raw[8 + index] = UInt8(truncatingIfNeeded: hash >> (index * 8)) }
+    }
+    return UUID(uuid: uuid)
 }
