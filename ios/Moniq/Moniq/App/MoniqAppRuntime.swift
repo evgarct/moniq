@@ -13,16 +13,20 @@ final class MoniqAppRuntime {
     let modelContainer: ModelContainer
     let walletRepository: any WalletRepository
     let authClient: any AuthClient
+    let balanceSync: any BalanceSyncing
     let biometricLock: BiometricLockService
     let demoMode: Bool
+    private(set) var balanceRevision = 0
 
     private init() {
         demoMode = AppConfiguration.isDemoMode
         biometricLock = BiometricLockService()
 #if DEBUG
         authClient = demoMode ? DemoAuthClient() : SupabaseAuthClient.shared
+        balanceSync = demoMode ? DemoBalanceSyncService() : SupabaseBalanceSyncService(client: SupabaseAuthClient.shared.client)
 #else
         authClient = SupabaseAuthClient.shared
+        balanceSync = SupabaseBalanceSyncService(client: SupabaseAuthClient.shared.client)
 #endif
         do {
             let configuration = ModelConfiguration(isStoredInMemoryOnly: demoMode)
@@ -41,5 +45,24 @@ final class MoniqAppRuntime {
                 assertionFailure("Failed to seed demo data: \(error)")
             }
         }
+    }
+
+    func runBalanceSync(userID: UUID) async {
+        guard !demoMode else { return }
+        await refreshBalance(userID: userID)
+        for await snapshot in balanceSync.snapshots(userID: userID) {
+            guard !Task.isCancelled else { return }
+            persist(snapshot, userID: userID)
+        }
+    }
+
+    func refreshBalance(userID: UUID) async {
+        guard !demoMode, let snapshot = try? await balanceSync.refresh(userID: userID) else { return }
+        persist(snapshot, userID: userID)
+    }
+
+    private func persist(_ snapshot: BalanceSnapshot, userID: UUID) {
+        guard (try? walletRepository.replaceSnapshot(snapshot, userID: userID)) != nil else { return }
+        balanceRevision &+= 1
     }
 }

@@ -6,6 +6,7 @@
   "routes": ["/accounts"],
   "keyActions": [
     "view wallet inventory grouped by type",
+    "render the local iPhone snapshot immediately and reconcile it with Supabase",
     "create/edit/delete a wallet",
     "select a wallet to view its register",
     "create/edit/delete a savings goal within a saving wallet",

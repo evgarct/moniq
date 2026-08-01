@@ -14,7 +14,7 @@ protocol AuthClient: Sendable {
 final class SupabaseAuthClient: AuthClient, Sendable {
     static let shared = SupabaseAuthClient()
 
-    private let client: SupabaseClient
+    let client: SupabaseClient
 
     private init() {
         guard

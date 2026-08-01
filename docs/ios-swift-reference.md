@@ -141,7 +141,9 @@ struct Transaction {
 
 ## 4. Current status
 
-The native app targets iOS 26.5+ with Swift 6 language mode. It now includes Supabase login, Debug-only demo access, Face ID session locking, PWA-aligned Today/Balance/Budget/Reports/Profile navigation, user-namespaced SwiftData, and a read-only local-first Balance inventory/register. Today, Budget, Reports and Inbox remain placeholders; CRUD and cloud synchronization remain future slices.
+The native app is iPhone-only and targets iOS 26.5+ with Swift 6 language mode. It includes Supabase login, Debug-only demo access, Face ID session locking, PWA-aligned Today/Balance/Budget/Reports/Profile navigation, user-namespaced SwiftData, and a read-only local-first Balance inventory/register. Supabase is authoritative: the app renders its SwiftData mirror immediately, reconciles wallets, allocations and transactions through the Data API, observes Realtime invalidations, and periodically re-pulls while Balance is active. Today, Budget, Reports and Inbox remain placeholders; CRUD remains a future slice.
+
+Balance follows the mobile `Pages/Balance` PWA composition directly. Financial content is warm, opaque and flat, with no content cards, dashboard blocks or glass containers; Liquid Glass is reserved for native navigation chrome and interactive controls.
 
 ## 5. Agent Guidelines & Documentation Discipline
 

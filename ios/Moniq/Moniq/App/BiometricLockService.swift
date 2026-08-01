@@ -30,7 +30,9 @@ final class BiometricLockService: BiometricLocking {
         self.defaults = defaults
         self.automationResult = automationResult ?? Self.processAutomationResult
 #if DEBUG
-        isEnabled = defaults.bool(forKey: enabledKey) || ProcessInfo.processInfo.arguments.contains("-MONIQ_FORCE_BIOMETRIC_LOCK")
+        let arguments = ProcessInfo.processInfo.arguments
+        isEnabled = arguments.contains("-MONIQ_FORCE_BIOMETRIC_LOCK")
+            || (!arguments.contains("-MONIQ_DEMO_MODE") && defaults.bool(forKey: enabledKey))
 #else
         isEnabled = defaults.bool(forKey: enabledKey)
 #endif

@@ -42,9 +42,15 @@ private struct RootView: View {
         .task {
             await loadSession()
         }
+        .task(id: userID) {
+            guard let userID else { return }
+            await runtime.runBalanceSync(userID: userID)
+        }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active, userID != nil, runtime.biometricLock.isEnabled {
                 Task { isLocked = !(await runtime.biometricLock.unlock()) }
+            } else if phase == .active, let userID {
+                Task { await runtime.refreshBalance(userID: userID) }
             } else if phase == .background, userID != nil, runtime.biometricLock.isEnabled {
                 isLocked = true
             }

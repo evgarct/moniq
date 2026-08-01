@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 import Testing
 @testable import Moniq
 
@@ -43,6 +44,24 @@ struct MoniqTests {
             transactions: []
         )
         #expect(snapshot.creditUtilization(for: walletID) == 1)
+    }
+
+    @MainActor
+    @Test func replacingSnapshotIsAtomicAndUserNamespaced() throws {
+        let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(for: WalletRecord.self, WalletAllocationRecord.self, TransactionRecord.self, configurations: configuration)
+        let repository = SwiftDataWalletRepository(context: container.mainContext)
+        let firstUser = UUID()
+        let secondUser = UUID()
+        let firstWallet = Wallet(id: UUID(), name: "First", type: .cash, balance: 10, currency: "EUR", creditLimit: nil)
+        let secondWallet = Wallet(id: UUID(), name: "Second", type: .saving, balance: 20, currency: "CZK", creditLimit: nil)
+
+        try repository.replaceSnapshot(BalanceSnapshot(wallets: [firstWallet], allocations: [], transactions: []), userID: firstUser)
+        try repository.replaceSnapshot(BalanceSnapshot(wallets: [secondWallet], allocations: [], transactions: []), userID: secondUser)
+        try repository.replaceSnapshot(.empty, userID: firstUser)
+
+        #expect(try repository.fetchSnapshot(userID: firstUser) == .empty)
+        #expect(try repository.fetchSnapshot(userID: secondUser).wallets == [secondWallet])
     }
 
     @MainActor
