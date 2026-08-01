@@ -210,7 +210,10 @@ function toReportTransaction(transaction: Transaction, categoriesById: Map<strin
   const category = transaction.category_id ? categoriesById.get(transaction.category_id) ?? null : null;
   const path = category ? getCategoryPath(category, categoriesById) : [];
   const currency = getTransactionCurrency(transaction);
-  const analyticsAmount = getTransactionAnalyticsAmount(transaction);
+  const analyticsAmount =
+    transaction.kind === "transfer"
+      ? (transaction.category_id ? Math.abs(transaction.amount) : 0)
+      : getTransactionAnalyticsAmount(transaction);
 
   return {
     id: transaction.id,
@@ -307,7 +310,7 @@ export function buildCategorySpendingReport(options: {
   const periodTransactions = options.transactions.filter(
     (transaction) =>
       transaction.status === "paid" &&
-      transaction.kind !== "transfer" &&
+      !(transaction.kind === "transfer" && !transaction.category_id) &&
       transaction.occurred_at >= period.start_date &&
       transaction.occurred_at <= period.end_date,
   );
@@ -328,7 +331,7 @@ export function buildCategorySpendingReport(options: {
     if (transaction.kind === "income") {
       totals.income_total += transaction.analytics_amount;
       totals.net += transaction.analytics_amount;
-    } else {
+    } else if (transaction.kind !== "transfer") {
       totals.expense_total += transaction.analytics_amount;
       totals.net -= transaction.analytics_amount;
     }

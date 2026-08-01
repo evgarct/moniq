@@ -86,8 +86,12 @@ export function validateTransactionRelationships(
     throw new Error("Debt payment must target a debt or credit card account.");
   }
 
-  if (values.kind === "transfer" && values.category_id) {
-    throw new Error("Transfers do not use categories.");
+  if (values.kind === "transfer" && values.category_id && !values.allocation_id) {
+    throw new Error("Only transfers into a savings goal can use a category.");
+  }
+
+  if (values.kind === "transfer" && values.allocation_id && category && category.type !== "expense") {
+    throw new Error("Savings transfers can only use an expense category.");
   }
 
   const hasInstrument = Boolean(values.investment_instrument_id);

@@ -16,6 +16,7 @@ const msgs = {
     sourceRequired: "sourceRequired",
     destinationRequired: "destinationRequired",
     categoryRequired: "categoryRequired",
+    transferNoCategory: "transferNoCategory",
     differentDestination: "differentDestination",
     debtBreakdownRequired: "debtBreakdownRequired",
     debtBreakdownMismatch: "debtBreakdownMismatch",
@@ -125,6 +126,36 @@ describe("buildSchema – add mode", () => {
       base({ kind: "transfer", source_account_id: "acc-1", destination_account_id: "acc-1", destination_amount: 100, allocation_id: "goal-1" }),
     );
     expect(result.success).toBe(true);
+  });
+
+  it("accepts a category on a transfer that carries a goal allocation_id", () => {
+    const result = schema.safeParse(
+      base({
+        kind: "transfer",
+        source_account_id: "acc-1",
+        destination_account_id: "acc-2",
+        destination_amount: 100,
+        allocation_id: "goal-1",
+        category_id: "cat-1",
+      }),
+    );
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a category on a transfer without a goal allocation_id", () => {
+    const result = schema.safeParse(
+      base({
+        kind: "transfer",
+        source_account_id: "acc-1",
+        destination_account_id: "acc-2",
+        destination_amount: 100,
+        allocation_id: null,
+        category_id: "cat-1",
+      }),
+    );
+    expect(result.success).toBe(false);
+    const msgs2 = result.error!.issues.map((i) => i.message);
+    expect(msgs2).toContain("transferNoCategory");
   });
 
   it("rejects transfer without destination_amount", () => {
@@ -387,6 +418,21 @@ describe("buildSchema – savings goal transfer validations", () => {
         destination_account_id: "acc-saving",
         allocation_id: "alloc-1",
         amount: 200, // free balance = 1000 - 400 = 600, so 200 is fine
+        destination_amount: 200,
+      }),
+    );
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts a category alongside the free-balance cap when allocation is selected", () => {
+    const result = schema.safeParse(
+      base({
+        kind: "transfer",
+        source_account_id: "acc-saving",
+        destination_account_id: "acc-saving",
+        allocation_id: "alloc-1",
+        category_id: "cat-1",
+        amount: 200,
         destination_amount: 200,
       }),
     );

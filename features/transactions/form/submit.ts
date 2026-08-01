@@ -21,7 +21,7 @@ export function normalizePayload(values: TransactionFormInputs): TransactionInpu
     principal_amount: values.kind === "debt_payment" ? (debtBreakdown?.principal_amount ?? 0) : null,
     interest_amount: values.kind === "debt_payment" ? (debtBreakdown?.interest_amount ?? 0) : null,
     extra_principal_amount: values.kind === "debt_payment" ? (debtBreakdown?.extra_principal_amount ?? 0) : null,
-    category_id: isMoveKind(values.kind) ? null : (values.category_id ?? null),
+    category_id: (isMoveKind(values.kind) && !values.allocation_id) ? null : (values.category_id ?? null),
     source_account_id: values.source_account_id ?? null,
     destination_account_id: values.destination_account_id ?? null,
     allocation_id: (values.kind === "expense" || values.kind === "transfer") ? (values.allocation_id ?? null) : null,

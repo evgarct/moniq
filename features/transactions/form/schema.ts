@@ -18,6 +18,7 @@ export type SchemaMessages = {
     sourceRequired: string;
     destinationRequired: string;
     categoryRequired: string;
+    transferNoCategory: string;
     differentDestination: string;
     debtBreakdownRequired: string;
     debtBreakdownMismatch: string;
@@ -107,6 +108,9 @@ export function buildSchema(
         !batchMode
       ) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["category_id"], message: v.categoryRequired });
+      }
+      if (values.kind === "transfer" && values.category_id && !values.allocation_id) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["category_id"], message: v.transferNoCategory });
       }
       if (batchMode) {
         if (!values.line_items.length) {
