@@ -1,19 +1,19 @@
 # Architecture — Moniq iOS
 
-Skeleton status: this document describes what's scaffolded today. Real feature data flows land incrementally, picked from the PostHog-ranked slice in `docs/features/` (web repo).
+Current status: the native foundation and first read-only finance slice are implemented. Login, biometric locking, navigation and Balance are real; Today, Budget, Reports and Inbox remain localized placeholders.
 
 ## Layers
 
-- **App** (`Moniq/App/`) — `MoniqApp` entry point; `MoniqAppRuntime` owns the process-wide singletons (SwiftData `ModelContainer`, `WalletRepository`, `SupabaseAuthClient`).
+- **App** (`Moniq/App/`) — `MoniqAppRuntime` owns the SwiftData container, repository, `AuthClient`, biometric service and Debug-only demo configuration. Root state selects launch, biometric lock, login or the authenticated tab shell.
 - **Domain** (`Moniq/Domain/`) — plain, `Sendable`, Codable types (`Wallet`, `WalletAllocation`, `Transaction`) with no persistence or networking dependency. Enum raw values match the Postgres enum string values used by the web client (see `docs/wallet-model.md`, `docs/design.md` — Transaction kinds table).
-- **Persistence** (`Moniq/Persistence/`) — SwiftData `@Model` records (`WalletRecord`, `TransactionRecord`) plus a `WalletRepository` protocol/implementation boundary. Currently a skeleton: the repository returns empty results, no sync loop exists yet.
+- **Persistence** (`Moniq/Persistence/`) — user-namespaced wallet, allocation and transaction records plus a repository that returns one immediate `BalanceSnapshot`. Demo mode uses the same repository against an in-memory store. Cloud sync and mutations are deliberately not part of this slice.
 - **Cloud** (`Moniq/Cloud/`) — `SupabaseAuthClient`, a thin wrapper around `supabase-swift` (added via SPM in `project.yml`) configured from `Config/Cloud.local.xcconfig`. Only auth (`signIn`/`signUp`/`signOut`/session check) is wired; data sync against Supabase REST/PowerSync is not implemented yet.
-- **Features** (`Moniq/Features/<Name>/`) — one folder per tab. Each currently renders `FeaturePlaceholderView` (`Moniq/Support/FeaturePlaceholderView.swift`) except `Auth`, which has a real `LoginView`.
+- **Features** (`Moniq/Features/<Name>/`) — PWA-aligned tabs are Today, Balance, Budget, Reports and Profile. Balance provides inventory and wallet register navigation; Profile provides Settings and Face ID control.
 - **Support** (`Moniq/Support/`) — cross-feature UI helpers: `MoniqTheme` (color tokens ported from `docs/design.md`), `FeaturePlaceholderView`.
 
-## Why a skeleton
+## Local-first launch contract
 
-Building all five tabs' real functionality up front would duplicate work that should instead be driven by actual usage data. PostHog was just installed in the web app (`docs/analytics.md`) and has no data yet. Once it does, `docs/features/` gets ranked by `priority`, and that ranked list decides which `FeaturePlaceholderView` gets replaced with a real screen next — see `docs/features/README.md`.
+Authenticated UI reads the user-scoped SwiftData snapshot synchronously on the main actor and renders it before any future cloud refresh. Logout deletes only the verified user's local rows and resets the Face ID preference. A future sync engine must preserve this immediate local render path and reconcile in the background.
 
 ## Data model mapping
 
@@ -21,4 +21,4 @@ Local Swift types mirror the Postgres schema 1:1 (see `docs/ios-swift-reference.
 
 ## Sync approach (planned, not yet implemented)
 
-Per `docs/ios-swift-reference.md` §3: reversible optimistic UI — mutate the local SwiftData cache first, update the UI immediately, sync in the background to Supabase, and roll back with a toast on failure. No mutation code exists yet in this skeleton.
+Per `docs/ios-swift-reference.md` §3: reversible optimistic UI will mutate the local SwiftData cache first, update the UI immediately, sync in the background to Supabase, and roll back with a toast on failure. Balance v1 is read-only, so mutation and sync-queue code do not exist yet.

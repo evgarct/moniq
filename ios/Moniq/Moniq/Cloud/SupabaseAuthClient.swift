@@ -5,7 +5,13 @@ import Supabase
 /// `MoniqSupabaseURL`/`MoniqSupabaseAnonKey` (see Config/Cloud.local.xcconfig.example).
 /// Skeleton only — auth screens call `signIn`/`signUp`/`signOut`; no session
 /// persistence/refresh wiring beyond what the SDK provides by default yet.
-final class SupabaseAuthClient: Sendable {
+protocol AuthClient: Sendable {
+    var currentSession: Session? { get async }
+    func signIn(email: String, password: String) async throws
+    func signOut() async throws
+}
+
+final class SupabaseAuthClient: AuthClient, Sendable {
     static let shared = SupabaseAuthClient()
 
     private let client: SupabaseClient
@@ -38,3 +44,11 @@ final class SupabaseAuthClient: Sendable {
         try await client.auth.signOut()
     }
 }
+
+#if DEBUG
+final class DemoAuthClient: AuthClient, Sendable {
+    var currentSession: Session? { get async { nil } }
+    func signIn(email: String, password: String) async throws {}
+    func signOut() async throws {}
+}
+#endif

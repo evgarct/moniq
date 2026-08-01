@@ -9,7 +9,7 @@
 
 - `project.yml` is the source of truth for the Xcode project. **Never commit a generated `.xcodeproj`.** After editing `project.yml`, regenerate with `xcodegen generate` (see `README.md`).
 - Visual/design rules come from the web repo's [`docs/design.md`](../../docs/design.md) — translated to SwiftUI/SF Symbols in [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md). Do not restate those rules a third time here; update the translation doc if the web canonical doc changes.
-- Feature scope/priority comes from [`docs/features/`](../../docs/features/) in the web repo. This iOS app ships as a skeleton (auth + tab navigation only) until PostHog usage data ranks which features to build next — see `docs/features/README.md`.
+- Feature scope/priority comes from [`docs/features/`](../../docs/features/) in the web repo. Balance is the first implemented native finance slice; remaining placeholders should be replaced according to product priority and PWA behavior.
 
 ## Documentation discipline
 
@@ -21,9 +21,13 @@ Before changing implementation behavior, check this folder. When changing archit
 - Use repository boundaries for persistence (`Moniq/Persistence/WalletRepository.swift`) — don't reach into SwiftData models directly from feature views.
 - Use SF Symbols, thin/ultralight weight where the web equivalent uses a raw outline icon (see `DESIGN_SYSTEM.md`).
 - Swift 6 strict concurrency is enabled (`SWIFT_STRICT_CONCURRENCY: complete` in `project.yml`) — new types crossing actor boundaries must be `Sendable` or properly isolated.
-- No Live Activities / App Intents / widget extension targets exist yet — don't add one without an explicit product decision, this is a skeleton.
+- No Live Activities / App Intents / widget extension targets exist yet — don't add one without an explicit product decision.
 
 ## Verification rules
+
+- The supported baseline is iOS 26.5+, Swift 6 language mode, and the latest stable Xcode (currently 26.6). Do not add availability fallbacks for older iOS releases.
+- For deterministic unauthenticated development and UI tests, launch Debug with `-MONIQ_DEMO_MODE`; use `-MONIQ_BIOMETRICS_SUCCESS` or `-MONIQ_BIOMETRICS_FAILURE` only in automated Debug runs. Never introduce an equivalent Release bypass.
+- Real test-user credentials belong in ignored local configuration or the test process environment, never in launch arguments, repository files, screenshots, snapshots, or logs.
 
 - This is developed from Windows; Xcode/Simulator verification requires a Mac. `scripts/remote-build.ps1` (mirroring `second_brain/scripts/remote-build.ps1`) ships a snapshot to the `muse-mac` host over SSH/scp and runs `make`/device-install targets there — same Mac and same personal-team signing identity as `second_brain`. Falls back to the `ANQUI_*` env vars (`ANQUI_MAC_HOST`, `ANQUI_DEVICE_ID`, `ANQUI_DEVELOPMENT_TEAM`) when `MONIQ_*` ones aren't set, since it's the same account/host.
 - **Do not claim Storybook-first verification for this project — it's native Swift, not the web app.** Verify via SwiftUI Previews and/or `.\scripts\remote-build.ps1 -Target build-ios` / `-Target test-ios`. Do not report a build/run/test result that has not actually been checked.

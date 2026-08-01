@@ -2,7 +2,7 @@ name: Moniq
 options:
   bundleIdPrefix: com.evgarct
   deploymentTarget:
-    iOS: "18.0"
+    iOS: "26.5"
   minimumXcodeGenVersion: 2.45.4
 settings:
   base:
@@ -27,6 +27,7 @@ targets:
       properties:
         MoniqSupabaseURL: "$(MONIQ_SUPABASE_URL)"
         MoniqSupabaseAnonKey: "$(MONIQ_SUPABASE_ANON_KEY)"
+        NSFaceIDUsageDescription: "Moniq uses Face ID to unlock your saved session."
     dependencies:
       - package: Supabase
     settings:

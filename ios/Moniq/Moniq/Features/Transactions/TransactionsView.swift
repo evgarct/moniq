@@ -4,6 +4,6 @@ import SwiftUI
 /// picked from the PostHog-ranked feature slice. See docs/ios-swift-reference.md.
 struct TransactionsView: View {
     var body: some View {
-        FeaturePlaceholderView(title: "Transactions", systemImage: "list.bullet.rectangle")
+        FeaturePlaceholderView(title: "transactions.title", systemImage: "list.bullet.rectangle")
     }
 }
