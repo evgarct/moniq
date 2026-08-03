@@ -18,6 +18,7 @@ const denseSavingsAllocations: WalletAllocation[] = denseReserve
         kind: "goal_open",
         amount: 2600,
         target_amount: null,
+        is_default: true,
         created_at: denseReserve.created_at,
         updated_at: denseReserve.created_at,
       },
@@ -111,6 +112,7 @@ export const DenseSavingsBuckets: Story = {
     await expect(canvas.getByText("Euro Reserve")).toBeInTheDocument();
     await expect(canvas.getByText("Emergency fund")).toBeInTheDocument();
     await expect(canvas.getByText("Quarterly taxes")).toBeInTheDocument();
+    await expect(canvas.getByText("Default")).toBeInTheDocument();
   },
 };
 

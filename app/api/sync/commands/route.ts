@@ -115,7 +115,10 @@ async function executeCommand(command: SyncCommand) {
     case "schedule.delete": return deleteTransactionSchedule(command.targetId!);
     case "allocation.create": return createWalletAllocation(z.string().uuid().parse(payload.walletId), walletAllocationInputSchema.parse(payload.values), command.targetId!);
     case "allocation.update": return updateWalletAllocation(command.targetId!, walletAllocationInputSchema.parse(payload));
-    case "allocation.delete": return deleteWalletAllocation(command.targetId!);
+    case "allocation.delete": return deleteWalletAllocation(
+      command.targetId!,
+      typeof command.payload.replacementAllocationId === "string" ? command.payload.replacementAllocationId : null,
+    );
     case "preferences.update": return updateUserPreferences(userPreferencesInputSchema.parse(payload));
   }
 }

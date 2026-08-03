@@ -6,10 +6,12 @@ import { Eye, EyeOff, Info, WalletCards } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { AccountList } from "@/components/account-list";
+import { FormField, FormSheet, FormSheetBody } from "@/components/form-sheet";
 import { PageHeader } from "@/components/page-header";
 import { PageHeaderIconButton } from "@/components/page-header-icon-button";
 import { TransactionList } from "@/components/transaction-list";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AccountFormSheet } from "@/features/accounts/components/account-form-sheet";
 import { BalanceRegisterHeader, BalanceRegisterPanel } from "@/features/accounts/components/balance-register-panel";
 import { useFinanceActions } from "@/features/finance/hooks/use-finance-actions";
@@ -70,9 +72,20 @@ export function AccountsView({
   const [selectedInvestmentId, setSelectedInvestmentId] = useState<string | null>(null);
   const [investmentSheetOpen, setInvestmentSheetOpen] = useState(false);
   const [purchaseInstrumentId, setPurchaseInstrumentId] = useState<string | null>(null);
+  const [deletingDefaultGoal, setDeletingDefaultGoal] = useState<WalletAllocation | null>(null);
+  const [replacementGoalId, setReplacementGoalId] = useState("");
 
   function deleteGoalOptimistic(allocationId: string) {
-    financeActions.deleteAllocation(allocationId, {
+    const allocation = allocations.find((item) => item.id === allocationId);
+    const replacement = allocation?.is_default
+      ? allocations.find((item) => item.wallet_id === allocation.wallet_id && item.id !== allocation.id)
+      : null;
+    if (allocation?.is_default && replacement) {
+      setDeletingDefaultGoal(allocation);
+      setReplacementGoalId(replacement.id);
+      return;
+    }
+    financeActions.deleteAllocation(allocationId, null, {
       onError: () => setActionError(t("messages.saveWalletError")),
     });
   }
@@ -532,6 +545,39 @@ export function AccountsView({
           setActionError(null);
         }}
       />
+
+      <FormSheet
+        open={Boolean(deletingDefaultGoal)}
+        onOpenChange={(open) => {
+          if (!open) setDeletingDefaultGoal(null);
+        }}
+        title={t("goals.deleteDefault.title")}
+        description={t("goals.deleteDefault.description")}
+        submitLabel={t("goals.deleteDefault.submit")}
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (!deletingDefaultGoal || !replacementGoalId) return;
+          financeActions.deleteAllocation(deletingDefaultGoal.id, replacementGoalId, {
+            onError: () => setActionError(t("messages.saveWalletError")),
+          });
+          setDeletingDefaultGoal(null);
+        }}
+      >
+        <FormSheetBody>
+          <FormField label={t("goals.deleteDefault.replacementLabel")}>
+            <Select value={replacementGoalId} onValueChange={(value) => setReplacementGoalId(value ?? "")}>
+              <SelectTrigger aria-label={t("goals.deleteDefault.replacementLabel")}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {allocations
+                  .filter((item) => item.wallet_id === deletingDefaultGoal?.wallet_id && item.id !== deletingDefaultGoal?.id)
+                  .map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </FormField>
+        </FormSheetBody>
+      </FormSheet>
     </>
   );
 }

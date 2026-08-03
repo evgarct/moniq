@@ -5,6 +5,7 @@ import * as React from "react";
 import { Button } from "@/components/ui/button";
 import {
   Field,
+  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
@@ -112,12 +113,14 @@ export function FormField({
   id,
   label,
   error,
+  description,
   children,
   className,
 }: {
   id?: string;
   label: React.ReactNode;
   error?: FieldErrorLike;
+  description?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
 }) {
@@ -127,6 +130,7 @@ export function FormField({
     <Field data-invalid={invalid} className={className}>
       {id ? <FieldLabel htmlFor={id}>{label}</FieldLabel> : <FieldTitle>{label}</FieldTitle>}
       {children}
+      {description ? <FieldDescription>{description}</FieldDescription> : null}
       <FieldError errors={error ? [error] : undefined} />
     </Field>
   );

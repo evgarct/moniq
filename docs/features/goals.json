@@ -2,7 +2,7 @@
   "id": "goals",
   "name": "Savings Goals",
   "domain": "goals",
-  "description": "Logical reservations (open or targeted) inside a savings wallet's balance, plus the computed 'Free' remainder bucket. Goals never change the wallet balance itself.",
+  "description": "Logical reservations inside a savings wallet, with one default goal funding auditable fallback releases after the computed Free remainder is exhausted.",
   "routes": [],
   "keyActions": [
     "create/edit/delete a savings goal",

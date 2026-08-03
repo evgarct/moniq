@@ -24,6 +24,8 @@ Moniq now models wallets around four user-facing types.
   - `free = saving.balance - sum(all user-created goals)`
 - It cannot be renamed or deleted.
 - If money is taken from savings without choosing a goal, it should come from `Free`.
+- If `Free` is insufficient, the remainder comes from the wallet's single default goal and is recorded as a linked system transfer from that goal to Savings.
+- If the default goal cannot cover the remainder, the complete operation is rejected; other goals are never consumed automatically.
 
 ## Goal Types
 

@@ -16,7 +16,7 @@ import {
 import { getRequestTranslator } from "@/i18n/translator";
 import { createAnonClient } from "@/lib/supabase/anon";
 import type { CurrencyCode } from "@/types/currency";
-import type { Account, Category, Transaction } from "@/types/finance";
+import type { Account, Category, Transaction, WalletAllocation } from "@/types/finance";
 import { getMcpWwwAuthenticate } from "./auth-metadata";
 import {
   MONIQ_WIDGET_MIME_TYPE,
@@ -295,6 +295,15 @@ type TransactionRow = {
   schedule_occurrence_date: string | null;
   is_schedule_override: boolean | null;
   allocation_id: string | null;
+  source_allocation_id: string | null;
+  linked_transaction_id: string | null;
+  system_generated: boolean | null;
+};
+
+type AllocationRow = Pick<WalletAllocation, "id" | "wallet_id" | "name" | "kind"> & {
+  amount: number | string;
+  target_amount: number | string | null;
+  is_default: boolean;
 };
 
 // ---------------------------------------------------------------------------
@@ -997,6 +1006,7 @@ function getMcpTools() {
               kind: { type: "string", title: "Kind", enum: ["goal_open", "goal_targeted"], description: "Goal kind: goal_open (no specific target) or goal_targeted (requires target_amount)." },
               amount: { type: "number", title: "Amount", description: "Currently allocated starting amount (>= 0)." },
               target_amount: { type: ["number", "null"], title: "Target Amount", description: "Targeted amount for targeted goals." },
+              is_default: { type: "boolean", title: "Default goal", description: "Use this goal when Free is exhausted." },
             },
           },
         },
@@ -1017,6 +1027,7 @@ function getMcpTools() {
               kind: { type: "string", title: "Kind", enum: ["goal_open", "goal_targeted"], description: "Goal kind: goal_open or goal_targeted." },
               amount: { type: "number", title: "Amount", description: "Allocated amount (>= 0)." },
               target_amount: { type: ["number", "null"], title: "Target Amount", description: "Targeted amount." },
+              is_default: { type: "boolean", title: "Default goal" },
             },
           },
         },
@@ -1033,6 +1044,7 @@ function getMcpTools() {
             additionalProperties: false,
             properties: {
               goal_id: { type: "string", title: "Goal ID", description: "The savings goal ID to delete." },
+              replacement_goal_id: { type: ["string", "null"], title: "Replacement default goal" },
             },
           },
         },
@@ -1329,6 +1341,7 @@ function mapTransaction(
   options: {
     accountsById: Map<string, Account>;
     categoriesById: Map<string, Category>;
+    allocationsById: Map<string, WalletAllocation>;
   },
 ): Transaction {
   return {
@@ -1357,7 +1370,11 @@ function mapTransaction(
     source_account: row.source_account_id ? options.accountsById.get(row.source_account_id) ?? null : null,
     destination_account: row.destination_account_id ? options.accountsById.get(row.destination_account_id) ?? null : null,
     schedule: null,
-    allocation: null,
+    allocation: row.allocation_id ? options.allocationsById.get(row.allocation_id) ?? null : null,
+    source_allocation_id: row.source_allocation_id ?? null,
+    source_allocation: row.source_allocation_id ? options.allocationsById.get(row.source_allocation_id) ?? null : null,
+    linked_transaction_id: row.linked_transaction_id ?? null,
+    system_generated: row.system_generated ?? false,
   };
 }
 
@@ -1425,13 +1442,23 @@ async function handleCategorySpendingReportTool(
     wallets?: WalletRow[];
     categories?: CategoryRow[];
     transactions?: TransactionRow[];
+    allocations?: AllocationRow[];
   };
   const accounts = (source.wallets ?? []).map(mapWallet);
   const categories = (source.categories ?? []).map(mapCategory).filter((c) => !c.is_system);
   const accountsById = new Map(accounts.map((account) => [account.id, account]));
   const categoriesById = new Map(categories.map((category) => [category.id, category]));
+  const allocations = (source.allocations ?? []).map((allocation): WalletAllocation => ({
+    ...allocation,
+    user_id: "",
+    amount: Number(allocation.amount),
+    target_amount: allocation.target_amount === null ? null : Number(allocation.target_amount),
+    created_at: "",
+    updated_at: "",
+  }));
+  const allocationsById = new Map(allocations.map((allocation) => [allocation.id, allocation]));
   const transactions = (source.transactions ?? [])
-    .map((transaction) => mapTransaction(transaction, { accountsById, categoriesById }))
+    .map((transaction) => mapTransaction(transaction, { accountsById, categoriesById, allocationsById }))
     .filter((transaction) => !transaction.category_id || categoriesById.has(transaction.category_id));
 
   let report: ReturnType<typeof buildCategorySpendingReport>;
@@ -2514,6 +2541,7 @@ async function handleCreateSavingsGoal(
   const kind = optionalString(args.kind);
   const amount = typeof args.amount === "number" ? args.amount : 0;
   const targetAmount = typeof args.target_amount === "number" ? args.target_amount : null;
+  const isDefault = args.is_default === true;
 
   if (!walletId) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.walletIdRequired") } };
   if (!name) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.goalNameRequired") } };
@@ -2529,6 +2557,7 @@ async function handleCreateSavingsGoal(
     p_kind: kind,
     p_amount: amount,
     p_target_amount: targetAmount,
+    p_is_default: isDefault,
   });
 
   if (error || !data) {
@@ -2566,6 +2595,7 @@ async function handleUpdateSavingsGoal(
   const kind = optionalString(args.kind);
   const amount = typeof args.amount === "number" ? args.amount : 0;
   const targetAmount = typeof args.target_amount === "number" ? args.target_amount : null;
+  const isDefault = args.is_default === true;
 
   if (!allocationId) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.goalIdRequired") } };
   if (!name) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.goalNameRequired") } };
@@ -2581,6 +2611,7 @@ async function handleUpdateSavingsGoal(
     p_kind: kind,
     p_amount: amount,
     p_target_amount: targetAmount,
+    p_is_default: isDefault,
   });
 
   if (error || !data) {
@@ -2614,6 +2645,7 @@ async function handleDeleteSavingsGoal(
 ): Promise<McpResponse> {
   const args = (params.arguments ?? {}) as Record<string, unknown>;
   const allocationId = optionalString(args.goal_id);
+  const replacementAllocationId = optionalString(args.replacement_goal_id);
 
   if (!allocationId) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.goalIdRequired") } };
 
@@ -2621,6 +2653,7 @@ async function handleDeleteSavingsGoal(
   const { data, error } = await db.rpc("mcp_delete_wallet_allocation", {
     p_key_hash: keyHash,
     p_allocation_id: allocationId,
+    p_replacement_allocation_id: replacementAllocationId,
   });
 
   if (error || !data) {

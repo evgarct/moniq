@@ -169,6 +169,10 @@ export type Transaction = {
   schedule: TransactionSchedule | null;
   allocation_id: string | null;
   allocation: WalletAllocation | null;
+  source_allocation_id?: string | null;
+  source_allocation?: WalletAllocation | null;
+  linked_transaction_id?: string | null;
+  system_generated?: boolean;
   investment_instrument_id?: string | null;
   investment_units?: number | null;
   investment_instrument?: InvestmentInstrument | null;
@@ -185,6 +189,7 @@ export type WalletAllocation = {
   kind: WalletAllocationKind;
   amount: number;
   target_amount: number | null;
+  is_default?: boolean;
   created_at: string;
   updated_at: string;
   sync_version?: number;

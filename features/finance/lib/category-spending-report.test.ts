@@ -265,9 +265,9 @@ describe("buildCategorySpendingReport", () => {
       start_date: "2026-04-01",
       end_date: "2026-04-30",
       label: "April 2026",
-      transaction_count: 4,
+      transaction_count: 5,
       currencies: [
-        { currency: "CZK", income_total: 1000, expense_total: 400, net: 600, transaction_count: 3 },
+        { currency: "CZK", income_total: 1000, expense_total: 400, net: 600, transaction_count: 4 },
         { currency: "EUR", income_total: 0, expense_total: 20, net: -20, transaction_count: 1 },
       ],
     });
@@ -342,6 +342,10 @@ describe("buildCategorySpendingReport", () => {
       { currency: "CZK", amount: 300, percent_of_income: 30, percent_of_total_expenses: 120 },
     ]);
     expect(wealth?.transactions.map((item) => item.id)).toEqual(["goal-transfer-categorized"]);
+    expect(report.transfers.map((item) => item.id)).toEqual([
+      "goal-transfer-categorized",
+      "goal-transfer-uncategorized",
+    ]);
   });
 
   it("returns uncategorized paid income and expenses", () => {

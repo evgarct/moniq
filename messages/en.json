@@ -535,6 +535,7 @@
       "noTransactionsForWallet": "No transactions for this wallet yet. Transactions will appear here once they occur.",
       "deleteWalletConfirm": "Delete wallet \"{name}\"?",
       "saveWalletError": "Unable to save wallet.",
+      "chooseReplacementDefault": "Choose another default goal before deleting the current default.",
       "deleteWalletError": "Unable to delete wallet."
     },
     "form": {
@@ -562,9 +563,16 @@
       }
     },
     "goals": {
+      "deleteDefault": {
+        "title": "Choose a replacement goal",
+        "description": "The selected goal becomes the default in the same operation that deletes the current default.",
+        "replacementLabel": "New default goal",
+        "submit": "Replace and delete"
+      },
       "panel": {
         "title": "Goals",
         "free": "Free",
+        "default": "Default",
         "over": "over",
         "actions": {
           "add": "Add goal",
@@ -579,7 +587,9 @@
           "name": "Name",
           "type": "Type",
           "currentAmount": "Current amount",
-          "targetAmount": "Target amount"
+          "targetAmount": "Target amount",
+          "defaultGoal": "Use for automatic withdrawals",
+          "defaultGoalDescription": "When Free is exhausted, withdrawals continue from this goal."
         },
         "placeholders": {
           "name": "e.g. Rent, Vacation, Emergency fund"

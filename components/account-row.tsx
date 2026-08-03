@@ -220,6 +220,11 @@ export function AccountRow({
                           <span className="truncate text-[12px] leading-[18px] font-medium text-foreground sm:text-[13px]">
                             {allocation.name}
                           </span>
+                          {allocation.is_default ? (
+                            <span className="type-body-12 shrink-0 text-muted-foreground">
+                              {t("goals.panel.default")}
+                            </span>
+                          ) : null}
                         </div>
 
                         <div className="flex items-center justify-end">

@@ -33,6 +33,10 @@ export type CategorySpendingTransaction = {
   source_account_name: string | null;
   destination_account_id: string | null;
   destination_account_name: string | null;
+  source_allocation_id: string | null;
+  source_allocation_name: string | null;
+  linked_transaction_id: string | null;
+  system_generated: boolean;
 };
 
 export type CategorySpendingCurrencyTotal = {
@@ -88,6 +92,7 @@ export type CategorySpendingReport = {
   envelopes: CategorySpendingNode[];
   income_categories: CategorySpendingNode[];
   uncategorized: UncategorizedSpendingGroup[];
+  transfers: CategorySpendingTransaction[];
 };
 
 type ReportTransaction = CategorySpendingTransaction;
@@ -232,6 +237,10 @@ function toReportTransaction(transaction: Transaction, categoriesById: Map<strin
     source_account_name: transaction.source_account?.name ?? null,
     destination_account_id: transaction.destination_account_id,
     destination_account_name: transaction.destination_account?.name ?? null,
+    source_allocation_id: transaction.source_allocation_id ?? null,
+    source_allocation_name: transaction.source_allocation?.name ?? null,
+    linked_transaction_id: transaction.linked_transaction_id ?? null,
+    system_generated: transaction.system_generated ?? false,
   };
 }
 
@@ -310,7 +319,6 @@ export function buildCategorySpendingReport(options: {
   const periodTransactions = options.transactions.filter(
     (transaction) =>
       transaction.status === "paid" &&
-      !(transaction.kind === "transfer" && !transaction.category_id) &&
       transaction.occurred_at >= period.start_date &&
       transaction.occurred_at <= period.end_date,
   );
@@ -372,6 +380,7 @@ export function buildCategorySpendingReport(options: {
   });
 
   const currencies = sortCurrencyTotals(Array.from(currencyTotals.values()));
+  const transfers = reportTransactions.filter((transaction) => transaction.kind === "transfer");
 
   return {
     period,
@@ -390,6 +399,7 @@ export function buildCategorySpendingReport(options: {
     envelopes,
     income_categories: incomeCategories,
     uncategorized,
+    transfers,
   };
 }
 

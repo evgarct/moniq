@@ -582,16 +582,19 @@ export function useFinanceActions() {
         }),
       );
     },
-    deleteAllocation(allocationId: string, options?: ActionOptions) {
+    deleteAllocation(allocationId: string, replacementAllocationId: string | null = null, options?: ActionOptions) {
       return execute(
         {
           apply: (snapshot, resolveId) =>
             deleteAllocation(snapshot, resolveRequiredId(resolveId, allocationId)),
           request: (resolveId) =>
-            deleteWalletAllocationRequest(resolveRequiredId(resolveId, allocationId)),
+            deleteWalletAllocationRequest(
+              resolveRequiredId(resolveId, allocationId),
+              resolveOptionalId(resolveId, replacementAllocationId),
+            ),
         },
         options,
-        (resolveId) => ({ type: "allocation.delete", targetId: resolveRequiredId(resolveId, allocationId), baseVersion: entityVersion("allocation", allocationId), payload: {} }),
+        (resolveId) => ({ type: "allocation.delete", targetId: resolveRequiredId(resolveId, allocationId), baseVersion: entityVersion("allocation", allocationId), payload: { replacementAllocationId: resolveOptionalId(resolveId, replacementAllocationId) } }),
       );
     },
     updatePreferences(values: UserPreferencesInput, options?: ActionOptions) {
