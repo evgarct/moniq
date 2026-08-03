@@ -364,8 +364,9 @@ export async function updateWalletAllocationRequest(allocationId: string, values
   return parseJsonResponse<FinanceSnapshot>(response);
 }
 
-export async function deleteWalletAllocationRequest(allocationId: string): Promise<FinanceSnapshot> {
-  const response = await fetchWithTimeout(`/api/allocations/${allocationId}`, {
+export async function deleteWalletAllocationRequest(allocationId: string, replacementAllocationId: string | null = null): Promise<FinanceSnapshot> {
+  const query = replacementAllocationId ? `?replacement_allocation_id=${encodeURIComponent(replacementAllocationId)}` : "";
+  const response = await fetchWithTimeout(`/api/allocations/${allocationId}${query}`, {
     method: "DELETE",
     credentials: "include",
   });

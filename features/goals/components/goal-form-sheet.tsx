@@ -9,10 +9,11 @@ import { z } from "zod";
 import { FormField, FormSheet, FormSheetBody } from "@/components/form-sheet";
 import { MoneyInput } from "@/components/money-input";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 import type { WalletAllocation, WalletAllocationKind } from "@/types/finance";
-import type { WalletAllocationInput, WalletAllocationInputValues } from "@/types/finance-schemas";
+import type { WalletAllocationInput } from "@/types/finance-schemas";
 
 const allocationKinds = ["goal_open", "goal_targeted"] satisfies [WalletAllocationKind, ...WalletAllocationKind[]];
 
@@ -35,6 +36,7 @@ export function GoalFormSheet({
     kind: z.enum(allocationKinds),
     amount: z.number().min(0, t("validation.amountMin")),
     target_amount: z.number().positive(t("validation.targetPositive")).nullable().optional(),
+    is_default: z.boolean(),
   }).superRefine((data, ctx) => {
     if (data.kind === "goal_targeted" && !data.target_amount) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["target_amount"], message: t("validation.targetRequired") });
@@ -43,13 +45,14 @@ export function GoalFormSheet({
     ...data,
     target_amount: data.kind === "goal_targeted" ? (data.target_amount ?? null) : null,
   }));
-  const form = useForm<WalletAllocationInputValues, undefined, WalletAllocationInput>({
+  const form = useForm<z.input<typeof goalFormSchema>, undefined, WalletAllocationInput>({
     resolver: zodResolver(goalFormSchema),
     defaultValues: {
       name: allocation?.name ?? "",
       kind: allocation?.kind ?? "goal_open",
       amount: allocation?.amount ?? 0,
       target_amount: allocation?.target_amount ?? null,
+      is_default: allocation?.is_default ?? false,
     },
   });
 
@@ -59,6 +62,7 @@ export function GoalFormSheet({
       kind: allocation?.kind ?? "goal_open",
       amount: allocation?.amount ?? 0,
       target_amount: allocation?.target_amount ?? null,
+      is_default: allocation?.is_default ?? false,
     });
   }, [allocation, form, open]);
 
@@ -156,6 +160,24 @@ export function GoalFormSheet({
             />
           </FormField>
         ) : null}
+
+        <Controller
+          control={form.control}
+          name="is_default"
+          render={({ field }) => (
+            <FormField
+              label={t("fields.defaultGoal")}
+              description={t("fields.defaultGoalDescription")}
+            >
+              <Switch
+                aria-label={t("fields.defaultGoal")}
+                checked={field.value}
+                disabled={Boolean(allocation?.is_default)}
+                onCheckedChange={field.onChange}
+              />
+            </FormField>
+          )}
+        />
       </FormSheetBody>
     </FormSheet>
   );

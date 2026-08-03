@@ -77,6 +77,9 @@ type TransactionRow = {
   schedule_occurrence_date: string | null;
   is_schedule_override: boolean | null;
   allocation_id: string | null;
+  source_allocation_id: string | null;
+  linked_transaction_id: string | null;
+  system_generated: boolean | null;
   investment_instrument_id: string | null;
   investment_units: number | string | null;
   sync_version: number | string;
@@ -499,7 +502,7 @@ export async function getFinanceSnapshot(
       .order("created_at", { ascending: false }),
     supabase
       .from("wallet_allocations")
-      .select("id, user_id, wallet_id, name, kind, amount, target_amount, created_at, updated_at, sync_version")
+      .select("id, user_id, wallet_id, name, kind, amount, target_amount, is_default, created_at, updated_at, sync_version")
       .eq("user_id", user.id)
       .order("created_at", { ascending: true }),
   ]);
@@ -539,6 +542,7 @@ export async function getFinanceSnapshot(
     kind: a.kind as WalletAllocationKind,
     amount: Number(a.amount),
     target_amount: a.target_amount != null ? Number(a.target_amount) : null,
+    is_default: Boolean(a.is_default),
     created_at: a.created_at as string,
     updated_at: a.updated_at as string,
     sync_version: Number(a.sync_version ?? 1),
@@ -584,7 +588,7 @@ export async function getFinanceSnapshot(
     const { data, error } = await supabase
       .from("finance_transactions")
       .select(
-        "id, user_id, title, note, occurred_at, created_at, status, kind, amount, destination_amount, fx_rate, principal_amount, interest_amount, extra_principal_amount, category_id, source_account_id, destination_account_id, schedule_id, schedule_occurrence_date, is_schedule_override, allocation_id, investment_instrument_id, investment_units, sync_version",
+        "id, user_id, title, note, occurred_at, created_at, status, kind, amount, destination_amount, fx_rate, principal_amount, interest_amount, extra_principal_amount, category_id, source_account_id, destination_account_id, schedule_id, schedule_occurrence_date, is_schedule_override, allocation_id, source_allocation_id, linked_transaction_id, system_generated, investment_instrument_id, investment_units, sync_version",
       )
       .eq("user_id", user.id)
       .in("schedule_id", activeScheduleIds)
@@ -625,7 +629,7 @@ export async function getFinanceSnapshot(
   const { data: transactions, error: transactionError } = await supabase
     .from("finance_transactions")
     .select(
-      "id, user_id, title, note, occurred_at, created_at, status, kind, amount, destination_amount, fx_rate, principal_amount, interest_amount, extra_principal_amount, category_id, source_account_id, destination_account_id, schedule_id, schedule_occurrence_date, is_schedule_override, allocation_id, investment_instrument_id, investment_units, sync_version",
+      "id, user_id, title, note, occurred_at, created_at, status, kind, amount, destination_amount, fx_rate, principal_amount, interest_amount, extra_principal_amount, category_id, source_account_id, destination_account_id, schedule_id, schedule_occurrence_date, is_schedule_override, allocation_id, source_allocation_id, linked_transaction_id, system_generated, investment_instrument_id, investment_units, sync_version",
     )
     .eq("user_id", user.id)
     .or(`occurred_at.gte.${transactionCutoff},status.eq.planned,investment_instrument_id.not.is.null`)
@@ -715,6 +719,10 @@ export async function getFinanceSnapshot(
       source_account: row.source_account_id ? accountsById.get(row.source_account_id) ?? null : null,
       destination_account: row.destination_account_id ? accountsById.get(row.destination_account_id) ?? null : null,
       allocation: row.allocation_id ? allocationsById.get(row.allocation_id) ?? null : null,
+      source_allocation_id: row.source_allocation_id ?? null,
+      source_allocation: row.source_allocation_id ? allocationsById.get(row.source_allocation_id) ?? null : null,
+      linked_transaction_id: row.linked_transaction_id ?? null,
+      system_generated: row.system_generated ?? false,
       investment_instrument_id: row.investment_instrument_id,
       investment_units: row.investment_units === null ? null : Number(row.investment_units),
       investment_instrument: row.investment_instrument_id
@@ -880,6 +888,7 @@ export async function createWalletAllocation(walletId: string, values: WalletAll
         _kind: values.kind,
         _amount: values.amount,
         _target_amount: values.target_amount ?? null,
+        _is_default: values.is_default,
       })
     : await supabase.rpc("create_wallet_allocation", {
         _wallet_id: walletId,
@@ -887,6 +896,7 @@ export async function createWalletAllocation(walletId: string, values: WalletAll
         _kind: values.kind,
         _amount: values.amount,
         _target_amount: values.target_amount ?? null,
+        _is_default: values.is_default,
       });
 
   if (error) {
@@ -904,6 +914,7 @@ export async function updateWalletAllocation(allocationId: string, values: Walle
     _kind: values.kind,
     _amount: values.amount,
     _target_amount: values.target_amount ?? null,
+    _is_default: values.is_default,
   });
 
   if (error) {
@@ -913,10 +924,11 @@ export async function updateWalletAllocation(allocationId: string, values: Walle
   return getFinanceSnapshot();
 }
 
-export async function deleteWalletAllocation(allocationId: string): Promise<FinanceSnapshot> {
+export async function deleteWalletAllocation(allocationId: string, replacementAllocationId: string | null = null): Promise<FinanceSnapshot> {
   const { supabase } = await getAuthenticatedSupabase();
   const { error } = await supabase.rpc("delete_wallet_allocation", {
     _allocation_id: allocationId,
+    _replacement_allocation_id: replacementAllocationId,
   });
 
   if (error) {

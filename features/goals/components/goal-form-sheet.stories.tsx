@@ -12,6 +12,7 @@ const targetedGoal: WalletAllocation = {
   kind: "goal_targeted",
   amount: 1200,
   target_amount: 3000,
+  is_default: true,
   created_at: "2026-04-01T10:00:00.000Z",
   updated_at: "2026-04-20T10:00:00.000Z",
 };

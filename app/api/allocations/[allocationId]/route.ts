@@ -26,8 +26,9 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ a
     try {
       await requireMutationEntitlementForRequest(request);
       const { allocationId } = await params;
+      const replacementAllocationId = new URL(request.url).searchParams.get("replacement_allocation_id");
       return NextResponse.json(
-        await withMutationPerformance(request, "delete_wallet_allocation", () => deleteWalletAllocation(allocationId)),
+        await withMutationPerformance(request, "delete_wallet_allocation", () => deleteWalletAllocation(allocationId, replacementAllocationId)),
       );
     } catch (error) {
       return financeErrorResponse(request, error, "common.errors.wallet.delete");

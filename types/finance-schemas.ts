@@ -274,6 +274,7 @@ export const walletAllocationInputSchema = z.object({
   kind: z.enum(["goal_open", "goal_targeted"] satisfies [WalletAllocationKind, ...WalletAllocationKind[]]),
   amount: z.number().min(0, "Amount cannot be negative."),
   target_amount: z.number().positive("Target must be greater than 0.").nullable().optional(),
+  is_default: z.boolean().default(false),
 }).superRefine((data, ctx) => {
   if (data.kind === "goal_targeted" && !data.target_amount) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["target_amount"], message: "Target amount is required for targeted goals." });

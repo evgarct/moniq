@@ -166,7 +166,10 @@ Users cannot edit:
 ### Withdraw / Reassign Mental Model
 
 - Withdrawing money from savings should default to `free`.
-- If product later supports withdrawing from a goal directly, that should be an explicit choice, not an implicit side effect.
+- Every savings wallet with goals has exactly one default goal. Its first goal becomes default automatically; users can explicitly move the default designation.
+- When a paid operation reduces a savings wallet below its `free` amount, only the shortfall is released from the default goal. If `free + default goal` is insufficient, the operation fails atomically and other goals remain unchanged.
+- Each automatic release is stored as an immutable linked transfer from the default goal to the parent Savings wallet. Editing, reversing, or deleting the parent operation reconciles that transfer in the same database transaction.
+- Explicit withdrawals from a selected goal remain explicit and do not invoke the default fallback.
 - Reassigning money between goals should preserve the parent wallet balance and only move reserved amounts between savings children.
 
 ## Screen States
@@ -231,6 +234,7 @@ Likely touched areas:
 - A targeted goal shows current and target amounts plus progress.
 - An open goal shows current amount without target progress.
 - The sum of all user-managed goals cannot exceed the savings wallet balance.
+- Lowering a savings balance never silently trims arbitrary goals.
 - Editing or deleting a goal updates the computed `free` amount immediately.
 - Converting a savings wallet to a non-saving wallet removes all user-managed savings goals according to the existing wallet-type invariant.
 - Existing savings allocations migrate to `goal_open` behavior without data loss.

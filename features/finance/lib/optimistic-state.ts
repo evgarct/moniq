@@ -54,52 +54,10 @@ export function enforceAllocationsLimit(snapshot: FinanceSnapshot, walletId: str
   const walletAllocations = snapshot.allocations.filter((a) => a.wallet_id === walletId);
   const totalAllocated = walletAllocations.reduce((sum, a) => sum + a.amount, 0);
 
-  if (totalAllocated <= wallet.balance) return snapshot;
-
-  // Sort allocations by updated_at desc, created_at desc so that we reduce the newest/most recently updated ones first.
-  const sortedAllocations = [...walletAllocations].sort((a, b) => {
-    const timeA = new Date(a.updated_at || a.created_at).getTime();
-    const timeB = new Date(b.updated_at || b.created_at).getTime();
-    return timeB - timeA;
-  });
-
-  let excess = totalAllocated - wallet.balance;
-  const reducedAmounts = new Map<string, number>();
-
-  for (const allocation of sortedAllocations) {
-    if (excess <= 0) break;
-    const reduction = Math.min(allocation.amount, excess);
-    reducedAmounts.set(allocation.id, allocation.amount - reduction);
-    excess -= reduction;
+  if (totalAllocated > wallet.balance) {
+    throw new Error("Savings balance cannot be lower than its reserved goals.");
   }
-
-  const nextSnapshot = {
-    ...snapshot,
-    allocations: snapshot.allocations.map((a) => {
-      if (reducedAmounts.has(a.id)) {
-        return {
-          ...a,
-          amount: reducedAmounts.get(a.id)!,
-          updated_at: new Date().toISOString(),
-        };
-      }
-      return a;
-    }),
-  };
-
-  // Keep nested allocations on transaction records in sync
-  const nextAllocationsMap = new Map(nextSnapshot.allocations.map((a) => [a.id, a]));
-  nextSnapshot.transactions = nextSnapshot.transactions.map((t) => {
-    if (t.allocation_id && nextAllocationsMap.has(t.allocation_id)) {
-      return {
-        ...t,
-        allocation: nextAllocationsMap.get(t.allocation_id)!,
-      };
-    }
-    return t;
-  });
-
-  return nextSnapshot;
+  return snapshot;
 }
 
 export function syncAllocationsOnTransactionChange(
@@ -108,9 +66,25 @@ export function syncAllocationsOnTransactionChange(
   newTransaction: Transaction | null,
 ): FinanceSnapshot {
   let currentAllocations = [...snapshot.allocations];
+  let currentTransactions = snapshot.transactions;
   const affectedWallets = new Set<string>();
 
-  // 1. Reverse the effect of old transaction if it was paid
+  // 1. Reverse a linked fallback release before reversing the parent.
+  if (oldTransaction) {
+    const release = currentTransactions.find(
+      (transaction) => transaction.system_generated && transaction.linked_transaction_id === oldTransaction.id,
+    );
+    if (release?.source_allocation_id) {
+      currentAllocations = currentAllocations.map((allocation) =>
+        allocation.id === release.source_allocation_id
+          ? { ...allocation, amount: allocation.amount + release.amount, updated_at: new Date().toISOString() }
+          : allocation,
+      );
+      currentTransactions = currentTransactions.filter((transaction) => transaction.id !== release.id);
+    }
+  }
+
+  // 2. Reverse the effect of old transaction if it was paid
   if (oldTransaction && oldTransaction.status === "paid" && oldTransaction.allocation_id) {
     currentAllocations = currentAllocations.map((a) => {
       if (a.id === oldTransaction.allocation_id) {
@@ -126,7 +100,7 @@ export function syncAllocationsOnTransactionChange(
     });
   }
 
-  // 2. Apply the effect of new transaction if it is paid
+  // 3. Apply the explicit goal effect of the new transaction.
   if (newTransaction && newTransaction.status === "paid" && newTransaction.allocation_id) {
     currentAllocations = currentAllocations.map((a) => {
       if (a.id === newTransaction.allocation_id) {
@@ -145,9 +119,55 @@ export function syncAllocationsOnTransactionChange(
   let nextSnapshot = {
     ...snapshot,
     allocations: currentAllocations,
+    transactions: currentTransactions,
   };
 
-  // 3. Enforce limits on all affected wallets (including those affected by wallet balance updates)
+  // 4. Release only the shortfall beyond Free from the default goal.
+  if (newTransaction?.status === "paid" && !newTransaction.allocation_id && newTransaction.source_account_id) {
+    const wallet = nextSnapshot.accounts.find((account) => account.id === newTransaction.source_account_id);
+    const netOutflow = newTransaction.amount - (
+      newTransaction.destination_account_id === newTransaction.source_account_id
+        ? (newTransaction.destination_amount ?? newTransaction.amount)
+        : 0
+    );
+    if (wallet?.type === "saving" && netOutflow > 0) {
+      const walletAllocations = nextSnapshot.allocations.filter((allocation) => allocation.wallet_id === wallet.id);
+      const shortfall = Math.max(walletAllocations.reduce((sum, allocation) => sum + allocation.amount, 0) - wallet.balance, 0);
+      if (shortfall > 0) {
+        const defaultGoal = walletAllocations.find((allocation) => allocation.is_default);
+        if (!defaultGoal || defaultGoal.amount < shortfall) {
+          throw new Error("Savings operation exceeds Free plus the default goal balance.");
+        }
+        const updatedDefault = { ...defaultGoal, amount: defaultGoal.amount - shortfall, updated_at: new Date().toISOString() };
+        nextSnapshot = {
+          ...nextSnapshot,
+          allocations: nextSnapshot.allocations.map((allocation) => allocation.id === defaultGoal.id ? updatedDefault : allocation),
+          transactions: [{
+            ...newTransaction,
+            id: createOptimisticId("savings-release"),
+            title: defaultGoal.name,
+            kind: "transfer",
+            amount: shortfall,
+            destination_amount: shortfall,
+            category_id: null,
+            category: null,
+            source_account_id: wallet.id,
+            destination_account_id: wallet.id,
+            source_account: wallet,
+            destination_account: wallet,
+            allocation_id: null,
+            allocation: null,
+            source_allocation_id: defaultGoal.id,
+            source_allocation: updatedDefault,
+            linked_transaction_id: newTransaction.id,
+            system_generated: true,
+          }, ...nextSnapshot.transactions],
+        };
+      }
+    }
+  }
+
+  // 5. Validate all affected wallets without trimming unrelated goals.
   if (oldTransaction) {
     if (oldTransaction.source_account_id) affectedWallets.add(oldTransaction.source_account_id);
     if (oldTransaction.destination_account_id) affectedWallets.add(oldTransaction.destination_account_id);
@@ -169,6 +189,9 @@ export function syncAllocationsOnTransactionChange(
         ...t,
         allocation: nextAllocationsMap.get(t.allocation_id)!,
       };
+    }
+    if (t.source_allocation_id && nextAllocationsMap.has(t.source_allocation_id)) {
+      return { ...t, source_allocation: nextAllocationsMap.get(t.source_allocation_id)! };
     }
     return t;
   });
@@ -571,9 +594,16 @@ export function saveAllocation(
   optimisticId?: string,
 ) {
   if (mode === "edit" && allocationId) {
+    const nextAllocations = values.is_default
+      ? snapshot.allocations.map((allocation) =>
+          allocation.wallet_id === snapshot.allocations.find((item) => item.id === allocationId)?.wallet_id
+            ? { ...allocation, is_default: allocation.id === allocationId }
+            : allocation,
+        )
+      : snapshot.allocations;
     return {
       ...snapshot,
-      allocations: snapshot.allocations.map((allocation) =>
+      allocations: nextAllocations.map((allocation) =>
         allocation.id === allocationId
           ? { ...allocation, ...values, updated_at: new Date().toISOString() }
           : allocation,
@@ -588,6 +618,7 @@ export function saveAllocation(
     kind: values.kind,
     amount: values.amount,
     target_amount: values.target_amount ?? null,
+    is_default: values.is_default || !snapshot.allocations.some((item) => item.wallet_id === walletId),
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };

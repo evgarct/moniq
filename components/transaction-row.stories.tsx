@@ -69,6 +69,39 @@ const recurringPlanned: Transaction = {
   },
 };
 
+const savingsAccount = snapshot.accounts.find((account) => account.type === "saving") ?? snapshot.accounts[0];
+const defaultGoal = snapshot.allocations.find((allocation) => allocation.wallet_id === savingsAccount.id) ?? {
+  id: "story-default-goal",
+  user_id: savingsAccount.user_id,
+  wallet_id: savingsAccount.id,
+  name: "Emergency fund",
+  kind: "goal_open" as const,
+  amount: 500,
+  target_amount: null,
+  is_default: true,
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+};
+const systemSavingsRelease: Transaction = {
+  ...byKind("transfer"),
+  id: "story-system-savings-release",
+  title: defaultGoal.name,
+  status: "paid",
+  occurred_at: new Date().toISOString().slice(0, 10),
+  amount: 120,
+  destination_amount: 120,
+  source_account_id: savingsAccount.id,
+  destination_account_id: savingsAccount.id,
+  source_account: savingsAccount,
+  destination_account: savingsAccount,
+  allocation_id: null,
+  allocation: null,
+  source_allocation_id: defaultGoal.id,
+  source_allocation: defaultGoal,
+  linked_transaction_id: "story-parent-expense",
+  system_generated: true,
+};
+
 const meta = {
   title: "Molecules/TransactionRow",
   component: TransactionRow,
@@ -118,6 +151,20 @@ export const Interactive: Story = {
     transaction: byKind("expense"),
     showDate: false,
     onClick: () => undefined,
+  },
+};
+
+export const SystemSavingsRelease: Story = {
+  args: {
+    transaction: systemSavingsRelease,
+    showDate: false,
+    onClick: () => undefined,
+    onEditOccurrence: () => undefined,
+    onDeleteTransaction: () => undefined,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText(`${defaultGoal.name} → ${savingsAccount.name}`)).toBeInTheDocument();
   },
 };
 

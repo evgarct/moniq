@@ -175,7 +175,7 @@ describe("optimistic finance state", () => {
     expect(nextAlloc?.amount).toBe(400); // 250 + 150
   });
 
-  it("caps allocations from newest to oldest when wallet balance drops below total allocated", () => {
+  it("rejects a manual balance drop below reserved goals", () => {
     const wallet = { id: "saving-wallet", type: "saving", balance: 1000 } as Account;
     const allocOld = { id: "alloc-old", wallet_id: wallet.id, amount: 400, created_at: "2026-01-01", updated_at: "2026-01-01" } as WalletAllocation;
     const allocNew = { id: "alloc-new", wallet_id: wallet.id, amount: 500, created_at: "2026-02-01", updated_at: "2026-02-01" } as WalletAllocation;
@@ -185,14 +185,57 @@ describe("optimistic finance state", () => {
       allocations: [allocOld, allocNew],
     };
 
-    // Wallet balance drops to 600. Excess = 900 - 600 = 300.
-    // allocNew is newer, so it should be reduced by 300 (down to 200).
-    const next = adjustWalletBalance(snapshot, wallet.id, 600);
-    
-    const nextOld = next.allocations.find((a) => a.id === allocOld.id);
-    const nextNew = next.allocations.find((a) => a.id === allocNew.id);
-    expect(nextOld?.amount).toBe(400);
-    expect(nextNew?.amount).toBe(200);
+    expect(() => adjustWalletBalance(snapshot, wallet.id, 600)).toThrow(/reserved goals/);
+  });
+
+  it("uses Free first and records only the fallback shortfall from the default goal", () => {
+    const wallet = { id: "saving-wallet", user_id: "user", type: "saving", balance: 1000, currency: "EUR" } as Account;
+    const defaultGoal = {
+      id: "default-goal", user_id: "user", wallet_id: wallet.id, name: "Emergency",
+      kind: "goal_open", amount: 800, target_amount: null, is_default: true,
+      created_at: "2026-01-01", updated_at: "2026-01-01",
+    } as WalletAllocation;
+    const snapshot = { ...createEmptyFinanceSnapshot(), accounts: [wallet], allocations: [defaultGoal] };
+
+    const next = addTransactionEntry(snapshot, {
+      title: "Withdrawal", note: null, occurred_at: "2026-06-06", status: "paid",
+      kind: "expense", amount: 350, destination_amount: null, fx_rate: null,
+      principal_amount: null, interest_amount: null, extra_principal_amount: null,
+      category_id: "cat", source_account_id: wallet.id, destination_account_id: null,
+      allocation_id: null, recurrence: null,
+    });
+
+    expect(next.accounts[0].balance).toBe(650);
+    expect(next.allocations[0].amount).toBe(650);
+    const release = next.transactions.find((transaction) => transaction.system_generated);
+    expect(release).toMatchObject({
+      kind: "transfer",
+      amount: 150,
+      source_allocation_id: defaultGoal.id,
+      source_account_id: wallet.id,
+      destination_account_id: wallet.id,
+    });
+
+    const parent = next.transactions.find((transaction) => !transaction.system_generated)!;
+    const restored = removeTransaction(next, parent.id);
+    expect(restored.accounts[0].balance).toBe(1000);
+    expect(restored.allocations[0].amount).toBe(800);
+    expect(restored.transactions).toHaveLength(0);
+  });
+
+  it("rejects fallback when Free plus the default goal is insufficient", () => {
+    const wallet = { id: "saving-wallet", user_id: "user", type: "saving", balance: 1000, currency: "EUR" } as Account;
+    const defaultGoal = { id: "default", wallet_id: wallet.id, amount: 100, is_default: true } as WalletAllocation;
+    const otherGoal = { id: "other", wallet_id: wallet.id, amount: 850, is_default: false } as WalletAllocation;
+    const snapshot = { ...createEmptyFinanceSnapshot(), accounts: [wallet], allocations: [defaultGoal, otherGoal] };
+
+    expect(() => addTransactionEntry(snapshot, {
+      title: "Too large", note: null, occurred_at: "2026-06-06", status: "paid",
+      kind: "expense", amount: 200, destination_amount: null, fx_rate: null,
+      principal_amount: null, interest_amount: null, extra_principal_amount: null,
+      category_id: "cat", source_account_id: wallet.id, destination_account_id: null,
+      allocation_id: null, recurrence: null,
+    })).toThrow(/Free plus the default goal/);
   });
 
   it("updates the schedule note and all future planned occurrences note starting from date", () => {

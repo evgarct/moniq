@@ -122,7 +122,7 @@ function buildSecondaryLabel(transaction: Transaction, kindLabel: string, fallba
   switch (transaction.kind) {
     case "transfer":
       return buildMetaParts([
-        transaction.source_account?.name ?? null,
+        transaction.source_allocation?.name ?? transaction.source_account?.name ?? null,
         transaction.destination_account?.name ? `→ ${transaction.destination_account.name}` : null,
       ]).join(" ");
     default:
@@ -220,7 +220,7 @@ export function TransactionRow({
   const canMarkPaid = isPlanned && Boolean(onMarkPaid);
   const canSkip = isPlanned && isRecurring && Boolean(onSkipOccurrence);
 
-  const hasContextActions = Boolean(
+  const hasContextActions = !transaction.system_generated && Boolean(
     onEditOccurrence || onMarkPaid || onDeleteTransaction || onDeleteSeries || onSkipOccurrence,
   );
 
@@ -240,7 +240,7 @@ export function TransactionRow({
     ? `${secondaryLabel} · ${transaction.investment_instrument.ticker} · ${investmentsT("units", { value: String(transaction.investment_units) })}`
     : secondaryLabel;
   const showEncouragementBadge = isEncouragedTransaction(transaction);
-  const interactive = Boolean(onClick);
+  const interactive = Boolean(onClick) && !transaction.system_generated;
 
   function activateRow() {
     if (Date.now() < suppressClickUntil.current) return;
