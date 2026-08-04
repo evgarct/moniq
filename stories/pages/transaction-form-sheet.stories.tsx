@@ -1,20 +1,43 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { RescheduleConfirmOverlay } from "@/features/transactions/components/reschedule-confirm-overlay";
+import { RecurringChangeScopeOverlay } from "@/features/transactions/components/recurring-change-scope-overlay";
 import { TransactionFormSheet } from "@/features/transactions/components/transaction-form-sheet";
-import { makeFinanceSnapshot, withPathname } from "@/stories/fixtures/story-data";
+import {
+  makeFinanceSnapshot,
+  withPathname,
+} from "@/stories/fixtures/story-data";
 import type { Transaction, TransactionSchedule } from "@/types/finance";
 
 const snapshot = makeFinanceSnapshot();
-const defaultTransaction = snapshot.transactions.find((transaction) => transaction.kind === "expense") ?? snapshot.transactions[0];
-const incomeTransaction = snapshot.transactions.find((transaction) => transaction.kind === "income") ?? snapshot.transactions[0];
-const transferTransaction = snapshot.transactions.find((transaction) => transaction.kind === "transfer") ?? snapshot.transactions[0];
-const debtPaymentTransaction = snapshot.transactions.find((transaction) => transaction.kind === "debt_payment") ?? snapshot.transactions[0];
-const rubleAccount = snapshot.accounts.find((account) => account.currency === "RUB") ?? snapshot.accounts[0];
-const cashAccount = snapshot.accounts.find((account) => account.type === "cash") ?? snapshot.accounts[0];
-const creditCardAccount = snapshot.accounts.find((account) => account.type === "credit_card") ?? snapshot.accounts[0];
-const savingsAccount = snapshot.accounts.find((account) => account.type === "saving") ?? snapshot.accounts[0];
-const investmentCategory = snapshot.categories.find((category) => category.purpose === "investment") ?? snapshot.categories[0];
+const defaultTransaction =
+  snapshot.transactions.find((transaction) => transaction.kind === "expense") ??
+  snapshot.transactions[0];
+const incomeTransaction =
+  snapshot.transactions.find((transaction) => transaction.kind === "income") ??
+  snapshot.transactions[0];
+const transferTransaction =
+  snapshot.transactions.find(
+    (transaction) => transaction.kind === "transfer",
+  ) ?? snapshot.transactions[0];
+const debtPaymentTransaction =
+  snapshot.transactions.find(
+    (transaction) => transaction.kind === "debt_payment",
+  ) ?? snapshot.transactions[0];
+const rubleAccount =
+  snapshot.accounts.find((account) => account.currency === "RUB") ??
+  snapshot.accounts[0];
+const cashAccount =
+  snapshot.accounts.find((account) => account.type === "cash") ??
+  snapshot.accounts[0];
+const creditCardAccount =
+  snapshot.accounts.find((account) => account.type === "credit_card") ??
+  snapshot.accounts[0];
+const savingsAccount =
+  snapshot.accounts.find((account) => account.type === "saving") ??
+  snapshot.accounts[0];
+const investmentCategory =
+  snapshot.categories.find((category) => category.purpose === "investment") ??
+  snapshot.categories[0];
 const rubleExpenseTransaction: Transaction = {
   ...(defaultTransaction as Transaction),
   id: "tx-story-ruble-expense",
@@ -25,7 +48,6 @@ const rubleExpenseTransaction: Transaction = {
   destination_account_id: null,
   destination_account: null,
 };
-
 // A planned occurrence linked to recurringSchedule (used by reschedule stories)
 const recurringOccurrence: Transaction = {
   id: "tx-story-recurring-occurrence",
@@ -42,7 +64,8 @@ const recurringOccurrence: Transaction = {
   principal_amount: null,
   interest_amount: null,
   extra_principal_amount: null,
-  category_id: snapshot.categories.find((c) => c.type === "expense")?.id ?? null,
+  category_id:
+    snapshot.categories.find((c) => c.type === "expense")?.id ?? null,
   source_account_id: snapshot.accounts[0]?.id ?? null,
   destination_account_id: null,
   schedule_id: "schedule-story-netflix",
@@ -73,11 +96,14 @@ const recurringSchedule: TransactionSchedule = {
   principal_amount: null,
   interest_amount: null,
   extra_principal_amount: null,
-  category_id: snapshot.categories.find((category) => category.type === "expense")?.id ?? null,
+  category_id:
+    snapshot.categories.find((category) => category.type === "expense")?.id ??
+    null,
   source_account_id: snapshot.accounts[0]?.id ?? null,
   destination_account_id: null,
   allocation_id: null,
-  category: snapshot.categories.find((category) => category.type === "expense") ?? null,
+  category:
+    snapshot.categories.find((category) => category.type === "expense") ?? null,
   source_account: snapshot.accounts[0] ?? null,
   destination_account: null,
   allocation: null,
@@ -115,7 +141,13 @@ function StorySurface({
 }) {
   return (
     <div className="min-h-screen bg-[#f4efe9] p-6">
-      <div className={mobile ? "mx-auto min-h-[780px] max-w-[390px] overflow-hidden rounded-[28px] bg-background shadow-[0_24px_80px_rgba(15,23,42,0.14)]" : ""}>
+      <div
+        className={
+          mobile
+            ? "mx-auto min-h-[780px] max-w-[390px] overflow-hidden rounded-[28px] bg-background shadow-[0_24px_80px_rgba(15,23,42,0.14)]"
+            : ""
+        }
+      >
         {children}
       </div>
     </div>
@@ -151,7 +183,6 @@ export const BatchExpense: Story = {
     </StorySurface>
   ),
 };
-
 export const BatchTransfer: Story = {
   render: () => (
     <StorySurface>
@@ -337,17 +368,19 @@ export const SavingsGoalExpense: Story = {
         accounts={snapshot.accounts}
         categories={snapshot.categories}
         transactions={snapshot.transactions}
-        allocations={[{
-          id: "story-goal",
-          user_id: savingsAccount.user_id,
-          wallet_id: savingsAccount.id,
-          name: "Emergency fund",
-          kind: "goal_targeted",
-          amount: 100,
-          target_amount: 1000,
-          created_at: "2026-01-01T00:00:00Z",
-          updated_at: "2026-01-01T00:00:00Z",
-        }]}
+        allocations={[
+          {
+            id: "story-goal",
+            user_id: savingsAccount.user_id,
+            wallet_id: savingsAccount.id,
+            name: "Emergency fund",
+            kind: "goal_targeted",
+            amount: 100,
+            target_amount: 1000,
+            created_at: "2026-01-01T00:00:00Z",
+            updated_at: "2026-01-01T00:00:00Z",
+          },
+        ]}
         onOpenChange={() => {}}
         onSubmit={async () => {}}
       />
@@ -363,7 +396,9 @@ export const InvestmentPurchase: Story = {
         mode="add"
         initialKind="expense"
         initialCategoryId={investmentCategory.id}
-        initialInvestmentInstrumentId={snapshot.investment_positions[0]?.instrument_id}
+        initialInvestmentInstrumentId={
+          snapshot.investment_positions[0]?.instrument_id
+        }
         accounts={snapshot.accounts}
         categories={snapshot.categories}
         transactions={snapshot.transactions}
@@ -506,7 +541,7 @@ export const AddCreditCardDebtPayment: Story = {
   ),
 };
 
-// ─── Recurring occurrence edit + reschedule dialog ────────────────────────────
+// ─── Recurring occurrence edit + change-scope dialog ─────────────────────────
 
 export const EditRecurringOccurrence: Story = {
   render: () => (
@@ -544,10 +579,10 @@ export const EditRecurringInvestmentOccurrence: Story = {
   ),
 };
 
-/** Shows the reschedule confirmation overlay that appears when the user changes
- *  the date on a planned recurring occurrence. Demonstrates the two choices:
+/** Shows the change-scope confirmation overlay that appears when the user changes
+ *  any field on a planned recurring occurrence. Demonstrates the two choices:
  *  "Only this occurrence" vs "This and all following". */
-export const RescheduleDialog: Story = {
+export const RecurringChangeScopeDialog: Story = {
   render: () => (
     <StorySurface>
       {/* Sheet form in background */}
@@ -563,7 +598,7 @@ export const RescheduleDialog: Story = {
         onSubmit={async () => {}}
       />
       {/* Overlay rendered on top — simulates the state after the user changed the date */}
-      <RescheduleConfirmOverlay
+      <RecurringChangeScopeOverlay
         onOnlyThis={() => {}}
         onAllFollowing={() => {}}
         onCancel={() => {}}
@@ -572,7 +607,7 @@ export const RescheduleDialog: Story = {
   ),
 };
 
-export const MobileRescheduleDialog: Story = {
+export const MobileRecurringChangeScopeDialog: Story = {
   parameters: { viewport: { defaultViewport: "mobile2" } },
   render: () => (
     <StorySurface mobile>
@@ -587,7 +622,7 @@ export const MobileRescheduleDialog: Story = {
         onOpenChange={() => {}}
         onSubmit={async () => {}}
       />
-      <RescheduleConfirmOverlay
+      <RecurringChangeScopeOverlay
         onOnlyThis={() => {}}
         onAllFollowing={() => {}}
         onCancel={() => {}}
@@ -596,12 +631,12 @@ export const MobileRescheduleDialog: Story = {
   ),
 };
 
-/** Shows the confirmation overlay when a user changes the note of a recurring transaction */
+/** Shows the same generic confirmation overlay after a note change. */
 export const NoteChangeDialog: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Confirmation prompt specifically tailored for note changes in a recurring transaction series.",
+        story: "The same generic scope prompt appears after a note change.",
       },
     },
   },
@@ -617,33 +652,7 @@ export const NoteChangeDialog: Story = {
         onOpenChange={() => {}}
         onSubmit={async () => {}}
       />
-      <RescheduleConfirmOverlay
-        title="Change recurring note"
-        description="Do you want to change the note for only this occurrence, or this and all following occurrences?"
-        onOnlyThis={() => {}}
-        onAllFollowing={() => {}}
-        onCancel={() => {}}
-      />
-    </StorySurface>
-  ),
-};
-
-export const BothChangeDialog: Story = {
-  render: () => (
-    <StorySurface>
-      <TransactionFormSheet
-        open
-        mode="edit-transaction"
-        transaction={recurringOccurrence}
-        accounts={snapshot.accounts}
-        categories={snapshot.categories}
-        transactions={snapshot.transactions}
-        onOpenChange={() => {}}
-        onSubmit={async () => {}}
-      />
-      <RescheduleConfirmOverlay
-        title="Change recurring transaction"
-        description="Do you want to apply these changes to only this occurrence, or this and all following occurrences?"
+      <RecurringChangeScopeOverlay
         onOnlyThis={() => {}}
         onAllFollowing={() => {}}
         onCancel={() => {}}

@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import {
+  applyRecurringOccurrenceChangesRequest,
   adjustWalletBalanceRequest,
   createCategoryRequest,
   createTransactionRequest,
@@ -16,11 +17,9 @@ import {
   deleteWalletAllocationRequest,
   deleteWalletRequest,
   markTransactionPaidRequest,
-  rescheduleTransactionSeriesRequest,
   setTransactionScheduleStateRequest,
   skipTransactionOccurrenceRequest,
   updateCategoryRequest,
-  updateScheduleNoteFromDateRequest,
   updateTransactionRequest,
   updateTransactionScheduleRequest,
   updateUserPreferencesRequest,
@@ -28,6 +27,7 @@ import {
   updateWalletRequest,
   saveInvestmentPositionRequest,
 } from "@/features/finance/lib/finance-api";
+import { applyRecurringOccurrenceChanges } from "@/features/transactions/lib/recurring-occurrence-changes";
 import { savePositionOptimistically } from "@/features/investments/lib/positions";
 import {
   addTransactionEntry,
@@ -38,7 +38,6 @@ import {
   deleteSchedule,
   deleteWallet,
   removeTransaction,
-  rescheduleFromDate,
   saveAllocation,
   saveCategory,
   saveWallet,
@@ -46,7 +45,6 @@ import {
   setTransactionStatus,
   updateDefaultCurrency,
   updateSchedule,
-  updateScheduleNoteFromDate,
   updateTransaction,
 } from "@/features/finance/lib/optimistic-state";
 import {
@@ -69,6 +67,7 @@ import type {
 } from "@/types/finance";
 import type {
   CategoryInput,
+  RecurringOccurrenceChangesInput,
   TransactionEntryBatchInput,
   TransactionEntryInput,
   TransactionInput,
@@ -112,6 +111,18 @@ function mapTransactionEntry(
   return "entries" in values
     ? { entries: values.entries.map((entry) => mapTransactionValues(entry, resolveId)) }
     : mapTransactionValues(values, resolveId);
+}
+
+function mapRecurringOccurrenceChanges(
+  changes: RecurringOccurrenceChangesInput,
+  resolveId: ResolveFinanceId,
+): RecurringOccurrenceChangesInput {
+  const mapped = { ...changes };
+  if ("category_id" in mapped) mapped.category_id = resolveOptionalId(resolveId, mapped.category_id);
+  if ("source_account_id" in mapped) mapped.source_account_id = resolveOptionalId(resolveId, mapped.source_account_id);
+  if ("destination_account_id" in mapped) mapped.destination_account_id = resolveOptionalId(resolveId, mapped.destination_account_id);
+  if ("allocation_id" in mapped) mapped.allocation_id = resolveOptionalId(resolveId, mapped.allocation_id);
+  return mapped;
 }
 
 function mapCategoryValues(values: CategoryInput, resolveId: ResolveFinanceId): CategoryInput {
@@ -343,56 +354,38 @@ export function useFinanceActions() {
         (resolveId) => ({ type: "schedule.delete", targetId: resolveRequiredId(resolveId, scheduleId), baseVersion: entityVersion("schedule", scheduleId), payload: {} }),
       );
     },
-    rescheduleSchedule(
+    applyRecurringOccurrenceChanges(
       scheduleId: string,
       fromOccurrenceDate: string,
-      newOccurrenceDate: string,
+      changes: RecurringOccurrenceChangesInput,
       options?: ActionOptions,
     ) {
       return execute(
         {
           apply: (snapshot, resolveId) =>
-            rescheduleFromDate(
+            applyRecurringOccurrenceChanges(
               snapshot,
               resolveRequiredId(resolveId, scheduleId),
               fromOccurrenceDate,
-              newOccurrenceDate,
+              mapRecurringOccurrenceChanges(changes, resolveId),
             ),
           request: (resolveId) =>
-            rescheduleTransactionSeriesRequest(
+            applyRecurringOccurrenceChangesRequest(
               resolveRequiredId(resolveId, scheduleId),
               fromOccurrenceDate,
-              newOccurrenceDate,
+              mapRecurringOccurrenceChanges(changes, resolveId),
             ),
         },
         options,
-        (resolveId) => ({ type: "schedule.reschedule", targetId: resolveRequiredId(resolveId, scheduleId), baseVersion: entityVersion("schedule", scheduleId), payload: { fromOccurrenceDate, newOccurrenceDate } }),
-      );
-    },
-    updateScheduleNoteFromDate(
-      scheduleId: string,
-      fromOccurrenceDate: string,
-      newNote: string | null,
-      options?: ActionOptions,
-    ) {
-      return execute(
-        {
-          apply: (snapshot, resolveId) =>
-            updateScheduleNoteFromDate(
-              snapshot,
-              resolveRequiredId(resolveId, scheduleId),
-              fromOccurrenceDate,
-              newNote,
-            ),
-          request: (resolveId) =>
-            updateScheduleNoteFromDateRequest(
-              resolveRequiredId(resolveId, scheduleId),
-              fromOccurrenceDate,
-              newNote,
-            ),
-        },
-        options,
-        (resolveId) => ({ type: "schedule.updateNote", targetId: resolveRequiredId(resolveId, scheduleId), baseVersion: entityVersion("schedule", scheduleId), payload: { note: newNote, fromOccurrenceDate } }),
+        (resolveId) => ({
+          type: "schedule.updateFromOccurrence",
+          targetId: resolveRequiredId(resolveId, scheduleId),
+          baseVersion: entityVersion("schedule", scheduleId),
+          payload: {
+            fromOccurrenceDate,
+            changes: mapRecurringOccurrenceChanges(changes, resolveId),
+          },
+        }),
       );
     },
     saveWallet(

@@ -18,6 +18,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { CurrencyCode } from "@/types/currency";
 import type {
   CategoryInput,
+  RecurringOccurrenceChangesInput,
   TransactionEntryInput,
   TransactionInput,
   TransactionScheduleInput,
@@ -1435,6 +1436,50 @@ export async function updateTransactionScheduleNote(
     throw new Error(normalizeFinanceRepositoryError(error));
   }
 
+  await getFinanceSnapshot({ reconcileSchedules: true });
+}
+
+export async function applyRecurringOccurrenceChanges(
+  scheduleId: string,
+  fromOccurrenceDate: string,
+  changes: RecurringOccurrenceChangesInput,
+) {
+  const { supabase } = await getAuthenticatedSupabase();
+  const snapshot = await getFinanceSnapshot();
+  const schedule = snapshot.schedules.find((candidate) => candidate.id === scheduleId);
+  const occurrence = snapshot.transactions.find(
+    (transaction) =>
+      transaction.schedule_id === scheduleId &&
+      transaction.schedule_occurrence_date === fromOccurrenceDate &&
+      transaction.status === "planned",
+  );
+
+  if (!schedule) throw new Error("Transaction schedule not found.");
+  if (!occurrence) throw new Error("Planned recurring occurrence not found.");
+
+  const newOccurrenceDate = changes.occurred_at ?? occurrence.occurred_at;
+  const offsetDays = differenceInCalendarDays(parseISO(newOccurrenceDate), parseISO(occurrence.occurred_at));
+  const nextSchedule = {
+    ...schedule,
+    ...changes,
+    start_date: format(addDays(parseISO(schedule.start_date), offsetDays), "yyyy-MM-dd"),
+  };
+
+  validateTransactionRelationships(
+    buildTransactionInputFromSchedule({
+      ...nextSchedule,
+      occurred_at: nextSchedule.start_date,
+    }),
+    snapshot,
+  );
+
+  const { error } = await supabase.rpc("apply_recurring_occurrence_changes", {
+    p_schedule_id: scheduleId,
+    p_from_occurrence_date: fromOccurrenceDate,
+    p_changes: changes,
+  });
+
+  if (error) throw new Error(normalizeFinanceRepositoryError(error));
   await getFinanceSnapshot({ reconcileSchedules: true });
 }
 

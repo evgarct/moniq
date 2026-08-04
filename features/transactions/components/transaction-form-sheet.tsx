@@ -13,14 +13,41 @@ import { useFormContext } from "react-hook-form";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger } from "@/components/ui/select";
-import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import type { Account, Category, InvestmentPosition, Transaction, TransactionSchedule, WalletAllocation } from "@/types/finance";
+import type {
+  Account,
+  Category,
+  InvestmentPosition,
+  Transaction,
+  TransactionSchedule,
+  WalletAllocation,
+} from "@/types/finance";
 
-import { RescheduleConfirmOverlay } from "./reschedule-confirm-overlay";
-import { TransactionFormProvider, useTransactionFormContext } from "../form/context";
+import { RecurringChangeScopeOverlay } from "./recurring-change-scope-overlay";
+import {
+  TransactionFormProvider,
+  useTransactionFormContext,
+} from "../form/context";
 import { buildSubmitPayload } from "../form/submit";
 import {
   DebtPaymentSection,
@@ -28,7 +55,16 @@ import {
   IncomeSection,
   TransferSection,
 } from "../form/sections";
-import type { TransactionFormInputs, TransactionFormMode, TransactionFormSubmitPayload } from "../form/types";
+import type {
+  TransactionFormInputs,
+  TransactionFormMode,
+  TransactionFormSubmitPayload,
+} from "../form/types";
+import {
+  getRecurringOccurrenceChanges,
+  hasRecurringOccurrenceChanges,
+  type RecurringOccurrenceChanges,
+} from "../lib/recurring-occurrence-changes";
 
 // Re-export for consumers
 export type { TransactionFormSubmitPayload };
@@ -69,7 +105,10 @@ function TransactionKindOption({
 }) {
   return (
     <span className="inline-flex min-w-0 items-center gap-2">
-      <Icon className="size-[18px] shrink-0 text-muted-foreground" strokeWidth={1.75} />
+      <Icon
+        className="size-[18px] shrink-0 text-muted-foreground"
+        strokeWidth={1.75}
+      />
       <span className="truncate">{children}</span>
     </span>
   );
@@ -80,15 +119,8 @@ function TransactionKindOption({
 function TransactionFormInner() {
   const t = useTranslations("transactions.form");
   const kindsT = useTranslations("transactions.kinds");
-  const {
-    form,
-    mode,
-    kind,
-    accounts,
-    categories,
-    onSubmit,
-    onOpenChange,
-  } = useTransactionFormContext();
+  const { form, mode, kind, accounts, categories, onSubmit, onOpenChange } =
+    useTransactionFormContext();
 
   const { control: _control } = useFormContext<TransactionFormInputs>();
   void _control;
@@ -107,7 +139,11 @@ function TransactionFormInner() {
   });
 
   return (
-    <form id={formId} className="flex min-h-0 flex-1 flex-col" onSubmit={handleSubmit}>
+    <form
+      id={formId}
+      className="flex min-h-0 flex-1 flex-col"
+      onSubmit={handleSubmit}
+    >
       <SheetHeader className="gap-0 bg-card px-4 pt-4 pb-4 sm:px-5 sm:pt-5">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
@@ -146,7 +182,9 @@ function TransactionFormInner() {
           <Select
             value={kind}
             onValueChange={(v) => {
-              form.setValue("kind", v as Transaction["kind"], { shouldValidate: false });
+              form.setValue("kind", v as Transaction["kind"], {
+                shouldValidate: false,
+              });
             }}
             disabled={mode !== "add"}
           >
@@ -159,23 +197,37 @@ function TransactionFormInner() {
               )}
             >
               <span className="inline-flex min-w-0 items-center gap-2 truncate pr-1">
-                <KindIcon className="size-[18px] shrink-0 text-muted-foreground" strokeWidth={1.75} />
+                <KindIcon
+                  className="size-[18px] shrink-0 text-muted-foreground"
+                  strokeWidth={1.75}
+                />
                 <span>{kindsT(kind)}</span>
               </span>
             </SelectTrigger>
-            <SelectContent alignItemWithTrigger={false} className="w-auto min-w-[14rem]">
+            <SelectContent
+              alignItemWithTrigger={false}
+              className="w-auto min-w-[14rem]"
+            >
               <SelectGroup>
                 <SelectItem value="expense">
-                  <TransactionKindOption icon={ReceiptText}>{kindsT("expense")}</TransactionKindOption>
+                  <TransactionKindOption icon={ReceiptText}>
+                    {kindsT("expense")}
+                  </TransactionKindOption>
                 </SelectItem>
                 <SelectItem value="income">
-                  <TransactionKindOption icon={TrendingUp}>{kindsT("income")}</TransactionKindOption>
+                  <TransactionKindOption icon={TrendingUp}>
+                    {kindsT("income")}
+                  </TransactionKindOption>
                 </SelectItem>
                 <SelectItem value="transfer">
-                  <TransactionKindOption icon={ArrowLeftRight}>{kindsT("transfer")}</TransactionKindOption>
+                  <TransactionKindOption icon={ArrowLeftRight}>
+                    {kindsT("transfer")}
+                  </TransactionKindOption>
                 </SelectItem>
                 <SelectItem value="debt_payment">
-                  <TransactionKindOption icon={WalletCards}>{kindsT("debt_payment")}</TransactionKindOption>
+                  <TransactionKindOption icon={WalletCards}>
+                    {kindsT("debt_payment")}
+                  </TransactionKindOption>
                 </SelectItem>
               </SelectGroup>
             </SelectContent>
@@ -244,7 +296,10 @@ export function TransactionFormSheet({
   onOpenChange: (open: boolean) => void;
   onSubmit: (payload: TransactionFormSubmitPayload) => void;
 }) {
-  const [pendingPayload, setPendingPayload] = useState<(TransactionFormSubmitPayload & { kind: "transaction" }) | null>(null);
+  const [pendingChange, setPendingChange] = useState<{
+    payload: TransactionFormSubmitPayload & { kind: "transaction" };
+    changes: RecurringOccurrenceChanges;
+  } | null>(null);
 
   const wrappedOnSubmit = (payload: TransactionFormSubmitPayload) => {
     if (
@@ -252,73 +307,50 @@ export function TransactionFormSheet({
       transaction?.schedule_id &&
       transaction.status === "planned"
     ) {
-      const dateChanged = payload.values.occurred_at !== transaction.occurred_at;
-      const noteChanged = (payload.values.note || "") !== (transaction.note || "");
-
-      if (dateChanged || noteChanged) {
-        setPendingPayload(payload);
-        return false;
+      const changes = getRecurringOccurrenceChanges(
+        transaction,
+        payload.values,
+      );
+      if (!hasRecurringOccurrenceChanges(changes)) {
+        if (payload.values.status !== transaction.status) onSubmit(payload);
+        return true;
       }
+      setPendingChange({ payload, changes });
+      return false;
     }
     onSubmit(payload);
     return true;
   };
 
   const handleOnlyThis = () => {
-    if (!pendingPayload) return;
-    setPendingPayload(null);
-    onSubmit(pendingPayload);
+    if (!pendingChange) return;
+    setPendingChange(null);
+    onSubmit(pendingChange.payload);
     onOpenChange(false);
   };
 
   const handleAllFollowing = () => {
-    if (!pendingPayload || !transaction?.schedule_id) return;
-    const dateChanged = pendingPayload.values.occurred_at !== transaction.occurred_at;
-    const noteChanged = (pendingPayload.values.note || "") !== (transaction.note || "");
-
+    if (!pendingChange || !transaction?.schedule_id) return;
     const payload: TransactionFormSubmitPayload = {
-      ...pendingPayload,
-      rescheduleFrom: dateChanged
-        ? {
-            scheduleId: transaction.schedule_id,
-            originalDate: transaction.occurred_at,
-            newDate: pendingPayload.values.occurred_at,
-          }
-        : undefined,
-      updateScheduleNote: noteChanged
-        ? {
-            scheduleId: transaction.schedule_id,
-            note: pendingPayload.values.note,
-            originalDate: transaction.occurred_at,
-          }
-        : undefined,
+      kind: "recurring-occurrence-series",
+      scheduleId: transaction.schedule_id,
+      fromOccurrenceDate:
+        transaction.schedule_occurrence_date ?? transaction.occurred_at,
+      changes: pendingChange.changes,
     };
-    setPendingPayload(null);
+    setPendingChange(null);
     onSubmit(payload);
     onOpenChange(false);
   };
 
-  const dateChanged = pendingPayload
-    ? pendingPayload.values.occurred_at !== transaction?.occurred_at
-    : false;
-  const noteChanged = pendingPayload
-    ? pendingPayload.values.note !== (transaction?.note ?? "")
-    : false;
-
-  const t = useTranslations("transactions.form");
-  const overlayTitle = dateChanged && noteChanged
-    ? t("reschedule.updateBoth.title")
-    : noteChanged
-      ? t("reschedule.updateNote.title")
-      : t("reschedule.title");
-  const overlayDescription = dateChanged && noteChanged
-    ? t("reschedule.updateBoth.description")
-    : noteChanged
-      ? t("reschedule.updateNote.description")
-      : t("reschedule.description");
-
   return (
-    <Sheet open={open} onOpenChange={(next) => { setPendingPayload(null); onOpenChange(next); }}>
+    <Sheet
+      open={open}
+      onOpenChange={(next) => {
+        setPendingChange(null);
+        onOpenChange(next);
+      }}
+    >
       <SheetContent
         side="responsive"
         showCloseButton={false}
@@ -337,21 +369,19 @@ export function TransactionFormSheet({
           transactions={transactions}
           allocations={allocations}
           investmentPositions={investmentPositions}
-            initialInvestmentInstrumentId={initialInvestmentInstrumentId}
-            initialCategoryId={initialCategoryId}
+          initialInvestmentInstrumentId={initialInvestmentInstrumentId}
+          initialCategoryId={initialCategoryId}
           onSubmit={wrappedOnSubmit}
           onOpenChange={onOpenChange}
         >
           <TransactionFormInner />
         </TransactionFormProvider>
 
-        {pendingPayload && (
-          <RescheduleConfirmOverlay
-            title={overlayTitle}
-            description={overlayDescription}
+        {pendingChange && (
+          <RecurringChangeScopeOverlay
             onOnlyThis={handleOnlyThis}
             onAllFollowing={handleAllFollowing}
-            onCancel={() => setPendingPayload(null)}
+            onCancel={() => setPendingChange(null)}
           />
         )}
       </SheetContent>

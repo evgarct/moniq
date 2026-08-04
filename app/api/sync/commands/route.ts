@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import {
   categoryInputSchema,
+  recurringOccurrenceSeriesUpdateSchema,
   transactionEntryBatchInputSchema,
   transactionEntryInputSchema,
   transactionInputSchema,
@@ -14,6 +15,7 @@ import {
   walletInputSchema,
 } from "@/types/finance-schemas";
 import {
+  applyRecurringOccurrenceChanges,
   adjustWalletBalance,
   createCategory,
   createTransactionEntry,
@@ -46,7 +48,7 @@ const commandTypeSchema = z.enum([
   "wallet.create", "wallet.update", "wallet.adjust", "wallet.delete",
   "category.create", "category.update", "category.delete",
   "transaction.create", "transaction.update", "transaction.delete", "transaction.markPaid", "transaction.skip",
-  "schedule.update", "schedule.updateNote", "schedule.state", "schedule.reschedule", "schedule.delete",
+  "schedule.update", "schedule.updateNote", "schedule.updateFromOccurrence", "schedule.state", "schedule.reschedule", "schedule.delete",
   "allocation.create", "allocation.update", "allocation.delete",
   "preferences.update",
 ]);
@@ -109,6 +111,10 @@ async function executeCommand(command: SyncCommand) {
       const note = typeof payload.note === "string" ? payload.note : null;
       const fromOccurrenceDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).parse(payload.fromOccurrenceDate);
       return updateTransactionScheduleNote(command.targetId!, note, fromOccurrenceDate);
+    }
+    case "schedule.updateFromOccurrence": {
+      const parsed = recurringOccurrenceSeriesUpdateSchema.parse(payload);
+      return applyRecurringOccurrenceChanges(command.targetId!, parsed.fromOccurrenceDate, parsed.changes);
     }
     case "schedule.state": return setTransactionScheduleState(command.targetId!, z.enum(["active", "paused"]).parse(payload.state));
     case "schedule.reschedule": return rescheduleScheduleFromDate(command.targetId!, z.string().parse(payload.fromOccurrenceDate), z.string().parse(payload.newOccurrenceDate));
