@@ -18,9 +18,26 @@ export function useTransactionActions() {
     updateSchedule: actions.updateSchedule,
     setScheduleState: actions.setScheduleState,
     deleteSchedule: actions.deleteSchedule,
-    deleteScheduleOptimistic: (scheduleId: string, onError?: (error: unknown) => void) =>
-      actions.deleteSchedule(scheduleId, { onError }),
-    rescheduleFromDate: actions.rescheduleSchedule,
-    updateScheduleNoteFromDate: actions.updateScheduleNoteFromDate,
+    deleteScheduleOptimistic: (
+      scheduleId: string,
+      onError?: (error: unknown) => void,
+    ) => actions.deleteSchedule(scheduleId, { onError }),
+    rescheduleFromDate: (
+      scheduleId: string,
+      fromOccurrenceDate: string,
+      newOccurrenceDate: string,
+    ) =>
+      actions.applyRecurringOccurrenceChanges(scheduleId, fromOccurrenceDate, {
+        occurred_at: newOccurrenceDate,
+      }),
+    updateScheduleNoteFromDate: (
+      scheduleId: string,
+      fromOccurrenceDate: string,
+      note: string | null,
+    ) =>
+      actions.applyRecurringOccurrenceChanges(scheduleId, fromOccurrenceDate, {
+        note,
+      }),
+    applyRecurringOccurrenceChanges: actions.applyRecurringOccurrenceChanges,
   };
 }

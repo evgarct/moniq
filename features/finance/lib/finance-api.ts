@@ -5,6 +5,7 @@ import { hasLocale } from "next-intl";
 
 import type {
   CategoryInput,
+  RecurringOccurrenceChangesInput,
   TransactionEntryBatchInput,
   TransactionEntryInput,
   TransactionInput,
@@ -131,7 +132,6 @@ export async function fetchFinanceSnapshot(): Promise<FinanceSnapshot> {
 
   return parseJsonResponse<FinanceSnapshot>(response);
 }
-
 export async function saveInvestmentPositionRequest(
   instrument: InvestmentInstrumentCandidate,
   openingUnits: number,
@@ -318,16 +318,16 @@ export async function setTransactionScheduleStateRequest(
   return parseJsonResponse<FinanceSnapshot>(response);
 }
 
-export async function rescheduleTransactionSeriesRequest(
+export async function applyRecurringOccurrenceChangesRequest(
   scheduleId: string,
   fromOccurrenceDate: string,
-  newOccurrenceDate: string,
+  changes: RecurringOccurrenceChangesInput,
 ): Promise<FinanceSnapshot> {
   const response = await fetchWithTimeout(`/api/transaction-schedules/${scheduleId}`, {
     method: "PATCH",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ mode: "reschedule", fromOccurrenceDate, newOccurrenceDate }),
+    body: JSON.stringify({ mode: "update-from-occurrence", fromOccurrenceDate, changes }),
   });
 
   return parseJsonResponse<FinanceSnapshot>(response);
@@ -380,21 +380,6 @@ export async function updateUserPreferencesRequest(values: UserPreferencesInput)
     credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(values),
-  });
-
-  return parseJsonResponse<FinanceSnapshot>(response);
-}
-
-export async function updateScheduleNoteFromDateRequest(
-  scheduleId: string,
-  fromOccurrenceDate: string,
-  newNote: string | null,
-): Promise<FinanceSnapshot> {
-  const response = await fetchWithTimeout(`/api/transaction-schedules/${scheduleId}`, {
-    method: "PATCH",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ mode: "update-note", note: newNote, fromOccurrenceDate }),
   });
 
   return parseJsonResponse<FinanceSnapshot>(response);

@@ -675,8 +675,8 @@ const meta = {
                   variant="do"
                 />
                 <RuleCard
-                  label="Reschedule overlay uses fixed, not relative"
-                  body="RescheduleConfirmOverlay uses fixed inset-0 z-50. Never add relative to SheetContent — it breaks the sheet's height layout and cuts off the overlay."
+                  label="Recurring change scope overlays the sheet"
+                  body="RecurringChangeScopeOverlay portals to document.body and uses fixed inset-0 z-[60], above SheetContent. Never add it relative to SheetContent — that breaks the sheet's height layout and cuts off the overlay."
                   variant="do"
                 />
                 <RuleCard

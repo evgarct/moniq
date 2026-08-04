@@ -918,19 +918,11 @@
         "batchSummary": "{count, plural, one {# row ready to save.} other {# rows ready to save.}}",
         "singleSummary": "Review the details and save when ready."
       },
-      "reschedule": {
-        "title": "Change recurring date",
-        "description": "Do you want to move only this occurrence, or shift this and all following occurrences?",
+      "changeScope": {
+        "title": "Apply recurring changes",
+        "description": "Do you want to apply these changes only to this transaction, or to it and all following planned transactions?",
         "onlyThis": "Only this occurrence",
-        "allFollowing": "This and all following",
-        "updateNote": {
-          "title": "Change recurring note",
-          "description": "Do you want to change the note for only this occurrence, or this and all following occurrences?"
-        },
-        "updateBoth": {
-          "title": "Change recurring transaction",
-          "description": "Do you want to apply these changes to only this occurrence, or this and all following occurrences?"
-        }
+        "allFollowing": "This and all following"
       },
       "submit": {
         "add": "Save transaction",

@@ -269,6 +269,21 @@ export const transactionScheduleStateInputSchema = z.object({
   state: z.enum(["active", "paused"] satisfies [TransactionScheduleState, ...TransactionScheduleState[]]),
 });
 
+export const recurringOccurrenceChangesSchema = z
+  .object(transactionFieldShape)
+  .omit({
+    status: true,
+    investment_instrument_id: true,
+    investment_units: true,
+  })
+  .partial()
+  .refine((changes) => Object.keys(changes).length > 0, "At least one recurring occurrence change is required.");
+
+export const recurringOccurrenceSeriesUpdateSchema = z.object({
+  fromOccurrenceDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  changes: recurringOccurrenceChangesSchema,
+});
+
 export const walletAllocationInputSchema = z.object({
   name: z.string().trim().min(1, "Goal name is required."),
   kind: z.enum(["goal_open", "goal_targeted"] satisfies [WalletAllocationKind, ...WalletAllocationKind[]]),
@@ -306,6 +321,8 @@ export type TransactionEntryBatchInputValues = z.input<typeof transactionEntryBa
 export type TransactionScheduleInput = z.output<typeof transactionScheduleInputSchema>;
 export type TransactionScheduleInputValues = z.input<typeof transactionScheduleInputSchema>;
 export type TransactionScheduleStateInput = z.output<typeof transactionScheduleStateInputSchema>;
+export type RecurringOccurrenceChangesInput = z.output<typeof recurringOccurrenceChangesSchema>;
+export type RecurringOccurrenceSeriesUpdateInput = z.output<typeof recurringOccurrenceSeriesUpdateSchema>;
 export type WalletAllocationInput = z.output<typeof walletAllocationInputSchema>;
 export type WalletAllocationInputValues = z.input<typeof walletAllocationInputSchema>;
 export type UserPreferencesInput = z.output<typeof userPreferencesInputSchema>;
