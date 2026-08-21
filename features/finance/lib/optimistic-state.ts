@@ -99,6 +99,15 @@ export function syncAllocationsOnTransactionChange(
       return a;
     });
   }
+  if (oldTransaction && oldTransaction.status === "paid" && oldTransaction.source_allocation_id) {
+    currentAllocations = currentAllocations.map((a) => {
+      if (a.id === oldTransaction.source_allocation_id) {
+        affectedWallets.add(a.wallet_id);
+        return { ...a, amount: a.amount + oldTransaction.amount, updated_at: new Date().toISOString() };
+      }
+      return a;
+    });
+  }
 
   // 3. Apply the explicit goal effect of the new transaction.
   if (newTransaction && newTransaction.status === "paid" && newTransaction.allocation_id) {
@@ -115,6 +124,15 @@ export function syncAllocationsOnTransactionChange(
       return a;
     });
   }
+  if (newTransaction && newTransaction.status === "paid" && newTransaction.source_allocation_id) {
+    currentAllocations = currentAllocations.map((a) => {
+      if (a.id === newTransaction.source_allocation_id) {
+        affectedWallets.add(a.wallet_id);
+        return { ...a, amount: Math.max(0, a.amount - newTransaction.amount), updated_at: new Date().toISOString() };
+      }
+      return a;
+    });
+  }
 
   let nextSnapshot = {
     ...snapshot,
@@ -123,7 +141,12 @@ export function syncAllocationsOnTransactionChange(
   };
 
   // 4. Release only the shortfall beyond Free from the default goal.
-  if (newTransaction?.status === "paid" && !newTransaction.allocation_id && newTransaction.source_account_id) {
+  if (
+    newTransaction?.status === "paid" &&
+    !newTransaction.allocation_id &&
+    !newTransaction.source_allocation_id &&
+    newTransaction.source_account_id
+  ) {
     const wallet = nextSnapshot.accounts.find((account) => account.id === newTransaction.source_account_id);
     const netOutflow = newTransaction.amount - (
       newTransaction.destination_account_id === newTransaction.source_account_id
@@ -213,6 +236,9 @@ function resolveTransactionRelations(snapshot: FinanceSnapshot, values: Transact
     allocation: values.allocation_id
       ? snapshot.allocations.find((allocation) => allocation.id === values.allocation_id) ?? null
       : null,
+    source_allocation: values.source_allocation_id
+      ? snapshot.allocations.find((allocation) => allocation.id === values.source_allocation_id) ?? null
+      : null,
     investment_instrument: values.investment_instrument_id
       ? snapshot.investment_positions.find((position) => position.instrument_id === values.investment_instrument_id)?.instrument ?? null
       : null,
@@ -246,6 +272,7 @@ export function makeOptimisticTransaction(
     schedule_occurrence_date: null,
     is_schedule_override: false,
     allocation_id: values.allocation_id ?? null,
+    source_allocation_id: values.source_allocation_id ?? null,
     investment_instrument_id: values.investment_instrument_id ?? null,
     investment_units: values.investment_units ?? null,
     schedule: null,

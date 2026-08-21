@@ -110,6 +110,7 @@ function toFinanceInput(transaction: TransactionImport): TransactionInput {
     source_account_id: null,
     destination_account_id: null,
     allocation_id: null,
+    source_allocation_id: null,
   };
 
   if (transaction.kind === "expense") {

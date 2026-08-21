@@ -18,8 +18,10 @@ export function TransferSection() {
   const { accounts, allocations, categoryOptions, sourceCurrencySymbol, destinationCurrencySymbol } = useTransactionFormContext();
   const { control, formState: { errors } } = useFormContext<TransactionFormInputs>();
 
+  const sourceAccountId = useWatch({ control, name: "source_account_id" });
   const destinationAccountId = useWatch({ control, name: "destination_account_id" });
   const allocationId = useWatch({ control, name: "allocation_id" });
+  const sourceAllocations = getGoalAllocationsForSource(accounts, allocations, sourceAccountId);
   const destinationAllocations = getGoalAllocationsForSource(accounts, allocations, destinationAccountId);
 
   return (
@@ -28,13 +30,27 @@ export function TransferSection() {
         <AccountSelect name="source_account_id" accounts={accounts} placeholder={t("placeholders.sourceAccount")} />
       </FormPickerRow>
 
+      {sourceAllocations.length > 0 && (
+        <FormPickerRow>
+          <GoalSelect
+            allocations={sourceAllocations}
+            name="source_allocation_id"
+            placeholder={t("placeholders.sourceGoal")}
+          />
+        </FormPickerRow>
+      )}
+
       <FormPickerRow>
         <AccountSelect name="destination_account_id" accounts={accounts} placeholder={t("placeholders.destinationAccount")} />
       </FormPickerRow>
 
       {destinationAllocations.length > 0 && (
         <FormPickerRow>
-          <GoalSelect allocations={destinationAllocations} />
+          <GoalSelect
+            allocations={destinationAllocations}
+            name="allocation_id"
+            placeholder={t("placeholders.destinationGoal")}
+          />
         </FormPickerRow>
       )}
 

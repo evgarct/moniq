@@ -62,6 +62,7 @@ function debtPayment(destinationAccountId: string): TransactionInput {
     source_account_id: "cash",
     destination_account_id: destinationAccountId,
     allocation_id: null,
+    source_allocation_id: null,
     investment_instrument_id: null,
     investment_units: null,
   };

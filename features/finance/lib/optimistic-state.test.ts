@@ -54,6 +54,7 @@ describe("optimistic finance state", () => {
         source_account_id: "source",
         destination_account_id: null,
         allocation_id: null,
+        source_allocation_id: null,
         recurrence: null,
       } satisfies TransactionEntryInput,
       ["optimistic:transaction:stable"],
@@ -105,6 +106,7 @@ describe("optimistic finance state", () => {
       destination_account_id: destination.id,
       category_id: null,
       allocation_id: null,
+      source_allocation_id: null,
       note: null,
       fx_rate: null,
       principal_amount: null,
@@ -140,6 +142,7 @@ describe("optimistic finance state", () => {
       source_account_id: wallet.id,
       destination_account_id: null,
       allocation_id: allocation.id,
+      source_allocation_id: null,
       recurrence: null,
     });
 
@@ -202,7 +205,7 @@ describe("optimistic finance state", () => {
       kind: "expense", amount: 350, destination_amount: null, fx_rate: null,
       principal_amount: null, interest_amount: null, extra_principal_amount: null,
       category_id: "cat", source_account_id: wallet.id, destination_account_id: null,
-      allocation_id: null, recurrence: null,
+      allocation_id: null, source_allocation_id: null, recurrence: null,
     });
 
     expect(next.accounts[0].balance).toBe(650);
@@ -234,7 +237,7 @@ describe("optimistic finance state", () => {
       kind: "expense", amount: 200, destination_amount: null, fx_rate: null,
       principal_amount: null, interest_amount: null, extra_principal_amount: null,
       category_id: "cat", source_account_id: wallet.id, destination_account_id: null,
-      allocation_id: null, recurrence: null,
+      allocation_id: null, source_allocation_id: null, recurrence: null,
     })).toThrow(/Free plus the default goal/);
   });
 

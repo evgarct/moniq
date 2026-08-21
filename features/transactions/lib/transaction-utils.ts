@@ -46,6 +46,7 @@ export function validateTransactionRelationships(
     categories: Category[];
     investment_positions?: InvestmentPosition[];
     allocations?: WalletAllocation[];
+    transaction?: Transaction | null;
   },
 ) {
   const sourceAccount = values.source_account_id
@@ -140,6 +141,67 @@ export function validateTransactionRelationships(
       }
     } else {
       throw new Error("Goal allocations are only supported for expenses and transfers.");
+    }
+  }
+
+  let sourceGoal: WalletAllocation | null = null;
+  if (values.source_allocation_id) {
+    if (values.kind !== "transfer") {
+      throw new Error("A source goal can only be selected for transfers.");
+    }
+    if (!options.allocations) {
+      throw new Error("Allocations not loaded.");
+    }
+    sourceGoal = options.allocations.find((a) => a.id === values.source_allocation_id) ?? null;
+    if (!sourceGoal) {
+      throw new Error("Source goal allocation not found.");
+    }
+    if (sourceGoal.wallet_id !== values.source_account_id) {
+      throw new Error("Source goal allocation must belong to the source account.");
+    }
+    if (values.allocation_id && values.source_allocation_id === values.allocation_id) {
+      throw new Error("Choose two different goals.");
+    }
+  }
+
+  if ((values.kind === "expense" || values.kind === "transfer") && sourceAccount?.type === "saving") {
+    const sameTransactionSource =
+      options.transaction &&
+      options.transaction.status === "paid" &&
+      options.transaction.kind === values.kind &&
+      options.transaction.source_account_id === values.source_account_id;
+
+    const existingContribution = sameTransactionSource
+      ? values.kind === "expense"
+        ? (options.transaction!.allocation_id ?? null) === (values.allocation_id ?? null)
+          ? options.transaction!.amount
+          : 0
+        : (options.transaction!.source_allocation_id ?? null) === (values.source_allocation_id ?? null)
+          ? options.transaction!.amount
+          : 0
+      : 0;
+
+    // For "expense", allocation_id is the source goal; for "transfer", source_allocation_id is.
+    const effectiveSourceGoal =
+      values.kind === "expense"
+        ? options.allocations?.find((a) => a.id === values.allocation_id) ?? null
+        : sourceGoal;
+
+    if (effectiveSourceGoal) {
+      const maxAllowed = effectiveSourceGoal.amount + existingContribution;
+      if (values.amount > maxAllowed) {
+        throw new Error("Selected goal does not have enough funds for this transaction.");
+      }
+    } else {
+      const walletAllocations = (options.allocations ?? []).filter((a) => a.wallet_id === sourceAccount.id);
+      const totalAllocated = walletAllocations.reduce((sum, a) => sum + a.amount, 0);
+      const freeBefore = sourceAccount.balance - totalAllocated;
+      const defaultGoal = walletAllocations.find((a) => a.is_default);
+      const maxAllowed = freeBefore + (defaultGoal?.amount ?? 0) + existingContribution;
+
+      if (values.amount > maxAllowed) {
+        throw new Error("This amount exceeds the available free balance and default goal.");
+      }
     }
   }
 }

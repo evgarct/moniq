@@ -20,6 +20,7 @@ function base(overrides: Partial<TransactionFormInputs> = {}): TransactionFormIn
     source_account_id: "acc-1",
     destination_account_id: null,
     allocation_id: null,
+    source_allocation_id: null,
     investment_instrument_id: null,
     investment_units: null,
     is_recurring: false,

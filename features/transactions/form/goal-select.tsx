@@ -24,14 +24,22 @@ export function getGoalAllocationsForSource(
   return allocations.filter((allocation) => allocation.wallet_id === source.id);
 }
 
-export function GoalSelect({ allocations }: { allocations: WalletAllocation[] }) {
+export function GoalSelect({
+  allocations,
+  name = "allocation_id",
+  placeholder,
+}: {
+  allocations: WalletAllocation[];
+  name?: "allocation_id" | "source_allocation_id";
+  placeholder?: string;
+}) {
   const t = useTranslations("transactions.form");
   const { control } = useFormContext<TransactionFormInputs>();
 
   return (
     <Controller
       control={control}
-      name="allocation_id"
+      name={name}
       render={({ field }) => {
         const selected = allocations.find((a) => a.id === field.value);
 
@@ -46,7 +54,7 @@ export function GoalSelect({ allocations }: { allocations: WalletAllocation[] })
               <div className="flex min-w-0 items-center gap-2">
                 <InlineIcon icon={Target} />
                 <span className={cn("truncate text-left", selected ? "text-foreground" : "text-muted-foreground")}>
-                  {selected?.name ?? t("placeholders.goal")}
+                  {selected?.name ?? placeholder ?? t("placeholders.goal")}
                 </span>
               </div>
             </SelectTrigger>

@@ -235,6 +235,7 @@ function buildTransactionInputFromSchedule(
     source_account_id: schedule.source_account_id,
     destination_account_id: schedule.destination_account_id,
     allocation_id: schedule.allocation_id,
+    source_allocation_id: null,
     investment_instrument_id: null,
     investment_units: null,
   };
@@ -1155,6 +1156,7 @@ export async function createTransactionEntry(values: TransactionEntryInput, pref
       source_account_id: values.source_account_id,
       destination_account_id: values.destination_account_id,
       allocation_id: values.allocation_id ?? null,
+      source_allocation_id: values.source_allocation_id ?? null,
       investment_instrument_id: values.investment_instrument_id ?? null,
       investment_units: values.investment_units ?? null,
       recurrence: values.recurrence,
@@ -1203,6 +1205,7 @@ export async function createTransactionEntryBatch(entries: TransactionEntryInput
         source_account_id: e.source_account_id,
         destination_account_id: e.destination_account_id,
         allocation_id: e.allocation_id ?? null,
+        source_allocation_id: e.source_allocation_id ?? null,
         investment_instrument_id: e.investment_instrument_id ?? null,
         investment_units: e.investment_units ?? null,
       })),
@@ -1239,6 +1242,7 @@ export async function createTransaction(values: TransactionInput, preferredId?: 
     source_account_id: values.source_account_id,
     destination_account_id: values.destination_account_id,
     allocation_id: values.allocation_id ?? null,
+    source_allocation_id: values.source_allocation_id ?? null,
     investment_instrument_id: values.investment_instrument_id ?? null,
     investment_units: values.investment_units ?? null,
   });
@@ -1309,7 +1313,7 @@ export async function updateTransaction(transactionId: string, values: Transacti
     throw new Error("Transaction not found.");
   }
 
-  validateTransactionRelationships(values, snapshot);
+  validateTransactionRelationships(values, { ...snapshot, transaction: existing });
 
   const updateFields: Record<string, unknown> = {
     title: values.title.trim(),
@@ -1327,6 +1331,7 @@ export async function updateTransaction(transactionId: string, values: Transacti
     source_account_id: values.source_account_id,
     destination_account_id: values.destination_account_id,
     allocation_id: values.allocation_id ?? null,
+    source_allocation_id: values.source_allocation_id ?? null,
     investment_instrument_id: values.investment_instrument_id ?? null,
     investment_units: values.investment_units ?? null,
   };

@@ -27,6 +27,7 @@ export type SchemaMessages = {
     recurringMustBePlanned: string;
     recurrenceUntilBeforeStart: string;
     freeBalanceExceeded: string;
+    sameGoalTransfer: string;
   };
 };
 
@@ -62,6 +63,7 @@ export function buildSchema(
       source_account_id: opaqueId,
       destination_account_id: opaqueId,
       allocation_id: opaqueId,
+      source_allocation_id: opaqueId,
       investment_instrument_id: opaqueId,
       investment_units: z.preprocess((val) => {
         if (val === "" || val === null || val === undefined) return null;
@@ -98,7 +100,7 @@ export function buildSchema(
         values.source_account_id &&
         values.destination_account_id &&
         values.source_account_id === values.destination_account_id &&
-        !(values.kind === "transfer" && values.allocation_id)
+        !(values.kind === "transfer" && (values.allocation_id || values.source_allocation_id))
       ) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["destination_account_id"], message: v.differentDestination });
       }
@@ -151,13 +153,20 @@ export function buildSchema(
         ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["investment_units"], message: v.amountPositive });
       }
 
-      // Check if transferring to a goal in the same savings wallet
       if (
         values.kind === "transfer" &&
-        values.source_account_id &&
-        values.destination_account_id &&
-        values.source_account_id === values.destination_account_id &&
+        values.source_allocation_id &&
         values.allocation_id &&
+        values.source_allocation_id === values.allocation_id
+      ) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["allocation_id"], message: v.sameGoalTransfer });
+      }
+
+      // Check savings-sourced expenses/transfers against what's actually available:
+      // a specific goal's balance if one was chosen, otherwise free balance + default goal.
+      if (
+        (values.kind === "expense" || values.kind === "transfer") &&
+        values.source_account_id &&
         accounts &&
         allocations
       ) {
@@ -166,17 +175,30 @@ export function buildSchema(
           const walletAllocations = allocations.filter((a) => a.wallet_id === wallet.id);
           const totalAllocated = walletAllocations.reduce((sum, a) => sum + a.amount, 0);
           const freeBefore = wallet.balance - totalAllocated;
+          const defaultGoal = walletAllocations.find((a) => a.is_default);
 
-          const existingTransactionContribution =
+          const specificGoalId = values.kind === "expense" ? values.allocation_id : values.source_allocation_id;
+          const specificGoal = specificGoalId ? allocations.find((a) => a.id === specificGoalId) : null;
+
+          const sameTransactionSource =
             transaction &&
             transaction.status === "paid" &&
-            transaction.allocation_id === values.allocation_id &&
-            transaction.kind === "transfer" &&
-            transaction.source_account_id === values.source_account_id
-              ? transaction.amount
-              : 0;
+            transaction.kind === values.kind &&
+            transaction.source_account_id === values.source_account_id;
 
-          const maxAllowed = freeBefore + existingTransactionContribution;
+          const existingTransactionContribution = sameTransactionSource
+            ? values.kind === "expense"
+              ? (transaction!.allocation_id ?? null) === (values.allocation_id ?? null)
+                ? transaction!.amount
+                : 0
+              : (transaction!.source_allocation_id ?? null) === (values.source_allocation_id ?? null)
+                ? transaction!.amount
+                : 0
+            : 0;
+
+          const maxAllowed = specificGoal
+            ? specificGoal.amount + existingTransactionContribution
+            : freeBefore + (defaultGoal?.amount ?? 0) + existingTransactionContribution;
 
           if (values.amount > maxAllowed) {
             ctx.addIssue({

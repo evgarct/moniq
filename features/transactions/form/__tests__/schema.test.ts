@@ -25,6 +25,7 @@ const msgs = {
     recurringMustBePlanned: "recurringMustBePlanned",
     recurrenceUntilBeforeStart: "recurrenceUntilBeforeStart",
     freeBalanceExceeded: "freeBalanceExceeded",
+    sameGoalTransfer: "sameGoalTransfer",
   },
 };
 
@@ -45,6 +46,7 @@ function base(overrides = {}) {
     source_account_id: "acc-1",
     destination_account_id: null,
     allocation_id: null,
+    source_allocation_id: null,
     investment_instrument_id: null,
     investment_units: null,
     is_recurring: false,
@@ -515,5 +517,63 @@ describe("buildSchema – savings goal transfer validations", () => {
     );
     expect(result2.success).toBe(false);
     expect(result2.error!.issues.map((i) => i.message)).toContain("freeBalanceExceeded");
+  });
+
+  it("rejects picking the same goal as both source and destination", () => {
+    const result = schema.safeParse(
+      base({
+        kind: "transfer",
+        source_account_id: "acc-saving",
+        destination_account_id: "acc-saving",
+        allocation_id: "alloc-1",
+        source_allocation_id: "alloc-1",
+        amount: 100,
+        destination_amount: 100,
+      }),
+    );
+    expect(result.success).toBe(false);
+    expect(result.error!.issues.map((i) => i.message)).toContain("sameGoalTransfer");
+  });
+
+  it("caps a goal-to-goal transfer by the source goal's own balance", () => {
+    const result = schema.safeParse(
+      base({
+        kind: "transfer",
+        source_account_id: "acc-saving",
+        destination_account_id: "acc-saving",
+        source_allocation_id: "alloc-1",
+        amount: 500, // alloc-1 only has 400
+        destination_amount: 500,
+      }),
+    );
+    expect(result.success).toBe(false);
+    expect(result.error!.issues.map((i) => i.message)).toContain("freeBalanceExceeded");
+  });
+
+  it("accepts a goal-to-goal transfer within the source goal's balance", () => {
+    const result = schema.safeParse(
+      base({
+        kind: "transfer",
+        source_account_id: "acc-saving",
+        destination_account_id: "acc-saving",
+        category_id: null,
+        source_allocation_id: "alloc-1",
+        amount: 400,
+        destination_amount: 400,
+      }),
+    );
+    expect(result.success).toBe(true);
+  });
+
+  it("flags an expense from savings exceeding free balance plus default goal", () => {
+    const result = schema.safeParse(
+      base({
+        kind: "expense",
+        source_account_id: "acc-saving",
+        amount: 700, // free = 600, no default goal marked -> cap is 600
+      }),
+    );
+    expect(result.success).toBe(false);
+    expect(result.error!.issues.map((i) => i.message)).toContain("freeBalanceExceeded");
   });
 });

@@ -134,7 +134,13 @@
         "transferCategoryExpenseOnly": "Savings transfers can only use an expense category.",
         "investmentCategory": "Investment purchases must use the investment category.",
         "investmentEtf": "Investment purchases must use an ETF position.",
-        "investmentNotFound": "Investment position not found."
+        "investmentNotFound": "Investment position not found.",
+        "sourceGoalTransferOnly": "A source goal can only be selected for transfers.",
+        "sourceGoalNotFound": "Source goal allocation not found.",
+        "sourceGoalWrongWallet": "Source goal allocation must belong to the source account.",
+        "sameGoalTransfer": "Choose two different goals.",
+        "goalInsufficientFunds": "Selected goal does not have enough funds for this transaction.",
+        "savingsInsufficientFunds": "This amount exceeds the available free balance and default goal."
       },
       "investment": {
         "search": "Unable to search investments.",
@@ -902,6 +908,8 @@
         "destinationAccount": "Choose destination account",
         "category": "Choose category",
         "goal": "Link to goal",
+        "sourceGoal": "From goal (optional)",
+        "destinationGoal": "To goal (optional)",
         "noGoal": "No goal",
         "note": "Add notes",
         "lineNote": "Optional note"
@@ -952,7 +960,8 @@
         "destinationAmountRequired": "Destination amount is required for account-to-account moves.",
         "lineItemsRequired": "Add at least one transaction row.",
         "recurringMustBePlanned": "Recurring transactions must start as planned.",
-        "recurrenceUntilBeforeStart": "End repeat must be on or after the start date."
+        "recurrenceUntilBeforeStart": "End repeat must be on or after the start date.",
+        "sameGoalTransfer": "Choose two different goals."
       }
     },
     "actions": {

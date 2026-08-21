@@ -207,6 +207,7 @@ export function TransactionRow({
         source_account_id: transaction.source_account_id,
         destination_account_id: transaction.destination_account_id,
         allocation_id: transaction.allocation_id,
+        source_allocation_id: transaction.source_allocation_id ?? null,
         investment_instrument_id: transaction.investment_instrument_id ?? null,
         investment_units: transaction.investment_units ?? null,
       });

@@ -69,6 +69,7 @@ const transactionFieldShape = {
   source_account_id: z.string().uuid().nullable().optional(),
   destination_account_id: z.string().uuid().nullable().optional(),
   allocation_id: z.string().uuid().nullable().optional(),
+  source_allocation_id: z.string().uuid().nullable().optional(),
   investment_instrument_id: z.string().uuid().nullable().optional(),
   investment_units: z.number().positive("Investment units must be greater than 0.").nullable().optional(),
 } as const;
@@ -85,6 +86,7 @@ function addTransactionValidation<
     source_account_id?: string | null;
     destination_account_id?: string | null;
     allocation_id?: string | null;
+    source_allocation_id?: string | null;
     investment_instrument_id?: string | null;
     investment_units?: number | null;
   }>
@@ -110,11 +112,19 @@ function addTransactionValidation<
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["category_id"], message: "Only transfers into a savings goal can use a category." });
     }
 
+    if (values.source_allocation_id && values.kind !== "transfer") {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["source_allocation_id"], message: "A source goal can only be selected for transfers." });
+    }
+
+    if (values.source_allocation_id && values.allocation_id && values.source_allocation_id === values.allocation_id) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["allocation_id"], message: "Choose two different goals." });
+    }
+
     if (
       values.source_account_id &&
       values.destination_account_id &&
       values.source_account_id === values.destination_account_id &&
-      !(values.kind === "transfer" && values.allocation_id)
+      !(values.kind === "transfer" && (values.allocation_id || values.source_allocation_id))
     ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -177,6 +187,7 @@ function normalizeTransactionValues<
     extra_principal_amount?: number | null;
     category_id?: string | null;
     allocation_id?: string | null;
+    source_allocation_id?: string | null;
     investment_instrument_id?: string | null;
     investment_units?: number | null;
   }
@@ -191,6 +202,7 @@ function normalizeTransactionValues<
     extra_principal_amount: values.kind === "debt_payment" ? values.extra_principal_amount ?? 0 : null,
     category_id: values.kind === "transfer" && !values.allocation_id ? null : values.category_id ?? null,
     allocation_id: (values.kind === "expense" || values.kind === "transfer") ? (values.allocation_id ?? null) : null,
+    source_allocation_id: values.kind === "transfer" ? (values.source_allocation_id ?? null) : null,
   };
 }
 
