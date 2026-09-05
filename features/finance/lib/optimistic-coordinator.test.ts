@@ -93,6 +93,37 @@ describe("FinanceMutationCoordinator", () => {
     await vi.waitFor(() => expect(snapshot.categories.map((category) => category.id)).toEqual(["kept"]));
   });
 
+  it("rejects a command whose optimistic apply throws without wedging later work", async () => {
+    let snapshot = createEmptyFinanceSnapshot();
+    const coordinator = new FinanceMutationCoordinator({
+      read: () => snapshot,
+      write: (next) => {
+        snapshot = next;
+      },
+    });
+    const request = vi.fn();
+
+    const rejectedCompletion = coordinator.execute({
+      id: "invalid",
+      apply: () => {
+        throw new Error("Savings balance cannot be lower than its reserved goals.");
+      },
+      request: request as never,
+      onError: vi.fn(),
+    });
+
+    await expect(rejectedCompletion).rejects.toThrow(/reserved goals/);
+    expect(request).not.toHaveBeenCalled();
+
+    const keptCompletion = coordinator.execute({
+      id: "kept",
+      apply: (current) => ({ ...current, categories: [{ id: "kept" } as never] }),
+      request: async () => ({ ...createEmptyFinanceSnapshot(), categories: [{ id: "kept" } as never] }),
+    });
+    await keptCompletion;
+    expect(snapshot.categories.map((category) => category.id)).toEqual(["kept"]);
+  });
+
   it("reconciles optimistic IDs before a dependent request runs", async () => {
     let snapshot = createEmptyFinanceSnapshot();
     let resolveCreate!: (value: typeof snapshot) => void;

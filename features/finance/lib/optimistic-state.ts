@@ -115,6 +115,9 @@ export function syncAllocationsOnTransactionChange(
       if (a.id === newTransaction.allocation_id) {
         affectedWallets.add(a.wallet_id);
         const amountChange = newTransaction.kind === "expense" ? -newTransaction.amount : newTransaction.amount;
+        if (newTransaction.kind === "expense" && a.amount + amountChange < 0) {
+          throw new Error("Selected goal does not have enough funds for this transaction.");
+        }
         return {
           ...a,
           amount: Math.max(0, a.amount + amountChange),
@@ -128,6 +131,9 @@ export function syncAllocationsOnTransactionChange(
     currentAllocations = currentAllocations.map((a) => {
       if (a.id === newTransaction.source_allocation_id) {
         affectedWallets.add(a.wallet_id);
+        if (a.amount - newTransaction.amount < 0) {
+          throw new Error("Selected goal does not have enough funds for this transaction.");
+        }
         return { ...a, amount: Math.max(0, a.amount - newTransaction.amount), updated_at: new Date().toISOString() };
       }
       return a;

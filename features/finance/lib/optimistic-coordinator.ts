@@ -67,12 +67,27 @@ export class FinanceMutationCoordinator {
 
   private publish() {
     if (!this.confirmed) return;
-    this.options.write(
-      this.pending.reduce(
-        (snapshot, command) => command.apply(snapshot, this.resolveId),
-        this.confirmed,
-      ),
-    );
+
+    // Applying an optimistic mutation can throw when it would violate an
+    // invariant (e.g. overdrawing a savings goal). Isolate each command so one
+    // rejected mutation surfaces as an error instead of crashing the reducer
+    // and wedging every later optimistic update.
+    let snapshot = this.confirmed;
+    const rejected: PendingFinanceCommand[] = [];
+    for (const command of this.pending) {
+      try {
+        snapshot = command.apply(snapshot, this.resolveId);
+      } catch (error) {
+        rejected.push(command);
+        command.onError?.(error);
+        command.reject(error);
+      }
+    }
+    if (rejected.length > 0) {
+      this.pending = this.pending.filter((command) => !rejected.includes(command));
+    }
+
+    this.options.write(snapshot);
   }
 
   private async process() {
