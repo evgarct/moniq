@@ -241,6 +241,28 @@ describe("optimistic finance state", () => {
     })).toThrow(/Free plus the default goal/);
   });
 
+  it("rejects marking a planned expense paid when its goal is underfunded", () => {
+    const wallet = { id: "saving-wallet", type: "saving", balance: 33000 } as Account;
+    const rentGoal = { id: "rent", wallet_id: wallet.id, amount: 1000 } as WalletAllocation;
+    const otherGoal = { id: "other", wallet_id: wallet.id, amount: 32000 } as WalletAllocation;
+    const planned = {
+      id: "tx-rent",
+      status: "planned",
+      kind: "expense",
+      amount: 3000,
+      source_account_id: wallet.id,
+      allocation_id: rentGoal.id,
+    } as Transaction;
+    const snapshot = {
+      ...createEmptyFinanceSnapshot(),
+      accounts: [wallet],
+      allocations: [rentGoal, otherGoal],
+      transactions: [planned],
+    };
+
+    expect(() => setTransactionStatus(snapshot, planned.id, "paid")).toThrow(/enough funds/);
+  });
+
   it("updates the schedule note and all future planned occurrences note starting from date", () => {
     const scheduleId = "schedule-123";
     const schedule = { id: scheduleId, note: "Old Note" } as TransactionSchedule;
