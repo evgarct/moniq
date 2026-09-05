@@ -263,6 +263,34 @@ describe("optimistic finance state", () => {
     expect(() => setTransactionStatus(snapshot, planned.id, "paid")).toThrow(/enough funds/);
   });
 
+  it("marks a planned expense paid when its goal exactly covers it despite float drift", () => {
+    // Real data: balance 36895.32, goal holds exactly 33000, expense 33000.
+    // 36895.32 - 33000 === 3895.3199999999997 in floats, so an exact `>` guard
+    // wrongly rejected an operation that nets to zero.
+    const wallet = { id: "saving-wallet", type: "saving", balance: 36895.32 } as Account;
+    const landlordGoal = { id: "landlord", wallet_id: wallet.id, amount: 33000 } as WalletAllocation;
+    const emergencyGoal = { id: "emergency", wallet_id: wallet.id, amount: 895.32, is_default: true } as WalletAllocation;
+    const gtfoGoal = { id: "gtfo", wallet_id: wallet.id, amount: 3000 } as WalletAllocation;
+    const planned = {
+      id: "tx-rent",
+      status: "planned",
+      kind: "expense",
+      amount: 33000,
+      source_account_id: wallet.id,
+      allocation_id: landlordGoal.id,
+    } as Transaction;
+    const snapshot = {
+      ...createEmptyFinanceSnapshot(),
+      accounts: [wallet],
+      allocations: [landlordGoal, emergencyGoal, gtfoGoal],
+      transactions: [planned],
+    };
+
+    const next = setTransactionStatus(snapshot, planned.id, "paid");
+    expect(next.transactions.find((t) => t.id === "tx-rent")?.status).toBe("paid");
+    expect(next.allocations.find((a) => a.id === "landlord")?.amount).toBe(0);
+  });
+
   it("updates the schedule note and all future planned occurrences note starting from date", () => {
     const scheduleId = "schedule-123";
     const schedule = { id: scheduleId, note: "Old Note" } as TransactionSchedule;

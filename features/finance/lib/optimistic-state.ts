@@ -25,6 +25,14 @@ export function createOptimisticId(_kind: string) {
   return crypto.randomUUID();
 }
 
+// Money is tracked to 2 decimals. Float accumulation (e.g. 36895.32 - 33000 →
+// 3895.3199999999997) drifts by ~1e-13 and trips exact `>` / `< 0` guards even
+// when the operation nets to zero. Round to cents before comparing so the
+// optimistic checks match Postgres numeric arithmetic on the server.
+function roundMoney(value: number) {
+  return Math.round(value * 100) / 100;
+}
+
 function updateAccountBalance(accounts: Account[], accountId: string | null, delta: number) {
   if (!accountId || delta === 0) return accounts;
   return accounts.map((account) =>
@@ -54,7 +62,7 @@ export function enforceAllocationsLimit(snapshot: FinanceSnapshot, walletId: str
   const walletAllocations = snapshot.allocations.filter((a) => a.wallet_id === walletId);
   const totalAllocated = walletAllocations.reduce((sum, a) => sum + a.amount, 0);
 
-  if (totalAllocated > wallet.balance) {
+  if (roundMoney(totalAllocated) > roundMoney(wallet.balance)) {
     throw new Error("Savings balance cannot be lower than its reserved goals.");
   }
   return snapshot;
@@ -115,7 +123,7 @@ export function syncAllocationsOnTransactionChange(
       if (a.id === newTransaction.allocation_id) {
         affectedWallets.add(a.wallet_id);
         const amountChange = newTransaction.kind === "expense" ? -newTransaction.amount : newTransaction.amount;
-        if (newTransaction.kind === "expense" && a.amount + amountChange < 0) {
+        if (newTransaction.kind === "expense" && roundMoney(a.amount + amountChange) < 0) {
           throw new Error("Selected goal does not have enough funds for this transaction.");
         }
         return {
@@ -131,7 +139,7 @@ export function syncAllocationsOnTransactionChange(
     currentAllocations = currentAllocations.map((a) => {
       if (a.id === newTransaction.source_allocation_id) {
         affectedWallets.add(a.wallet_id);
-        if (a.amount - newTransaction.amount < 0) {
+        if (roundMoney(a.amount - newTransaction.amount) < 0) {
           throw new Error("Selected goal does not have enough funds for this transaction.");
         }
         return { ...a, amount: Math.max(0, a.amount - newTransaction.amount), updated_at: new Date().toISOString() };
@@ -161,10 +169,13 @@ export function syncAllocationsOnTransactionChange(
     );
     if (wallet?.type === "saving" && netOutflow > 0) {
       const walletAllocations = nextSnapshot.allocations.filter((allocation) => allocation.wallet_id === wallet.id);
-      const shortfall = Math.max(walletAllocations.reduce((sum, allocation) => sum + allocation.amount, 0) - wallet.balance, 0);
+      const shortfall = Math.max(
+        roundMoney(walletAllocations.reduce((sum, allocation) => sum + allocation.amount, 0) - wallet.balance),
+        0,
+      );
       if (shortfall > 0) {
         const defaultGoal = walletAllocations.find((allocation) => allocation.is_default);
-        if (!defaultGoal || defaultGoal.amount < shortfall) {
+        if (!defaultGoal || roundMoney(defaultGoal.amount) < shortfall) {
           throw new Error("Savings operation exceeds Free plus the default goal balance.");
         }
         const updatedDefault = { ...defaultGoal, amount: defaultGoal.amount - shortfall, updated_at: new Date().toISOString() };
