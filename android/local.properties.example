@@ -1,0 +1,6 @@
+# Copy to local.properties (gitignored) and fill in.
+sdk.dir=C\:\\Users\\PC\\scoop\\apps\\android-clt\\current
+
+# Gabi's wallet-notification webhook (telegram-bot repo, /api/wallet-notification)
+wallet.webhook.url=https://form-telegram-bot.vercel.app/api/wallet-notification
+wallet.webhook.secret=
