@@ -9,6 +9,7 @@ import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.evgarct.moniqwallet.work.WalletNotificationForwardWorker
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 /**
@@ -34,6 +35,7 @@ class WalletNotificationListenerService : NotificationListenerService() {
         if (title.isNullOrBlank() && text.isNullOrBlank()) return
 
         val inputData = Data.Builder()
+            .putString(WalletNotificationForwardWorker.KEY_ENTRY_ID, UUID.randomUUID().toString())
             .putString(WalletNotificationForwardWorker.KEY_NOTIFICATION_KEY, sbn.key)
             .putString(WalletNotificationForwardWorker.KEY_TITLE, title)
             .putString(WalletNotificationForwardWorker.KEY_TEXT, text)
