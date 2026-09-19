@@ -24,11 +24,10 @@ Once PostHog has collected real usage data:
 2. Pull event counts/insights from PostHog for those event names over a representative window.
 3. Compute a `priority` score per feature (e.g. normalized event volume, or event volume × distinct-user count) and update each `<domain>.json`'s `priority` field.
 4. Sort the catalog by `priority` to get the ranked "top features by usage/importance" slice.
-5. That ranked slice is what drives which features get built into the iOS app next (see `docs/ios-swift-reference.md` and `ios/Moniq/Documentation/`) — the iOS skeleton scaffolded in this repo intentionally ships with no feature screens yet, waiting on this ranking.
+5. That ranked slice is what drives which features get built next.
 
 ## Adding or updating an entry
 
 - Keep `id`/`domain` equal to the `features/<name>` folder name where one exists.
 - `routes` should be locale-relative App Router paths (e.g. `/budget`), not full URLs.
-- `platforms` should include `"ios"` once a feature actually ships in the iOS app — don't add it preemptively.
 - Validate against `schema.json` before committing (a small Node/`ajv` check; see the repo's `verify:local` script for where to hook this in if it becomes a recurring need).

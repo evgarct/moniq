@@ -1,7 +1,0 @@
-DerivedData/
-.build/
-*.xcodeproj/
-*.xcworkspace/
-Config/Cloud.local.xcconfig
-Moniq/Resources/GeneratedInfo.plist
-xcuserdata/

@@ -50,7 +50,7 @@
     },
     "platforms": {
       "type": "array",
-      "items": { "type": "string", "enum": ["web", "ios"] },
+      "items": { "type": "string", "enum": ["web"] },
       "description": "Which client(s) currently implement this feature."
     },
     "tags": {

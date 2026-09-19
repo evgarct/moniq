@@ -15,6 +15,6 @@
   "postHogEvents": [],
   "status": "active",
   "priority": null,
-  "platforms": ["web", "ios"],
+  "platforms": ["web"],
   "tags": ["finance-core"]
 }
