@@ -90,6 +90,19 @@ export const Offline: Story = {
   },
 };
 
+export const OfflineWithPendingChanges: Story = {
+  args: {
+    phase: "offline",
+    transactionCount: 128,
+    lastSyncedAt: minutesAgo(90),
+    pendingCount: 3,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText(/3 changes waiting to sync/i)).toBeInTheDocument();
+  },
+};
+
 export const StorageError: Story = {
   args: {
     phase: "error",

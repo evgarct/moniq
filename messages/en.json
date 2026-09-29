@@ -22,6 +22,7 @@
       "offlineCount": "{count, plural, =0 {Offline} one {Offline · # transaction saved on this device} other {Offline · # transactions saved on this device}}",
       "error": "Local storage is unavailable",
       "syncedAt": "Synced {time}",
+      "pendingChanges": "{count, plural, one {# change waiting to sync} other {# changes waiting to sync}}",
       "neverSynced": "Not synced yet",
       "progress": "{percent}% downloaded",
       "refresh": "Refresh from server",

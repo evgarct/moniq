@@ -15,6 +15,8 @@ export type SyncProgressProps = {
   /** 0..1 while PowerSync reports a download total, else null. */
   downloadFraction?: number | null;
   lastSyncedAt?: string | null;
+  /** Queued local changes that have not reached the server yet. */
+  pendingCount?: number;
   refreshing?: boolean;
   onRefresh?: () => void;
   className?: string;
@@ -30,6 +32,7 @@ export function SyncProgress({
   transactionCount,
   downloadFraction = null,
   lastSyncedAt = null,
+  pendingCount = 0,
   refreshing = false,
   onRefresh,
   className,
@@ -58,11 +61,13 @@ export function SyncProgress({
 
   const detail = showProgress
     ? t("progress", { percent: String(Math.round((downloadFraction ?? 0) * 100)) })
-    : phase === "idle" || phase === "offline"
-      ? lastSyncedAt
-        ? t("syncedAt", { time: formatter.relativeTime(new Date(lastSyncedAt), Math.max(now.getTime(), Date.parse(lastSyncedAt))) })
-        : t("neverSynced")
-      : null;
+    : pendingCount > 0 && phase !== "loading" && phase !== "error"
+      ? t("pendingChanges", { count: pendingCount })
+      : phase === "idle" || phase === "offline"
+        ? lastSyncedAt
+          ? t("syncedAt", { time: formatter.relativeTime(new Date(lastSyncedAt), Math.max(now.getTime(), Date.parse(lastSyncedAt))) })
+          : t("neverSynced")
+        : null;
 
   return (
     <div className={cn("flex flex-col gap-2 px-2 py-3", className)}>

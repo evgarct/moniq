@@ -64,6 +64,9 @@ export function resolveSyncProgressPhase(input: {
 
   if (status.state === "storage_error") return "error";
   if (status.state === "offline" || status.state === "expired") return "offline";
+  // "pending" means queued commands: genuinely offline only when the sync service is
+  // not connected; otherwise they are being uploaded.
+  if (status.state === "pending") return details?.connected ? "syncing" : "offline";
   if (dataLoading) return "loading";
   if (refreshing) return "syncing";
   if (!localFirstEnabled || !details) return "idle";
