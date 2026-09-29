@@ -1754,7 +1754,7 @@ function validateDirectTransaction(tx: unknown, index: number): string | null {
   return null;
 }
 
-function validateRecurringSchedule(schedule: unknown, labelPrefix = "Recurring transaction"): string | null {
+function validateRecurringSchedule(schedule: unknown, t: McpTranslator, labelPrefix = "Recurring transaction"): string | null {
   if (!isRecord(schedule)) return `${labelPrefix} schedule must be an object`;
 
   const label = typeof schedule.title === "string" && schedule.title.trim() ? schedule.title.trim() : "recurring transaction";
@@ -1762,16 +1762,16 @@ function validateRecurringSchedule(schedule: unknown, labelPrefix = "Recurring t
   if (!schedule.title || typeof schedule.title !== "string" || !schedule.title.trim()) return `${labelPrefix} must have a title`;
   if (!isPositiveNumber(schedule.amount)) return `${labelPrefix} "${label}" must have a positive amount`;
   if (!isIsoDate(schedule.start_date)) return `${labelPrefix} "${label}" must have start_date in YYYY-MM-DD format`;
-  if (!isScheduleFrequency(schedule.frequency)) return `${labelPrefix} "${label}" frequency must be daily, weekly, monthly, quarterly, yearly, or custom`;
+  if (!isScheduleFrequency(schedule.frequency)) return t("mcp.errors.scheduleFrequencyInvalid", { label });
   if (schedule.interval_count != null && !isPositiveInteger(schedule.interval_count)) {
-    return `${labelPrefix} "${label}" interval_count must be an integer greater than or equal to 1`;
+    return t("mcp.errors.scheduleIntervalCountInvalid", { label });
   }
   if (schedule.interval_unit != null && !isScheduleIntervalUnit(schedule.interval_unit)) {
-    return `${labelPrefix} "${label}" interval_unit must be day, week, or month`;
+    return t("mcp.errors.scheduleIntervalUnitInvalid", { label });
   }
   if (schedule.frequency === "custom") {
-    if (schedule.interval_count == null) return `${labelPrefix} "${label}" custom frequency needs interval_count (e.g. 9 for every 9 days)`;
-    if (schedule.interval_unit == null) return `${labelPrefix} "${label}" custom frequency needs interval_unit (day, week, or month)`;
+    if (schedule.interval_count == null) return t("mcp.errors.scheduleCustomNeedsCount", { label });
+    if (schedule.interval_unit == null) return t("mcp.errors.scheduleCustomNeedsUnit", { label });
   }
   if (schedule.until_date != null && !isIsoDate(schedule.until_date)) return `${labelPrefix} "${label}" until_date must be null or YYYY-MM-DD`;
   if (typeof schedule.until_date === "string" && typeof schedule.start_date === "string" && schedule.until_date < schedule.start_date) {
@@ -2248,7 +2248,7 @@ async function handleCreateRecurringSchedule(
   t: McpTranslator,
 ): Promise<McpResponse> {
   const args = (params.arguments ?? {}) as { schedule?: unknown };
-  const validationError = validateRecurringSchedule(args.schedule);
+  const validationError = validateRecurringSchedule(args.schedule, t);
   if (validationError) return { jsonrpc: "2.0", id, error: { code: -32602, message: validationError } };
 
   return callRecurringRpc(
@@ -2270,7 +2270,7 @@ async function handleUpdateRecurringSchedule(
   const scheduleId = optionalString(args.schedule_id);
   if (!scheduleId) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.scheduleIdRequired") } };
 
-  const validationError = validateRecurringSchedule(args.schedule);
+  const validationError = validateRecurringSchedule(args.schedule, t);
   if (validationError) return { jsonrpc: "2.0", id, error: { code: -32602, message: validationError } };
 
   return callRecurringRpc(

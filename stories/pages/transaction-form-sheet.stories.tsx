@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { addDays, format } from "date-fns";
 import { expect, waitFor, within } from "storybook/test";
 
 import { RecurringChangeScopeOverlay } from "@/features/transactions/components/recurring-change-scope-overlay";
@@ -316,7 +317,7 @@ const every9DaysSchedule: TransactionSchedule = {
   ...recurringSchedule,
   id: "schedule-story-every-9-days",
   title: "Water filter",
-  start_date: "2026-03-05",
+  start_date: format(addDays(new Date(), 1), "yyyy-MM-dd"),
   frequency: "custom",
   interval_count: 9,
   interval_unit: "day",
