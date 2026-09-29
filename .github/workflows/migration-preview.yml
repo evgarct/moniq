@@ -51,3 +51,4 @@ jobs:
           STAGING_SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" \
           npm run db:verify
           psql "$DB_URL" -f scripts/verify-database.sql
+# probe
