@@ -56,6 +56,7 @@ export function SyncProgressFooter({
       transactionCount={transactionCount}
       downloadFraction={localFirst.syncDetails?.downloadFraction ?? null}
       lastSyncedAt={lastSyncedAt}
+      pendingCount={localFirst.status.pendingCount}
       refreshing={localFirst.refreshing}
       onRefresh={() => void handleRefresh()}
     />

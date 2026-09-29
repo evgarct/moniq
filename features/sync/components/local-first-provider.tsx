@@ -127,7 +127,7 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
   const [refreshing, setRefreshing] = useState(false);
   const refreshingRef = useRef(false);
   const connectorRef = useRef<PowerSyncBackendConnector | null>(null);
-  const flushQueueRef = useRef<(() => Promise<void>) | null>(null);
+  const flushQueueRef = useRef<((options?: { strict?: boolean }) => Promise<void>) | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [syncEnabled, setSyncEnabled] = useState(enabled);
   const [authUserId, setAuthUserId] = useState<string | null>(null);
@@ -277,8 +277,18 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
           }));
         }
 
-        async function flushQueue() {
-          if (!localDatabase || !navigator.onLine) return;
+        /**
+         * Pushes queued commands. `strict` (used before a forced refresh) drains every
+         * batch and rethrows failures, so a refresh never rebases the cache onto a
+         * server snapshot that is still missing queued edits.
+         */
+        async function flushQueue(options: { strict?: boolean } = {}) {
+          const { strict = false } = options;
+          if (!localDatabase) return;
+          if (!navigator.onLine) {
+            if (strict) throw new Error("Cannot flush queued changes while offline.");
+            return;
+          }
           const rows = await localDatabase.getAll<{ id: string; payload: string }>(
             "select id, payload from local_sync_commands where user_id = ? and status = 'pending' order by created_at limit 25",
             [userId],
@@ -307,10 +317,29 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
               }
             }
             await queryClient.invalidateQueries({ queryKey: financeSnapshotQueryKey });
-          } catch {
+          } catch (error) {
             setStatus((current) => ({ ...current, state: "reconnecting" }));
+            if (strict) {
+              await refreshQueueStatus();
+              throw error;
+            }
           }
           await refreshQueueStatus();
+
+          if (strict) {
+            const remaining = await localDatabase.getAll<{ id: string }>(
+              "select id from local_sync_commands where user_id = ? and status = 'pending' limit 1",
+              [userId],
+            );
+            if (remaining.length > 0) {
+              // More than one batch was queued (or a batch made no progress): keep draining.
+              // A batch that leaves the same rows pending would loop forever, so bail out.
+              if (rows.every((row) => remaining.some((left) => left.id === row.id))) {
+                throw new Error("Queued changes could not be synced.");
+              }
+              await flushQueue({ strict: true });
+            }
+          }
         }
 
         flushQueueRef.current = flushQueue;
@@ -430,7 +459,7 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
     setRefreshing(true);
     try {
       // 1. Push queued offline commands first so the server snapshot includes them.
-      await flushQueueRef.current?.();
+      await flushQueueRef.current?.({ strict: true });
       // 2. Read the source of truth directly. The snapshot query prefers local SQLite
       //    when local-first is on, so invalidating it alone would never hit the server.
       const snapshot = await fetchFinanceSnapshot();
