@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { endOfMonth, format, startOfMonth } from "date-fns";
-import { expect, within } from "storybook/test";
+import { expect, fn, within } from "storybook/test";
 
 import { BalanceRegisterPanel } from "@/features/accounts/components/balance-register-panel";
 import { makeFinanceSnapshot } from "@/stories/fixtures/story-data";
@@ -95,5 +95,20 @@ export const AllTransactions: Story = {
     defaultStartDate,
     onStartDateChange: () => undefined,
     onEndDateChange: () => undefined,
+  },
+};
+
+export const WithContextMenu: Story = {
+  name: "With context menu (right-click a row)",
+  args: {
+    listActions: {
+      onEditOccurrence: fn(),
+      onEditSeries: fn(),
+      onDeleteTransaction: fn(),
+      onDeleteSeries: fn(),
+      onMarkPaid: fn(),
+      onSkipOccurrence: fn(),
+      onToggleScheduleState: fn(),
+    },
   },
 };

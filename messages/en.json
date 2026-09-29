@@ -978,7 +978,8 @@
       "reschedule": "Reschedule",
       "tomorrow": "Tomorrow",
       "in3Days": "In 3 days",
-      "inAWeek": "In 1 week"
+      "inAWeek": "In 1 week",
+      "customDate": "Pick a date…"
     },
     "row": {
       "unlinkedAccount": "Unlinked account",

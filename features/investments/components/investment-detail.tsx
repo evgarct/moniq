@@ -6,6 +6,7 @@ import { useState } from "react";
 import { MoneyAmount } from "@/components/money-amount";
 import { TransactionList } from "@/components/transaction-list";
 import { BalanceRegisterHeader } from "@/features/accounts/components/balance-register-panel";
+import type { TransactionListActionProps } from "@/features/transactions/hooks/use-transaction-list-actions";
 import { getPositionMarketValue, getPositionUnits } from "@/features/investments/lib/positions";
 import type { InvestmentPosition, Transaction } from "@/types/finance";
 import { cn } from "@/lib/utils";
@@ -15,12 +16,14 @@ export function InvestmentDetail({
   transactions,
   onClose,
   onAddPurchase,
+  listActions,
   mobile = false,
 }: {
   position: InvestmentPosition;
   transactions: Transaction[];
   onClose: () => void;
   onAddPurchase: () => void;
+  listActions?: Partial<TransactionListActionProps>;
   mobile?: boolean;
 }) {
   const t = useTranslations("investments");
@@ -56,7 +59,13 @@ export function InvestmentDetail({
       </div>
       <div className="px-4 py-5 lg:px-7">
         <h3 className="mb-3 type-h6">{t("purchases")}</h3>
-        <TransactionList transactions={purchases} emptyMessage={t("noPurchases")} groupByDate />
+        <TransactionList
+          transactions={purchases}
+          emptyMessage={t("noPurchases")}
+          groupByDate
+          onTransactionClick={listActions?.onEditOccurrence}
+          {...listActions}
+        />
       </div>
     </section>
   );

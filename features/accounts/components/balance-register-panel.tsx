@@ -1,5 +1,6 @@
 "use client";
 
+import type { TransactionListActionProps } from "@/features/transactions/hooks/use-transaction-list-actions";
 import { ArrowLeft, Plus, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
@@ -174,10 +175,7 @@ export function BalanceRegisterPanel({
   onClearSelection,
   onAddTransaction,
   onTransactionClick,
-  onEditOccurrence,
-  onDeleteTransaction,
-  onMarkPaid,
-  onSkipOccurrence,
+  listActions,
   className,
   title,
   emptyMessage,
@@ -193,10 +191,7 @@ export function BalanceRegisterPanel({
   onClearSelection?: () => void;
   onAddTransaction?: () => void;
   onTransactionClick?: (transaction: Transaction) => void;
-  onEditOccurrence?: (transaction: Transaction) => void;
-  onDeleteTransaction?: (transaction: Transaction) => void;
-  onMarkPaid?: (transaction: Transaction) => void;
-  onSkipOccurrence?: (transaction: Transaction) => void;
+  listActions?: Partial<TransactionListActionProps>;
   className?: string;
   title?: string;
   emptyMessage?: string;
@@ -235,10 +230,7 @@ export function BalanceRegisterPanel({
             groupByDate
             showMinorUnits={showMinorUnits}
             onTransactionClick={onTransactionClick}
-            onEditOccurrence={onEditOccurrence}
-            onDeleteTransaction={onDeleteTransaction}
-            onMarkPaid={onMarkPaid}
-            onSkipOccurrence={onSkipOccurrence}
+            {...listActions}
           />
         </div>
       </div>

@@ -11,6 +11,7 @@ import { TransactionList } from "@/components/transaction-list";
 import { Button } from "@/components/ui/button";
 import { TransactionFormSheet, type TransactionFormSubmitPayload } from "@/features/transactions/components/transaction-form-sheet";
 import { useTransactionActions } from "@/features/transactions/hooks/use-transaction-actions";
+import { useTransactionListActions } from "@/features/transactions/hooks/use-transaction-list-actions";
 import { isVisibleTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
 import { calDate } from "@/lib/formatters";
 import type { FinanceSnapshot, Transaction, TransactionSchedule } from "@/types/finance";
@@ -31,6 +32,21 @@ export function CalendarView({ snapshot }: { snapshot: FinanceSnapshot }) {
   const [sheetMode, setSheetMode] = useState<"edit-transaction" | "edit-schedule">("edit-transaction");
   const [sheetOpen, setSheetOpen] = useState(false);
   const transactionActions = useTransactionActions();
+  const listActions = useTransactionListActions({
+    onEdit(selectedTransaction) {
+      setSheetMode("edit-transaction");
+      setEditingTransaction(selectedTransaction);
+      setEditingSchedule(null);
+      setSheetOpen(true);
+    },
+    onEditSeries(selectedTransaction) {
+      setSheetMode("edit-schedule");
+      setEditingTransaction(selectedTransaction);
+      setEditingSchedule(selectedTransaction.schedule ?? null);
+      setSheetOpen(true);
+    },
+    onActionError: setActionError,
+  });
 
   const selectedTransactions = useMemo(
     () =>
@@ -114,48 +130,7 @@ export function CalendarView({ snapshot }: { snapshot: FinanceSnapshot }) {
               transactions={selectedTransactions}
               emptyMessage={t("board.empty")}
               variant="board"
-              onEditOccurrence={(selectedTransaction) => {
-                setSheetMode("edit-transaction");
-                setEditingTransaction(selectedTransaction);
-                setEditingSchedule(null);
-                setSheetOpen(true);
-              }}
-              onEditSeries={(selectedTransaction) => {
-                if (!selectedTransaction.schedule) return;
-                setSheetMode("edit-schedule");
-                setEditingTransaction(selectedTransaction);
-                setEditingSchedule(selectedTransaction.schedule);
-                setSheetOpen(true);
-              }}
-              onDeleteTransaction={(selectedTransaction) => {
-                transactionActions.deleteTransactionOptimistic(selectedTransaction.id);
-              }}
-              onDeleteSeries={(selectedTransaction) => {
-                if (!selectedTransaction.schedule_id) return;
-                transactionActions.deleteSchedule(selectedTransaction.schedule_id, {
-                  onError: (error) =>
-                    setActionError(error instanceof Error ? error.message : transactionViewT("deleteError")),
-                });
-                setActionError(null);
-              }}
-              onMarkPaid={(selectedTransaction) => {
-                transactionActions.markPaidOptimistic(selectedTransaction.id);
-              }}
-              onSkipOccurrence={(selectedTransaction) => {
-                transactionActions.skipOccurrenceOptimistic(selectedTransaction.id);
-              }}
-              onToggleScheduleState={(selectedTransaction) => {
-                if (!selectedTransaction.schedule_id || !selectedTransaction.schedule) return;
-                transactionActions.setScheduleState(
-                  selectedTransaction.schedule_id,
-                  selectedTransaction.schedule.state === "paused" ? "active" : "paused",
-                  {
-                    onError: (error) =>
-                      setActionError(error instanceof Error ? error.message : transactionViewT("saveError")),
-                  },
-                );
-                setActionError(null);
-              }}
+              {...listActions}
             />
           </FinanceBoardPanel>
         </div>

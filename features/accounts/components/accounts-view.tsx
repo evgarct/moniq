@@ -20,6 +20,7 @@ import { InvestmentDetail } from "@/features/investments/components/investment-d
 import { InvestmentList } from "@/features/investments/components/investment-list";
 import { InvestmentPositionSheet } from "@/features/investments/components/investment-position-sheet";
 import { TransactionFormSheet, type TransactionFormSubmitPayload } from "@/features/transactions/components/transaction-form-sheet";
+import { useTransactionListActions } from "@/features/transactions/hooks/use-transaction-list-actions";
 import { useTransactionActions } from "@/features/transactions/hooks/use-transaction-actions";
 import { isSettledTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
 import { getTransactionsForAccount } from "@/lib/finance-selectors";
@@ -58,7 +59,7 @@ export function AccountsView({
   const [mobileRegisterOpen, setMobileRegisterOpen] = useState(false);
   const [mobileInvestmentOpen, setMobileInvestmentOpen] = useState(false);
   const [transactionSheetOpen, setTransactionSheetOpen] = useState(false);
-  const [transactionSheetMode, setTransactionSheetMode] = useState<"add" | "edit-transaction">("add");
+  const [transactionSheetMode, setTransactionSheetMode] = useState<"add" | "edit-transaction" | "edit-schedule">("add");
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [registerDateFrom, setRegisterDateFrom] = useState(defaultRegisterDateFrom);
   const [registerDateTo, setRegisterDateTo] = useState(defaultRegisterDateTo);
@@ -139,6 +140,18 @@ export function AccountsView({
     setPurchaseInstrumentId(null);
     setTransactionSheetOpen(true);
   }
+
+  const listActions = useTransactionListActions({
+    onEdit: openTransactionEditor,
+    onEditSeries(transaction) {
+      setActionError(null);
+      setTransactionSheetMode("edit-schedule");
+      setEditingTransaction(transaction);
+      setPurchaseInstrumentId(null);
+      setTransactionSheetOpen(true);
+    },
+    onActionError: setActionError,
+  });
 
   function openAddTransaction() {
     setActionError(null);
@@ -325,6 +338,7 @@ export function AccountsView({
 
         {selectedInvestment ? (
           <InvestmentDetail
+            listActions={listActions}
             position={selectedInvestment}
             transactions={transactions}
             onClose={() => setSelectedInvestmentId(null)}
@@ -346,16 +360,7 @@ export function AccountsView({
           onEndDateChange={setRegisterDateTo}
           onAddTransaction={openAddTransaction}
           onTransactionClick={openTransactionEditor}
-          onEditOccurrence={openTransactionEditor}
-          onDeleteTransaction={(transaction) => {
-            transactionActions.deleteTransactionOptimistic(transaction.id);
-          }}
-          onMarkPaid={(transaction) => {
-            transactionActions.markPaidOptimistic(transaction.id);
-          }}
-          onSkipOccurrence={(transaction) => {
-            transactionActions.skipOccurrenceOptimistic(transaction.id);
-          }}
+          listActions={listActions}
           onClearSelection={() => {
             setSelectedAccountId(null);
             setSelectedAllocationId(null);
@@ -416,6 +421,7 @@ export function AccountsView({
                 groupByDate
                 showMinorUnits={showMinorUnits}
                 onTransactionClick={openTransactionEditor}
+                {...listActions}
               />
             </div>
           </div>
@@ -432,6 +438,7 @@ export function AccountsView({
         <SheetContent side="fullscreen" className="gap-0 p-0 lg:hidden" showCloseButton={false}>
           {selectedInvestment ? (
             <InvestmentDetail
+              listActions={listActions}
               position={selectedInvestment}
               transactions={transactions}
               mobile
@@ -454,6 +461,7 @@ export function AccountsView({
         open={transactionSheetOpen}
         mode={transactionSheetMode}
         transaction={editingTransaction}
+        schedule={transactionSheetMode === "edit-schedule" ? editingTransaction?.schedule ?? null : null}
         defaultSourceAccountId={transactionSheetMode === "add" ? selectedAccountId : null}
         accounts={accounts}
         categories={categories}
@@ -479,6 +487,8 @@ export function AccountsView({
               payload.changes,
               { onError },
             );
+          } else if (payload.kind === "schedule" && editingTransaction?.schedule) {
+            transactionActions.updateSchedule(editingTransaction.schedule.id, payload.values, { onError });
           }
           setActionError(null);
         }}

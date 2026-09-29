@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { expect, within } from "storybook/test";
+import { expect, fireEvent, waitFor, within } from "storybook/test";
 
 import { TransactionRow } from "@/components/transaction-row";
 import { StoryDemoFrame, makeFinanceSnapshot } from "@/stories/fixtures/story-data";
@@ -223,6 +223,27 @@ export const RecurringPlanned: Story = {
     onSkipOccurrence: () => undefined,
     onDeleteSeries: () => undefined,
     onToggleScheduleState: () => undefined,
+  },
+};
+
+export const RescheduleCustomDate: Story = {
+  name: "Recurring + Reschedule → Pick a date",
+  args: RecurringPlanned.args,
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body);
+    const row = canvasElement.querySelector(".group");
+    if (!row) return;
+    fireEvent.contextMenu(row);
+    fireEvent.click(await body.findByText(/reschedule|перенести/i));
+    fireEvent.click(await body.findByText(/pick a date|выбрать дату/i));
+    await waitFor(() => expect(body.getByRole("grid")).toBeInTheDocument());
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: "Right-click a recurring planned row → Reschedule → Pick a date. Moves only this occurrence.",
+      },
+    },
   },
 };
 
