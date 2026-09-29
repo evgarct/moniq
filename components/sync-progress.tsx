@@ -61,7 +61,7 @@ export function SyncProgress({
 
   const detail = showProgress
     ? t("progress", { percent: String(Math.round((downloadFraction ?? 0) * 100)) })
-    : pendingCount > 0 && (phase === "offline" || phase === "idle")
+    : pendingCount > 0 && phase !== "loading" && phase !== "error"
       ? t("pendingChanges", { count: pendingCount })
       : phase === "idle" || phase === "offline"
         ? lastSyncedAt

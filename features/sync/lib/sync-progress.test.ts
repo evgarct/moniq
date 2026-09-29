@@ -76,8 +76,15 @@ describe("resolveSyncProgressPhase", () => {
     expect(resolveSyncProgressPhase({ ...base, status: { state: "storage_error" } })).toBe("error");
   });
 
-  it("never renders queued offline changes as up to date", () => {
-    expect(resolveSyncProgressPhase({ ...base, status: { state: "pending" } })).toBe("offline");
+  it("never renders queued changes as up to date", () => {
+    expect(
+      resolveSyncProgressPhase({
+        ...base,
+        status: { state: "pending" },
+        details: { ...base.details, connected: false },
+      }),
+    ).toBe("offline");
+    expect(resolveSyncProgressPhase({ ...base, status: { state: "pending" } })).toBe("syncing");
   });
 
   it("is idle without local-first once data is loaded", () => {

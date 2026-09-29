@@ -306,6 +306,9 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
               body: JSON.stringify({ commands: rows.map((row) => JSON.parse(row.payload)) }),
             });
             const body = await response.json() as { results?: Array<{ id: string; status: string; [key: string]: unknown }> };
+            const rejected = (body.results ?? []).filter(
+              (result) => result.status !== "applied" && result.status !== "conflict",
+            );
             for (const result of body.results ?? []) {
               if (result.status === "applied") {
                 await localDatabase.execute("delete from local_sync_commands where id = ?", [result.id]);
@@ -317,6 +320,11 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
               }
             }
             await queryClient.invalidateQueries({ queryKey: financeSnapshotQueryKey });
+            // A rejected command leaves the outbox but never reaches the server. A refresh
+            // must fail loudly instead of rebasing the cache onto a snapshot without it.
+            if (strict && (!response.ok || rejected.length > 0)) {
+              throw new Error("Some queued changes were rejected by the server.");
+            }
           } catch (error) {
             setStatus((current) => ({ ...current, state: "reconnecting" }));
             if (strict) {
