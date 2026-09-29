@@ -10,3 +10,5 @@ The series update uses `schedule_occurrence_date` as its stable pivot. Earlier o
 The client computes a normalized field patch and sends one `update-from-occurrence` mutation through `FinanceMutationCoordinator`. The database RPC applies the template and planned-occurrence changes atomically; the normal schedule reconciliation then extends the updated series through the active snapshot horizon.
 
 Quick actions, deletion, payment, skipping, pause/resume, and explicit **Edit series** actions keep their existing behavior and do not show the change-scope prompt.
+
+**Reschedule** (context menu: Tomorrow / In 3 days / In 1 week / Pick a date…) moves **only the selected occurrence**. It is a plain transaction update that flags the occurrence as an override, so `schedule_occurrence_date` (the slot key) is unchanged, later occurrences stay on their own dates, and the reconciler does not regenerate or overwrite it. To shift the whole series use **Edit occurrence** and choose "This and following".

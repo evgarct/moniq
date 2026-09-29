@@ -186,28 +186,21 @@ Color is set on the **outer span**; both number and symbol inherit it. A `classN
 
 ## Context menus (right-click)
 
-**Use Base UI `Popover`, not `Menu`.** `Menu` closes when the pointer leaves the trigger; `Popover` stays open until explicitly dismissed.
+**Every transaction row has the same context menu.** `TransactionRow` owns the menu (`ui/context-menu`, Base UI `ContextMenu`) and shows only the items that are relevant for that row:
 
-```tsx
-// State: null = closed, {x,y} = open at cursor
-const [contextAnchor, setContextAnchor] = useState<{x: number; y: number} | null>(null);
+| Row | Items |
+|---|---|
+| Planned, one-off | Mark paid · Reschedule (Tomorrow / In 3 days / In 1 week / Pick a date…) · Edit · Delete |
+| Planned, recurring | Mark paid · Skip occurrence · Reschedule · Edit occurrence · Edit series · Pause/Resume series · Delete series |
+| Posted (paid) | Edit · Delete (recurring: Edit occurrence · Edit series · Pause/Resume · Delete series) |
+| System-generated | none |
 
-<PopoverPrimitive.Root open={contextAnchor !== null} onOpenChange={(open) => { if (!open) setContextAnchor(null); }}>
-  <PopoverPrimitive.Trigger render={
-    <div className="pointer-events-none fixed h-px w-px"
-         style={contextAnchor ? { left: contextAnchor.x, top: contextAnchor.y } : { left: -9999, top: -9999 }} />
-  } />
-  <PopoverPrimitive.Portal>
-    <PopoverPrimitive.Positioner className="isolate z-50" align="start" side="bottom" sideOffset={0}>
-      <PopoverPrimitive.Popup className="... rounded-[var(--radius-floating)] ...">
-        {/* ContextMenuItems */}
-      </PopoverPrimitive.Popup>
-    </PopoverPrimitive.Positioner>
-  </PopoverPrimitive.Portal>
-</PopoverPrimitive.Root>
-```
+Rules:
 
-Menu item/separator helpers live in the component file that needs them (not a shared file) and use `rounded-[var(--radius-control)]`.
+- **Never wire the callbacks by hand.** Any list that renders `TransactionList` / `TransactionRow` (calendar, Today, account register desktop + mobile sheet, budget category list, investment purchases) spreads `useTransactionListActions()` (`features/transactions/hooks/use-transaction-list-actions.ts`) so the menu is identical everywhere. The hook takes the screen's editor openers (`onEdit`, `onEditSeries`).
+- The menu appears only when at least one action callback is passed, so a list without an editor stays menu-free by design — but a list that shows real transactions should get one.
+- **Reschedule moves only the row you clicked.** For a recurring occurrence that sets the override flag on that occurrence; the rest of the series keeps its own dates. "Tomorrow / In 3 days / In 1 week" are relative to today; "Pick a date…" opens an inline `Calendar` in the submenu.
+- Items are ordered: primary action (mark paid/skip) → date → edit → series management → destructive (after a separator).
 
 ## Transaction kinds — architecture
 

@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { TransactionAddButton } from "@/features/transactions/components/transaction-add-button";
 import { TransactionFormSheet, type TransactionFormSubmitPayload } from "@/features/transactions/components/transaction-form-sheet";
 import { useTransactionActions } from "@/features/transactions/hooks/use-transaction-actions";
+import { useTransactionListActions } from "@/features/transactions/hooks/use-transaction-list-actions";
 import { selectTodayAgenda } from "@/features/today/lib/today-agenda";
 import { calDate } from "@/lib/formatters";
 import type { FinanceSnapshot, Transaction } from "@/types/finance";
@@ -98,54 +99,25 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
     setActionError(null);
   }
 
-  const sharedListProps = {
-    onTransactionClick(tx: Transaction) {
-      setSheetMode("edit-transaction");
-      setEditingTransaction(tx);
-      setEditingSeries(null);
-      setSheetOpen(true);
-    },
-    onEditOccurrence(tx: Transaction) {
-      setSheetMode("edit-transaction");
-      setEditingTransaction(tx);
-      setEditingSeries(null);
-      setSheetOpen(true);
-    },
-    onEditSeries(tx: Transaction) {
-      if (!tx.schedule) return;
+  function openEditTransaction(tx: Transaction) {
+    setSheetMode("edit-transaction");
+    setEditingTransaction(tx);
+    setEditingSeries(null);
+    setSheetOpen(true);
+  }
+
+  const listActions = useTransactionListActions({
+    onEdit: openEditTransaction,
+    onEditSeries(tx) {
       setSheetMode("edit-schedule");
       setEditingTransaction(tx);
-      setEditingSeries(tx.schedule);
+      setEditingSeries(tx.schedule ?? null);
       setSheetOpen(true);
     },
-    onDeleteTransaction(tx: Transaction) {
-      transactionActions.deleteTransactionOptimistic(tx.id);
-    },
-    onDeleteSeries(tx: Transaction) {
-      if (!tx.schedule_id) return;
-      transactionActions.deleteScheduleOptimistic(tx.schedule_id, (error) => {
-        setActionError(error instanceof Error ? error.message : transactionViewT("deleteError"));
-      });
-    },
-    onMarkPaid(tx: Transaction) {
-      transactionActions.markPaidOptimistic(tx.id);
-    },
-    onSkipOccurrence(tx: Transaction) {
-      transactionActions.skipOccurrenceOptimistic(tx.id);
-    },
-    onToggleScheduleState(tx: Transaction) {
-      if (!tx.schedule_id || !tx.schedule) return;
-      transactionActions.setScheduleState(
-        tx.schedule_id,
-        tx.schedule.state === "paused" ? "active" : "paused",
-        {
-          onError: (error) =>
-            setActionError(error instanceof Error ? error.message : transactionViewT("saveError")),
-        },
-      );
-      setActionError(null);
-    },
-  };
+    onActionError: setActionError,
+  });
+
+  const sharedListProps = { onTransactionClick: openEditTransaction, ...listActions };
 
   const calendarNav = (
     <>

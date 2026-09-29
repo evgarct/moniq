@@ -978,7 +978,8 @@
       "reschedule": "Перенести",
       "tomorrow": "На завтра",
       "in3Days": "На 3 дня",
-      "inAWeek": "На неделю"
+      "inAWeek": "На неделю",
+      "customDate": "Выбрать дату…"
     },
     "row": {
       "unlinkedAccount": "Не привязанный счёт",

@@ -26,6 +26,9 @@ import {
 } from "@/features/categories/lib/category-tree";
 import { useFinanceActions } from "@/features/finance/hooks/use-finance-actions";
 import type { CategorySpendingReport } from "@/features/finance/lib/category-spending-report";
+import { TransactionFormSheet, type TransactionFormSubmitPayload } from "@/features/transactions/components/transaction-form-sheet";
+import { useTransactionActions } from "@/features/transactions/hooks/use-transaction-actions";
+import { useTransactionListActions } from "@/features/transactions/hooks/use-transaction-list-actions";
 import { isSettledTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
 import { calDate } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
@@ -288,6 +291,22 @@ function CategoryDetailsPanel({
   const categoriesTreeT = useTranslations("categories.tree");
   const defaultCurrency = snapshot.preferences.default_currency;
   const [showTransactions, setShowTransactions] = useState(false);
+  const transactionActions = useTransactionActions();
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [transactionSheetMode, setTransactionSheetMode] = useState<"edit-transaction" | "edit-schedule">("edit-transaction");
+  const [transactionSheetOpen, setTransactionSheetOpen] = useState(false);
+  const listActions = useTransactionListActions({
+    onEdit(transaction) {
+      setTransactionSheetMode("edit-transaction");
+      setEditingTransaction(transaction);
+      setTransactionSheetOpen(true);
+    },
+    onEditSeries(transaction) {
+      setTransactionSheetMode("edit-schedule");
+      setEditingTransaction(transaction);
+      setTransactionSheetOpen(true);
+    },
+  });
 
   const node = useMemo(() => {
     const tree = buildCategoryTree(manageableCategories, transactions);
@@ -341,6 +360,7 @@ function CategoryDetailsPanel({
   };
 
   return (
+    <>
     <Surface tone="panel" padding="md" className="flex flex-col gap-4">
       {/* Header back button navigation */}
       <div className="flex items-center justify-between gap-3">
@@ -480,6 +500,8 @@ function CategoryDetailsPanel({
                   showMinorUnits
                   targetCurrency={defaultCurrency}
                   exchangeRates={snapshot.exchange_rates}
+                  onTransactionClick={listActions.onEditOccurrence}
+                  {...listActions}
                 />
               </div>
             </>
@@ -487,6 +509,27 @@ function CategoryDetailsPanel({
         </div>
       </div>
     </Surface>
+    <TransactionFormSheet
+      open={transactionSheetOpen}
+      mode={transactionSheetMode}
+      transaction={editingTransaction}
+      schedule={transactionSheetMode === "edit-schedule" ? editingTransaction?.schedule ?? null : null}
+      accounts={snapshot.accounts}
+      categories={snapshot.categories}
+      allocations={snapshot.allocations}
+      investmentPositions={snapshot.investment_positions}
+      onOpenChange={setTransactionSheetOpen}
+      onSubmit={(payload: TransactionFormSubmitPayload) => {
+        if (payload.kind === "transaction" && editingTransaction) {
+          transactionActions.updateTransactionOptimistic(editingTransaction.id, payload.values);
+        } else if (payload.kind === "recurring-occurrence-series") {
+          transactionActions.applyRecurringOccurrenceChanges(payload.scheduleId, payload.fromOccurrenceDate, payload.changes);
+        } else if (payload.kind === "schedule" && editingTransaction?.schedule) {
+          transactionActions.updateSchedule(editingTransaction.schedule.id, payload.values);
+        }
+      }}
+    />
+    </>
   );
 }
 

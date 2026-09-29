@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import { addDays, format, isBefore, parseISO, startOfDay, startOfToday } from "date-fns";
-import { CalendarDays, CheckCircle2, Pause, Pencil, Play, Repeat, SkipForward, Trash2 } from "lucide-react";
+import { CalendarDays, CalendarSearch, CheckCircle2, Pause, Pencil, Play, Repeat, SkipForward, Trash2 } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 
 import {
@@ -16,7 +16,9 @@ import {
   ContextMenuSubContent,
 } from "@/components/ui/context-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Calendar } from "@/components/ui/calendar";
 import { useTransactionActions } from "@/features/transactions/hooks/use-transaction-actions";
+import { buildRescheduleInput } from "@/features/transactions/lib/reschedule-transaction";
 
 import { MoneyAmount } from "@/components/money-amount";
 import { convertMoney } from "@/features/finance/lib/exchange-rates";
@@ -180,38 +182,17 @@ export function TransactionRow({
   const formatDate = useFormatter();
   const suppressClickUntil = useRef(0);
 
-  const { rescheduleFromDate, updateTransaction } = useTransactionActions();
+  const { updateTransaction } = useTransactionActions();
 
   const baseDate = startOfToday();
   const tomorrow = format(addDays(baseDate, 1), "yyyy-MM-dd");
   const in3Days = format(addDays(baseDate, 3), "yyyy-MM-dd");
   const inAWeek = format(addDays(baseDate, 7), "yyyy-MM-dd");
 
+  // Moves only this transaction / this occurrence. For a recurring occurrence the
+  // update marks it as an override, so the rest of the series keeps its own dates.
   const handleReschedule = (newDate: string) => {
-    if (transaction.schedule_id) {
-      rescheduleFromDate(transaction.schedule_id, transaction.occurred_at, newDate);
-    } else {
-      updateTransaction(transaction.id, {
-        title: transaction.title,
-        note: transaction.note,
-        occurred_at: newDate,
-        status: "planned",
-        kind: transaction.kind,
-        amount: transaction.amount,
-        destination_amount: transaction.destination_amount,
-        fx_rate: transaction.fx_rate,
-        principal_amount: transaction.principal_amount,
-        interest_amount: transaction.interest_amount,
-        extra_principal_amount: transaction.extra_principal_amount,
-        category_id: transaction.category_id,
-        source_account_id: transaction.source_account_id,
-        destination_account_id: transaction.destination_account_id,
-        allocation_id: transaction.allocation_id,
-        source_allocation_id: transaction.source_allocation_id ?? null,
-        investment_instrument_id: transaction.investment_instrument_id ?? null,
-        investment_units: transaction.investment_units ?? null,
-      });
-    }
+    updateTransaction(transaction.id, buildRescheduleInput(transaction, newDate));
   };
 
   const isRecurring = Boolean(transaction.schedule_id && transaction.schedule);
@@ -286,6 +267,24 @@ export function TransactionRow({
                   <ContextMenuItem onClick={() => handleReschedule(inAWeek)}>
                     {t("actions.inAWeek")}
                   </ContextMenuItem>
+                  <ContextMenuSeparator />
+                  <ContextMenuSub>
+                    <ContextMenuSubTrigger>
+                      <CalendarSearch className="size-4" />
+                      {t("actions.customDate")}
+                    </ContextMenuSubTrigger>
+                    <ContextMenuSubContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={parseISO(transaction.occurred_at)}
+                        defaultMonth={parseISO(transaction.occurred_at)}
+                        onSelect={(date) => {
+                          if (!date) return;
+                          handleReschedule(format(date, "yyyy-MM-dd"));
+                        }}
+                      />
+                    </ContextMenuSubContent>
+                  </ContextMenuSub>
                 </ContextMenuSubContent>
               </ContextMenuSub>
             ) : null}
