@@ -54,6 +54,17 @@ export class FinanceMutationCoordinator {
     return completion;
   }
 
+  /**
+   * Replaces the confirmed (server-truth) snapshot, e.g. after a forced refresh from
+   * the server, and republishes any still-pending optimistic commands on top of it.
+   * Without this, the next publish() would overwrite a directly written snapshot with
+   * the stale confirmed one.
+   */
+  rebase(snapshot: FinanceSnapshot) {
+    this.confirmed = snapshot;
+    this.publish();
+  }
+
   private resolveId: ResolveFinanceId = (id) => {
     if (!id) return id;
     let resolved = id;

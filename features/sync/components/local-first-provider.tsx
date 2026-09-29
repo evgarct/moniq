@@ -4,6 +4,8 @@ import type { AbstractPowerSyncDatabase, PowerSyncBackendConnector } from "@powe
 import { useQueryClient } from "@tanstack/react-query";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 
+import { getFinanceMutationCoordinator } from "@/features/finance/lib/coordinator-registry";
+import { fetchFinanceSnapshot } from "@/features/finance/lib/finance-api";
 import { financeSnapshotQueryKey } from "@/features/finance/lib/finance-keys";
 import {
   hasValidOfflineAuthLease,
@@ -13,6 +15,7 @@ import {
   writeCachedFinanceSnapshot,
 } from "@/features/sync/lib/local-finance-store";
 import { moniqPowerSyncSchema, POWER_SYNCED_TABLES } from "@/features/sync/lib/powersync-schema";
+import { toSyncDetails, type SyncDetails } from "@/features/sync/lib/sync-progress";
 import { reportClientPerformanceEvent } from "@/lib/performance/client";
 import { createClient } from "@/lib/supabase/client";
 import type { FinanceSnapshot } from "@/types/finance";
@@ -30,8 +33,16 @@ type LocalFirstContextValue = {
   discardConflict: (id: string) => Promise<void>;
   enabled: boolean;
   hydrated: boolean;
+  /**
+   * Forces a re-read from the source of truth (Supabase): flushes queued commands,
+   * fetches the server snapshot and reconnects PowerSync. Rejects if the server
+   * cannot be reached so the caller can surface the error.
+   */
+  refresh: () => Promise<void>;
+  refreshing: boolean;
   retryConflict: (id: string) => Promise<void>;
   status: SyncStatus;
+  syncDetails: SyncDetails | null;
   userId?: string | null;
 };
 
@@ -48,8 +59,11 @@ const LocalFirstContext = createContext<LocalFirstContextValue>({
   discardConflict: async () => undefined,
   enabled: false,
   hydrated: true,
+  refresh: async () => undefined,
+  refreshing: false,
   retryConflict: async () => undefined,
   status: defaultStatus,
+  syncDetails: null,
 });
 
 let activeDatabase: AbstractPowerSyncDatabase | null = null;
@@ -109,6 +123,11 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
   const [conflicts, setConflicts] = useState<LocalSyncConflict[]>([]);
   const [hydrated, setHydrated] = useState(!enabled);
   const [status, setStatus] = useState<SyncStatus>(defaultStatus);
+  const [syncDetails, setSyncDetails] = useState<SyncDetails | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const refreshingRef = useRef(false);
+  const connectorRef = useRef<PowerSyncBackendConnector | null>(null);
+  const flushQueueRef = useRef<(() => Promise<void>) | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [syncEnabled, setSyncEnabled] = useState(enabled);
   const [authUserId, setAuthUserId] = useState<string | null>(null);
@@ -236,6 +255,7 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
 
         if (!cancelled) {
           setStatus({ ...statusFromDatabase(localDatabase), state: online ? "cached" : "offline" });
+          setSyncDetails(toSyncDetails(localDatabase.currentStatus));
         }
 
         async function refreshQueueStatus() {
@@ -293,6 +313,8 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
           await refreshQueueStatus();
         }
 
+        flushQueueRef.current = flushQueue;
+
         const disposeOutbox = localDatabase.onChange(
           { onChange: () => { void refreshQueueStatus(); if (navigator.onLine) void flushQueue(); } },
           { tables: ["local_sync_commands"], throttleMs: 50 },
@@ -307,6 +329,7 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
         disposeStatus = localDatabase.registerListener({
           statusChanged(nextStatus) {
             if (!localDatabase) return;
+            setSyncDetails(toSyncDetails(nextStatus));
             setStatus((current) => ({
               ...statusFromDatabase(localDatabase!),
               state: current.conflictCount > 0 ? "conflict" : current.pendingCount > 0 ? "pending" : statusFromDatabase(localDatabase!).state,
@@ -339,6 +362,7 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
               await batch.complete();
             },
           };
+          connectorRef.current = connector;
           await localDatabase.connect(connector);
         }
 
@@ -365,6 +389,8 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
       disposeStatus?.();
       unsubscribeQuery?.();
       if (persistTimer.current !== null) window.clearTimeout(persistTimer.current);
+      connectorRef.current = null;
+      flushQueueRef.current = null;
       if (activeDatabase === localDatabase) activeDatabase = null;
       if (activeDatabase === null) activeUserId = null;
       if (localDatabase) void localDatabase.close();
@@ -398,9 +424,50 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
     });
   }, [database]);
 
+  const refresh = useCallback(async () => {
+    if (refreshingRef.current) return;
+    refreshingRef.current = true;
+    setRefreshing(true);
+    try {
+      // 1. Push queued offline commands first so the server snapshot includes them.
+      await flushQueueRef.current?.();
+      // 2. Read the source of truth directly. The snapshot query prefers local SQLite
+      //    when local-first is on, so invalidating it alone would never hit the server.
+      const snapshot = await fetchFinanceSnapshot();
+      getFinanceMutationCoordinator(queryClient).rebase(snapshot);
+      // 3. Re-pull the local replica from the sync service (keeps the local outbox).
+      const connector = connectorRef.current;
+      if (database && connector && navigator.onLine) {
+        await database.disconnect();
+        await database.connect(connector);
+        await database
+          .waitForStatus(
+            (current) => current.connected && !current.dataFlowStatus.downloading,
+            AbortSignal.timeout(20_000),
+          )
+          .catch(() => undefined);
+      }
+    } finally {
+      refreshingRef.current = false;
+      setRefreshing(false);
+    }
+  }, [database, queryClient]);
+
   const value = useMemo(
-    () => ({ database, conflicts, discardConflict, enabled: syncEnabled, hydrated, retryConflict, status, userId }),
-    [database, conflicts, discardConflict, syncEnabled, hydrated, retryConflict, status, userId],
+    () => ({
+      database,
+      conflicts,
+      discardConflict,
+      enabled: syncEnabled,
+      hydrated,
+      refresh,
+      refreshing,
+      retryConflict,
+      status,
+      syncDetails,
+      userId,
+    }),
+    [database, conflicts, discardConflict, syncEnabled, hydrated, refresh, refreshing, retryConflict, status, syncDetails, userId],
   );
   return <LocalFirstContext.Provider value={value}>{children}</LocalFirstContext.Provider>;
 }

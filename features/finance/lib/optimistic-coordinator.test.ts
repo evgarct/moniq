@@ -178,4 +178,51 @@ describe("FinanceMutationCoordinator", () => {
     expect(dependentRequest).toHaveBeenCalledWith("server-parent");
     expect(snapshot.categories[1]?.parent_id).toBe("server-parent");
   });
+
+  it("rebase replaces the confirmed snapshot and keeps pending commands on top", async () => {
+    let snapshot = createEmptyFinanceSnapshot();
+    let resolveRequest!: (value: typeof snapshot) => void;
+    const request = new Promise<typeof snapshot>((resolve) => {
+      resolveRequest = resolve;
+    });
+    const coordinator = new FinanceMutationCoordinator({
+      read: () => snapshot,
+      write: (next) => {
+        snapshot = next;
+      },
+    });
+
+    const completion = coordinator.execute({
+      id: "pending",
+      apply: (current) => ({ ...current, categories: [...current.categories, { id: "optimistic" } as never] }),
+      request: () => request,
+    });
+
+    coordinator.rebase({ ...createEmptyFinanceSnapshot(), categories: [{ id: "fresh-from-server" } as never] });
+
+    expect(snapshot.categories.map((category) => category.id)).toEqual(["fresh-from-server", "optimistic"]);
+
+    resolveRequest({
+      ...createEmptyFinanceSnapshot(),
+      categories: [{ id: "fresh-from-server" } as never, { id: "saved" } as never],
+    });
+    await completion;
+    await vi.waitFor(() =>
+      expect(snapshot.categories.map((category) => category.id)).toEqual(["fresh-from-server", "saved"]),
+    );
+  });
+
+  it("rebase on an idle coordinator writes the fresh snapshot", () => {
+    let snapshot = createEmptyFinanceSnapshot();
+    const coordinator = new FinanceMutationCoordinator({
+      read: () => snapshot,
+      write: (next) => {
+        snapshot = next;
+      },
+    });
+
+    coordinator.rebase({ ...createEmptyFinanceSnapshot(), categories: [{ id: "fresh" } as never] });
+
+    expect(snapshot.categories[0]?.id).toBe("fresh");
+  });
 });

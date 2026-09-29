@@ -38,3 +38,5 @@ Configure each PowerSync instance with `powersync/sync-config.yaml`. The edition
 The `powersync` Postgres publication is migration-managed and contains only the tables referenced by those streams. The PowerSync source connection must use a dedicated `powersync_role` with `REPLICATION`, `BYPASSRLS`, and read-only access to the published tables; its generated password belongs only in PowerSync Cloud secrets, never in Git or Vercel client variables.
 
 The client keeps a user-scoped SQLite file, a cached finance snapshot, and a 30-day offline authorization lease. API responses are never placed in service-worker Cache Storage. Logout calls `disconnectAndClear()` before invalidating the server session.
+
+The start page's sync footer offers a manual **Refresh from server**. It reads `/api/finance/snapshot` directly (bypassing SQLite), rebases pending optimistic commands on it, and reconnects PowerSync without clearing local data, so it is safe to use with queued offline changes.
