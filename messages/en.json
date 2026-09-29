@@ -14,6 +14,21 @@
       "storage_error": "Local storage is unavailable",
       "expired": "Connect to the internet to verify this device"
     },
+    "loader": {
+      "loading": "Loading your data…",
+      "loadingCount": "{count, plural, =0 {Loading your data…} one {# transaction loaded so far} other {# transactions loaded so far}}",
+      "syncingCount": "{count, plural, =0 {Syncing…} one {Syncing · # transaction} other {Syncing · # transactions}}",
+      "upToDate": "{count, plural, =0 {Up to date} one {Up to date · # transaction} other {Up to date · # transactions}}",
+      "offlineCount": "{count, plural, =0 {Offline} one {Offline · # transaction saved on this device} other {Offline · # transactions saved on this device}}",
+      "error": "Local storage is unavailable",
+      "syncedAt": "Synced {time}",
+      "neverSynced": "Not synced yet",
+      "progress": "{percent}% downloaded",
+      "refresh": "Refresh from server",
+      "refreshing": "Refreshing…",
+      "refreshError": "Couldn't refresh from the server. Your data on this device is unchanged.",
+      "refreshDone": "Refreshed from server"
+    },
     "conflicts": {
       "title": "Review sync conflicts",
       "description": "The same data changed on another device. Choose which version should remain.",
@@ -378,7 +393,7 @@
   "today": {
     "loading": {
       "title": "Loading today",
-      "description": "Fetching planned and paid transactions from Supabase."
+      "description": "Fetching planned and paid transactions."
     },
     "error": {
       "title": "Unable to load today",

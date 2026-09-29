@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { TransactionAddButton } from "@/features/transactions/components/transaction-add-button";
 import { TransactionFormSheet, type TransactionFormSubmitPayload } from "@/features/transactions/components/transaction-form-sheet";
 import { useTransactionActions } from "@/features/transactions/hooks/use-transaction-actions";
+import { SyncProgressFooter } from "@/features/sync/components/sync-progress-footer";
 import { useTransactionListActions } from "@/features/transactions/hooks/use-transaction-list-actions";
 import { selectTodayAgenda } from "@/features/today/lib/today-agenda";
 import { calDate } from "@/lib/formatters";
@@ -119,6 +120,13 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
 
   const sharedListProps = { onTransactionClick: openEditTransaction, ...listActions };
 
+  const syncFooter = (
+    <SyncProgressFooter
+      transactionCount={snapshot.transactions.length}
+      className="px-[18px] pb-6 sm:px-[34px] lg:px-[38px]"
+    />
+  );
+
   const calendarNav = (
     <>
       <Button
@@ -183,6 +191,7 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
           ) : null}
         </>
       )}
+      {syncFooter}
     </>
   );
 
@@ -281,6 +290,7 @@ export function TodayView({ snapshot }: { snapshot: FinanceSnapshot }) {
               ) : null}
             </>
           )}
+          {syncFooter}
         </div>
       </div>
 
