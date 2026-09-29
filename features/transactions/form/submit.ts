@@ -1,8 +1,24 @@
 import type { Account, Category } from "@/types/finance";
 import type { TransactionInput } from "@/types/finance-schemas";
+import { resolveScheduleInterval } from "@/features/transactions/lib/schedule-interval";
 import { isMoveKind, supportsBatchItems } from "./helpers";
 import { normalizeDebtPaymentBreakdown } from "./debt-payment-breakdown";
 import type { BatchKind, TransactionFormInputs, TransactionFormMode, TransactionFormSubmitPayload, TransactionLineItemInput } from "./types";
+
+function buildRecurrence(values: TransactionFormInputs) {
+  // Presets carry their own fixed interval; only "custom" uses the entered count + unit.
+  const interval = resolveScheduleInterval({
+    frequency: values.recurrence_frequency,
+    interval_count: values.recurrence_interval_count,
+    interval_unit: values.recurrence_interval_unit,
+  });
+  return {
+    frequency: values.recurrence_frequency,
+    interval_count: interval.count,
+    interval_unit: interval.unit,
+    until_date: values.recurrence_until?.trim() ? values.recurrence_until : null,
+  };
+}
 
 export function normalizePayload(values: TransactionFormInputs): TransactionInput {
   const debtBreakdown = values.kind === "debt_payment"
@@ -83,11 +99,7 @@ export function buildSubmitPayload(
             status: values.is_recurring ? "planned" : values.status,
           }),
           recurrence: values.is_recurring
-            ? {
-                frequency: values.recurrence_frequency,
-                interval_weeks: values.recurrence_frequency === "weekly" ? values.recurrence_interval_weeks : 1,
-                until_date: values.recurrence_until?.trim() ? values.recurrence_until : null,
-              }
+            ? buildRecurrence(values)
             : null,
         })),
       },
@@ -105,11 +117,7 @@ export function buildSubmitPayload(
       kind: "schedule",
       values: {
         ...payload,
-        recurrence: {
-          frequency: values.recurrence_frequency,
-          interval_weeks: values.recurrence_frequency === "weekly" ? values.recurrence_interval_weeks : 1,
-          until_date: values.recurrence_until?.trim() ? values.recurrence_until : null,
-        },
+        recurrence: buildRecurrence(values),
       },
     };
   }
@@ -122,13 +130,7 @@ export function buildSubmitPayload(
     kind: "entry",
     values: {
       ...payload,
-      recurrence: values.is_recurring
-        ? {
-            frequency: values.recurrence_frequency,
-            interval_weeks: values.recurrence_frequency === "weekly" ? values.recurrence_interval_weeks : 1,
-            until_date: values.recurrence_until?.trim() ? values.recurrence_until : null,
-          }
-        : null,
+      recurrence: values.is_recurring ? buildRecurrence(values) : null,
     },
   };
 }

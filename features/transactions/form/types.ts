@@ -1,4 +1,4 @@
-import type { TransactionSchedule, Transaction } from "@/types/finance";
+import type { ScheduleIntervalUnit, TransactionSchedule, Transaction } from "@/types/finance";
 import type {
   RecurringOccurrenceChangesInput,
   TransactionEntryBatchInput,
@@ -34,7 +34,8 @@ export type TransactionFormInputs = {
   investment_units: number | string | null;
   is_recurring: boolean;
   recurrence_frequency: TransactionSchedule["frequency"];
-  recurrence_interval_weeks: number;
+  recurrence_interval_count: number;
+  recurrence_interval_unit: ScheduleIntervalUnit;
   recurrence_until: string | null;
   line_items: TransactionLineItemInput[];
 };

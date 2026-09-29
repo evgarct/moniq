@@ -146,7 +146,8 @@ function makeDefaults({
     investment_units: transaction?.investment_units ?? null,
     is_recurring: mode === "edit-schedule",
     recurrence_frequency: schedule?.frequency ?? "monthly",
-    recurrence_interval_weeks: schedule?.interval_weeks ?? 1,
+    recurrence_interval_count: schedule?.interval_count ?? 1,
+    recurrence_interval_unit: schedule?.interval_unit ?? "month",
     recurrence_until: schedule?.until_date ?? null,
     line_items:
       mode === "add" && supportsBatchItems(currentKind)

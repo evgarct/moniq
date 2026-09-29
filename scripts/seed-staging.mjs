@@ -136,7 +136,7 @@ async function seedFinance(userId, persona) {
   if (result.error) throw result.error;
 
   result = await supabase.from("finance_transaction_schedules").insert({
-    id: randomUUID(), user_id: userId, title: "Monthly groceries", start_date: dateAt(2), frequency: "monthly", interval_weeks: 1, state: "active", kind: "expense", amount: 120, category_id: groceriesId, source_account_id: cashId,
+    id: randomUUID(), user_id: userId, title: "Monthly groceries", start_date: dateAt(2), frequency: "monthly", interval_count: 1, interval_unit: "month", state: "active", kind: "expense", amount: 120, category_id: groceriesId, source_account_id: cashId,
   });
   if (result.error) throw result.error;
 

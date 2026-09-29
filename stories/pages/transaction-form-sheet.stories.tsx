@@ -1,4 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { addDays, format } from "date-fns";
+import { expect, waitFor, within } from "storybook/test";
 
 import { RecurringChangeScopeOverlay } from "@/features/transactions/components/recurring-change-scope-overlay";
 import { TransactionFormSheet } from "@/features/transactions/components/transaction-form-sheet";
@@ -86,7 +88,8 @@ const recurringSchedule: TransactionSchedule = {
   note: "Streaming subscription",
   start_date: "2026-03-01",
   frequency: "monthly",
-  interval_weeks: 1,
+  interval_count: 1,
+  interval_unit: "month",
   until_date: "2026-12-31",
   state: "active",
   kind: "expense",
@@ -117,8 +120,9 @@ const biweeklySchedule: TransactionSchedule = {
   id: "schedule-story-biweekly",
   title: "Freelance retainer",
   start_date: "2026-03-06",
-  frequency: "weekly",
-  interval_weeks: 2,
+  frequency: "custom",
+  interval_count: 2,
+  interval_unit: "week",
   until_date: null,
 };
 
@@ -128,7 +132,8 @@ const yearlySchedule: TransactionSchedule = {
   title: "Annual insurance",
   start_date: "2026-04-15",
   frequency: "yearly",
-  interval_weeks: 1,
+  interval_count: 12,
+  interval_unit: "month",
   until_date: null,
 };
 
@@ -306,6 +311,40 @@ export const EditBiweeklySeries: Story = {
       />
     </StorySurface>
   ),
+};
+
+const every9DaysSchedule: TransactionSchedule = {
+  ...recurringSchedule,
+  id: "schedule-story-every-9-days",
+  title: "Water filter",
+  start_date: format(addDays(new Date(), 1), "yyyy-MM-dd"),
+  frequency: "custom",
+  interval_count: 9,
+  interval_unit: "day",
+  until_date: null,
+};
+
+export const EditCustomIntervalSeries: Story = {
+  render: () => (
+    <StorySurface>
+      <TransactionFormSheet
+        open
+        mode="edit-schedule"
+        schedule={every9DaysSchedule}
+        accounts={snapshot.accounts}
+        categories={snapshot.categories}
+        transactions={snapshot.transactions}
+        onOpenChange={() => {}}
+        onSubmit={async () => {}}
+      />
+    </StorySurface>
+  ),
+  // The sheet renders in a portal, so query the document rather than the story canvas.
+  play: async () => {
+    const body = within(document.body);
+    await waitFor(() => expect(body.getAllByText("Repeat every").length).toBeGreaterThan(0));
+    await expect(body.getAllByDisplayValue("9").length).toBeGreaterThan(0);
+  },
 };
 
 export const EditYearlySeries: Story = {

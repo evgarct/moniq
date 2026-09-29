@@ -2,7 +2,6 @@ import {
   addDays,
   addMonths,
   addWeeks,
-  addYears,
   endOfMonth,
   format,
   isAfter,
@@ -11,7 +10,11 @@ import {
   startOfDay,
 } from "date-fns";
 
-import type { TransactionSchedule, TransactionScheduleFrequency, TransactionStatus } from "@/types/finance";
+import type { TransactionSchedule, TransactionStatus } from "@/types/finance";
+
+import { resolveScheduleInterval, type ScheduleInterval } from "./schedule-interval";
+
+export { findScheduleFrequency, resolveScheduleInterval, type ScheduleInterval } from "./schedule-interval";
 
 export type ScheduleOccurrence = {
   occurrenceDate: string;
@@ -29,33 +32,21 @@ function clampMonthlyDate(anchor: Date, target: Date) {
   );
 }
 
-function getNextDate(
-  date: Date,
-  frequency: TransactionScheduleFrequency,
-  anchorDate: Date,
-  intervalWeeks: number,
-) {
-  if (frequency === "daily") {
-    return addDays(date, 1);
+function getNextDate(date: Date, interval: ScheduleInterval, anchorDate: Date) {
+  if (interval.unit === "day") {
+    return addDays(date, interval.count);
   }
 
-  if (frequency === "weekly") {
-    return addWeeks(date, Math.max(1, intervalWeeks));
+  if (interval.unit === "week") {
+    return addWeeks(date, interval.count);
   }
 
-  if (frequency === "yearly") {
-    return clampMonthlyDate(anchorDate, addYears(date, 1));
-  }
-
-  if (frequency === "quarterly") {
-    return clampMonthlyDate(anchorDate, addMonths(date, 3));
-  }
-
-  return clampMonthlyDate(anchorDate, addMonths(date, 1));
+  return clampMonthlyDate(anchorDate, addMonths(date, interval.count));
 }
 
 export function generateScheduleOccurrences(
-  schedule: Pick<TransactionSchedule, "start_date" | "frequency" | "until_date"> & Partial<Pick<TransactionSchedule, "interval_weeks">>,
+  schedule: Pick<TransactionSchedule, "start_date" | "frequency" | "until_date"> &
+    Partial<Pick<TransactionSchedule, "interval_count" | "interval_unit">>,
   horizonStart: string,
   horizonEnd: string,
 ): ScheduleOccurrence[] {
@@ -63,7 +54,7 @@ export function generateScheduleOccurrences(
   const rangeStart = startOfDay(parseISO(horizonStart));
   const rangeEnd = startOfDay(parseISO(horizonEnd));
   const untilDate = schedule.until_date ? startOfDay(parseISO(schedule.until_date)) : null;
-  const intervalWeeks = schedule.frequency === "weekly" ? schedule.interval_weeks ?? 1 : 1;
+  const interval = resolveScheduleInterval(schedule);
 
   if (isAfter(start, rangeEnd)) {
     return [];
@@ -73,7 +64,7 @@ export function generateScheduleOccurrences(
   let current = start;
 
   while (isBefore(current, rangeStart)) {
-    current = getNextDate(current, schedule.frequency, start, intervalWeeks);
+    current = getNextDate(current, interval, start);
   }
 
   while (!isAfter(current, rangeEnd)) {
@@ -81,7 +72,7 @@ export function generateScheduleOccurrences(
       occurrences.push({ occurrenceDate: formatDate(current) });
     }
 
-    current = getNextDate(current, schedule.frequency, start, intervalWeeks);
+    current = getNextDate(current, interval, start);
   }
 
   return occurrences;

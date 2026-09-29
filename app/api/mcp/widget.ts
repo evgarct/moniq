@@ -45,6 +45,11 @@ export type MoniqWidgetCopy = {
   monthly: string;
   quarterly: string;
   yearly: string;
+  custom: string;
+  every: string;
+  unitDay: string;
+  unitWeek: string;
+  unitMonth: string;
   principal: string;
   interest: string;
   extra: string;
@@ -124,7 +129,10 @@ export function moniqWidgetHtml(copy: MoniqWidgetCopy) {
     }
     function transactionRows(items) {
       return items.map((item) => {
-        const cadence = item.frequency ? label(item.frequency) + (item.frequency === "weekly" && item.interval_weeks > 1 ? " × " + item.interval_weeks : "") : "";
+        const unitLabel = { day: copy.unitDay, week: copy.unitWeek, month: copy.unitMonth };
+        const cadence = item.frequency === "custom" && item.interval_count
+          ? copy.every + " " + item.interval_count + " " + (unitLabel[item.interval_unit] || text(item.interval_unit))
+          : item.frequency ? label(item.frequency) : "";
         const meta = [date(item.occurred_at || item.start_date), label(item.status || item.state), cadence, accountText(item), item.category_path || item.category_name].filter(Boolean).join(" · ");
         const parts = [
           item.principal_amount != null ? copy.principal + ": " + number(item.principal_amount, item.currency) : "",

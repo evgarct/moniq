@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { generateScheduleOccurrences, isSettledTransactionStatus, isVisibleTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
+import {
+  findScheduleFrequency,
+  generateScheduleOccurrences,
+  isSettledTransactionStatus,
+  isVisibleTransactionStatus,
+  resolveScheduleInterval,
+} from "@/features/transactions/lib/transaction-schedules";
 
 describe("transaction-schedules", () => {
   it("generates daily occurrences inside the requested horizon", () => {
@@ -45,8 +51,9 @@ describe("transaction-schedules", () => {
       generateScheduleOccurrences(
         {
           start_date: "2026-03-03",
-          frequency: "weekly",
-          interval_weeks: 2,
+          frequency: "custom",
+          interval_count: 2,
+          interval_unit: "week",
           until_date: null,
         },
         "2026-03-01",
@@ -65,8 +72,9 @@ describe("transaction-schedules", () => {
       generateScheduleOccurrences(
         {
           start_date: "2026-03-03",
-          frequency: "weekly",
-          interval_weeks: 3,
+          frequency: "custom",
+          interval_count: 3,
+          interval_unit: "week",
           until_date: null,
         },
         "2026-04-01",
@@ -174,8 +182,9 @@ describe("transaction-schedules", () => {
       generateScheduleOccurrences(
         {
           start_date: "2026-03-01",
-          frequency: "weekly",
-          interval_weeks: 2,
+          frequency: "custom",
+          interval_count: 2,
+          interval_unit: "week",
           until_date: "2026-03-20",
         },
         "2026-03-01",
@@ -193,5 +202,71 @@ describe("transaction-schedules", () => {
     expect(isVisibleTransactionStatus("skipped")).toBe(false);
     expect(isSettledTransactionStatus("paid")).toBe(true);
     expect(isSettledTransactionStatus("planned")).toBe(false);
+  });
+
+  it("generates a custom cadence every 9 days", () => {
+    expect(
+      generateScheduleOccurrences(
+        { start_date: "2026-09-29", frequency: "custom", interval_count: 9, interval_unit: "day", until_date: null },
+        "2026-09-01",
+        "2026-11-30",
+      ).map((occurrence) => occurrence.occurrenceDate),
+    ).toEqual([
+      "2026-09-29",
+      "2026-10-08",
+      "2026-10-17",
+      "2026-10-26",
+      "2026-11-04",
+      "2026-11-13",
+      "2026-11-22",
+    ]);
+  });
+
+  it("generates a custom cadence every 3 days and skips ahead inside the horizon", () => {
+    expect(
+      generateScheduleOccurrences(
+        { start_date: "2026-01-01", frequency: "custom", interval_count: 3, interval_unit: "day", until_date: null },
+        "2026-01-10",
+        "2026-01-20",
+      ).map((occurrence) => occurrence.occurrenceDate),
+    ).toEqual(["2026-01-10", "2026-01-13", "2026-01-16", "2026-01-19"]);
+  });
+
+  it("generates a custom cadence every 3 months, clamping to the anchor day", () => {
+    expect(
+      generateScheduleOccurrences(
+        { start_date: "2026-01-31", frequency: "custom", interval_count: 3, interval_unit: "month", until_date: null },
+        "2026-01-01",
+        "2027-02-28",
+      ).map((occurrence) => occurrence.occurrenceDate),
+    ).toEqual(["2026-01-31", "2026-04-30", "2026-07-31", "2026-10-31", "2027-01-31"]);
+  });
+
+  it("generates a custom cadence every 2 months across a year boundary", () => {
+    expect(
+      generateScheduleOccurrences(
+        { start_date: "2026-11-15", frequency: "custom", interval_count: 2, interval_unit: "month", until_date: null },
+        "2026-11-01",
+        "2027-05-31",
+      ).map((occurrence) => occurrence.occurrenceDate),
+    ).toEqual(["2026-11-15", "2027-01-15", "2027-03-15", "2027-05-15"]);
+  });
+
+  it("ignores stored interval fields for presets", () => {
+    expect(resolveScheduleInterval({ frequency: "quarterly", interval_count: 7, interval_unit: "day" })).toEqual({
+      count: 3,
+      unit: "month",
+    });
+    expect(resolveScheduleInterval({ frequency: "yearly" })).toEqual({ count: 12, unit: "month" });
+    expect(resolveScheduleInterval({ frequency: "custom", interval_count: 9, interval_unit: "day" })).toEqual({
+      count: 9,
+      unit: "day",
+    });
+  });
+
+  it("recognises presets from a cadence", () => {
+    expect(findScheduleFrequency({ count: 1, unit: "week" })).toBe("weekly");
+    expect(findScheduleFrequency({ count: 3, unit: "month" })).toBe("quarterly");
+    expect(findScheduleFrequency({ count: 9, unit: "day" })).toBe("custom");
   });
 });

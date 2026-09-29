@@ -882,7 +882,7 @@
         "note": "Note",
         "lineNote": "Line note",
         "recurrenceFrequency": "Repeat",
-        "recurrenceIntervalWeeks": "Every N weeks",
+        "recurrenceInterval": "Repeat every",
         "recurrenceUntil": "End repeat",
         "recurrenceUntilNever": "Never",
         "shared": "Shared details",
@@ -904,7 +904,18 @@
         "weekly": "Weekly",
         "monthly": "Monthly",
         "quarterly": "Every 3 months",
-        "yearly": "Yearly"
+        "yearly": "Yearly",
+        "custom": "Custom…",
+        "unit": {
+          "day": "{count, plural, one {day} other {days}}",
+          "week": "{count, plural, one {week} other {weeks}}",
+          "month": "{count, plural, one {month} other {months}}"
+        },
+        "every": {
+          "day": "{count, plural, one {Every day} other {Every # days}}",
+          "week": "{count, plural, one {Every week} other {Every # weeks}}",
+          "month": "{count, plural, one {Every month} other {Every # months}}"
+        }
       },
       "status": {
         "paid": "Paid",
@@ -1420,6 +1431,11 @@
       "occurrenceRefRequired": "Provide transaction_id, or schedule_id and occurrence_date in YYYY-MM-DD format.",
       "rpcCallFailed": "Failed to call {rpcName}.",
       "invalidScheduleStates": "states must contain only active or paused.",
+      "scheduleFrequencyInvalid": "Recurring transaction \"{label}\" frequency must be daily, weekly, monthly, quarterly, yearly, or custom.",
+      "scheduleIntervalCountInvalid": "Recurring transaction \"{label}\" interval_count must be an integer greater than or equal to 1.",
+      "scheduleIntervalUnitInvalid": "Recurring transaction \"{label}\" interval_unit must be day, week, or month.",
+      "scheduleCustomNeedsCount": "Recurring transaction \"{label}\" custom frequency needs interval_count (for example 9 for every 9 days).",
+      "scheduleCustomNeedsUnit": "Recurring transaction \"{label}\" custom frequency needs interval_unit (day, week, or month).",
       "scheduleIdRequired": "schedule_id is required.",
       "rescheduleDatesRequired": "from_occurrence_date and new_occurrence_date must be YYYY-MM-DD.",
       "invalidScheduleState": "state must be active or paused.",
@@ -1511,6 +1527,11 @@
       "monthly": "Monthly",
       "quarterly": "Quarterly",
       "yearly": "Yearly",
+      "custom": "Custom",
+      "every": "Every",
+      "unitDay": "d",
+      "unitWeek": "wk",
+      "unitMonth": "mo",
       "principal": "principal",
       "interest": "interest",
       "extraPrincipal": "extra principal"

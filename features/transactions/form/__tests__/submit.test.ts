@@ -25,7 +25,8 @@ function base(overrides: Partial<TransactionFormInputs> = {}): TransactionFormIn
     investment_units: null,
     is_recurring: false,
     recurrence_frequency: "monthly",
-    recurrence_interval_weeks: 1,
+    recurrence_interval_count: 1,
+    recurrence_interval_unit: "month",
     recurrence_until: null,
     line_items: [],
     ...overrides,
@@ -188,15 +189,16 @@ describe("buildSubmitPayload – edit-transaction", () => {
 describe("buildSubmitPayload – edit-schedule", () => {
   it("returns schedule payload with recurrence", () => {
     const result = buildSubmitPayload(
-      base({ is_recurring: true, status: "planned", recurrence_frequency: "weekly", recurrence_interval_weeks: 2 }),
+      base({ is_recurring: true, status: "planned", recurrence_frequency: "custom", recurrence_interval_count: 2, recurrence_interval_unit: "week" }),
       "edit-schedule",
       accounts,
       categories,
     );
     expect(result?.kind).toBe("schedule");
     if (result?.kind === "schedule") {
-      expect(result.values.recurrence.frequency).toBe("weekly");
-      expect(result.values.recurrence.interval_weeks).toBe(2);
+      expect(result.values.recurrence.frequency).toBe("custom");
+      expect(result.values.recurrence.interval_count).toBe(2);
+      expect(result.values.recurrence.interval_unit).toBe("week");
     }
   });
 });
@@ -212,7 +214,7 @@ describe("buildSubmitPayload – recurring add entry", () => {
     expect(result?.kind).toBe("entry");
     if (result?.kind === "entry") {
       expect(result.values.recurrence?.frequency).toBe("monthly");
-      expect(result.values.recurrence?.interval_weeks).toBe(1);
+      expect(result.values.recurrence).toMatchObject({ interval_count: 1, interval_unit: "month" });
       expect(result.values.recurrence?.until_date).toBe("2026-12-31");
     }
   });
@@ -226,7 +228,7 @@ describe("buildSubmitPayload – recurring add entry", () => {
     );
     expect(result?.kind).toBe("entry");
     if (result?.kind === "entry") {
-      expect(result.values.recurrence).toMatchObject({ frequency: "yearly", interval_weeks: 1 });
+      expect(result.values.recurrence).toMatchObject({ frequency: "yearly", interval_count: 12, interval_unit: "month" });
     }
   });
 
@@ -239,7 +241,50 @@ describe("buildSubmitPayload – recurring add entry", () => {
     );
     expect(result?.kind).toBe("entry");
     if (result?.kind === "entry") {
-      expect(result.values.recurrence).toMatchObject({ frequency: "quarterly", interval_weeks: 1 });
+      expect(result.values.recurrence).toMatchObject({ frequency: "quarterly", interval_count: 3, interval_unit: "month" });
+    }
+  });
+
+  it("includes a custom every-9-days recurrence", () => {
+    const result = buildSubmitPayload(
+      base({
+        kind: "income",
+        source_account_id: null,
+        destination_account_id: "acc-2",
+        is_recurring: true,
+        status: "planned",
+        recurrence_frequency: "custom",
+        recurrence_interval_count: 9,
+        recurrence_interval_unit: "day",
+      }),
+      "add",
+      accounts,
+      categories,
+    );
+    expect(result?.kind).toBe("entry");
+    if (result?.kind === "entry") {
+      expect(result.values.recurrence).toMatchObject({ frequency: "custom", interval_count: 9, interval_unit: "day" });
+    }
+  });
+
+  it("ignores a leftover custom interval when a preset is selected", () => {
+    const result = buildSubmitPayload(
+      base({
+        kind: "income",
+        source_account_id: null,
+        destination_account_id: "acc-2",
+        is_recurring: true,
+        status: "planned",
+        recurrence_frequency: "weekly",
+        recurrence_interval_count: 9,
+        recurrence_interval_unit: "day",
+      }),
+      "add",
+      accounts,
+      categories,
+    );
+    if (result?.kind === "entry") {
+      expect(result.values.recurrence).toMatchObject({ frequency: "weekly", interval_count: 1, interval_unit: "week" });
     }
   });
 });

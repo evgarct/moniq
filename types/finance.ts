@@ -108,7 +108,8 @@ export type Account = {
 
 export type TransactionStatus = "planned" | "paid" | "skipped";
 export type TransactionKind = "income" | "expense" | "transfer" | "debt_payment";
-export type TransactionScheduleFrequency = "daily" | "weekly" | "monthly" | "quarterly" | "yearly";
+export type TransactionScheduleFrequency = "daily" | "weekly" | "monthly" | "quarterly" | "yearly" | "custom";
+export type ScheduleIntervalUnit = "day" | "week" | "month";
 export type TransactionScheduleState = "active" | "paused";
 
 export type TransactionSchedule = {
@@ -118,7 +119,9 @@ export type TransactionSchedule = {
   note: string | null;
   start_date: string;
   frequency: TransactionScheduleFrequency;
-  interval_weeks: number;
+  /** Canonical cadence: every `interval_count` `interval_unit`s. Presets are labels for a fixed pair. */
+  interval_count: number;
+  interval_unit: ScheduleIntervalUnit;
   until_date: string | null;
   state: TransactionScheduleState;
   kind: TransactionKind;

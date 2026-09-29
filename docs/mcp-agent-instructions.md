@@ -91,7 +91,7 @@ Future recurring transactions are supported. Active schedules are expanded into 
 
 ### Recurring transaction tools
 
-Use `list_recurring_transactions` or `get_recurring_transaction_schedules` before editing or deleting recurring payments. A schedule's `start_date` is the first occurrence date, not just a future anchor. Supported frequencies are `daily`, `weekly`, `monthly`, and `yearly`; weekly schedules may set `interval_weeks` for every-N-weeks cadence.
+Use `list_recurring_transactions` or `get_recurring_transaction_schedules` before editing or deleting recurring payments. A schedule's `start_date` is the first occurrence date, not just a future anchor. Supported frequencies are the presets `daily`, `weekly`, `monthly`, `quarterly` (every 3 months), and `yearly`, plus `custom` for any "every N days / weeks / months" cadence. A `custom` schedule must set `interval_count` (integer >= 1) and `interval_unit` (`day`, `week`, or `month`), for example `{ "frequency": "custom", "interval_count": 9, "interval_unit": "day" }` for every 9 days or `{ "frequency": "custom", "interval_count": 3, "interval_unit": "month" }` for every 3 months. Presets define their own interval: omit `interval_count`/`interval_unit` for them (echoing the stored values back from a `get` is fine; a conflicting pair is rejected). Month-based cadences keep the start date's day of month, clamped to the end of shorter months. `get_recurring_transaction_schedules` and the period reads return `interval_count` and `interval_unit` for every schedule.
 
 Write tools:
 
@@ -207,7 +207,7 @@ This creates a batch in the Claude Inbox for review rather than writing directly
 ### Create a recurring transaction
 
 1. Call `get_finance_context`.
-2. Confirm the first occurrence date, frequency, optional weekly interval, optional end date, amount, wallets, category, and kind.
+2. Confirm the first occurrence date, frequency (a preset, or `custom` with `interval_count` + `interval_unit`), optional end date, amount, wallets, category, and kind.
 3. Call `create_recurring_transaction` or `create_recurring_transaction_schedule`.
 4. Tell the user the series was created and that the start date is the first planned occurrence.
 

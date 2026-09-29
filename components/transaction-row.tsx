@@ -458,7 +458,9 @@ export function TransactionRow({
               </TooltipTrigger>
               <TooltipContent side="top">
                 {[
-                  t(`form.recurrence.${transaction.schedule.frequency}`),
+                  transaction.schedule.frequency === "custom"
+                    ? t(`form.recurrence.every.${transaction.schedule.interval_unit}`, { count: transaction.schedule.interval_count })
+                    : t(`form.recurrence.${transaction.schedule.frequency}`),
                   transaction.schedule.until_date
                     ? `${formatDate.dateTime(calDate(transaction.schedule.start_date), { month: "short", year: "numeric" })} – ${formatDate.dateTime(calDate(transaction.schedule.until_date), { month: "short", year: "numeric" })}`
                     : `${t("row.from")} ${formatDate.dateTime(calDate(transaction.schedule.start_date), { month: "short", year: "numeric" })}`,

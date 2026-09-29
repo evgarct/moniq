@@ -24,6 +24,7 @@ export function SharedFields({
   const { control, register, setValue, watch, formState: { errors } } = useFormContext<TransactionFormInputs>();
   const recurrenceUntil = watch("recurrence_until");
   const recurrenceFrequency = watch("recurrence_frequency");
+  const recurrenceIntervalCount = watch("recurrence_interval_count");
 
   const showRecurrenceSection =
     showRecurrence && (status === "planned" || mode === "edit-schedule");
@@ -107,6 +108,7 @@ export function SharedFields({
                         <SelectItem value="monthly" className="capitalize">{t("recurrence.monthly")}</SelectItem>
                         <SelectItem value="quarterly" className="capitalize">{t("recurrence.quarterly")}</SelectItem>
                         <SelectItem value="yearly" className="capitalize">{t("recurrence.yearly")}</SelectItem>
+                        <SelectItem value="custom">{t("recurrence.custom")}</SelectItem>
                       </SelectGroup>
                     </SelectContent>
                   </Select>
@@ -114,29 +116,55 @@ export function SharedFields({
               />
             }
           />
-          {(isRecurring || mode === "edit-schedule") && recurrenceFrequency === "weekly" ? (
+          {(isRecurring || mode === "edit-schedule") && recurrenceFrequency === "custom" ? (
             <FormSplitRow
               rowClassName="min-h-10"
-              left={<span className="type-body-14 text-foreground">{t("fields.recurrenceIntervalWeeks")}</span>}
+              left={<span className="type-body-14 text-foreground">{t("fields.recurrenceInterval")}</span>}
               right={
-                <Controller
-                  control={control}
-                  name="recurrence_interval_weeks"
-                  render={({ field }) => (
-                    <Input
-                      type="number"
-                      min={1}
-                      step={1}
-                      inputMode="numeric"
-                      className="h-8 w-20 rounded-none border-0 bg-transparent px-0 py-1 text-right text-sm shadow-none outline-none focus:outline-none focus-visible:border-transparent focus-visible:ring-0"
-                      value={field.value}
-                      onChange={(event) => field.onChange(Number(event.target.value) || 1)}
-                    />
-                  )}
-                />
+                <div className="flex items-center justify-end gap-2">
+                  <Controller
+                    control={control}
+                    name="recurrence_interval_count"
+                    render={({ field }) => (
+                      <Input
+                        type="number"
+                        min={1}
+                        step={1}
+                        inputMode="numeric"
+                        aria-label={t("fields.recurrenceInterval")}
+                        className="h-8 w-16 rounded-none border-0 bg-transparent px-0 py-1 text-right text-sm shadow-none outline-none focus:outline-none focus-visible:border-transparent focus-visible:ring-0"
+                        value={field.value}
+                        onChange={(event) => field.onChange(Math.max(1, Math.floor(Number(event.target.value)) || 1))}
+                      />
+                    )}
+                  />
+                  <Controller
+                    control={control}
+                    name="recurrence_interval_unit"
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={(value) => field.onChange(value)}>
+                        <SelectTrigger
+                          aria-label={t("fields.recurrenceInterval")}
+                          className="h-auto w-auto border-0 bg-transparent px-0 py-0 text-right text-sm shadow-none outline-none focus:outline-none focus-visible:border-transparent focus-visible:ring-0"
+                        >
+                          <SelectValue>{t(`recurrence.unit.${field.value}`, { count: recurrenceIntervalCount })}</SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            {(["day", "week", "month"] as const).map((unit) => (
+                              <SelectItem key={unit} value={unit}>
+                                {t(`recurrence.unit.${unit}`, { count: recurrenceIntervalCount })}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </div>
               }
             >
-              <FieldMessage error={errors.recurrence_interval_weeks} />
+              <FieldMessage error={errors.recurrence_interval_count} />
             </FormSplitRow>
           ) : null}
           {isRecurring || mode === "edit-schedule" ? (
