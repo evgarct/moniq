@@ -882,7 +882,7 @@
         "note": "Note",
         "lineNote": "Line note",
         "recurrenceFrequency": "Repeat",
-        "recurrenceIntervalWeeks": "Every N weeks",
+        "recurrenceInterval": "Repeat every",
         "recurrenceUntil": "End repeat",
         "recurrenceUntilNever": "Never",
         "shared": "Shared details",
@@ -904,7 +904,18 @@
         "weekly": "Weekly",
         "monthly": "Monthly",
         "quarterly": "Every 3 months",
-        "yearly": "Yearly"
+        "yearly": "Yearly",
+        "custom": "Custom…",
+        "unit": {
+          "day": "{count, plural, one {day} other {days}}",
+          "week": "{count, plural, one {week} other {weeks}}",
+          "month": "{count, plural, one {month} other {months}}"
+        },
+        "every": {
+          "day": "{count, plural, one {Every day} other {Every # days}}",
+          "week": "{count, plural, one {Every week} other {Every # weeks}}",
+          "month": "{count, plural, one {Every month} other {Every # months}}"
+        }
       },
       "status": {
         "paid": "Paid",
@@ -1511,6 +1522,11 @@
       "monthly": "Monthly",
       "quarterly": "Quarterly",
       "yearly": "Yearly",
+      "custom": "Custom",
+      "every": "Every",
+      "unitDay": "d",
+      "unitWeek": "wk",
+      "unitMonth": "mo",
       "principal": "principal",
       "interest": "interest",
       "extraPrincipal": "extra principal"

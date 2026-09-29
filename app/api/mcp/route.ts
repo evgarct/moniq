@@ -49,7 +49,8 @@ export async function OPTIONS() {
 const TRANSACTION_KINDS = ["income", "expense", "transfer", "debt_payment"] as const;
 const DIRECT_TRANSACTION_STATUSES = ["paid", "planned"] as const;
 const READ_TRANSACTION_STATUSES = ["paid", "planned", "skipped"] as const;
-const SCHEDULE_FREQUENCIES = ["daily", "weekly", "monthly", "quarterly", "yearly"] as const;
+const SCHEDULE_FREQUENCIES = ["daily", "weekly", "monthly", "quarterly", "yearly", "custom"] as const;
+const SCHEDULE_INTERVAL_UNITS = ["day", "week", "month"] as const;
 const SCHEDULE_STATES = ["active", "paused"] as const;
 type TransactionKind = (typeof TRANSACTION_KINDS)[number];
 type DirectTransactionStatus = (typeof DIRECT_TRANSACTION_STATUSES)[number];
@@ -84,6 +85,11 @@ function getMoniqWidgetCopy(t: McpTranslator): MoniqWidgetCopy {
     monthly: t("mcp.widget.monthly"),
     quarterly: t("mcp.widget.quarterly"),
     yearly: t("mcp.widget.yearly"),
+    custom: t("mcp.widget.custom"),
+    every: t("mcp.widget.every"),
+    unitDay: t("mcp.widget.unitDay"),
+    unitWeek: t("mcp.widget.unitWeek"),
+    unitMonth: t("mcp.widget.unitMonth"),
     principal: t("mcp.widget.principal"),
     interest: t("mcp.widget.interest"),
     extra: t("mcp.widget.extraPrincipal"),
@@ -233,7 +239,8 @@ interface RecurringScheduleItem {
   note?: unknown;
   start_date?: unknown;
   frequency?: unknown;
-  interval_weeks?: unknown;
+  interval_count?: unknown;
+  interval_unit?: unknown;
   until_date?: unknown;
   kind?: unknown;
   amount?: unknown;
@@ -470,8 +477,24 @@ function recurringScheduleProperties() {
       title: { type: "string", title: "Title", description: "Concise recurring transaction title." },
       note: { type: ["string", "null"], title: "Note" },
       start_date: { type: "string", title: "First occurrence date", description: "First scheduled occurrence in YYYY-MM-DD format." },
-      frequency: { type: "string", title: "Repeat", enum: SCHEDULE_FREQUENCIES },
-      interval_weeks: { type: "integer", title: "Weekly interval", minimum: 1, description: "For weekly schedules, repeat every N weeks. Omit or use 1 for every week. Non-weekly schedules always store 1." },
+      frequency: {
+        type: "string",
+        title: "Repeat",
+        enum: SCHEDULE_FREQUENCIES,
+        description: "Preset cadence (daily, weekly, monthly, quarterly = every 3 months, yearly) or custom for every N days/weeks/months, which needs interval_count and interval_unit.",
+      },
+      interval_count: {
+        type: ["integer", "null"],
+        title: "Repeat every",
+        minimum: 1,
+        description: "Only for frequency custom: repeat every N units, e.g. 9 with day = every 9 days, 3 with month = every 3 months. Presets define their own interval; omit it or echo the stored value.",
+      },
+      interval_unit: {
+        type: ["string", "null"],
+        title: "Interval unit",
+        enum: [...SCHEDULE_INTERVAL_UNITS, null],
+        description: "Only for frequency custom: day, week, or month. Presets define their own unit; omit it or echo the stored value.",
+      },
       until_date: { type: ["string", "null"], title: "End repeat", description: "Optional inclusive end date in YYYY-MM-DD format." },
       kind: { type: "string", title: "Type", enum: TRANSACTION_KINDS },
       amount: { type: "number", title: "Amount", description: "Positive source-side amount." },
@@ -1653,6 +1676,10 @@ function isStatus(value: unknown): value is DirectTransactionStatus {
   return typeof value === "string" && DIRECT_TRANSACTION_STATUSES.includes(value as DirectTransactionStatus);
 }
 
+function isScheduleIntervalUnit(value: unknown): value is (typeof SCHEDULE_INTERVAL_UNITS)[number] {
+  return typeof value === "string" && (SCHEDULE_INTERVAL_UNITS as readonly string[]).includes(value);
+}
+
 function isScheduleFrequency(value: unknown): value is ScheduleFrequency {
   return typeof value === "string" && SCHEDULE_FREQUENCIES.includes(value as ScheduleFrequency);
 }
@@ -1735,9 +1762,16 @@ function validateRecurringSchedule(schedule: unknown, labelPrefix = "Recurring t
   if (!schedule.title || typeof schedule.title !== "string" || !schedule.title.trim()) return `${labelPrefix} must have a title`;
   if (!isPositiveNumber(schedule.amount)) return `${labelPrefix} "${label}" must have a positive amount`;
   if (!isIsoDate(schedule.start_date)) return `${labelPrefix} "${label}" must have start_date in YYYY-MM-DD format`;
-  if (!isScheduleFrequency(schedule.frequency)) return `${labelPrefix} "${label}" frequency must be daily, weekly, monthly, quarterly, or yearly`;
-  if (schedule.interval_weeks != null && !isPositiveInteger(schedule.interval_weeks)) {
-    return `${labelPrefix} "${label}" interval_weeks must be an integer greater than or equal to 1`;
+  if (!isScheduleFrequency(schedule.frequency)) return `${labelPrefix} "${label}" frequency must be daily, weekly, monthly, quarterly, yearly, or custom`;
+  if (schedule.interval_count != null && !isPositiveInteger(schedule.interval_count)) {
+    return `${labelPrefix} "${label}" interval_count must be an integer greater than or equal to 1`;
+  }
+  if (schedule.interval_unit != null && !isScheduleIntervalUnit(schedule.interval_unit)) {
+    return `${labelPrefix} "${label}" interval_unit must be day, week, or month`;
+  }
+  if (schedule.frequency === "custom") {
+    if (schedule.interval_count == null) return `${labelPrefix} "${label}" custom frequency needs interval_count (e.g. 9 for every 9 days)`;
+    if (schedule.interval_unit == null) return `${labelPrefix} "${label}" custom frequency needs interval_unit (day, week, or month)`;
   }
   if (schedule.until_date != null && !isIsoDate(schedule.until_date)) return `${labelPrefix} "${label}" until_date must be null or YYYY-MM-DD`;
   if (typeof schedule.until_date === "string" && typeof schedule.start_date === "string" && schedule.until_date < schedule.start_date) {
@@ -1817,7 +1851,8 @@ function normalizeRecurringSchedule(schedule: RecurringScheduleItem) {
     note: optionalString(schedule.note),
     start_date: schedule.start_date,
     frequency: schedule.frequency,
-    interval_weeks: schedule.frequency === "weekly" ? schedule.interval_weeks ?? 1 : 1,
+    interval_count: schedule.interval_count ?? null,
+    interval_unit: schedule.interval_unit ?? null,
     until_date: optionalString(schedule.until_date),
     kind: schedule.kind,
     amount: schedule.amount,

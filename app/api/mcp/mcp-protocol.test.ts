@@ -1305,7 +1305,8 @@ describe("MCP tools", () => {
         title: "Rent",
         start_date: "2026-05-10",
         frequency: "yearly",
-        interval_weeks: 1,
+        interval_count: null,
+        interval_unit: null,
         kind: "expense",
         amount: 1200,
         source_account_id: "wallet-main",
@@ -1314,7 +1315,7 @@ describe("MCP tools", () => {
     });
   });
 
-  it("creates every-n-weeks recurring transaction schedules through alias tools", async () => {
+  it("creates every-9-days custom recurring transaction schedules through alias tools", async () => {
     mocks.rpc.mockImplementation((name: string) => {
       const authResponse = authRpcResponse(name);
       if (authResponse) return authResponse;
@@ -1340,8 +1341,9 @@ describe("MCP tools", () => {
           schedule: {
             title: "Cleaner",
             start_date: "2026-05-10",
-            frequency: "weekly",
-            interval_weeks: 3,
+            frequency: "custom",
+            interval_count: 9,
+            interval_unit: "day",
             kind: "expense",
             amount: 80,
             source_account_id: "wallet-main",
@@ -1359,9 +1361,91 @@ describe("MCP tools", () => {
     expect(mocks.rpc).toHaveBeenCalledWith("mcp_create_recurring_transaction_schedule", {
       p_key_hash: AUTH_KEY_HASH,
       p_schedule: expect.objectContaining({
-        frequency: "weekly",
-        interval_weeks: 3,
+        frequency: "custom",
+        interval_count: 9,
+        interval_unit: "day",
       }),
+    });
+  });
+
+  it.each([
+    ["missing interval_count", { frequency: "custom", interval_unit: "month" }, "interval_count"],
+    ["missing interval_unit", { frequency: "custom", interval_count: 3 }, "interval_unit"],
+    ["zero interval_count", { frequency: "custom", interval_count: 0, interval_unit: "day" }, "interval_count"],
+    ["unknown interval_unit", { frequency: "custom", interval_count: 2, interval_unit: "year" }, "interval_unit"],
+  ])("rejects custom recurring schedules with %s", async (_label, cadence, field) => {
+    const response = await postMcp({
+      jsonrpc: "2.0",
+      id: "create-recurring-custom-invalid",
+      method: "tools/call",
+      params: {
+        name: "create_recurring_transaction_schedule",
+        arguments: {
+          schedule: {
+            title: "Cleaner",
+            start_date: "2026-05-10",
+            kind: "expense",
+            amount: 80,
+            source_account_id: "wallet-main",
+            category_id: "cat-home",
+            ...cadence,
+          },
+        },
+      },
+    });
+
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: -32602, message: expect.stringContaining(field) },
+    });
+    expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_create_recurring_transaction_schedule", expect.anything());
+  });
+
+  it("updates a schedule to every 3 months through the update alias", async () => {
+    mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name);
+      if (authResponse) return authResponse;
+      if (name === "mcp_lookup_api_key") {
+        return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
+      }
+      if (name === "mcp_touch_api_key") {
+        return Promise.resolve({ data: null, error: null });
+      }
+      if (name === "mcp_update_recurring_transaction_schedule") {
+        return Promise.resolve({ data: { schedule_id: "schedule-3" }, error: null });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    const response = await postMcp({
+      jsonrpc: "2.0",
+      id: "update-recurring-custom",
+      method: "tools/call",
+      params: {
+        name: "update_recurring_transaction",
+        arguments: {
+          schedule_id: "11111111-1111-4111-8111-111111111111",
+          schedule: {
+            title: "Insurance",
+            start_date: "2026-05-10",
+            frequency: "custom",
+            interval_count: 3,
+            interval_unit: "month",
+            kind: "expense",
+            amount: 300,
+            source_account_id: "wallet-main",
+            category_id: "cat-home",
+          },
+        },
+      },
+    });
+
+    await expect(response.json()).resolves.toMatchObject({
+      result: { structuredContent: { schedule_id: "schedule-3" } },
+    });
+    expect(mocks.rpc).toHaveBeenCalledWith("mcp_update_recurring_transaction_schedule", {
+      p_key_hash: AUTH_KEY_HASH,
+      p_schedule_id: "11111111-1111-4111-8111-111111111111",
+      p_schedule: expect.objectContaining({ frequency: "custom", interval_count: 3, interval_unit: "month" }),
     });
   });
 

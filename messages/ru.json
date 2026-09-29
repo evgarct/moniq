@@ -882,7 +882,7 @@
         "note": "Заметка",
         "lineNote": "Заметка к строке",
         "recurrenceFrequency": "Повтор",
-        "recurrenceIntervalWeeks": "Каждые N недель",
+        "recurrenceInterval": "Повторять каждые",
         "recurrenceUntil": "Окончание повтора",
         "recurrenceUntilNever": "Никогда",
         "shared": "Общие детали",
@@ -904,7 +904,18 @@
         "weekly": "Еженедельно",
         "monthly": "Ежемесячно",
         "quarterly": "Каждые 3 месяца",
-        "yearly": "Ежегодно"
+        "yearly": "Ежегодно",
+        "custom": "Свой интервал…",
+        "unit": {
+          "day": "{count, plural, one {день} few {дня} many {дней} other {дня}}",
+          "week": "{count, plural, one {неделю} few {недели} many {недель} other {недели}}",
+          "month": "{count, plural, one {месяц} few {месяца} many {месяцев} other {месяца}}"
+        },
+        "every": {
+          "day": "{count, plural, one {Каждый день} few {Каждые # дня} many {Каждые # дней} other {Каждые # дня}}",
+          "week": "{count, plural, one {Каждую неделю} few {Каждые # недели} many {Каждые # недель} other {Каждые # недели}}",
+          "month": "{count, plural, one {Каждый месяц} few {Каждые # месяца} many {Каждые # месяцев} other {Каждые # месяца}}"
+        }
       },
       "status": {
         "paid": "Оплачено",
@@ -1511,6 +1522,11 @@
       "monthly": "Ежемесячно",
       "quarterly": "Каждые 3 месяца",
       "yearly": "Ежегодно",
+      "custom": "Свой интервал",
+      "every": "Каждые",
+      "unitDay": "дн.",
+      "unitWeek": "нед.",
+      "unitMonth": "мес.",
       "principal": "основной долг",
       "interest": "проценты",
       "extraPrincipal": "досрочно"

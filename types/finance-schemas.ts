@@ -1,10 +1,12 @@
 import { z } from "zod";
 
+import { resolveScheduleInterval } from "@/features/transactions/lib/schedule-interval";
 import { SUPPORTED_CURRENCY_CODES } from "@/lib/currencies";
 import type {
   AccountType,
   CategoryType,
   DebtKind,
+  ScheduleIntervalUnit,
   TransactionKind,
   TransactionScheduleFrequency,
   TransactionScheduleState,
@@ -210,22 +212,44 @@ export const transactionInputSchema = addTransactionValidation(z.object(transact
   normalizeTransactionValues(values),
 );
 
-const scheduleFrequencyValues = ["daily", "weekly", "monthly", "quarterly", "yearly"] satisfies [TransactionScheduleFrequency, ...TransactionScheduleFrequency[]];
+const scheduleFrequencyValues = ["daily", "weekly", "monthly", "quarterly", "yearly", "custom"] satisfies [TransactionScheduleFrequency, ...TransactionScheduleFrequency[]];
+const scheduleIntervalUnitValues = ["day", "week", "month"] satisfies [ScheduleIntervalUnit, ...ScheduleIntervalUnit[]];
 
-function normalizeRecurrenceValues<T extends { frequency: TransactionScheduleFrequency; interval_weeks?: number | null }>(
-  values: T,
-) {
+function normalizeRecurrenceValues<
+  T extends {
+    frequency: TransactionScheduleFrequency;
+    interval_count?: number | null;
+    interval_unit?: ScheduleIntervalUnit | null;
+  },
+>(values: T) {
+  // Presets carry their own fixed interval; only `custom` uses the submitted pair.
+  const interval = resolveScheduleInterval({
+    frequency: values.frequency,
+    interval_count: values.interval_count ?? undefined,
+    interval_unit: values.interval_unit ?? undefined,
+  });
   return {
     ...values,
-    interval_weeks: values.frequency === "weekly" ? values.interval_weeks ?? 1 : 1,
+    interval_count: interval.count,
+    interval_unit: interval.unit,
   };
 }
 
 export const transactionRecurrenceSchema = z
   .object({
     frequency: z.enum(scheduleFrequencyValues),
-    interval_weeks: z.number().int().min(1, "Weekly interval must be at least 1.").nullable().optional(),
+    interval_count: z.number().int().min(1, "Interval must be at least 1.").nullable().optional(),
+    interval_unit: z.enum(scheduleIntervalUnitValues).nullable().optional(),
     until_date: z.string().trim().min(1, "Until date is required.").nullable().optional(),
+  })
+  .superRefine((values, ctx) => {
+    if (values.frequency !== "custom") return;
+    if (!values.interval_count) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["interval_count"], message: "Custom recurrence needs an interval." });
+    }
+    if (!values.interval_unit) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["interval_unit"], message: "Custom recurrence needs a unit." });
+    }
   })
   .transform((values) => normalizeRecurrenceValues(values));
 
