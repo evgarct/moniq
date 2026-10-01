@@ -18,6 +18,7 @@ import type { Category, ExchangeRate, Transaction } from "@/types/finance";
 
 const MONTHS_SHOWN = 13;
 const BAR_AREA_HEIGHT = 92;
+const COMPACT_BAR_AREA_HEIGHT = 40;
 
 export function BudgetBarChart({
   transactions,
@@ -26,6 +27,7 @@ export function BudgetBarChart({
   targetCurrency,
   exchangeRates,
   onMonthSelect,
+  compact = false,
 }: {
   transactions: Transaction[];
   categories: Category[];
@@ -33,7 +35,10 @@ export function BudgetBarChart({
   targetCurrency: CurrencyCode;
   exchangeRates: ExchangeRate[];
   onMonthSelect: (report: CategorySpendingReport) => void;
+  /** Slim strip for the Budget screen: no title block, short bars. */
+  compact?: boolean;
 }) {
+  const barAreaHeight = compact ? COMPACT_BAR_AREA_HEIGHT : BAR_AREA_HEIGHT;
   const t = useTranslations("budget.monthChart");
   const formatDate = useFormatter();
   const months = useMemo(
@@ -50,16 +55,23 @@ export function BudgetBarChart({
 
   return (
     <TooltipProvider>
-      <div className="flex w-full flex-col gap-4" aria-label={t("ariaLabel")}>
-        <div className="flex items-end justify-between gap-3">
-          <div>
-            <p className="type-body-12 uppercase tracking-[0.18em]">{t("eyebrow")}</p>
-            <p className="type-h5">{t("title")}</p>
+      <div className={cn("flex w-full flex-col", compact ? "gap-2" : "gap-4")} aria-label={t("ariaLabel")}>
+        {compact ? (
+          <div className="flex items-baseline justify-between gap-3">
+            <p className="type-body-12 font-semibold uppercase tracking-[0.18em] text-muted-foreground">{t("netByMonth")}</p>
+            <p className="type-body-12 text-right text-muted-foreground">{t("convertedTo", { currency: targetCurrency })}</p>
           </div>
-          <p className="type-body-12 text-right text-muted-foreground">
-            {t("convertedTo", { currency: targetCurrency })}
-          </p>
-        </div>
+        ) : (
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <p className="type-body-12 uppercase tracking-[0.18em]">{t("eyebrow")}</p>
+              <p className="type-h5">{t("title")}</p>
+            </div>
+            <p className="type-body-12 text-right text-muted-foreground">
+              {t("convertedTo", { currency: targetCurrency })}
+            </p>
+          </div>
+        )}
 
         <div
           className="grid min-w-0 gap-1"
@@ -69,16 +81,11 @@ export function BudgetBarChart({
             const monthDate = calDate(month.startDate);
             const monthLabel = formatDate.dateTime(monthDate, { month: "long", year: "numeric" });
             const isCurrent = isSameMonth(monthDate, currentMonth);
-            const report = buildCategorySpendingReport({
-              categories,
-              transactions,
-              period: { month: month.month },
-            });
             const height = month.net === null
               ? 0
               : month.net === 0
                 ? 2
-                : Math.max(6, (Math.abs(month.net) / maxMagnitude) * (BAR_AREA_HEIGHT / 2 - 8));
+                : Math.max(compact ? 3 : 6, (Math.abs(month.net) / maxMagnitude) * (barAreaHeight / 2 - (compact ? 4 : 8)));
 
             return (
               <Tooltip key={month.month}>
@@ -86,16 +93,16 @@ export function BudgetBarChart({
                   render={
                     <button
                       type="button"
-                      onClick={() => onMonthSelect(report)}
+                      onClick={() => onMonthSelect(buildCategorySpendingReport({ categories, transactions, period: { month: month.month } }))}
                       aria-label={t("openMonth", { month: monthLabel })}
                       className={cn(
-                        "group flex min-w-0 flex-col items-center gap-1 rounded-[var(--radius-control)] px-0.5 py-1.5 transition-[background-color] hover:bg-secondary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        "group flex min-w-0 flex-col items-center gap-1 rounded-[var(--radius-control)] px-0.5 py-1 transition-[background-color] hover:bg-secondary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                         isCurrent && "bg-secondary/50",
                       )}
                     />
                   }
                 >
-                  <span className="relative w-full" style={{ height: BAR_AREA_HEIGHT }}>
+                  <span className="relative w-full" style={{ height: barAreaHeight }}>
                     <span className="absolute inset-x-0 top-1/2 h-px bg-foreground/10" />
                     {month.net === null ? (
                       <span className="absolute inset-x-1 top-1/2 border-t border-dashed border-muted-foreground/45" />

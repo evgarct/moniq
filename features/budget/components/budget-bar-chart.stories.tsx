@@ -41,6 +41,19 @@ export const Default: Story = {
   },
 };
 
+// Slim strip used on the Budget screen: no title block, short bars.
+export const Compact: Story = {
+  args: {
+    transactions: snapshot.transactions,
+    categories: snapshot.categories,
+    targetCurrency: snapshot.preferences.default_currency,
+    exchangeRates: snapshot.exchange_rates,
+    currentMonth: new Date(),
+    onMonthSelect: () => {},
+    compact: true,
+  },
+};
+
 export const PreviousMonth: Story = {
   args: {
     transactions: snapshot.transactions,

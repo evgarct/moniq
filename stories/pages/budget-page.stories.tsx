@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 
 import { BudgetView } from "@/features/budget/components/budget-view";
 import { makeFinanceSnapshot, StoryWorkspace, withPathname } from "@/stories/fixtures/story-data";
@@ -25,47 +25,83 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-// Default: chart + category grid, nothing selected
+// Default: month summary + one flat row per envelope, nothing selected.
 export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("Expenses")).toBeInTheDocument();
-    // "Income" appears as both section header and category tile — check all
     await expect(canvas.getAllByText("Income").length).toBeGreaterThan(0);
-    await expect(canvas.getByText("Core Bills")).toBeInTheDocument();
+    await expect(canvas.getByText("Planned")).toBeInTheDocument();
+    await expect(canvas.getByRole("button", { name: /^Core Bills/ })).toBeInTheDocument();
   },
 };
 
-// Click a category tile → subcategories + transactions appear inline
+// Enjoy Life has a 1 000 plan in the fixture and more spend than that: it is flagged as over budget and sorted first.
+export const OverBudget: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const rows = canvas.getAllByRole("button", { name: /Core Bills|Living Costs|Enjoy Life|Next & Safe|Wealth/ });
+    await expect(rows[0]).toHaveTextContent("Enjoy Life");
+    await expect(rows[0]).toHaveTextContent("over");
+  },
+};
+
+// Desktop: click an envelope row → the right-hand panel shows plan, spend and subcategories.
 export const CategoryExpanded: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const tile = canvas.getByText("Core Bills");
-    await userEvent.click(tile);
-    // Subcategory rows appear — "Loans" is a child of Core Bills only visible after expanding
-    // getAllByText used because "Loans" appears in both subcategory row and transaction row
+    await userEvent.click(canvas.getByRole("button", { name: /^Core Bills/ }));
+    await expect(canvas.getByText("Subcategories")).toBeInTheDocument();
     await expect(canvas.getAllByText("Loans").length).toBeGreaterThan(0);
   },
 };
 
-// Click same tile again → panel closes (toggle)
+// Click the same row again → panel closes (toggle).
 export const CategoryCollapsed: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const tile = canvas.getByText("Core Bills");
-    await userEvent.click(tile);
-    await userEvent.click(tile);
-    // After collapse, subcategory rows disappear
-    await expect(canvas.queryAllByText("Loans").length).toBe(0);
+    const row = canvas.getByRole("button", { name: /^Core Bills/ });
+    await userEvent.click(row);
+    await userEvent.click(canvas.getByRole("button", { name: /^Core Bills/, pressed: true }));
+    await expect(canvas.queryAllByText("Subcategories").length).toBe(0);
+  },
+};
+
+const mobileParameters = {
+  ...withPathname("/budget"),
+  layout: "fullscreen",
+  viewport: { defaultViewport: "mobile2" },
+};
+
+// Mobile: the rows are the whole screen; tapping one opens a fullscreen detail (portalled) with a back action.
+export const MobileEnvelopeDetail: Story = {
+  parameters: mobileParameters,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: /^Core Bills/ }));
+
+    const screen = within(canvasElement.ownerDocument.body);
+    await waitFor(() => expect(screen.getByText("Subcategories")).toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: "Budget" }));
+    await waitFor(() => expect(screen.queryByText("Subcategories")).not.toBeInTheDocument());
+  },
+};
+
+// Mobile detail left open: plan, spend, subcategories as flat rows and the collapsed transactions row.
+export const MobileEnvelopeDetailOpen: Story = {
+  parameters: mobileParameters,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: /^Enjoy Life/ }));
+
+    const screen = within(canvasElement.ownerDocument.body);
+    await waitFor(() => expect(screen.getByText("Subcategories")).toBeInTheDocument());
+    await expect(screen.getByRole("button", { name: /Show transactions/ })).toBeInTheDocument();
   },
 };
 
 export const MobileCategoryManagement: Story = {
-  parameters: {
-    ...withPathname("/budget"),
-    layout: "fullscreen",
-    viewport: { defaultViewport: "mobile2" },
-  },
+  parameters: mobileParameters,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole("button", { name: "Manage categories" }));
@@ -78,7 +114,7 @@ export const InlineCategoryEditing: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole("button", { name: "Manage categories" }));
-    await userEvent.click(canvas.getByText("Core Bills"));
+    await userEvent.click(canvas.getByRole("button", { name: /^Core Bills/ }));
     await userEvent.click(canvas.getByRole("button", { name: "Edit category" }));
     await expect(canvas.getByLabelText("Category name")).toHaveValue("Core Bills");
     await expect(canvas.getByRole("button", { name: "Icon" })).toBeInTheDocument();

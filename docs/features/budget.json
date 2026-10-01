@@ -2,11 +2,13 @@
   "id": "budget",
   "name": "Budget",
   "domain": "budget",
-  "description": "Retrospective monthly cashflow: a 13-month income/expense timeline plus expandable category trees showing where money went, using paid transactions only.",
+  "description": "Monthly envelope budgets: planned vs spent vs left per top-level expense category (converted to the default currency), a month summary, a compact 13-month cashflow strip and a detail with subcategories and transactions, using paid transactions only.",
   "routes": ["/budget"],
   "keyActions": [
-    "view monthly cashflow timeline",
-    "expand a category to see children and transactions",
+    "see planned, spent and left per envelope for a month",
+    "set a monthly plan on an envelope",
+    "open an envelope to see subcategories and transactions",
+    "view the compact monthly cashflow strip",
     "navigate between months",
     "manage budget categories inline"
   ],

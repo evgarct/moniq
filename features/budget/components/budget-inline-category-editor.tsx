@@ -47,6 +47,9 @@ export function BudgetInlineCategoryEditor({
     return categories.filter((item) => item.type === type && !excludedIds.has(item.id));
   }, [categories, category, type]);
 
+  // A monthly budget belongs to top-level expense categories only (same rule as the MCP tools).
+  const canPlan = type === "expense" && parentId === null;
+
   return (
     <form
       className="grid gap-4 border-t border-border/40 bg-secondary/20 px-3 py-4 lg:grid-cols-2"
@@ -56,7 +59,7 @@ export function BudgetInlineCategoryEditor({
           setNameError(t("validation.nameRequired"));
           return;
         }
-        const budgetVal = plannedBudget.trim() === "" ? null : parseFloat(plannedBudget);
+        const budgetVal = !canPlan || plannedBudget.trim() === "" ? null : parseFloat(plannedBudget);
         onSubmit({
           name: name.trim(),
           description: serializeCategoryDescriptionAndBudget(description.trim(), budgetVal) || null,
@@ -115,16 +118,18 @@ export function BudgetInlineCategoryEditor({
         </SelectGroup>
       </FormSelectField>
 
-      <FormField id="budget-category-planned-budget" label={t("fields.plannedBudget")} className="lg:col-span-2">
-        <Input
-          id="budget-category-planned-budget"
-          type="number"
-          step="any"
-          min="0"
-          value={plannedBudget}
-          onChange={(event) => setPlannedBudget(event.target.value)}
-        />
-      </FormField>
+      {canPlan ? (
+        <FormField id="budget-category-planned-budget" label={t("fields.plannedBudget")} className="lg:col-span-2">
+          <Input
+            id="budget-category-planned-budget"
+            type="number"
+            step="any"
+            min="0"
+            value={plannedBudget}
+            onChange={(event) => setPlannedBudget(event.target.value)}
+          />
+        </FormField>
+      ) : null}
 
       <FormField id="budget-category-description" label={t("fields.description")} className="lg:col-span-2">
         <Textarea

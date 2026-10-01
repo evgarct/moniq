@@ -673,6 +673,7 @@
       "noTransactions": "No transactions in this category for the selected month.",
       "childCount": "{count, plural, =0 {No subcategories} one {# subcategory} other {# subcategories}}",
       "rateUnavailable": "Rate unavailable",
+      "subcategories": "Subcategories",
       "actual": "Actual",
       "planned": "Planned",
       "showTransactions": "Show transactions ({count})",
@@ -680,8 +681,28 @@
       "selectPrompt": "Select a category to view details",
       "selectPromptDesc": "Click any category row on the left to view subcategories, manage budgets, and trace transactions."
     },
+    "envelope": {
+      "left": "left",
+      "over": "over",
+      "spent": "spent",
+      "received": "received",
+      "ofPlanned": "{spent} of {planned}",
+      "noPlan": "No plan",
+      "noRate": "No exchange rate",
+      "setBudget": "Set budget",
+      "delete": "Delete {name}"
+    },
+    "summary": {
+      "planned": "Planned",
+      "spent": "Spent",
+      "left": "Left",
+      "income": "Income",
+      "noPlan": "No plan",
+      "missingRates": "Exchange rates are missing, so totals are unavailable."
+    },
     "monthChart": {
       "ariaLabel": "Monthly budget analysis",
+      "netByMonth": "Net by month",
       "eyebrow": "Retrospective",
       "title": "Monthly envelope performance",
       "convertedTo": "Converted to {currency}",

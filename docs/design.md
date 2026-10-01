@@ -296,6 +296,10 @@ Sidebar stays visually quieter than main content. Active state is obvious but re
 - It's a ledger surface, not a mirrored second dashboard. Top section: selected balance-space title first, optional reset action second — no explanatory eyebrow/meta copy/summary cards by default.
 - Header hands off directly into the transaction list; the list is denser than the inventory panel and optimized for scan speed; rows inherit the product row language, avoiding accent-heavy states; empty states explain current scope in plain language; grouped lists use one date label per day, rows rely on spacing rhythm not divider borders.
 
+### Budget (envelopes)
+
+One flat row per top-level expense category in a single list; no tiles, no icon circles, no rings. Row: icon + name, then **left** (or **over** in destructive) on the right, and one thin `ProgressTrack` with "spent of planned" underneath; a category without a plan shows "No plan" and what was spent. Above the list a month summary (planned, spent, left; income and unplanned spend underneath) and a compact month strip. Sort: over budget first, then closest to plan, then unplanned. Below `lg` a tap opens a fullscreen sheet with a back action (as the Balance register); on desktop the detail is the right-hand panel. Plans live only on top-level expense categories, in the default currency; never merge currencies without a rate (show "—").
+
 ### Today
 
 Planning/execution surface: calendar context and agenda feel like one workspace; day- and month-level planned/overdue scope stays understandable at a glance; quick actions are floating tooling, not page jumps.
