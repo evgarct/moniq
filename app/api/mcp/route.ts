@@ -17,6 +17,7 @@ import {
   type CategorySpendingDetail,
   type CategorySpendingPeriodInput,
 } from "@/features/finance/lib/category-spending-report";
+import { parseCategoryDescriptionAndBudget } from "@/features/budget/lib/budget-analytics";
 import { getRequestTranslator } from "@/i18n/translator";
 import { createAnonClient } from "@/lib/supabase/anon";
 import type { CurrencyCode } from "@/types/currency";
@@ -157,6 +158,11 @@ const MCP_MUTATION_TOOLS = new Set([
   "set_recurring_transaction_state",
   "delete_recurring_transaction_schedule",
   "delete_recurring_transaction",
+  "create_category",
+  "update_category",
+  "create_savings_goal",
+  "update_savings_goal",
+  "delete_savings_goal",
 ]);
 
 export async function GET(request: Request) {
@@ -473,6 +479,23 @@ function directTransactionInputSchema(title: string) {
     },
     required: ["transaction"],
     additionalProperties: false,
+  };
+}
+
+function categoryProperties(options: { withoutType?: boolean } = {}) {
+  return {
+    name: { type: "string", title: "Name", description: "Category name, unique among siblings." },
+    ...(options.withoutType
+      ? {}
+      : { type: { type: "string", title: "Type", enum: ["income", "expense"], description: "Required for a top-level category; ignored when it matches the parent's type." } }),
+    parent_id: { type: ["string", "null"], title: "Parent category", description: "Parent category ID from get_finance_context, or null for top level." },
+    description: { type: ["string", "null"], title: "Description", description: "Explains what belongs in the category." },
+    icon: { type: ["string", "null"], title: "Icon" },
+    budget_amount: {
+      type: ["number", "null"],
+      title: "Monthly budget",
+      description: "Monthly budget in the user's default currency (see default_currency in get_finance_context). Top-level expense categories only; null clears it.",
+    },
   };
 }
 
@@ -1055,6 +1078,41 @@ function getMcpTools() {
         },
         ...recurringToolAliases(),
         {
+          name: "create_category",
+          title: "Create category",
+          description:
+            "Create a Moniq category. A top-level category needs type (income or expense); a subcategory inherits its parent's type. Optional budget_amount (monthly, in the user's default currency) is only for top-level expense categories. Names must be unique among siblings. Confirm the name, place and budget with the user first.",
+          annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
+          _meta: moniqWidgetMeta("Creating category", "Category created"),
+          outputSchema: widgetOutputSchema("Created category"),
+          inputSchema: {
+            type: "object",
+            title: "Category",
+            required: ["name"],
+            additionalProperties: false,
+            properties: categoryProperties(),
+          },
+        },
+        {
+          name: "update_category",
+          title: "Update category",
+          description:
+            "Patch a Moniq category: send category_id and only the fields to change (name, parent_id, description, icon, budget_amount). Send parent_id null to make it top-level and budget_amount null to clear the budget. Type cannot be changed and system categories cannot be edited.",
+          annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
+          _meta: moniqWidgetMeta("Updating category", "Category updated"),
+          outputSchema: widgetOutputSchema("Updated category"),
+          inputSchema: {
+            type: "object",
+            title: "Category update",
+            required: ["category_id", "category"],
+            additionalProperties: false,
+            properties: {
+              category_id: { type: "string", title: "Category ID" },
+              category: { type: "object", title: "Fields to change", additionalProperties: false, properties: categoryProperties({ withoutType: true }) },
+            },
+          },
+        },
+        {
           name: "create_savings_goal",
           title: "Create savings goal",
           description:
@@ -1457,6 +1515,7 @@ async function handleCategorySpendingReportTool(
     categories?: CategoryRow[];
     transactions?: TransactionRow[];
     allocations?: AllocationRow[];
+    default_currency?: string | null;
   };
   const accounts = (source.wallets ?? []).map(mapWallet);
   const categories = (source.categories ?? []).map(mapCategory).filter((c) => !c.is_system);
@@ -1499,6 +1558,7 @@ async function handleCategorySpendingReportTool(
     includeTransactions: typeof args.include_transactions === "boolean" ? args.include_transactions : undefined,
     limit: typeof args.transactions_limit === "number" ? args.transactions_limit : undefined,
     offset: typeof args.transactions_offset === "number" ? args.transactions_offset : undefined,
+    budgetCurrency: typeof source.default_currency === "string" ? source.default_currency : null,
   });
 
   return {
@@ -1972,16 +2032,21 @@ function sanitizeFinanceContext(data: unknown) {
     categories: categories
       .filter(isRecord)
       .filter((category) => !category.is_system)
-      .map((category) => ({
-        id: category.id,
-        type: category.type,
-        name: category.name,
-        path: category.path,
-        parent_id: category.parent_id ?? null,
-        icon: category.icon ?? null,
-        is_system: category.is_system,
-        is_selectable: category.is_selectable,
-      })),
+      .map((category) => {
+        const parsed = parseCategoryDescriptionAndBudget(typeof category.description === "string" ? category.description : null);
+        return {
+          id: category.id,
+          type: category.type,
+          name: category.name,
+          path: category.path,
+          parent_id: category.parent_id ?? null,
+          description: parsed.description || null,
+          budget_amount: parsed.plannedBudget,
+          icon: category.icon ?? null,
+          is_system: category.is_system,
+          is_selectable: category.is_selectable,
+        };
+      }),
     goals: goals.filter(isRecord).map((goal) => ({
       id: goal.id,
       wallet_id: goal.wallet_id,
@@ -1990,6 +2055,7 @@ function sanitizeFinanceContext(data: unknown) {
       amount: goal.amount,
       target_amount: goal.target_amount ?? null,
     })),
+    default_currency: source.default_currency ?? null,
     rules: source.rules,
   };
 }
@@ -2648,6 +2714,66 @@ async function handleDeleteTransaction(
   );
 }
 
+const CATEGORY_FIELD_KEYS = ["name", "type", "parent_id", "description", "icon", "budget_amount"] as const;
+
+function pickCategoryFields(source: Record<string, unknown>, allowType: boolean) {
+  const picked: Record<string, unknown> = {};
+  for (const key of CATEGORY_FIELD_KEYS) {
+    if (key === "type" && !allowType) continue;
+    if (key in source) picked[key] = source[key];
+  }
+  return picked;
+}
+
+function validateCategoryFields(fields: Record<string, unknown>, t: McpTranslator): string | null {
+  if ("name" in fields && !optionalString(fields.name)) return t("mcp.errors.categoryNameRequired");
+  if ("type" in fields && fields.type !== "income" && fields.type !== "expense") return t("mcp.errors.categoryTypeInvalid");
+  if ("budget_amount" in fields && fields.budget_amount !== null && !isNonNegativeNumber(fields.budget_amount)) {
+    return t("mcp.errors.categoryBudgetInvalid");
+  }
+  return null;
+}
+
+async function handleCreateCategory(
+  id: string | number | null,
+  params: Record<string, unknown>,
+  keyHash: string,
+  t: McpTranslator,
+): Promise<McpResponse> {
+  const args = (params.arguments ?? {}) as Record<string, unknown>;
+  const fields = pickCategoryFields(args, true);
+  if (!optionalString(fields.name)) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.categoryNameRequired") } };
+  const validationError = validateCategoryFields(fields, t);
+  if (validationError) return { jsonrpc: "2.0", id, error: { code: -32602, message: validationError } };
+
+  return callRecurringRpc(id, "mcp_create_category", { p_key_hash: keyHash, p_category: fields }, t("mcp.success.categoryCreated"), t);
+}
+
+async function handleUpdateCategory(
+  id: string | number | null,
+  params: Record<string, unknown>,
+  keyHash: string,
+  t: McpTranslator,
+): Promise<McpResponse> {
+  const args = (params.arguments ?? {}) as { category_id?: unknown; category?: unknown };
+  const categoryId = optionalString(args.category_id);
+  if (!categoryId) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.categoryIdRequired") } };
+  if (!isRecord(args.category)) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.categoryObjectRequired") } };
+
+  const fields = pickCategoryFields(args.category, false);
+  if (Object.keys(fields).length === 0) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.categoryObjectRequired") } };
+  const validationError = validateCategoryFields(fields, t);
+  if (validationError) return { jsonrpc: "2.0", id, error: { code: -32602, message: validationError } };
+
+  return callRecurringRpc(
+    id,
+    "mcp_update_category",
+    { p_key_hash: keyHash, p_category_id: categoryId, p_category: fields },
+    t("mcp.success.categoryUpdated"),
+    t,
+  );
+}
+
 async function handleCreateSavingsGoal(
   id: string | number | null,
   params: Record<string, unknown>,
@@ -2989,6 +3115,8 @@ async function handleToolCall(
     return handleDeleteTransaction(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash, t);
   }
 
+  if (toolName === "create_category") return handleCreateCategory(id, params, auth.keyHash, t);
+  if (toolName === "update_category") return handleUpdateCategory(id, params, auth.keyHash, t);
   if (toolName === "create_savings_goal") {
     return handleCreateSavingsGoal(id, params, auth.keyHash, t);
   }
