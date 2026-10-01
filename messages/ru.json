@@ -1457,7 +1457,7 @@
       "categoryBudgetTopLevelExpense": "Бюджет можно задать только у категории расходов верхнего уровня.",
       "categoryObjectRequired": "category должен быть объектом хотя бы с одним изменяемым полем.",
       "transferCategoryNeedsGoal": "Транзакция \"{label}\": категорию можно указывать только у переводов в цель накоплений (destination_allocation_id).",
-      "allocationsTransferOnly": "Транзакция \"{label}\": цели накоплений (destination_allocation_id, source_allocation_id) поддерживаются только у переводов.",
+      "allocationsTransferOnly": "Транзакция \"{label}\": source_allocation_id поддерживается только у переводов.",
       "rescheduleDatesRequired": "from_occurrence_date ? new_occurrence_date ?????? ???? ? ??????? YYYY-MM-DD.",
       "invalidScheduleState": "state ?????? ???? active ??? paused.",
       "transactionsRequired": "transactions ?????? ???? ???????? ????????.",

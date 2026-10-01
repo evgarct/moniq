@@ -1065,6 +1065,37 @@ describe("MCP tools", () => {
     expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_create_transactions", expect.anything());
   });
 
+  it("keeps the goal tag on an expense through create and recurring patch", async () => {
+    mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name);
+      if (authResponse) return authResponse;
+      if (name === "mcp_lookup_api_key") return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
+      if (name === "mcp_get_recurring_transaction_schedules") {
+        return Promise.resolve({
+          data: { schedules: [{ id: "schedule-rent", ...STORED_INSURANCE_SCHEDULE, destination_allocation_id: "goal-landlord" }] },
+          error: null,
+        });
+      }
+      if (name === "mcp_update_recurring_transaction_schedule_if_unchanged") return Promise.resolve({ data: { schedule_id: "schedule-rent" }, error: null });
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    const response = await postMcp({
+      jsonrpc: "2.0",
+      id: "patch-expense-goal",
+      method: "tools/call",
+      params: { name: "update_recurring_transaction_schedule", arguments: { schedule_id: "schedule-rent", schedule: { amount: 310 } } },
+    });
+
+    await expect(response.json()).resolves.toMatchObject({ result: expect.anything() });
+    expect(mocks.rpc).toHaveBeenCalledWith("mcp_update_recurring_transaction_schedule_if_unchanged", {
+      p_key_hash: AUTH_KEY_HASH,
+      p_expected_updated_at: "2026-09-01T10:00:00.123456+00:00",
+      p_schedule_id: "schedule-rent",
+      p_schedule: expect.objectContaining({ kind: "expense", amount: 310, destination_allocation_id: "goal-landlord" }),
+    });
+  });
+
   it("creates a recurring transfer into a goal", async () => {
     mocks.rpc.mockImplementation((name: string) => {
       const authResponse = authRpcResponse(name);

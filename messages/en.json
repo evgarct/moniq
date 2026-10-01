@@ -1457,7 +1457,7 @@
       "categoryBudgetTopLevelExpense": "A budget can only be set on a top-level expense category.",
       "categoryObjectRequired": "category must be an object with at least one field to change.",
       "transferCategoryNeedsGoal": "Transaction \"{label}\": only transfers into a savings goal (destination_allocation_id) can use a category.",
-      "allocationsTransferOnly": "Transaction \"{label}\": savings goal ids (destination_allocation_id, source_allocation_id) are only supported on transfers.",
+      "allocationsTransferOnly": "Transaction \"{label}\": source_allocation_id is only supported on transfers.",
       "rescheduleDatesRequired": "from_occurrence_date and new_occurrence_date must be YYYY-MM-DD.",
       "invalidScheduleState": "state must be active or paused.",
       "transactionsRequired": "transactions must be a non-empty array.",

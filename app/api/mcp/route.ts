@@ -399,8 +399,8 @@ function directTransactionProperties() {
     category_id: { type: ["string", "null"], title: "Category", description: "Required selectable category ID for income/expense. Optional expense category for debt payment interest. For transfers, an expense category is allowed only together with destination_allocation_id (transfer into a savings goal). In user-facing confirmation, describe this by category path from get_finance_context." },
     source_account_id: { type: ["string", "null"], title: "From wallet", description: "Required source wallet ID for expense, transfer, and debt payment. In user-facing confirmation, describe this by wallet name from get_finance_context." },
     destination_account_id: { type: ["string", "null"], title: "To wallet", description: "Required destination wallet ID for income, transfer, and debt payment. Debt payment destination must be a debt wallet. In user-facing confirmation, describe this by wallet name from get_finance_context." },
-    destination_allocation_id: { type: ["string", "null"], title: "To goal", description: "Transfers only: savings goal ID (from get_finance_context) of the destination wallet that receives the money. On update, omit to keep the current goal and send null to clear it." },
-    source_allocation_id: { type: ["string", "null"], title: "From goal", description: "Transfers only: savings goal ID of the source wallet that the money is taken from. On update, omit to keep the current goal and send null to clear it." },
+    destination_allocation_id: { type: ["string", "null"], title: "Goal", description: "Savings goal ID (from get_finance_context) of the wallet that holds the money: the goal a transfer or income goes into, or the goal an expense or debt payment is paid from (a goal of the source wallet). On update, omit to keep the current goal and send null to clear it." },
+    source_allocation_id: { type: ["string", "null"], title: "From goal", description: "Transfers only: savings goal ID of the source wallet that the transfer takes the money from. On update, omit to keep the current goal and send null to clear it." },
   };
 }
 
@@ -584,8 +584,8 @@ function recurringScheduleProperties(options: { partial?: boolean } = {}) {
       destination_account_id: { type: ["string", "null"], title: "To wallet" },
       destination_allocation_id: {
         type: ["string", "null"],
-        title: "To goal",
-        description: "Transfers only: savings goal ID of the destination wallet that receives each occurrence. A category_id on a transfer needs this. Recurring schedules cannot draw from a source goal.",
+        title: "Goal",
+        description: "Savings goal ID of the wallet that holds the money: the goal each transfer or income occurrence goes into, or the goal an expense or debt payment is paid from. A category_id on a transfer needs it. Recurring schedules cannot draw a transfer from a source goal.",
       },
     },
   };
@@ -1802,7 +1802,7 @@ function validateDirectTransaction(
     if (optionalString(tx.category_id) && !optionalString(tx.destination_allocation_id) && !goalOmittedOnUpdate) {
       return t("mcp.errors.transferCategoryNeedsGoal", { label });
     }
-  } else if (optionalString(tx.destination_allocation_id) || optionalString(tx.source_allocation_id)) {
+  } else if (optionalString(tx.source_allocation_id)) {
     return t("mcp.errors.allocationsTransferOnly", { label });
   }
 
@@ -1878,8 +1878,6 @@ function validateRecurringSchedule(schedule: unknown, t: McpTranslator, labelPre
     if (optionalString(schedule.category_id) && !optionalString(schedule.destination_allocation_id)) {
       return t("mcp.errors.transferCategoryNeedsGoal", { label });
     }
-  } else if (optionalString(schedule.destination_allocation_id)) {
-    return t("mcp.errors.allocationsTransferOnly", { label });
   }
 
   if (schedule.kind === "debt_payment") {
@@ -1920,7 +1918,7 @@ function normalizeDirectTransaction(tx: DirectTransactionItem) {
     source_account_id: tx.kind === "income" ? null : optionalString(tx.source_account_id),
     destination_account_id: tx.kind === "expense" ? null : optionalString(tx.destination_account_id),
     // Omitted goal ids stay omitted so an update keeps the stored goal; null clears it.
-    ...(tx.kind === "transfer" && "destination_allocation_id" in tx ? { destination_allocation_id: optionalString(tx.destination_allocation_id) } : {}),
+    ...("destination_allocation_id" in tx ? { destination_allocation_id: optionalString(tx.destination_allocation_id) } : {}),
     ...(tx.kind === "transfer" && "source_allocation_id" in tx ? { source_allocation_id: optionalString(tx.source_allocation_id) } : {}),
   };
 }
@@ -1944,7 +1942,7 @@ function normalizeRecurringSchedule(schedule: RecurringScheduleItem) {
     category_id: optionalString(schedule.category_id),
     source_account_id: schedule.kind === "income" ? null : optionalString(schedule.source_account_id),
     destination_account_id: schedule.kind === "expense" ? null : optionalString(schedule.destination_account_id),
-    destination_allocation_id: schedule.kind === "transfer" ? optionalString(schedule.destination_allocation_id) : null,
+    destination_allocation_id: optionalString(schedule.destination_allocation_id),
   };
 }
 
