@@ -519,6 +519,16 @@ describe("shapeCategorySpendingReport budgets", () => {
     expect(living.budget).toEqual({ amount: 1000, currency: "CZK", spent: 250, remaining: 750, percent_used: 25 });
   });
 
+  it("omits budget status for partial or multi-month periods", () => {
+    for (const period of [{ start_date: "2026-04-01", end_date: "2026-04-15" }, { start_date: "2026-04-01", end_date: "2026-05-31" }]) {
+      const report = buildCategorySpendingReport({ categories: budgeted, transactions: [], period });
+      const living = shapeCategorySpendingReport(report, { budgetCurrency: "CZK" }).envelopes[0];
+
+      expect(living.budget_amount).toBe(1000);
+      expect(living.budget).toBeNull();
+    }
+  });
+
   it("keeps a budgeted category visible when nothing was spent", () => {
     const report = buildCategorySpendingReport({ categories: budgeted, transactions: [], period: { month: "2026-04" } });
     const living = shapeCategorySpendingReport(report, { budgetCurrency: "CZK" }).envelopes[0];

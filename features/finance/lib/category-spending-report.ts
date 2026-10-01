@@ -560,6 +560,11 @@ function compactTransaction(transaction: CategorySpendingTransaction): CompactCa
  * - full: categories plus one flat, paginated, de-duplicated transaction list (transfers included)
  * Categories without activity are always dropped.
  */
+function isSingleCalendarMonth(period: CategorySpendingPeriod) {
+  const start = parseISO(period.start_date);
+  return isValid(start) && period.start_date === formatDate(startOfMonth(start)) && period.end_date === formatDate(endOfMonth(start));
+}
+
 export function shapeCategorySpendingReport(
   report: CategorySpendingReport,
   options: {
@@ -575,7 +580,8 @@ export function shapeCategorySpendingReport(
   const includeTransactions = options.includeTransactions ?? detail === "full";
   const limit = Math.min(Math.max(Math.floor(options.limit ?? DEFAULT_REPORT_TRANSACTIONS_LIMIT), 1), MAX_REPORT_TRANSACTIONS_LIMIT);
   const offset = Math.max(Math.floor(options.offset ?? 0), 0);
-  const budgetCurrency = options.budgetCurrency ?? null;
+  // A monthly budget only makes sense against exactly one complete calendar month.
+  const budgetCurrency = isSingleCalendarMonth(report.period) ? options.budgetCurrency ?? null : null;
 
   const shaped: CompactCategorySpendingReport = {
     period: report.period,

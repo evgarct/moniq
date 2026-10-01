@@ -1234,6 +1234,56 @@ describe("MCP tools", () => {
     expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_update_category", expect.anything());
   });
 
+  it("falls back to the most common wallet currency when no default currency is saved", async () => {
+    mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name);
+      if (authResponse) return authResponse;
+      if (name === "mcp_lookup_api_key") return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
+      if (name === "mcp_get_finance_context") {
+        return Promise.resolve({
+          data: {
+            default_currency: null,
+            wallets: [
+              { id: "w1", name: "A", type: "cash", currency: "EUR" },
+              { id: "w2", name: "B", type: "cash", currency: "EUR" },
+              { id: "w3", name: "C", type: "cash", currency: "CZK" },
+            ],
+            categories: [],
+          },
+          error: null,
+        });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    const response = await postMcp({ jsonrpc: "2.0", id: "ctx-fallback", method: "tools/call", params: { name: "get_finance_context", arguments: {} } });
+    const body = (await response.json()) as { result: { structuredContent: { default_currency: string } } };
+
+    expect(body.result.structuredContent.default_currency).toBe("EUR");
+  });
+
+  it("translates known category RPC errors", async () => {
+    mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name);
+      if (authResponse) return authResponse;
+      if (name === "mcp_lookup_api_key") return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
+      if (name === "mcp_create_category") {
+        return Promise.resolve({ data: null, error: { message: 'A category named "Food" already exists in this place' } });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    const response = await postMcp({
+      jsonrpc: "2.0",
+      id: "dup-category",
+      method: "tools/call",
+      params: { name: "create_category", arguments: { name: "Food", type: "expense" } },
+    });
+    const body = (await response.json()) as { error: { message: string } };
+
+    expect(body.error.message).toBe('A category named "Food" already exists in this place.');
+  });
+
   it("rejects direct creation when required fields are missing", async () => {
     const response = await postMcp({
       jsonrpc: "2.0",

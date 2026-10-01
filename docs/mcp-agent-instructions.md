@@ -52,7 +52,7 @@ Use it before writing transactions so the agent can choose exact IDs. The respon
 
 - wallets/accounts with IDs, names, types, currency, balance, credit limit, and debt/card metadata
 - categories with IDs, type, hierarchy path, selectable flags, `description` and `budget_amount` (the monthly budget of a top-level expense category, in `default_currency`)
-- `default_currency`: the user's default currency, which budgets are expressed in
+- `default_currency`: the user's default currency (saved preference, otherwise their most common wallet currency, same as the app), which budgets are expressed in
 - rules for valid transaction relationships
 
 Do not invent account IDs or category IDs. Call this tool first.
@@ -141,7 +141,7 @@ Inputs:
 
 `get_budget_month_analysis` is an alias with the same inputs and output. Categories without activity are never returned; transaction rows, including transfers, are listed once in the flat list (`detail: full`) instead of repeating under every parent category, and `transfer_count` reports how many transfers exist. Start with `categories`, and page through `full` only when you need individual transactions.
 
-Categories with a budget also return `budget_amount` and `budget` (`amount`, `currency`, `spent`, `remaining`, `percent_used`). `budget` compares only the spending in the budget currency (`default_currency`); spending in other currencies is listed in `totals` and is never converted. A budgeted category is returned even when nothing was spent.
+Categories with a budget also return `budget_amount` and `budget` (`amount`, `currency`, `spent`, `remaining`, `percent_used`). `budget` compares only the spending in the budget currency (`default_currency`); spending in other currencies is listed in `totals` and is never converted. `budget` is only returned when the report period is exactly one complete calendar month (a monthly budget is never compared with a partial or multi-month range); `budget_amount` is always returned. A budgeted category is returned even when nothing was spent.
 
 This report uses paid transactions and separates totals by currency.
 

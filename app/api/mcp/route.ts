@@ -18,6 +18,7 @@ import {
   type CategorySpendingPeriodInput,
 } from "@/features/finance/lib/category-spending-report";
 import { parseCategoryDescriptionAndBudget } from "@/features/budget/lib/budget-analytics";
+import { resolveUserPreferences } from "@/features/finance/lib/preferences";
 import { getRequestTranslator } from "@/i18n/translator";
 import { createAnonClient } from "@/lib/supabase/anon";
 import type { CurrencyCode } from "@/types/currency";
@@ -1558,7 +1559,10 @@ async function handleCategorySpendingReportTool(
     includeTransactions: typeof args.include_transactions === "boolean" ? args.include_transactions : undefined,
     limit: typeof args.transactions_limit === "number" ? args.transactions_limit : undefined,
     offset: typeof args.transactions_offset === "number" ? args.transactions_offset : undefined,
-    budgetCurrency: typeof source.default_currency === "string" ? source.default_currency : null,
+    budgetCurrency: resolveUserPreferences(
+      typeof source.default_currency === "string" ? (source.default_currency as CurrencyCode) : null,
+      accounts,
+    ).default_currency,
   });
 
   return {
@@ -2055,7 +2059,10 @@ function sanitizeFinanceContext(data: unknown) {
       amount: goal.amount,
       target_amount: goal.target_amount ?? null,
     })),
-    default_currency: source.default_currency ?? null,
+    default_currency: resolveUserPreferences(
+      typeof source.default_currency === "string" ? (source.default_currency as CurrencyCode) : null,
+      wallets.filter(isRecord).map((wallet) => ({ currency: wallet.currency as CurrencyCode })),
+    ).default_currency,
     rules: source.rules,
   };
 }
@@ -2734,6 +2741,35 @@ function validateCategoryFields(fields: Record<string, unknown>, t: McpTranslato
   return null;
 }
 
+// The category RPCs raise English exceptions; map the known ones to translated messages.
+const CATEGORY_RPC_ERRORS: { pattern: RegExp; key: string; param?: string }[] = [
+  { pattern: /^Category not found/, key: "mcp.errors.categoryNotFound" },
+  { pattern: /^Parent category not found/, key: "mcp.errors.categoryParentNotFound" },
+  { pattern: /must match its parent|Parent category must have the same type/, key: "mcp.errors.categoryParentTypeMismatch" },
+  { pattern: /^A category named "(.+)" already exists/, key: "mcp.errors.categoryDuplicate", param: "name" },
+  { pattern: /^System categories cannot be edited/, key: "mcp.errors.categorySystemLocked" },
+  { pattern: /^Category type cannot be changed/, key: "mcp.errors.categoryTypeImmutable" },
+  { pattern: /^Category type is required/, key: "mcp.errors.categoryTypeRequired" },
+  { pattern: /cannot be its own parent/, key: "mcp.errors.categorySelfParent" },
+  { pattern: /cannot be moved under its own descendant/, key: "mcp.errors.categoryMoveUnderDescendant" },
+  { pattern: /^budget_amount must not be negative/, key: "mcp.errors.categoryBudgetInvalid" },
+  { pattern: /^budget_amount can only be set/, key: "mcp.errors.categoryBudgetTopLevelExpense" },
+];
+
+function localizeCategoryRpcError(response: McpResponse, t: McpTranslator): McpResponse {
+  const message = response.error?.message;
+  if (!message) return response;
+
+  for (const entry of CATEGORY_RPC_ERRORS) {
+    const match = message.match(entry.pattern);
+    if (match) {
+      return { ...response, error: { ...response.error!, message: t(entry.key, entry.param ? { [entry.param]: match[1] } : undefined) } };
+    }
+  }
+
+  return response;
+}
+
 async function handleCreateCategory(
   id: string | number | null,
   params: Record<string, unknown>,
@@ -2746,7 +2782,10 @@ async function handleCreateCategory(
   const validationError = validateCategoryFields(fields, t);
   if (validationError) return { jsonrpc: "2.0", id, error: { code: -32602, message: validationError } };
 
-  return callRecurringRpc(id, "mcp_create_category", { p_key_hash: keyHash, p_category: fields }, t("mcp.success.categoryCreated"), t);
+  return localizeCategoryRpcError(
+    await callRecurringRpc(id, "mcp_create_category", { p_key_hash: keyHash, p_category: fields }, t("mcp.success.categoryCreated"), t),
+    t,
+  );
 }
 
 async function handleUpdateCategory(
@@ -2765,11 +2804,14 @@ async function handleUpdateCategory(
   const validationError = validateCategoryFields(fields, t);
   if (validationError) return { jsonrpc: "2.0", id, error: { code: -32602, message: validationError } };
 
-  return callRecurringRpc(
-    id,
-    "mcp_update_category",
-    { p_key_hash: keyHash, p_category_id: categoryId, p_category: fields },
-    t("mcp.success.categoryUpdated"),
+  return localizeCategoryRpcError(
+    await callRecurringRpc(
+      id,
+      "mcp_update_category",
+      { p_key_hash: keyHash, p_category_id: categoryId, p_category: fields },
+      t("mcp.success.categoryUpdated"),
+      t,
+    ),
     t,
   );
 }
