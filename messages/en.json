@@ -1441,6 +1441,8 @@
       "scheduleNotFound": "Recurring transaction schedule {scheduleId} was not found.",
       "scheduleChangedConcurrently": "The recurring transaction schedule changed while it was being updated. Read it again and retry.",
       "invalidReportDetail": "detail must be one of summary, categories, full.",
+      "transferCategoryNeedsGoal": "Transaction \"{label}\": only transfers into a savings goal (destination_allocation_id) can use a category.",
+      "allocationsTransferOnly": "Transaction \"{label}\": savings goal ids (destination_allocation_id, source_allocation_id) are only supported on transfers.",
       "rescheduleDatesRequired": "from_occurrence_date and new_occurrence_date must be YYYY-MM-DD.",
       "invalidScheduleState": "state must be active or paused.",
       "transactionsRequired": "transactions must be a non-empty array.",

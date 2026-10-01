@@ -996,6 +996,158 @@ describe("MCP tools", () => {
     expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_create_transactions", expect.anything());
   });
 
+  it("passes a categorised goal transfer through to the create RPC", async () => {
+    mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name);
+      if (authResponse) return authResponse;
+      if (name === "mcp_lookup_api_key") return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
+      if (name === "mcp_create_transactions") {
+        return Promise.resolve({ data: { created: [{ id: "tx-goal", title: "Big Buys", amount: 8000, occurred_at: "2026-11-09", kind: "transfer" }] }, error: null });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    const response = await postMcp({
+      jsonrpc: "2.0",
+      id: "create-goal-transfer",
+      method: "tools/call",
+      params: {
+        name: "create_transactions",
+        arguments: {
+          transactions: [
+            {
+              title: "Big Buys",
+              kind: "transfer",
+              status: "planned",
+              amount: 8000,
+              occurred_at: "2026-11-09",
+              source_account_id: "wallet-vault",
+              destination_account_id: "wallet-savings",
+              category_id: "cat-next-safe",
+              destination_allocation_id: "goal-big-buys",
+            },
+          ],
+        },
+      },
+    });
+
+    await expect(response.json()).resolves.toMatchObject({ result: expect.anything() });
+    expect(mocks.rpc).toHaveBeenCalledWith("mcp_create_transactions", {
+      p_key_hash: AUTH_KEY_HASH,
+      p_transactions: [
+        expect.objectContaining({
+          category_id: "cat-next-safe",
+          destination_allocation_id: "goal-big-buys",
+        }),
+      ],
+    });
+  });
+
+  it("rejects a transfer category without a destination goal and goals on non-transfers", async () => {
+    const base = { title: "Move", status: "paid", amount: 10, occurred_at: "2026-05-21" };
+    const cases = [
+      { ...base, kind: "transfer", source_account_id: "a", destination_account_id: "b", category_id: "cat-next-safe" },
+      { ...base, kind: "expense", source_account_id: "a", category_id: "cat-food", source_allocation_id: "goal-1" },
+    ];
+
+    for (const transaction of cases) {
+      const response = await postMcp({
+        jsonrpc: "2.0",
+        id: "create-invalid-goal",
+        method: "tools/call",
+        params: { name: "create_transactions", arguments: { transactions: [transaction] } },
+      });
+
+      await expect(response.json()).resolves.toMatchObject({ error: { code: -32602 } });
+    }
+    expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_create_transactions", expect.anything());
+  });
+
+  it("creates a recurring transfer into a goal", async () => {
+    mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name);
+      if (authResponse) return authResponse;
+      if (name === "mcp_lookup_api_key") return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
+      if (name === "mcp_create_recurring_transaction_schedule") return Promise.resolve({ data: { schedule_id: "schedule-goal" }, error: null });
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    const response = await postMcp({
+      jsonrpc: "2.0",
+      id: "create-recurring-goal",
+      method: "tools/call",
+      params: {
+        name: "create_recurring_transaction_schedule",
+        arguments: {
+          schedule: {
+            title: "Big Buys",
+            start_date: "2026-11-09",
+            frequency: "monthly",
+            kind: "transfer",
+            amount: 8000,
+            source_account_id: "wallet-vault",
+            destination_account_id: "wallet-savings",
+            destination_allocation_id: "goal-big-buys",
+            category_id: "cat-next-safe",
+          },
+        },
+      },
+    });
+
+    await expect(response.json()).resolves.toMatchObject({ result: { structuredContent: { schedule_id: "schedule-goal" } } });
+    expect(mocks.rpc).toHaveBeenCalledWith("mcp_create_recurring_transaction_schedule", {
+      p_key_hash: AUTH_KEY_HASH,
+      p_schedule: expect.objectContaining({ destination_allocation_id: "goal-big-buys", category_id: "cat-next-safe" }),
+    });
+  });
+
+  it("exposes goal ids in the create_transactions item schema", async () => {
+    const tool = (await getListedTools()).find((entry) => entry.name === "create_transactions") as unknown as {
+      inputSchema: { properties: { transactions: { items: { properties: Record<string, unknown> } } } };
+    };
+
+    expect(Object.keys(tool.inputSchema.properties.transactions.items.properties)).toEqual(
+      expect.arrayContaining(["destination_allocation_id", "source_allocation_id"]),
+    );
+  });
+
+  it("lets an update keep the stored goal when the categorised transfer omits the goal id", async () => {
+    mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name);
+      if (authResponse) return authResponse;
+      if (name === "mcp_lookup_api_key") return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
+      if (name === "mcp_update_transaction") return Promise.resolve({ data: { updated: { id: "tx-1" } }, error: null });
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    const response = await postMcp({
+      jsonrpc: "2.0",
+      id: "update-keep-goal",
+      method: "tools/call",
+      params: {
+        name: "update_transaction",
+        arguments: {
+          transaction_id: "tx-1",
+          transaction: {
+            title: "Big Buys",
+            kind: "transfer",
+            status: "planned",
+            amount: 9000,
+            occurred_at: "2026-11-09",
+            source_account_id: "wallet-vault",
+            destination_account_id: "wallet-savings",
+            category_id: "cat-next-safe",
+          },
+        },
+      },
+    });
+
+    const body = await response.json();
+    expect(body.error).toBeUndefined();
+    const call = mocks.rpc.mock.calls.find(([name]) => name === "mcp_update_transaction");
+    expect(call?.[1].p_transaction).not.toHaveProperty("destination_allocation_id");
+  });
+
   it("rejects direct creation when required fields are missing", async () => {
     const response = await postMcp({
       jsonrpc: "2.0",
