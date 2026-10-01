@@ -624,7 +624,7 @@ function recurringToolAliases() {
     {
       name: "update_recurring_transaction",
       title: "Update recurring transaction",
-      description: "Alias of update_recurring_transaction_schedule. Replace a recurring transaction series template with a complete payload.",
+      description: "Alias of update_recurring_transaction_schedule. Patch a recurring transaction series template: send only the fields to change.",
       annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
       _meta: moniqWidgetMeta("Updating recurring transaction", "Recurring transaction updated"),
       outputSchema: widgetOutputSchema("Updated recurring transaction"),
@@ -633,7 +633,7 @@ function recurringToolAliases() {
         title: "Recurring transaction update",
         properties: {
           schedule_id: { type: "string", title: "Schedule ID" },
-          schedule: recurringScheduleProperties(),
+          schedule: recurringScheduleProperties({ partial: true }),
         },
         required: ["schedule_id", "schedule"],
         additionalProperties: false,
@@ -1421,7 +1421,7 @@ async function handleCategorySpendingReportTool(
 ): Promise<McpResponse> {
   const detail = (getOptionalStringArg(args, "detail") ?? "categories") as CategorySpendingDetail;
   if (!CATEGORY_SPENDING_DETAILS.includes(detail)) {
-    return { jsonrpc: "2.0", id, error: { code: -32602, message: "detail must be one of summary, categories, full" } };
+    return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.invalidReportDetail") } };
   }
 
   const period: CategorySpendingPeriodInput = {
@@ -2319,25 +2319,36 @@ async function handleUpdateRecurringSchedule(
   if (!scheduleId) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.scheduleIdRequired") } };
 
   if (!isRecord(args.schedule)) {
-    return { jsonrpc: "2.0", id, error: { code: -32602, message: "Recurring transaction schedule must be an object" } };
+    return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.scheduleObjectRequired") } };
   }
 
   const current = await fetchRecurringSchedule(keyHash, scheduleId);
   if (!current) {
-    return { jsonrpc: "2.0", id, error: { code: -32602, message: `Recurring transaction schedule ${scheduleId} was not found` } };
+    return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.scheduleNotFound", { scheduleId }) } };
   }
 
   const merged = mergeRecurringSchedulePatch(current, args.schedule);
   const validationError = validateRecurringSchedule(merged, t);
   if (validationError) return { jsonrpc: "2.0", id, error: { code: -32602, message: validationError } };
 
-  return callRecurringRpc(
+  const response = await callRecurringRpc(
     id,
-    "mcp_update_recurring_transaction_schedule",
-    { p_key_hash: keyHash, p_schedule_id: scheduleId, p_schedule: normalizeRecurringSchedule(merged as RecurringScheduleItem) },
+    "mcp_update_recurring_transaction_schedule_if_unchanged",
+    {
+      p_key_hash: keyHash,
+      p_schedule_id: scheduleId,
+      p_schedule: normalizeRecurringSchedule(merged as RecurringScheduleItem),
+      p_expected_updated_at: typeof current.updated_at === "string" ? current.updated_at : null,
+    },
     t("mcp.success.recurringUpdated"),
     t,
   );
+
+  if (response.error?.message.includes("changed concurrently")) {
+    return { jsonrpc: "2.0", id, error: { code: -32009, message: t("mcp.errors.scheduleChangedConcurrently") } };
+  }
+
+  return response;
 }
 
 async function handleRescheduleRecurringSeries(

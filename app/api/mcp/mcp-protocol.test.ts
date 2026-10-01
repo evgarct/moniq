@@ -63,6 +63,7 @@ const STORED_INSURANCE_SCHEDULE = {
   destination_account_id: null,
   destination_account_name: null,
   currency: "CZK",
+  updated_at: "2026-09-01T10:00:00.123456+00:00",
 };
 
 async function postMcp(body: unknown, headers: Record<string, string> = {}) {
@@ -1441,7 +1442,7 @@ describe("MCP tools", () => {
           error: null,
         });
       }
-      if (name === "mcp_update_recurring_transaction_schedule") {
+      if (name === "mcp_update_recurring_transaction_schedule_if_unchanged") {
         return Promise.resolve({ data: { schedule_id: "schedule-3" }, error: null });
       }
       return Promise.resolve({ data: null, error: null });
@@ -1473,8 +1474,9 @@ describe("MCP tools", () => {
     await expect(response.json()).resolves.toMatchObject({
       result: { structuredContent: { schedule_id: "schedule-3" } },
     });
-    expect(mocks.rpc).toHaveBeenCalledWith("mcp_update_recurring_transaction_schedule", {
+    expect(mocks.rpc).toHaveBeenCalledWith("mcp_update_recurring_transaction_schedule_if_unchanged", {
       p_key_hash: AUTH_KEY_HASH,
+      p_expected_updated_at: "2026-09-01T10:00:00.123456+00:00",
       p_schedule_id: "11111111-1111-4111-8111-111111111111",
       p_schedule: expect.objectContaining({ frequency: "custom", interval_count: 3, interval_unit: "month" }),
     });
@@ -1511,7 +1513,7 @@ describe("MCP tools", () => {
       if (name === "mcp_get_recurring_transaction_schedules") {
         return Promise.resolve({ data: { schedules: [{ id: "schedule-9", ...STORED_INSURANCE_SCHEDULE }] }, error: null });
       }
-      if (name === "mcp_update_recurring_transaction_schedule") return Promise.resolve({ data: { schedule_id: "schedule-9" }, error: null });
+      if (name === "mcp_update_recurring_transaction_schedule_if_unchanged") return Promise.resolve({ data: { schedule_id: "schedule-9" }, error: null });
       return Promise.resolve({ data: null, error: null });
     });
 
@@ -1526,8 +1528,9 @@ describe("MCP tools", () => {
     });
 
     await expect(response.json()).resolves.toMatchObject({ result: { structuredContent: { schedule_id: "schedule-9" } } });
-    expect(mocks.rpc).toHaveBeenCalledWith("mcp_update_recurring_transaction_schedule", {
+    expect(mocks.rpc).toHaveBeenCalledWith("mcp_update_recurring_transaction_schedule_if_unchanged", {
       p_key_hash: AUTH_KEY_HASH,
+      p_expected_updated_at: "2026-09-01T10:00:00.123456+00:00",
       p_schedule_id: "schedule-9",
       p_schedule: expect.objectContaining({
         category_id: "cat-bills",
@@ -1556,7 +1559,7 @@ describe("MCP tools", () => {
     });
 
     await expect(response.json()).resolves.toMatchObject({ error: { code: -32602 } });
-    expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_update_recurring_transaction_schedule", expect.anything());
+    expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_update_recurring_transaction_schedule_if_unchanged", expect.anything());
   });
 
   it("rejects recurring schedules when the end date is before the first occurrence", async () => {

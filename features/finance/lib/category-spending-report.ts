@@ -486,7 +486,6 @@ export type CompactCategorySpendingReport = {
   envelopes: CompactCategorySpendingNode[];
   income_categories: CompactCategorySpendingNode[];
   uncategorized: Omit<UncategorizedSpendingGroup, "transactions">[];
-  transfers?: CompactCategorySpendingTransaction[];
   transfer_count: number;
   transactions?: {
     total: number;
@@ -519,8 +518,8 @@ function compactTransaction(transaction: CategorySpendingTransaction): CompactCa
 /**
  * Shapes the full report into a payload that fits an LLM context:
  * - summary: period + totals + top-level envelopes/income (no subcategories)
- * - categories: pruned category tree with totals, no transactions (default)
- * - full: categories plus one flat, paginated, de-duplicated transaction list
+ * - categories: pruned category tree with totals, no transaction rows (default)
+ * - full: categories plus one flat, paginated, de-duplicated transaction list (transfers included)
  * Categories without activity are always dropped.
  */
 export function shapeCategorySpendingReport(
@@ -551,8 +550,6 @@ export function shapeCategorySpendingReport(
     })),
     transfer_count: report.transfers.length,
   };
-
-  if (includeTree) shaped.transfers = report.transfers.map(compactTransaction);
 
   if (includeTransactions) {
     const all = new Map<string, CategorySpendingTransaction>();

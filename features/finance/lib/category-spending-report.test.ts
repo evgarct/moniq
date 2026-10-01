@@ -475,11 +475,11 @@ describe('shapeCategorySpendingReport', () => {
     
   });
 
-  it('summary detail omits subcategories and transfers', () => {
+  it('summary detail omits subcategories', () => {
     const shaped = shapeCategorySpendingReport(report(), { detail: 'summary' });
 
     expect(shaped.envelopes[0].categories).toEqual([]);
-    expect(shaped.transfers).toBeUndefined();
+    expect(shaped.transfer_count).toBe(0);
   });
 
   it('full detail returns a flat, de-duplicated, paginated transaction list', () => {

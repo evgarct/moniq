@@ -97,7 +97,7 @@ Write tools:
 
 - `create_recurring_transaction_schedule` creates a new active series.
 - `create_recurring_transaction` is an alias for creating a new active series.
-- `update_recurring_transaction_schedule` patches a series template: send `schedule_id` and only the fields to change in `schedule` (for example just `category_id`). Omitted fields, including `start_date`, keep their stored values. Changing `frequency` to a different preset clears the stored interval pair unless the patch supplies one.
+- `update_recurring_transaction_schedule` patches a series template: send `schedule_id` and only the fields to change in `schedule` (for example just `category_id`). Omitted fields, including `start_date`, keep their stored values. Changing `frequency` to a different preset clears the stored interval pair unless the patch supplies one. The write is guarded: if the series changed between the read and the write, the call fails and you should read it again and retry.
 - `update_recurring_transaction` is an alias for patching a series template.
 - `reschedule_recurring_transaction_series_from_occurrence` shifts one occurrence and all following occurrences.
 - `reschedule_recurring_transaction` is an alias for shifting one occurrence and all following occurrences.
@@ -136,7 +136,7 @@ Inputs:
 - `detail`: `summary` (totals and top-level envelopes only), `categories` (default; pruned category tree with totals, no transactions), or `full` (categories plus a flat paginated transaction list)
 - `include_transactions`, `transactions_limit` (default 200, max 500), `transactions_offset`: control the flat transaction list; it is on by default only for `detail: full`
 
-`get_budget_month_analysis` is an alias with the same inputs and output. Categories without activity are never returned and transactions are listed once in the flat list instead of repeating under every parent category. Start with `categories`, and page through `full` only when you need individual transactions.
+`get_budget_month_analysis` is an alias with the same inputs and output. Categories without activity are never returned; transaction rows, including transfers, are listed once in the flat list (`detail: full`) instead of repeating under every parent category, and `transfer_count` reports how many transfers exist. Start with `categories`, and page through `full` only when you need individual transactions.
 
 This report uses paid transactions and separates totals by currency.
 
