@@ -1,5 +1,6 @@
 import { addMonths, endOfMonth, format, isValid, parseISO, startOfMonth, subMonths } from "date-fns";
 
+import { parseCategoryDescriptionAndBudget } from "@/features/budget/lib/budget-analytics";
 import { getTransactionAnalyticsAmount, getTransactionPrimaryAccount } from "@/features/transactions/lib/transaction-utils";
 import type { Category, Transaction } from "@/types/finance";
 
@@ -472,7 +473,20 @@ export const CATEGORY_SPENDING_DETAILS: CategorySpendingDetail[] = ["summary", "
 export const DEFAULT_REPORT_TRANSACTIONS_LIMIT = 200;
 export const MAX_REPORT_TRANSACTIONS_LIMIT = 500;
 
-export type CompactCategorySpendingNode = Omit<CategorySpendingNode, "transactions" | "categories"> & {
+export type CategoryBudgetStatus = {
+  amount: number;
+  currency: string;
+  spent: number;
+  remaining: number;
+  percent_used: number | null;
+};
+
+export type CompactCategorySpendingNode = Omit<CategorySpendingNode, "transactions" | "categories" | "description"> & {
+  description: string | null;
+  /** Monthly budget stored in the category description, in the user's default currency. */
+  budget_amount: number | null;
+  /** Planned vs actual in the budget currency only; other currencies are never converted. */
+  budget: CategoryBudgetStatus | null;
   categories: CompactCategorySpendingNode[];
 };
 
@@ -495,16 +509,40 @@ export type CompactCategorySpendingReport = {
   };
 };
 
-function compactNode(node: CategorySpendingNode, includeChildren: boolean): CompactCategorySpendingNode | null {
-  if (node.transaction_count === 0) return null;
+function compactNode(
+  node: CategorySpendingNode,
+  includeChildren: boolean,
+  budgetCurrency: string | null,
+): CompactCategorySpendingNode | null {
+  const parsed = parseCategoryDescriptionAndBudget(node.description);
+  // A budgeted category stays visible even when nothing was spent, so "remaining" is not lost.
+  if (node.transaction_count === 0 && parsed.plannedBudget === null) return null;
 
-  const { transactions: _transactions, categories, ...rest } = node;
+  const { transactions: _transactions, categories, description: _description, ...rest } = node;
   void _transactions;
+  void _description;
+
+  let budget: CategoryBudgetStatus | null = null;
+  if (parsed.plannedBudget !== null && budgetCurrency) {
+    const spent = node.totals.find((total) => total.currency === budgetCurrency)?.amount ?? 0;
+    budget = {
+      amount: parsed.plannedBudget,
+      currency: budgetCurrency,
+      spent,
+      remaining: Number((parsed.plannedBudget - spent).toFixed(2)),
+      percent_used: parsed.plannedBudget > 0 ? Number(((spent / parsed.plannedBudget) * 100).toFixed(2)) : null,
+    };
+  }
 
   return {
     ...rest,
+    description: parsed.description || null,
+    budget_amount: parsed.plannedBudget,
+    budget,
     categories: includeChildren
-      ? categories.map((child) => compactNode(child, true)).filter((child): child is CompactCategorySpendingNode => child !== null)
+      ? categories
+          .map((child) => compactNode(child, true, budgetCurrency))
+          .filter((child): child is CompactCategorySpendingNode => child !== null)
       : [],
   };
 }
@@ -522,15 +560,28 @@ function compactTransaction(transaction: CategorySpendingTransaction): CompactCa
  * - full: categories plus one flat, paginated, de-duplicated transaction list (transfers included)
  * Categories without activity are always dropped.
  */
+function isSingleCalendarMonth(period: CategorySpendingPeriod) {
+  const start = parseISO(period.start_date);
+  return isValid(start) && period.start_date === formatDate(startOfMonth(start)) && period.end_date === formatDate(endOfMonth(start));
+}
+
 export function shapeCategorySpendingReport(
   report: CategorySpendingReport,
-  options: { detail?: CategorySpendingDetail; includeTransactions?: boolean; limit?: number; offset?: number } = {},
+  options: {
+    detail?: CategorySpendingDetail;
+    includeTransactions?: boolean;
+    limit?: number;
+    offset?: number;
+    budgetCurrency?: string | null;
+  } = {},
 ): CompactCategorySpendingReport {
   const detail = options.detail ?? "categories";
   const includeTree = detail !== "summary";
   const includeTransactions = options.includeTransactions ?? detail === "full";
   const limit = Math.min(Math.max(Math.floor(options.limit ?? DEFAULT_REPORT_TRANSACTIONS_LIMIT), 1), MAX_REPORT_TRANSACTIONS_LIMIT);
   const offset = Math.max(Math.floor(options.offset ?? 0), 0);
+  // A monthly budget only makes sense against exactly one complete calendar month.
+  const budgetCurrency = isSingleCalendarMonth(report.period) ? options.budgetCurrency ?? null : null;
 
   const shaped: CompactCategorySpendingReport = {
     period: report.period,
@@ -538,10 +589,10 @@ export function shapeCategorySpendingReport(
     summary: report.summary,
     currencies: report.currencies,
     envelopes: report.envelopes
-      .map((node) => compactNode(node, includeTree))
+      .map((node) => compactNode(node, includeTree, budgetCurrency))
       .filter((node): node is CompactCategorySpendingNode => node !== null),
     income_categories: report.income_categories
-      .map((node) => compactNode(node, includeTree))
+      .map((node) => compactNode(node, includeTree, budgetCurrency))
       .filter((node): node is CompactCategorySpendingNode => node !== null),
     uncategorized: report.uncategorized.map((group) => ({
       kind: group.kind,

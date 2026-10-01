@@ -499,3 +499,40 @@ describe('shapeCategorySpendingReport', () => {
     expect(shaped.income_categories).toEqual([]);
   });
 });
+
+describe("shapeCategorySpendingReport budgets", () => {
+  const budgeted = categories.map((item) => (item.id === "living" ? { ...item, description: "[budget: 1000] Everyday baseline spending." } : item));
+
+  it("reports planned vs actual in the budget currency and strips the prefix from the description", () => {
+    const report = buildCategorySpendingReport({
+      categories: budgeted,
+      transactions: [
+        tx({ id: "g1", title: "Groceries", kind: "expense", amount: 250, occurred_at: "2026-04-06", category_id: "groceries", source_account_id: "czk-cash" }),
+        tx({ id: "g2", title: "Euro lunch", kind: "expense", amount: 40, occurred_at: "2026-04-07", category_id: "groceries", source_account_id: "eur-cash" }),
+      ],
+      period: { month: "2026-04" },
+    });
+    const living = shapeCategorySpendingReport(report, { budgetCurrency: "CZK" }).envelopes[0];
+
+    expect(living.description).toBe("Everyday baseline spending.");
+    expect(living.budget_amount).toBe(1000);
+    expect(living.budget).toEqual({ amount: 1000, currency: "CZK", spent: 250, remaining: 750, percent_used: 25 });
+  });
+
+  it("omits budget status for partial or multi-month periods", () => {
+    for (const period of [{ start_date: "2026-04-01", end_date: "2026-04-15" }, { start_date: "2026-04-01", end_date: "2026-05-31" }]) {
+      const report = buildCategorySpendingReport({ categories: budgeted, transactions: [], period });
+      const living = shapeCategorySpendingReport(report, { budgetCurrency: "CZK" }).envelopes[0];
+
+      expect(living.budget_amount).toBe(1000);
+      expect(living.budget).toBeNull();
+    }
+  });
+
+  it("keeps a budgeted category visible when nothing was spent", () => {
+    const report = buildCategorySpendingReport({ categories: budgeted, transactions: [], period: { month: "2026-04" } });
+    const living = shapeCategorySpendingReport(report, { budgetCurrency: "CZK" }).envelopes[0];
+
+    expect(living.budget).toEqual({ amount: 1000, currency: "CZK", spent: 0, remaining: 1000, percent_used: 0 });
+  });
+});

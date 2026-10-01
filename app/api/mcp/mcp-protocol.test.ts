@@ -188,6 +188,8 @@ describe("MCP tools", () => {
       "mark_recurring_occurrence_paid",
       "skip_recurring_occurrence",
       "delete_recurring_occurrence",
+      "create_category",
+      "update_category",
       "create_savings_goal",
       "update_savings_goal",
       "delete_savings_goal",
@@ -1146,6 +1148,140 @@ describe("MCP tools", () => {
     expect(body.error).toBeUndefined();
     const call = mocks.rpc.mock.calls.find(([name]) => name === "mcp_update_transaction");
     expect(call?.[1].p_transaction).not.toHaveProperty("destination_allocation_id");
+  });
+
+  it("returns category descriptions, parsed budgets and the default currency in the finance context", async () => {
+    mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name);
+      if (authResponse) return authResponse;
+      if (name === "mcp_lookup_api_key") return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
+      if (name === "mcp_get_finance_context") {
+        return Promise.resolve({
+          data: {
+            wallets: [],
+            default_currency: "CZK",
+            categories: [
+              { id: "enjoy", type: "expense", name: "Enjoy Life", path: "Enjoy Life", parent_id: null, description: "[budget: 30000] Fun stuff", is_selectable: true },
+            ],
+          },
+          error: null,
+        });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    const response = await postMcp({
+      jsonrpc: "2.0",
+      id: "ctx-budget",
+      method: "tools/call",
+      params: { name: "get_finance_context", arguments: {} },
+    });
+    const body = (await response.json()) as { result: { structuredContent: { default_currency: string; categories: Record<string, unknown>[] } } };
+
+    expect(body.result.structuredContent.default_currency).toBe("CZK");
+    expect(body.result.structuredContent.categories[0]).toMatchObject({ description: "Fun stuff", budget_amount: 30000 });
+  });
+
+  it("creates and patches categories through key-hash RPCs", async () => {
+    mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name);
+      if (authResponse) return authResponse;
+      if (name === "mcp_lookup_api_key") return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
+      if (name === "mcp_create_category") return Promise.resolve({ data: { category: { id: "cat-new", name: "Rental income" } }, error: null });
+      if (name === "mcp_update_category") return Promise.resolve({ data: { category: { id: "cat-new", name: "Rent" } }, error: null });
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    const created = await postMcp({
+      jsonrpc: "2.0",
+      id: "create-category",
+      method: "tools/call",
+      params: { name: "create_category", arguments: { name: "Rental income", type: "income", ignored: "x" } },
+    });
+    await expect(created.json()).resolves.toMatchObject({ result: { structuredContent: { category: { id: "cat-new" } } } });
+    expect(mocks.rpc).toHaveBeenCalledWith("mcp_create_category", {
+      p_key_hash: AUTH_KEY_HASH,
+      p_category: { name: "Rental income", type: "income" },
+    });
+
+    const updated = await postMcp({
+      jsonrpc: "2.0",
+      id: "update-category",
+      method: "tools/call",
+      params: { name: "update_category", arguments: { category_id: "cat-new", category: { name: "Rent", budget_amount: null } } },
+    });
+    await expect(updated.json()).resolves.toMatchObject({ result: { structuredContent: { category: { name: "Rent" } } } });
+    expect(mocks.rpc).toHaveBeenCalledWith("mcp_update_category", {
+      p_key_hash: AUTH_KEY_HASH,
+      p_category_id: "cat-new",
+      p_category: { name: "Rent", budget_amount: null },
+    });
+  });
+
+  it("rejects invalid category input before calling the RPC", async () => {
+    const cases = [
+      { name: "create_category", arguments: { name: "  ", type: "expense" } },
+      { name: "create_category", arguments: { name: "Food", type: "other" } },
+      { name: "create_category", arguments: { name: "Food", type: "expense", budget_amount: -5 } },
+      { name: "update_category", arguments: { category_id: "c", category: {} } },
+      { name: "update_category", arguments: { category: { name: "x" } } },
+    ];
+    for (const params of cases) {
+      const response = await postMcp({ jsonrpc: "2.0", id: "bad-category", method: "tools/call", params });
+      await expect(response.json()).resolves.toMatchObject({ error: { code: -32602 } });
+    }
+    expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_create_category", expect.anything());
+    expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_update_category", expect.anything());
+  });
+
+  it("falls back to the most common wallet currency when no default currency is saved", async () => {
+    mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name);
+      if (authResponse) return authResponse;
+      if (name === "mcp_lookup_api_key") return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
+      if (name === "mcp_get_finance_context") {
+        return Promise.resolve({
+          data: {
+            default_currency: null,
+            wallets: [
+              { id: "w1", name: "A", type: "cash", currency: "EUR" },
+              { id: "w2", name: "B", type: "cash", currency: "EUR" },
+              { id: "w3", name: "C", type: "cash", currency: "CZK" },
+            ],
+            categories: [],
+          },
+          error: null,
+        });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    const response = await postMcp({ jsonrpc: "2.0", id: "ctx-fallback", method: "tools/call", params: { name: "get_finance_context", arguments: {} } });
+    const body = (await response.json()) as { result: { structuredContent: { default_currency: string } } };
+
+    expect(body.result.structuredContent.default_currency).toBe("EUR");
+  });
+
+  it("translates known category RPC errors", async () => {
+    mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name);
+      if (authResponse) return authResponse;
+      if (name === "mcp_lookup_api_key") return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
+      if (name === "mcp_create_category") {
+        return Promise.resolve({ data: null, error: { message: 'A category named "Food" already exists in this place' } });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    const response = await postMcp({
+      jsonrpc: "2.0",
+      id: "dup-category",
+      method: "tools/call",
+      params: { name: "create_category", arguments: { name: "Food", type: "expense" } },
+    });
+    const body = (await response.json()) as { error: { message: string } };
+
+    expect(body.error.message).toBe('A category named "Food" already exists in this place.');
   });
 
   it("rejects direct creation when required fields are missing", async () => {
