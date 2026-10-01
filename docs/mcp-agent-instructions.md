@@ -160,6 +160,14 @@ This report uses paid transactions and separates totals by currency.
 - Budgets are stored in the category description as a `[budget: N]` prefix; the tools and reads expose them as `budget_amount` and strip the prefix from `description`.
 - These tools and the savings-goal tools (`create_savings_goal`, `update_savings_goal`, `delete_savings_goal`) require the same entitlement as the other write tools.
 
+### `get_trends`
+
+Compares months side by side without one report call per month. Inputs: `start_month` / `end_month` (`YYYY-MM`, default the last 6 complete months, at most 12) and `group_by` (`envelope` = one row per top-level category, `category` = one row per leaf category). Returns `months`, `rows` (each with `series` per currency: `amounts` aligned with `months`, `total`, `average`, `percent_of_period_income`, plus `budget_amount`) and `monthly_summary` (per month and currency: `income_total`, `expense_total`, `pnl_net`, `cash_flow_net`, `net_savings`, `savings_rate`). Currencies are never merged.
+
+### `get_goal_history`
+
+Month-by-month history of one savings goal (`goal_id` from `get_finance_context`, same month inputs as `get_trends`): `added` (transfers and income into the goal), `withdrawn` (transfers out of it, including the automatic release when Free is exhausted), `spent` (expenses paid from it) and `net`, plus the individual `entries` (newest first, at most 100) and the goal's `current_amount`. Amounts are in the goal wallet's currency.
+
 ### `get_card_and_debt_balances`
 
 Reads current card-like wallets and debt balances.
