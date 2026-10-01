@@ -51,25 +51,25 @@ export function EnvelopeRow({
       >
         <span className="flex min-w-0 items-center gap-2 sm:gap-2.5">
           <CategoryIcon icon={row.icon} glyphClassName={cn("size-4 shrink-0", selected ? "text-foreground" : "text-muted-foreground")} />
-          <span className="truncate text-[13px] leading-[18px] font-medium tracking-[0.01em] text-foreground sm:type-h6">{row.name}</span>
+          <span className="type-h6 truncate">{row.name}</span>
         </span>
 
-        <span className="flex items-baseline justify-end gap-1.5 text-[13px] leading-[18px] font-medium sm:text-[14px] sm:leading-5">
+        <span className="type-h6 flex items-baseline justify-end gap-1.5">
           {row.spent === null ? (
             <span className="text-muted-foreground">—</span>
           ) : kind === "income" ? (
             <>
-              <span className="text-[10px] leading-[11px] font-normal text-muted-foreground">{t("received")}</span>
+              <span className="type-body-12">{t("received")}</span>
               <MoneyAmount amount={row.spent} currency={currency} display="absolute" showMinorUnits={false} />
             </>
           ) : planned ? (
             <>
-              <span className="text-[10px] leading-[11px] font-normal text-muted-foreground">{over ? t("over") : t("left")}</span>
+              <span className="type-body-12">{over ? t("over") : t("left")}</span>
               <MoneyAmount amount={Math.abs(row.left!)} currency={currency} display="absolute" tone={over ? "negative" : "default"} showMinorUnits={false} />
             </>
           ) : (
             <>
-              <span className="text-[10px] leading-[11px] font-normal text-muted-foreground">{t("spent")}</span>
+              <span className="type-body-12">{t("spent")}</span>
               <MoneyAmount amount={row.spent} currency={currency} display="absolute" tone="muted" showMinorUnits={false} />
             </>
           )}
@@ -83,7 +83,7 @@ export function EnvelopeRow({
               trackClassName="bg-border/55"
               fillClassName={over ? "bg-destructive" : row.status === "near" ? "bg-foreground" : "bg-foreground/62"}
             />
-            <span className="whitespace-nowrap text-[10px] leading-[11px] text-muted-foreground tabular-nums">
+            <span className="type-body-12 whitespace-nowrap tabular-nums">
               {t("ofPlanned", {
                 spent: formatMoneyNumber(row.spent!, currency, { showMinorUnits: false }),
                 planned: formatMoneyNumber(row.planned!, currency, { showMinorUnits: false }),
@@ -92,7 +92,7 @@ export function EnvelopeRow({
             </span>
           </span>
         ) : kind === "expense" ? (
-          <span className="col-span-2 pl-6 text-[10px] leading-[11px] text-muted-foreground sm:pl-[26px]">
+          <span className="type-body-12 col-span-2 pl-6 sm:pl-[26px]">
             {row.spent === null ? t("noRate") : t("noPlan")}
           </span>
         ) : null}

@@ -116,7 +116,7 @@ function InlineBudgetInput({
         onKeyDown={(event) => {
           if (event.key === "Enter") event.currentTarget.blur();
         }}
-        className="h-9 w-28 border-border/40 bg-background/50 px-2 text-[15px] font-medium tabular-nums focus:bg-background focus:ring-1 focus:ring-ring/25"
+        className="h-9 w-28 border-border/40 bg-background/50 px-2 text-sm font-medium tabular-nums focus:bg-background focus:ring-1 focus:ring-ring/25"
       />
       <span className="text-sm text-muted-foreground">{currency}</span>
     </div>
@@ -146,9 +146,9 @@ function SubcategoryRow({
     >
       <span className="flex min-w-0 items-center gap-2">
         <CategoryIcon icon={icon} glyphClassName="size-4 shrink-0 text-muted-foreground" />
-        <span className="truncate text-[13px] leading-[18px] font-medium text-foreground">{name}</span>
+        <span className="type-h6 truncate">{name}</span>
       </span>
-      <span className="text-[13px] leading-[18px] font-medium">
+      <span className="type-h6">
         {spent === null ? <span className="text-muted-foreground">—</span> : <MoneyAmount amount={spent} currency={currency} display="absolute" tone={spent === 0 ? "muted" : "default"} showMinorUnits={false} />}
       </span>
       {spent ? (
@@ -302,7 +302,7 @@ export function EnvelopeDetail({
         <dl className="grid grid-cols-3 gap-3">
           <div className="min-w-0">
             <dt className="type-body-12 text-muted-foreground">{summaryT("planned")}</dt>
-            <dd className="mt-0.5 text-[17px] leading-6 font-medium tabular-nums">
+            <dd className="type-h5 mt-0.5 tabular-nums">
               {!canPlan ? (
                 <span className="text-muted-foreground">—</span>
               ) : editMode ? (
@@ -314,13 +314,13 @@ export function EnvelopeDetail({
           </div>
           <div className="min-w-0">
             <dt className="type-body-12 text-muted-foreground">{summaryT("spent")}</dt>
-            <dd className="mt-0.5 text-[17px] leading-6 font-medium tabular-nums">
+            <dd className="type-h5 mt-0.5 tabular-nums">
               {row.spent !== null ? <MoneyAmount amount={row.spent} currency={currency} display="absolute" showMinorUnits={false} /> : "—"}
             </dd>
           </div>
           <div className="min-w-0">
             <dt className="type-body-12 text-muted-foreground">{over ? envelopeT("over") : summaryT("left")}</dt>
-            <dd className="mt-0.5 text-[17px] leading-6 font-medium tabular-nums">
+            <dd className="type-h5 mt-0.5 tabular-nums">
               {row.left !== null ? <MoneyAmount amount={Math.abs(row.left)} currency={currency} display="absolute" tone={over ? "negative" : "default"} showMinorUnits={false} /> : "—"}
             </dd>
           </div>

@@ -1,5 +1,9 @@
+import { isSameMonth } from "date-fns";
+
 import { getConvertedCategoryTotal, parseCategoryDescriptionAndBudget } from "@/features/budget/lib/budget-analytics";
+import { convertTransactionAnalyticsAmount } from "@/features/finance/lib/exchange-rates";
 import { getCategoryDescendantIds } from "@/features/categories/lib/category-tree";
+import { isSettledTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
 import type { CurrencyCode } from "@/types/currency";
 import type { Category, CategoryTreeNode, ExchangeRate, Transaction } from "@/types/finance";
 
@@ -102,15 +106,19 @@ export function buildEnvelopeBudgetRows(options: {
     .sort(compareEnvelopeBudgetRows);
 }
 
-export function summarizeEnvelopeBudget(rows: EnvelopeBudgetRow[]): EnvelopeBudgetSummary {
+/**
+ * `uncategorizedExpense` is the converted spend of paid transactions that have no category; it belongs to no
+ * envelope row, so it is added to the spend without a plan (null when a rate is missing).
+ */
+export function summarizeEnvelopeBudget(rows: EnvelopeBudgetRow[], uncategorizedExpense: number | null = 0): EnvelopeBudgetSummary {
   const planned = rows.reduce((sum, row) => sum + (row.planned ?? 0), 0);
-  const available = rows.every((row) => row.spent !== null);
+  const available = uncategorizedExpense !== null && rows.every((row) => row.spent !== null);
   if (!available) {
     return { available, planned, spentPlanned: null, unplanned: null, spent: null, left: null };
   }
 
   const spentPlanned = rows.filter((row) => row.planned !== null).reduce((sum, row) => sum + (row.spent ?? 0), 0);
-  const unplanned = rows.filter((row) => row.planned === null).reduce((sum, row) => sum + (row.spent ?? 0), 0);
+  const unplanned = rows.filter((row) => row.planned === null).reduce((sum, row) => sum + (row.spent ?? 0), 0) + (uncategorizedExpense ?? 0);
 
   return {
     available,
@@ -126,4 +134,43 @@ export function summarizeEnvelopeBudget(rows: EnvelopeBudgetRow[]): EnvelopeBudg
 export function sumEnvelopeSpend(rows: EnvelopeBudgetRow[]): number | null {
   if (rows.some((row) => row.spent === null)) return null;
   return rows.reduce((sum, row) => sum + (row.spent ?? 0), 0);
+}
+
+/**
+ * Converted total of settled transactions in the month that have no category (imported or legacy rows).
+ * Expenses include the interest of debt payments, matching the finance analytics rule. Null when a rate is missing.
+ */
+export function sumUncategorizedSpend(options: {
+  transactions: Transaction[];
+  month: Date;
+  kind: "income" | "expense";
+  targetCurrency: CurrencyCode;
+  exchangeRates: ExchangeRate[];
+}): number | null {
+  let total = 0;
+
+  for (const transaction of options.transactions) {
+    if (
+      transaction.category_id ||
+      !isSettledTransactionStatus(transaction.status) ||
+      !isSameMonth(new Date(`${transaction.occurred_at}T12:00:00`), options.month)
+    ) {
+      continue;
+    }
+
+    const matchesKind =
+      options.kind === "income" ? transaction.kind === "income" : transaction.kind === "expense" || transaction.kind === "debt_payment";
+    if (!matchesKind) continue;
+
+    const conversion = convertTransactionAnalyticsAmount({
+      transaction,
+      targetCurrency: options.targetCurrency,
+      exchangeRates: options.exchangeRates,
+    });
+    if (!conversion) continue;
+    if (conversion.status === "missing_rate") return null;
+    total += conversion.amount;
+  }
+
+  return total;
 }

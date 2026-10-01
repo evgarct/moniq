@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildEnvelopeBudgetRows, summarizeEnvelopeBudget, sumEnvelopeSpend } from "@/features/budget/lib/envelope-budget";
+import { buildEnvelopeBudgetRows, summarizeEnvelopeBudget, sumEnvelopeSpend, sumUncategorizedSpend } from "@/features/budget/lib/envelope-budget";
 import { buildCategoryTree } from "@/features/categories/lib/category-tree";
 import type { Account, Category, ExchangeRate, Transaction } from "@/types/finance";
 
@@ -144,5 +144,37 @@ describe("sumEnvelopeSpend", () => {
     const rows = buildEnvelopeBudgetRows({ nodes: tree, categories, transactions, month, targetCurrency: "CZK", exchangeRates: [] });
 
     expect(sumEnvelopeSpend(rows)).toBe(104000);
+  });
+});
+
+describe("uncategorized spend", () => {
+  const uncategorized = (id: string, amount: number, account: Account = czk) => ({ ...expense(id, amount, "misc", account), category_id: null }) as Transaction;
+
+  it("sums paid expenses without a category and adds them to the spend without a plan", () => {
+    const transactions = [uncategorized("u1", 300), uncategorized("u2", 200), expense("m1", 500, "misc")];
+    const total = sumUncategorizedSpend({ transactions, month, kind: "expense", targetCurrency: "CZK", exchangeRates: [] });
+    expect(total).toBe(500);
+
+    const rows = build([expense("l1", 9000, "living")]);
+    const summary = summarizeEnvelopeBudget(rows, total);
+    expect(summary).toMatchObject({ unplanned: 500, spentPlanned: 9000, spent: 9500 });
+  });
+
+  it("counts uncategorized income separately and ignores other months and other kinds", () => {
+    const transactions = [
+      { ...uncategorized("i1", 1000), kind: "income" } as Transaction,
+      { ...uncategorized("old", 400, czk), occurred_at: "2026-08-10" } as Transaction,
+      { ...uncategorized("tr", 50), kind: "transfer" } as Transaction,
+    ];
+
+    expect(sumUncategorizedSpend({ transactions, month, kind: "income", targetCurrency: "CZK", exchangeRates: [] })).toBe(1000);
+    expect(sumUncategorizedSpend({ transactions, month, kind: "expense", targetCurrency: "CZK", exchangeRates: [] })).toBe(0);
+  });
+
+  it("is unavailable when a rate is missing", () => {
+    const total = sumUncategorizedSpend({ transactions: [uncategorized("e1", 10, eur)], month, kind: "expense", targetCurrency: "CZK", exchangeRates: [] });
+
+    expect(total).toBeNull();
+    expect(summarizeEnvelopeBudget(build([]), total)).toMatchObject({ available: false, spent: null });
   });
 });

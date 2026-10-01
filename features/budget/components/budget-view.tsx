@@ -21,7 +21,13 @@ import {
   type CategoryEditorState,
 } from "@/features/budget/components/envelope-detail";
 import { EnvelopeRow } from "@/features/budget/components/envelope-row";
-import { buildEnvelopeBudgetRows, summarizeEnvelopeBudget, sumEnvelopeSpend, type EnvelopeBudgetRow } from "@/features/budget/lib/envelope-budget";
+import {
+  buildEnvelopeBudgetRows,
+  sumEnvelopeSpend,
+  sumUncategorizedSpend,
+  summarizeEnvelopeBudget,
+  type EnvelopeBudgetRow,
+} from "@/features/budget/lib/envelope-budget";
 import { CategoryDeleteSheet } from "@/features/categories/components/category-delete-sheet";
 import { buildCategoryTree, getManageableCategories } from "@/features/categories/lib/category-tree";
 import { useFinanceActions } from "@/features/finance/hooks/use-finance-actions";
@@ -34,7 +40,8 @@ import type { CategoryInput } from "@/types/finance-schemas";
 const DESKTOP_QUERY = "(min-width: 1024px)";
 
 function useIsDesktop() {
-  const [isDesktop, setIsDesktop] = useState(() => typeof window !== "undefined" && window.matchMedia(DESKTOP_QUERY).matches);
+  // Start from the server-safe value and read the media query after mount, so hydration matches.
+  const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
     const query = window.matchMedia(DESKTOP_QUERY);
@@ -157,8 +164,20 @@ export function BudgetView({
     () => buildEnvelopeBudgetRows({ ...rowOptions, nodes: categoryTree.filter((node) => node.type === "income") }),
     [categoryTree, rowOptions],
   );
-  const summary = useMemo(() => summarizeEnvelopeBudget(expenseRows), [expenseRows]);
-  const incomeTotal = useMemo(() => sumEnvelopeSpend(incomeRows), [incomeRows]);
+  // Paid transactions without a category are in no envelope row but still count toward the month.
+  const uncategorizedExpense = useMemo(
+    () => sumUncategorizedSpend({ ...rowOptions, kind: "expense" }),
+    [rowOptions],
+  );
+  const uncategorizedIncome = useMemo(
+    () => sumUncategorizedSpend({ ...rowOptions, kind: "income" }),
+    [rowOptions],
+  );
+  const summary = useMemo(() => summarizeEnvelopeBudget(expenseRows, uncategorizedExpense), [expenseRows, uncategorizedExpense]);
+  const incomeTotal = useMemo(() => {
+    const categorized = sumEnvelopeSpend(incomeRows);
+    return categorized === null || uncategorizedIncome === null ? null : categorized + uncategorizedIncome;
+  }, [incomeRows, uncategorizedIncome]);
 
   const selectedPath = useMemo(
     () => (selectedCategoryId ? buildCategoryPath(selectedCategoryId, manageableCategories) : []),

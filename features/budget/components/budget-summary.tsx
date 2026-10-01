@@ -12,7 +12,7 @@ function SummaryFigure({ label, children, className }: { label: string; children
   return (
     <div className="min-w-0">
       <dt className="type-body-12 text-muted-foreground">{label}</dt>
-      <dd className={cn("mt-0.5 truncate text-[17px] leading-6 font-medium tabular-nums sm:text-[20px] sm:leading-7", className)}>{children}</dd>
+      <dd className={cn("type-h5 mt-0.5 truncate tabular-nums", className)}>{children}</dd>
     </div>
   );
 }
