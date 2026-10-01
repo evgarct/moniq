@@ -1423,6 +1423,8 @@ describe("MCP tools", () => {
       totals: { added: 20000, withdrawn: 0, spent: 0, net: 20000 },
     });
     expect(mocks.rpc).toHaveBeenCalledWith("mcp_get_transactions_for_period", expect.objectContaining({ p_account_ids: ["w-sav"], p_statuses: ["paid"] }));
+    // the reconciliation query covers all paid history, independent of the requested window
+    expect(mocks.rpc).toHaveBeenCalledWith("mcp_get_transactions_for_period", expect.objectContaining({ p_start_date: "2000-01-01", p_end_date: "2100-01-01" }));
   });
 
   it("reports a finance-context failure as a server error, not a missing goal", async () => {
