@@ -536,3 +536,92 @@ describe("shapeCategorySpendingReport budgets", () => {
     expect(living.budget).toEqual({ amount: 1000, currency: "CZK", spent: 0, remaining: 1000, percent_used: 0 });
   });
 });
+
+describe("buildCategorySpendingReport cash flow, savings and transfer flows", () => {
+  const savings: Account = { ...accounts[0], id: "savings", name: "Savings", type: "saving" };
+  const mortgage: Account = { ...accounts[0], id: "mortgage", name: "Mortgage", type: "debt" };
+
+  function withAccounts(transaction: Transaction, source: Account | null, destination: Account | null): Transaction {
+    return { ...transaction, source_account: source, destination_account: destination };
+  }
+
+  it("separates pnl_net from cash_flow_net by debt principal", () => {
+    const debt = withAccounts(
+      {
+        ...tx({ id: "mortgage-payment", title: "Mortgage", kind: "debt_payment", amount: 400, occurred_at: "2026-04-10", source_account_id: "czk-cash", destination_account_id: "mortgage" }),
+        principal_amount: 250,
+        interest_amount: 100,
+        extra_principal_amount: 50,
+      },
+      accounts[0],
+      mortgage,
+    );
+    const report = buildCategorySpendingReport({
+      categories,
+      transactions: [
+        tx({ id: "salary", title: "Salary", kind: "income", amount: 1000, occurred_at: "2026-04-05", category_id: "salary", destination_account_id: "czk-cash" }),
+        tx({ id: "groceries", title: "Groceries", kind: "expense", amount: 250, occurred_at: "2026-04-06", category_id: "groceries", source_account_id: "czk-cash" }),
+        debt,
+      ],
+      period: { month: "2026-04" },
+    });
+
+    expect(report.cash_flow).toEqual([
+      { currency: "CZK", income_total: 1000, pnl_net: 650, debt_principal_paid: 300, cash_flow_net: 350, net_savings: 0, savings_rate: 0 },
+    ]);
+  });
+
+  it("computes net savings from transfers into and out of savings wallets", () => {
+    const into = withAccounts(
+      tx({ id: "save", title: "Save", kind: "transfer", amount: 200, occurred_at: "2026-04-07", source_account_id: "czk-cash", destination_account_id: "savings" }),
+      accounts[0],
+      savings,
+    );
+    const out = withAccounts(
+      tx({ id: "withdraw", title: "Withdraw", kind: "transfer", amount: 50, occurred_at: "2026-04-08", source_account_id: "savings", destination_account_id: "czk-cash" }),
+      savings,
+      accounts[0],
+    );
+    const internal = withAccounts(
+      tx({ id: "goal-move", title: "Goal move", kind: "transfer", amount: 999, occurred_at: "2026-04-09", source_account_id: "savings", destination_account_id: "savings" }),
+      savings,
+      savings,
+    );
+    const report = buildCategorySpendingReport({
+      categories,
+      transactions: [
+        tx({ id: "salary", title: "Salary", kind: "income", amount: 1000, occurred_at: "2026-04-05", category_id: "salary", destination_account_id: "czk-cash" }),
+        into,
+        out,
+        internal,
+      ],
+      period: { month: "2026-04" },
+    });
+
+    expect(report.cash_flow[0]).toMatchObject({ currency: "CZK", net_savings: 150, savings_rate: 15 });
+  });
+
+  it("reports cross-currency transfer amounts and the effective rate", () => {
+    const fx = withAccounts(
+      { ...tx({ id: "fx", title: "Top up EUR", kind: "transfer", amount: 1000, occurred_at: "2026-04-07", source_account_id: "czk-cash", destination_account_id: "eur-cash" }), destination_amount: 40, fx_rate: 0.04 },
+      accounts[0],
+      accounts[1],
+    );
+    const report = buildCategorySpendingReport({ categories, transactions: [fx], period: { month: "2026-04" } });
+
+    expect(report.transfers[0]).toMatchObject({ destination_amount: 40, destination_currency: "EUR", fx_rate: 0.04 });
+    expect(report.transfer_flows).toEqual([
+      {
+        source_account_name: "CZK Cash",
+        destination_account_name: "EUR Cash",
+        source_currency: "CZK",
+        destination_currency: "EUR",
+        transaction_count: 1,
+        amount: 1000,
+        destination_amount: 40,
+        effective_rate: 0.04,
+      },
+    ]);
+    expect(shapeCategorySpendingReport(report).transfer_flows).toEqual(report.transfer_flows);
+  });
+});

@@ -143,6 +143,13 @@ Inputs:
 
 Categories with a budget also return `budget_amount` and `budget` (`amount`, `currency`, `spent`, `remaining`, `percent_used`). `budget` compares only the spending in the budget currency (`default_currency`); spending in other currencies is listed in `totals` and is never converted. `budget` is only returned when the report period is exactly one complete calendar month (a monthly budget is never compared with a partial or multi-month range); `budget_amount` is always returned. A budgeted category is returned even when nothing was spent.
 
+Every detail level also returns, per currency:
+
+- `cash_flow`: `income_total`, `pnl_net` (income minus P&L expenses; a debt payment counts only its interest), `debt_principal_paid` (principal plus extra principal, which `pnl_net` leaves out), `cash_flow_net` (`pnl_net` minus `debt_principal_paid`, the real cash result, e.g. a mortgage), `net_savings` (transfers into savings wallets minus withdrawals from them, in the source currency; moves between savings wallets and goals are ignored) and `savings_rate` (`net_savings` as a percent of income in the same currency, null without income).
+- `transfer_flows`: transfers grouped by source and destination wallet with `source_currency`, `destination_currency`, `amount`, `destination_amount` and, for cross-currency pairs, `effective_rate` (destination per source unit), so a CZK to RUB top-up shows how many roubles actually arrived.
+
+Transactions in the flat list (`detail: full`) carry `destination_amount`, `destination_currency` and `fx_rate` for transfers, and `principal_paid` for debt payments.
+
 This report uses paid transactions and separates totals by currency.
 
 ### Category tools

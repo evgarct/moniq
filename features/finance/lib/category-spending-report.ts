@@ -27,6 +27,12 @@ export type CategorySpendingTransaction = {
   amount: number;
   analytics_amount: number;
   currency: string;
+  /** Transfers only: amount received in the destination wallet and its currency. */
+  destination_amount: number | null;
+  destination_currency: string | null;
+  fx_rate: number | null;
+  /** Debt payments only: principal + extra principal, the part that is not P&L. */
+  principal_paid: number | null;
   category_id: string | null;
   category_path: string[];
   category_descriptions: (string | null)[];
@@ -86,6 +92,33 @@ export type UncategorizedSpendingGroup = {
   transactions: CategorySpendingTransaction[];
 };
 
+export type CategorySpendingCashFlow = {
+  currency: string;
+  income_total: number;
+  /** Income minus P&L expenses (debt payments count only their interest). Same as the currency net. */
+  pnl_net: number;
+  /** Debt principal and extra principal paid, which pnl_net does not include. */
+  debt_principal_paid: number;
+  /** pnl_net minus debt_principal_paid: what really left or entered the wallets. */
+  cash_flow_net: number;
+  /** Transfers into savings wallets minus withdrawals from them (source currency). */
+  net_savings: number;
+  /** net_savings as a percent of income in the same currency; null without income. */
+  savings_rate: number | null;
+};
+
+export type CategorySpendingTransferFlow = {
+  source_account_name: string | null;
+  destination_account_name: string | null;
+  source_currency: string;
+  destination_currency: string | null;
+  transaction_count: number;
+  amount: number;
+  destination_amount: number;
+  /** destination_amount / amount, only when the currencies differ. */
+  effective_rate: number | null;
+};
+
 export type CategorySpendingReport = {
   period: CategorySpendingPeriod;
   summary: BudgetMonthSummary;
@@ -94,6 +127,8 @@ export type CategorySpendingReport = {
   income_categories: CategorySpendingNode[];
   uncategorized: UncategorizedSpendingGroup[];
   transfers: CategorySpendingTransaction[];
+  cash_flow: CategorySpendingCashFlow[];
+  transfer_flows: CategorySpendingTransferFlow[];
 };
 
 type ReportTransaction = CategorySpendingTransaction;
@@ -231,6 +266,13 @@ function toReportTransaction(transaction: Transaction, categoriesById: Map<strin
     amount: transaction.amount,
     analytics_amount: analyticsAmount,
     currency,
+    destination_amount: transaction.kind === "transfer" ? transaction.destination_amount ?? transaction.amount : null,
+    destination_currency: transaction.kind === "transfer" ? transaction.destination_account?.currency ?? null : null,
+    fx_rate: transaction.kind === "transfer" ? transaction.fx_rate ?? null : null,
+    principal_paid:
+      transaction.kind === "debt_payment"
+        ? Math.abs(transaction.principal_amount ?? 0) + Math.abs(transaction.extra_principal_amount ?? 0)
+        : null,
     category_id: transaction.category_id,
     category_path: path.map((item) => item.name),
     category_descriptions: path.map((item) => item.description ?? null),
@@ -299,6 +341,86 @@ function buildNode(
     transactions: allTransactions,
     categories: children,
   };
+}
+
+function round2(value: number) {
+  return Number(value.toFixed(2));
+}
+
+function buildCashFlow(
+  transactions: Transaction[],
+  reportTransactions: ReportTransaction[],
+  currencies: CategorySpendingCurrencyTotal[],
+): CategorySpendingCashFlow[] {
+  const principalByCurrency = new Map<string, number>();
+  const savingsByCurrency = new Map<string, number>();
+
+  transactions.forEach((transaction, index) => {
+    const currency = reportTransactions[index].currency;
+
+    if (transaction.kind === "debt_payment") {
+      addCurrencyAmount(principalByCurrency, currency, reportTransactions[index].principal_paid ?? 0);
+      return;
+    }
+
+    if (transaction.kind !== "transfer") return;
+    const sourceIsSaving = transaction.source_account?.type === "saving";
+    const destinationIsSaving = transaction.destination_account?.type === "saving";
+    // Moves between savings wallets (including goal-to-goal) do not change what is saved.
+    if (sourceIsSaving === destinationIsSaving) return;
+
+    addCurrencyAmount(savingsByCurrency, currency, destinationIsSaving ? Math.abs(transaction.amount) : -Math.abs(transaction.amount));
+  });
+
+  return currencies.map((total) => {
+    const principal = principalByCurrency.get(total.currency) ?? 0;
+    const netSavings = savingsByCurrency.get(total.currency) ?? 0;
+
+    return {
+      currency: total.currency,
+      income_total: round2(total.income_total),
+      pnl_net: round2(total.net),
+      debt_principal_paid: round2(principal),
+      cash_flow_net: round2(total.net - principal),
+      net_savings: round2(netSavings),
+      savings_rate: percent(netSavings, total.income_total),
+    };
+  });
+}
+
+function buildTransferFlows(transfers: ReportTransaction[]): CategorySpendingTransferFlow[] {
+  const groups = new Map<string, CategorySpendingTransferFlow>();
+
+  for (const transfer of transfers) {
+    const key = [transfer.source_account_id, transfer.destination_account_id].join(">");
+    const group = groups.get(key) ?? {
+      source_account_name: transfer.source_account_name,
+      destination_account_name: transfer.destination_account_name,
+      source_currency: transfer.currency,
+      destination_currency: transfer.destination_currency,
+      transaction_count: 0,
+      amount: 0,
+      destination_amount: 0,
+      effective_rate: null,
+    };
+
+    group.transaction_count += 1;
+    group.amount += transfer.amount;
+    group.destination_amount += transfer.destination_amount ?? transfer.amount;
+    groups.set(key, group);
+  }
+
+  return Array.from(groups.values())
+    .map((group) => ({
+      ...group,
+      amount: round2(group.amount),
+      destination_amount: round2(group.destination_amount),
+      effective_rate:
+        group.destination_currency && group.destination_currency !== group.source_currency && group.amount > 0
+          ? Number((group.destination_amount / group.amount).toFixed(6))
+          : null,
+    }))
+    .sort((left, right) => right.amount - left.amount);
 }
 
 export function buildCategorySpendingReport(options: {
@@ -401,6 +523,8 @@ export function buildCategorySpendingReport(options: {
     income_categories: incomeCategories,
     uncategorized,
     transfers,
+    cash_flow: buildCashFlow(periodTransactions, reportTransactions, currencies),
+    transfer_flows: buildTransferFlows(transfers),
   };
 }
 
@@ -501,6 +625,8 @@ export type CompactCategorySpendingReport = {
   income_categories: CompactCategorySpendingNode[];
   uncategorized: Omit<UncategorizedSpendingGroup, "transactions">[];
   transfer_count: number;
+  cash_flow: CategorySpendingCashFlow[];
+  transfer_flows: CategorySpendingTransferFlow[];
   transactions?: {
     total: number;
     limit: number;
@@ -600,6 +726,8 @@ export function shapeCategorySpendingReport(
       transaction_count: group.transaction_count,
     })),
     transfer_count: report.transfers.length,
+    cash_flow: report.cash_flow,
+    transfer_flows: report.transfer_flows,
   };
 
   if (includeTransactions) {
