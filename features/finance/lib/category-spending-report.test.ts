@@ -4,6 +4,7 @@ import {
   buildBudgetMonthlySummaries,
   buildCategorySpendingReport,
   resolveCategorySpendingPeriod,
+  shapeCategorySpendingReport,
 } from "@/features/finance/lib/category-spending-report";
 import type { Account, Category, Transaction } from "@/types/finance";
 
@@ -449,5 +450,52 @@ describe("buildBudgetMonthlySummaries", () => {
       transaction_count: 0,
       currencies: [],
     });
+  });
+});
+
+describe('shapeCategorySpendingReport', () => {
+  const report = () =>
+    buildCategorySpendingReport({
+      categories,
+      transactions: [
+        tx({ id: 'g1', title: 'Groceries', kind: 'expense', amount: 250, occurred_at: '2026-04-06', category_id: 'groceries', source_account_id: 'czk-cash' }),
+        tx({ id: 'g2', title: 'More groceries', kind: 'expense', amount: 50, occurred_at: '2026-04-08', category_id: 'groceries', source_account_id: 'czk-cash' }),
+      ],
+      period: { month: '2026-04' },
+    });
+
+  it('drops categories without activity and strips transactions by default', () => {
+    const shaped = shapeCategorySpendingReport(report());
+
+    expect(shaped.detail).toBe('categories');
+    expect(shaped.envelopes.map((node) => node.name)).toEqual(['Living Costs']);
+    expect(shaped.income_categories).toEqual([]);
+    expect(shaped.envelopes[0].categories.map((node) => node.name)).toEqual(['Groceries']);
+    expect(shaped.transactions).toBeUndefined();
+    
+  });
+
+  it('summary detail omits subcategories and transfers', () => {
+    const shaped = shapeCategorySpendingReport(report(), { detail: 'summary' });
+
+    expect(shaped.envelopes[0].categories).toEqual([]);
+    expect(shaped.transfers).toBeUndefined();
+  });
+
+  it('full detail returns a flat, de-duplicated, paginated transaction list', () => {
+    const full = shapeCategorySpendingReport(report(), { detail: 'full', limit: 1 });
+    expect(full.transactions).toMatchObject({ total: 2, limit: 1, offset: 0 });
+    expect(full.transactions?.items.map((item) => item.id)).toEqual(['g2']);
+
+    const next = shapeCategorySpendingReport(report(), { detail: 'full', limit: 1, offset: 1 });
+    expect(next.transactions?.items.map((item) => item.id)).toEqual(['g1']);
+  });
+
+  it('returns an empty month as a near-empty payload', () => {
+    const empty = buildCategorySpendingReport({ categories, transactions: [], period: { month: '2026-04' } });
+    const shaped = shapeCategorySpendingReport(empty);
+
+    expect(shaped.envelopes).toEqual([]);
+    expect(shaped.income_categories).toEqual([]);
   });
 });

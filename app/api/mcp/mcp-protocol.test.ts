@@ -40,6 +40,31 @@ function setupAuth() {
   });
 }
 
+const STORED_INSURANCE_SCHEDULE = {
+  title: "Insurance",
+  note: null,
+  start_date: "2026-05-10",
+  frequency: "monthly",
+  interval_count: 1,
+  interval_unit: "month",
+  until_date: null,
+  state: "active",
+  kind: "expense",
+  amount: 300,
+  destination_amount: null,
+  fx_rate: null,
+  principal_amount: null,
+  interest_amount: null,
+  extra_principal_amount: null,
+  category_id: "cat-home",
+  category_name: "Home",
+  source_account_id: "wallet-main",
+  source_account_name: "Main",
+  destination_account_id: null,
+  destination_account_name: null,
+  currency: "CZK",
+};
+
 async function postMcp(body: unknown, headers: Record<string, string> = {}) {
   return POST(
     new Request("https://moniq.test/api/mcp", {
@@ -1410,6 +1435,12 @@ describe("MCP tools", () => {
       if (name === "mcp_touch_api_key") {
         return Promise.resolve({ data: null, error: null });
       }
+      if (name === "mcp_get_recurring_transaction_schedules") {
+        return Promise.resolve({
+          data: { schedules: [{ id: "11111111-1111-4111-8111-111111111111", ...STORED_INSURANCE_SCHEDULE }] },
+          error: null,
+        });
+      }
       if (name === "mcp_update_recurring_transaction_schedule") {
         return Promise.resolve({ data: { schedule_id: "schedule-3" }, error: null });
       }
@@ -1447,6 +1478,85 @@ describe("MCP tools", () => {
       p_schedule_id: "11111111-1111-4111-8111-111111111111",
       p_schedule: expect.objectContaining({ frequency: "custom", interval_count: 3, interval_unit: "month" }),
     });
+  });
+
+  it("returns recurring schedule data in the text content for the model", async () => {
+    mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name);
+      if (authResponse) return authResponse;
+      if (name === "mcp_lookup_api_key") return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
+      if (name === "mcp_get_recurring_transaction_schedules") {
+        return Promise.resolve({ data: { schedules: [{ id: "schedule-9", ...STORED_INSURANCE_SCHEDULE }] }, error: null });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    const response = await postMcp({
+      jsonrpc: "2.0",
+      id: "list-recurring-text",
+      method: "tools/call",
+      params: { name: "list_recurring_transactions", arguments: {} },
+    });
+    const body = (await response.json()) as { result: { content: { text: string }[] } };
+
+    expect(body.result.content[0].text).toContain('"start_date": "2026-05-10"');
+    expect(body.result.content[0].text).toContain("schedule-9");
+  });
+
+  it("patches only the provided fields and keeps the stored start date", async () => {
+    mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name);
+      if (authResponse) return authResponse;
+      if (name === "mcp_lookup_api_key") return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
+      if (name === "mcp_get_recurring_transaction_schedules") {
+        return Promise.resolve({ data: { schedules: [{ id: "schedule-9", ...STORED_INSURANCE_SCHEDULE }] }, error: null });
+      }
+      if (name === "mcp_update_recurring_transaction_schedule") return Promise.resolve({ data: { schedule_id: "schedule-9" }, error: null });
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    const response = await postMcp({
+      jsonrpc: "2.0",
+      id: "patch-recurring",
+      method: "tools/call",
+      params: {
+        name: "update_recurring_transaction_schedule",
+        arguments: { schedule_id: "schedule-9", schedule: { category_id: "cat-bills" } },
+      },
+    });
+
+    await expect(response.json()).resolves.toMatchObject({ result: { structuredContent: { schedule_id: "schedule-9" } } });
+    expect(mocks.rpc).toHaveBeenCalledWith("mcp_update_recurring_transaction_schedule", {
+      p_key_hash: AUTH_KEY_HASH,
+      p_schedule_id: "schedule-9",
+      p_schedule: expect.objectContaining({
+        category_id: "cat-bills",
+        start_date: "2026-05-10",
+        amount: 300,
+        frequency: "monthly",
+        source_account_id: "wallet-main",
+      }),
+    });
+  });
+
+  it("rejects a patch for an unknown schedule", async () => {
+    mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name);
+      if (authResponse) return authResponse;
+      if (name === "mcp_lookup_api_key") return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
+      if (name === "mcp_get_recurring_transaction_schedules") return Promise.resolve({ data: { schedules: [] }, error: null });
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    const response = await postMcp({
+      jsonrpc: "2.0",
+      id: "patch-missing",
+      method: "tools/call",
+      params: { name: "update_recurring_transaction_schedule", arguments: { schedule_id: "nope", schedule: { amount: 5 } } },
+    });
+
+    await expect(response.json()).resolves.toMatchObject({ error: { code: -32602 } });
+    expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_update_recurring_transaction_schedule", expect.anything());
   });
 
   it("rejects recurring schedules when the end date is before the first occurrence", async () => {

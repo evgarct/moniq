@@ -465,3 +465,115 @@ export function getCategoryRootId(categoryId: string, categories: Category[]) {
   const category = categoriesById.get(categoryId);
   return category ? getRootCategory(category, categoriesById).id : null;
 }
+
+export type CategorySpendingDetail = "summary" | "categories" | "full";
+
+export const CATEGORY_SPENDING_DETAILS: CategorySpendingDetail[] = ["summary", "categories", "full"];
+export const DEFAULT_REPORT_TRANSACTIONS_LIMIT = 200;
+export const MAX_REPORT_TRANSACTIONS_LIMIT = 500;
+
+export type CompactCategorySpendingNode = Omit<CategorySpendingNode, "transactions" | "categories"> & {
+  categories: CompactCategorySpendingNode[];
+};
+
+export type CompactCategorySpendingTransaction = Omit<CategorySpendingTransaction, "category_descriptions">;
+
+export type CompactCategorySpendingReport = {
+  period: CategorySpendingPeriod;
+  detail: CategorySpendingDetail;
+  summary: BudgetMonthSummary;
+  currencies: CategorySpendingCurrencyTotal[];
+  envelopes: CompactCategorySpendingNode[];
+  income_categories: CompactCategorySpendingNode[];
+  uncategorized: Omit<UncategorizedSpendingGroup, "transactions">[];
+  transfers?: CompactCategorySpendingTransaction[];
+  transfer_count: number;
+  transactions?: {
+    total: number;
+    limit: number;
+    offset: number;
+    items: CompactCategorySpendingTransaction[];
+  };
+};
+
+function compactNode(node: CategorySpendingNode, includeChildren: boolean): CompactCategorySpendingNode | null {
+  if (node.transaction_count === 0) return null;
+
+  const { transactions: _transactions, categories, ...rest } = node;
+  void _transactions;
+
+  return {
+    ...rest,
+    categories: includeChildren
+      ? categories.map((child) => compactNode(child, true)).filter((child): child is CompactCategorySpendingNode => child !== null)
+      : [],
+  };
+}
+
+function compactTransaction(transaction: CategorySpendingTransaction): CompactCategorySpendingTransaction {
+  const { category_descriptions: _descriptions, ...rest } = transaction;
+  void _descriptions;
+  return rest;
+}
+
+/**
+ * Shapes the full report into a payload that fits an LLM context:
+ * - summary: period + totals + top-level envelopes/income (no subcategories)
+ * - categories: pruned category tree with totals, no transactions (default)
+ * - full: categories plus one flat, paginated, de-duplicated transaction list
+ * Categories without activity are always dropped.
+ */
+export function shapeCategorySpendingReport(
+  report: CategorySpendingReport,
+  options: { detail?: CategorySpendingDetail; includeTransactions?: boolean; limit?: number; offset?: number } = {},
+): CompactCategorySpendingReport {
+  const detail = options.detail ?? "categories";
+  const includeTree = detail !== "summary";
+  const includeTransactions = options.includeTransactions ?? detail === "full";
+  const limit = Math.min(Math.max(Math.floor(options.limit ?? DEFAULT_REPORT_TRANSACTIONS_LIMIT), 1), MAX_REPORT_TRANSACTIONS_LIMIT);
+  const offset = Math.max(Math.floor(options.offset ?? 0), 0);
+
+  const shaped: CompactCategorySpendingReport = {
+    period: report.period,
+    detail,
+    summary: report.summary,
+    currencies: report.currencies,
+    envelopes: report.envelopes
+      .map((node) => compactNode(node, includeTree))
+      .filter((node): node is CompactCategorySpendingNode => node !== null),
+    income_categories: report.income_categories
+      .map((node) => compactNode(node, includeTree))
+      .filter((node): node is CompactCategorySpendingNode => node !== null),
+    uncategorized: report.uncategorized.map((group) => ({
+      kind: group.kind,
+      totals: group.totals,
+      transaction_count: group.transaction_count,
+    })),
+    transfer_count: report.transfers.length,
+  };
+
+  if (includeTree) shaped.transfers = report.transfers.map(compactTransaction);
+
+  if (includeTransactions) {
+    const all = new Map<string, CategorySpendingTransaction>();
+    for (const node of [...report.envelopes, ...report.income_categories]) {
+      for (const transaction of node.transactions) all.set(transaction.id, transaction);
+    }
+    for (const group of report.uncategorized) {
+      for (const transaction of group.transactions) all.set(transaction.id, transaction);
+    }
+    for (const transaction of report.transfers) all.set(transaction.id, transaction);
+
+    const sorted = Array.from(all.values()).sort(
+      (left, right) => right.occurred_at.localeCompare(left.occurred_at) || right.id.localeCompare(left.id),
+    );
+    shaped.transactions = {
+      total: sorted.length,
+      limit,
+      offset,
+      items: sorted.slice(offset, offset + limit).map(compactTransaction),
+    };
+  }
+
+  return shaped;
+}

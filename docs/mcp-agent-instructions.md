@@ -97,8 +97,8 @@ Write tools:
 
 - `create_recurring_transaction_schedule` creates a new active series.
 - `create_recurring_transaction` is an alias for creating a new active series.
-- `update_recurring_transaction_schedule` replaces the full series template; read the schedule first and send the complete updated payload.
-- `update_recurring_transaction` is an alias for replacing the full series template.
+- `update_recurring_transaction_schedule` patches a series template: send `schedule_id` and only the fields to change in `schedule` (for example just `category_id`). Omitted fields, including `start_date`, keep their stored values. Changing `frequency` to a different preset clears the stored interval pair unless the patch supplies one.
+- `update_recurring_transaction` is an alias for patching a series template.
 - `reschedule_recurring_transaction_series_from_occurrence` shifts one occurrence and all following occurrences.
 - `reschedule_recurring_transaction` is an alias for shifting one occurrence and all following occurrences.
 - `update_recurring_transaction_occurrence` edits one occurrence. Use `transaction_id` for a materialized occurrence, or `schedule_id` plus `occurrence_date` for a generated occurrence from `get_transactions`.
@@ -111,6 +111,8 @@ Write tools:
 - `set_recurring_transaction_state` is an alias for pausing or resuming a series.
 - `delete_recurring_transaction_schedule` deletes the series while preserving paid history.
 - `delete_recurring_transaction` is an alias for deleting a series while preserving paid history.
+
+Recurring read and write tools return the full result as JSON in the text content (and in `structuredContent` for the widget), so read the schedule JSON instead of relying on the widget.
 
 For generated transaction IDs like `schedule:{schedule_id}:{date}`, extract the schedule ID and date and pass them as `schedule_id` and `occurrence_date`.
 
@@ -131,6 +133,10 @@ Inputs:
 - `period_preset`: currently `last_complete_month`
 - `month`: `YYYY-MM`
 - or `start_date` and `end_date`: `YYYY-MM-DD`
+- `detail`: `summary` (totals and top-level envelopes only), `categories` (default; pruned category tree with totals, no transactions), or `full` (categories plus a flat paginated transaction list)
+- `include_transactions`, `transactions_limit` (default 200, max 500), `transactions_offset`: control the flat transaction list; it is on by default only for `detail: full`
+
+`get_budget_month_analysis` is an alias with the same inputs and output. Categories without activity are never returned and transactions are listed once in the flat list instead of repeating under every parent category. Start with `categories`, and page through `full` only when you need individual transactions.
 
 This report uses paid transactions and separates totals by currency.
 

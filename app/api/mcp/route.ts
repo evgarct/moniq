@@ -10,7 +10,11 @@ import { createHash } from "crypto";
 import { NextResponse } from "next/server";
 import {
   buildCategorySpendingReport,
+  CATEGORY_SPENDING_DETAILS,
+  MAX_REPORT_TRANSACTIONS_LIMIT,
   resolveCategorySpendingPeriod,
+  shapeCategorySpendingReport,
+  type CategorySpendingDetail,
   type CategorySpendingPeriodInput,
 } from "@/features/finance/lib/category-spending-report";
 import { getRequestTranslator } from "@/i18n/translator";
@@ -467,11 +471,54 @@ function directTransactionInputSchema(title: string) {
   };
 }
 
-function recurringScheduleProperties() {
+function spendingReportInputSchema(title: string) {
+  return {
+    type: "object",
+    title,
+    properties: {
+      period_preset: {
+        type: "string",
+        title: "Preset period",
+        enum: ["last_complete_month"],
+        description: "Optional preset. Use last_complete_month to report the last fully completed calendar month.",
+      },
+      month: {
+        type: "string",
+        title: "Month",
+        description: "Calendar month in YYYY-MM format. Mutually exclusive with start_date/end_date.",
+      },
+      start_date: { type: "string", title: "Start date", description: "Inclusive custom period start date in YYYY-MM-DD format." },
+      end_date: { type: "string", title: "End date", description: "Inclusive custom period end date in YYYY-MM-DD format." },
+      detail: {
+        type: "string",
+        title: "Detail level",
+        enum: CATEGORY_SPENDING_DETAILS,
+        description:
+          "summary = totals and top-level envelopes only; categories (default) = pruned category tree with totals, no transactions; full = categories plus a flat paginated transaction list. Categories without activity are never returned.",
+      },
+      include_transactions: {
+        type: "boolean",
+        title: "Include transactions",
+        description: "Add the flat paginated transaction list. Defaults to true only for detail=full.",
+      },
+      transactions_limit: {
+        type: "integer",
+        minimum: 1,
+        maximum: MAX_REPORT_TRANSACTIONS_LIMIT,
+        title: "Transactions page size",
+        description: "Default 200.",
+      },
+      transactions_offset: { type: "integer", minimum: 0, title: "Transactions offset" },
+    },
+    additionalProperties: false,
+  };
+}
+
+function recurringScheduleProperties(options: { partial?: boolean } = {}) {
   return {
     type: "object",
     title: "Recurring transaction",
-    required: ["title", "amount", "start_date", "frequency", "kind"],
+    ...(options.partial ? {} : { required: ["title", "amount", "start_date", "frequency", "kind"] }),
     additionalProperties: false,
     properties: {
       title: { type: "string", title: "Title", description: "Concise recurring transaction title." },
@@ -900,7 +947,7 @@ function getMcpTools() {
           name: "update_recurring_transaction_schedule",
           title: "Update recurring transaction",
           description:
-            "Replace a recurring transaction series template after reading it first. Submit the complete updated schedule payload, not a partial patch.",
+            "Update a recurring transaction series template. Send only the fields to change in schedule (for example just category_id or amount); omitted fields keep their stored values, including start_date. Read the series with get_recurring_transaction_schedules first to get schedule_id.",
           annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
           _meta: moniqWidgetMeta("Updating recurring transaction", "Recurring transaction updated"),
           outputSchema: widgetOutputSchema("Updated recurring transaction"),
@@ -909,7 +956,7 @@ function getMcpTools() {
             title: "Recurring transaction update",
             properties: {
               schedule_id: { type: "string", title: "Schedule ID" },
-              schedule: recurringScheduleProperties(),
+              schedule: recurringScheduleProperties({ partial: true }),
             },
             required: ["schedule_id", "schedule"],
             additionalProperties: false,
@@ -1248,35 +1295,7 @@ function getMcpTools() {
           annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
           _meta: moniqWidgetMeta("Building spending report", "Spending report ready"),
           outputSchema: widgetOutputSchema("Moniq category spending report"),
-          inputSchema: {
-            type: "object",
-            title: "Spending report period",
-            properties: {
-              period_preset: {
-                type: "string",
-                title: "Preset period",
-                enum: ["last_complete_month"],
-                description:
-                  "Optional preset. Use last_complete_month to report the last fully completed calendar month.",
-              },
-              month: {
-                type: "string",
-                title: "Month",
-                description: "Calendar month in YYYY-MM format. Mutually exclusive with start_date/end_date.",
-              },
-              start_date: {
-                type: "string",
-                title: "Start date",
-                description: "Inclusive custom period start date in YYYY-MM-DD format.",
-              },
-              end_date: {
-                type: "string",
-                title: "End date",
-                description: "Inclusive custom period end date in YYYY-MM-DD format.",
-              },
-            },
-            additionalProperties: false,
-          },
+          inputSchema: spendingReportInputSchema("Spending report period"),
         },
         {
           name: "get_budget_month_analysis",
@@ -1286,35 +1305,7 @@ function getMcpTools() {
           annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
           _meta: moniqWidgetMeta("Building month analysis", "Month analysis ready"),
           outputSchema: widgetOutputSchema("Moniq budget month analysis"),
-          inputSchema: {
-            type: "object",
-            title: "Budget month analysis period",
-            properties: {
-              period_preset: {
-                type: "string",
-                title: "Preset period",
-                enum: ["last_complete_month"],
-                description:
-                  "Optional preset. Use last_complete_month to report the last fully completed calendar month.",
-              },
-              month: {
-                type: "string",
-                title: "Month",
-                description: "Calendar month in YYYY-MM format. Mutually exclusive with start_date/end_date.",
-              },
-              start_date: {
-                type: "string",
-                title: "Start date",
-                description: "Inclusive custom period start date in YYYY-MM-DD format.",
-              },
-              end_date: {
-                type: "string",
-                title: "End date",
-                description: "Inclusive custom period end date in YYYY-MM-DD format.",
-              },
-            },
-            additionalProperties: false,
-          },
+          inputSchema: spendingReportInputSchema("Budget month analysis period"),
         },
       ];
 }
@@ -1428,6 +1419,11 @@ async function handleCategorySpendingReportTool(
   keyHash: string,
   t: McpTranslator,
 ): Promise<McpResponse> {
+  const detail = (getOptionalStringArg(args, "detail") ?? "categories") as CategorySpendingDetail;
+  if (!CATEGORY_SPENDING_DETAILS.includes(detail)) {
+    return { jsonrpc: "2.0", id, error: { code: -32602, message: "detail must be one of summary, categories, full" } };
+  }
+
   const period: CategorySpendingPeriodInput = {
     period_preset: getOptionalStringArg(args, "period_preset") as CategorySpendingPeriodInput["period_preset"],
     month: getOptionalStringArg(args, "month"),
@@ -1503,6 +1499,13 @@ async function handleCategorySpendingReportTool(
     };
   }
 
+  const compactReport = shapeCategorySpendingReport(report, {
+    detail,
+    includeTransactions: typeof args.include_transactions === "boolean" ? args.include_transactions : undefined,
+    limit: typeof args.transactions_limit === "number" ? args.transactions_limit : undefined,
+    offset: typeof args.transactions_offset === "number" ? args.transactions_offset : undefined,
+  });
+
   return {
     jsonrpc: "2.0",
     id,
@@ -1510,10 +1513,10 @@ async function handleCategorySpendingReportTool(
       content: [
         {
           type: "text",
-          text: JSON.stringify(report, null, 2),
+          text: JSON.stringify(compactReport),
         },
       ],
-      structuredContent: report,
+      structuredContent: compactReport,
     },
   };
 }
@@ -2215,10 +2218,55 @@ async function callRecurringRpc(
     jsonrpc: "2.0",
     id,
     result: {
-      content: [{ type: "text", text: successText }],
+      content: [{ type: "text", text: `${successText}
+${JSON.stringify(data, null, 2)}` }],
       structuredContent,
     },
   };
+}
+
+const RECURRING_SCHEDULE_PATCH_KEYS = [
+  "title",
+  "note",
+  "start_date",
+  "frequency",
+  "interval_count",
+  "interval_unit",
+  "until_date",
+  "kind",
+  "amount",
+  "destination_amount",
+  "fx_rate",
+  "principal_amount",
+  "interest_amount",
+  "extra_principal_amount",
+  "category_id",
+  "source_account_id",
+  "destination_account_id",
+] as const;
+
+async function fetchRecurringSchedule(keyHash: string, scheduleId: string): Promise<Record<string, unknown> | null> {
+  const db = createAnonClient();
+  const { data, error } = await db.rpc("mcp_get_recurring_transaction_schedules", { p_key_hash: keyHash, p_states: null });
+  if (error || !isRecord(data) || !Array.isArray(data.schedules)) return null;
+
+  const found = data.schedules.find((schedule) => isRecord(schedule) && schedule.id === scheduleId);
+  return isRecord(found) ? found : null;
+}
+
+function mergeRecurringSchedulePatch(current: Record<string, unknown>, patch: Record<string, unknown>) {
+  const merged: Record<string, unknown> = {};
+  for (const key of RECURRING_SCHEDULE_PATCH_KEYS) {
+    merged[key] = key in patch ? patch[key] : current[key] ?? null;
+  }
+
+  // A stored preset interval would conflict with a new preset, so drop it unless the patch supplies one.
+  if ("frequency" in patch && patch.frequency !== current.frequency && !("interval_count" in patch) && !("interval_unit" in patch)) {
+    merged.interval_count = null;
+    merged.interval_unit = null;
+  }
+
+  return merged;
 }
 
 async function handleGetRecurringSchedules(
@@ -2270,13 +2318,23 @@ async function handleUpdateRecurringSchedule(
   const scheduleId = optionalString(args.schedule_id);
   if (!scheduleId) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.scheduleIdRequired") } };
 
-  const validationError = validateRecurringSchedule(args.schedule, t);
+  if (!isRecord(args.schedule)) {
+    return { jsonrpc: "2.0", id, error: { code: -32602, message: "Recurring transaction schedule must be an object" } };
+  }
+
+  const current = await fetchRecurringSchedule(keyHash, scheduleId);
+  if (!current) {
+    return { jsonrpc: "2.0", id, error: { code: -32602, message: `Recurring transaction schedule ${scheduleId} was not found` } };
+  }
+
+  const merged = mergeRecurringSchedulePatch(current, args.schedule);
+  const validationError = validateRecurringSchedule(merged, t);
   if (validationError) return { jsonrpc: "2.0", id, error: { code: -32602, message: validationError } };
 
   return callRecurringRpc(
     id,
     "mcp_update_recurring_transaction_schedule",
-    { p_key_hash: keyHash, p_schedule_id: scheduleId, p_schedule: normalizeRecurringSchedule(args.schedule as RecurringScheduleItem) },
+    { p_key_hash: keyHash, p_schedule_id: scheduleId, p_schedule: normalizeRecurringSchedule(merged as RecurringScheduleItem) },
     t("mcp.success.recurringUpdated"),
     t,
   );
