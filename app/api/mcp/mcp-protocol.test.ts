@@ -1101,6 +1101,53 @@ describe("MCP tools", () => {
     });
   });
 
+  it("exposes goal ids in the create_transactions item schema", async () => {
+    const tool = (await getListedTools()).find((entry) => entry.name === "create_transactions") as unknown as {
+      inputSchema: { properties: { transactions: { items: { properties: Record<string, unknown> } } } };
+    };
+
+    expect(Object.keys(tool.inputSchema.properties.transactions.items.properties)).toEqual(
+      expect.arrayContaining(["destination_allocation_id", "source_allocation_id"]),
+    );
+  });
+
+  it("lets an update keep the stored goal when the categorised transfer omits the goal id", async () => {
+    mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name);
+      if (authResponse) return authResponse;
+      if (name === "mcp_lookup_api_key") return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
+      if (name === "mcp_update_transaction") return Promise.resolve({ data: { updated: { id: "tx-1" } }, error: null });
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    const response = await postMcp({
+      jsonrpc: "2.0",
+      id: "update-keep-goal",
+      method: "tools/call",
+      params: {
+        name: "update_transaction",
+        arguments: {
+          transaction_id: "tx-1",
+          transaction: {
+            title: "Big Buys",
+            kind: "transfer",
+            status: "planned",
+            amount: 9000,
+            occurred_at: "2026-11-09",
+            source_account_id: "wallet-vault",
+            destination_account_id: "wallet-savings",
+            category_id: "cat-next-safe",
+          },
+        },
+      },
+    });
+
+    const body = await response.json();
+    expect(body.error).toBeUndefined();
+    const call = mocks.rpc.mock.calls.find(([name]) => name === "mcp_update_transaction");
+    expect(call?.[1].p_transaction).not.toHaveProperty("destination_allocation_id");
+  });
+
   it("rejects direct creation when required fields are missing", async () => {
     const response = await postMcp({
       jsonrpc: "2.0",

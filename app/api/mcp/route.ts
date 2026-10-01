@@ -861,22 +861,7 @@ function getMcpTools() {
                   title: "Transaction",
                   required: ["title", "amount", "occurred_at", "status", "kind"],
                   additionalProperties: false,
-                  properties: {
-                    title: { type: "string", title: "Title", description: "Merchant, payer, or concise transaction title." },
-                    note: { type: ["string", "null"], title: "Note", description: "Useful extra context, original label, or user-provided details." },
-                    occurred_at: { type: "string", title: "Date", description: "Transaction date in YYYY-MM-DD format." },
-                    status: { type: "string", title: "Status", enum: DIRECT_TRANSACTION_STATUSES, description: "Use paid for settled transactions and planned for upcoming ones." },
-                    kind: { type: "string", title: "Type", enum: TRANSACTION_KINDS },
-                    amount: { type: "number", title: "Amount", description: "Positive source-side amount." },
-                    destination_amount: { type: ["number", "null"], title: "Destination amount", description: "Transfer destination amount; omit/null to use amount." },
-                    fx_rate: { type: ["number", "null"], title: "FX rate", description: "Optional transfer FX rate." },
-                    principal_amount: { type: ["number", "null"], title: "Principal", description: "Debt payment principal component." },
-                    interest_amount: { type: ["number", "null"], title: "Interest", description: "Debt payment interest component." },
-                    extra_principal_amount: { type: ["number", "null"], title: "Extra principal", description: "Debt payment extra principal component." },
-                    category_id: { type: ["string", "null"], title: "Category", description: "Required selectable category ID for income/expense. Optional expense category for debt payment interest. Never set for transfers. In user-facing confirmation, describe this by category path from get_finance_context." },
-                    source_account_id: { type: ["string", "null"], title: "From wallet", description: "Required source wallet ID for expense, transfer, and debt payment. In user-facing confirmation, describe this by wallet name from get_finance_context." },
-                    destination_account_id: { type: ["string", "null"], title: "To wallet", description: "Required destination wallet ID for income, transfer, and debt payment. Debt payment destination must be a debt wallet. In user-facing confirmation, describe this by wallet name from get_finance_context." },
-                  },
+                  properties: directTransactionProperties(),
                 },
               },
             },
@@ -1709,7 +1694,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function validateDirectTransaction(tx: unknown, index: number, t: McpTranslator): string | null {
+function validateDirectTransaction(
+  tx: unknown,
+  index: number,
+  t: McpTranslator,
+  mode: "create" | "update" = "create",
+): string | null {
   if (!isRecord(tx)) return `Transaction ${index + 1} must be an object`;
 
   const label = typeof tx.title === "string" && tx.title.trim() ? tx.title.trim() : `transaction ${index + 1}`;
@@ -1743,7 +1733,9 @@ function validateDirectTransaction(tx: unknown, index: number, t: McpTranslator)
   if (tx.kind === "transfer") {
     if (!optionalString(tx.source_account_id)) return `Transaction "${label}" transfer must include source_account_id`;
     if (!optionalString(tx.destination_account_id)) return `Transaction "${label}" transfer must include destination_account_id`;
-    if (optionalString(tx.category_id) && !optionalString(tx.destination_allocation_id)) {
+    // On update an omitted goal id keeps the stored goal, so the database enforces the category rule.
+    const goalOmittedOnUpdate = mode === "update" && !("destination_allocation_id" in tx);
+    if (optionalString(tx.category_id) && !optionalString(tx.destination_allocation_id) && !goalOmittedOnUpdate) {
       return t("mcp.errors.transferCategoryNeedsGoal", { label });
     }
   } else if (optionalString(tx.destination_allocation_id) || optionalString(tx.source_allocation_id)) {
@@ -2582,7 +2574,7 @@ async function handleUpdateTransaction(
   const transactionId = optionalString(args.transaction_id);
   if (!transactionId) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.transactionIdRequired") } };
 
-  const validationError = validateDirectTransaction(args.transaction, 0, t);
+  const validationError = validateDirectTransaction(args.transaction, 0, t, "update");
   if (validationError) return { jsonrpc: "2.0", id, error: { code: -32602, message: validationError } };
 
   const db = createAnonClient();
