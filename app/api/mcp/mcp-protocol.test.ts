@@ -200,6 +200,8 @@ describe("MCP tools", () => {
       "submit_transaction_batch",
       "get_category_spending_report",
       "get_budget_month_analysis",
+      "get_trends",
+      "get_goal_history",
     ]);
     expect((await getListedTools()).map((tool) => tool.name)).toEqual(names);
   });
@@ -1342,6 +1344,99 @@ describe("MCP tools", () => {
     const body = (await response.json()) as { error: { message: string } };
 
     expect(body.error.message).toBe('A category named "Food" already exists in this place.');
+  });
+
+  it("returns a month-by-category trend matrix", async () => {
+    mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name);
+      if (authResponse) return authResponse;
+      if (name === "mcp_lookup_api_key") return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
+      if (name === "mcp_get_category_spending_report_source") {
+        return Promise.resolve({ data: { wallets: [], categories: [], transactions: [], allocations: [], default_currency: "CZK" }, error: null });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    const response = await postMcp({
+      jsonrpc: "2.0",
+      id: "trends",
+      method: "tools/call",
+      params: { name: "get_trends", arguments: { start_month: "2026-05", end_month: "2026-06" } },
+    });
+    const body = (await response.json()) as { result: { structuredContent: { months: string[]; group_by: string } } };
+
+    expect(body.result.structuredContent).toMatchObject({ months: ["2026-05", "2026-06"], group_by: "envelope" });
+    expect(mocks.rpc).toHaveBeenCalledWith("mcp_get_category_spending_report_source", {
+      p_key_hash: AUTH_KEY_HASH,
+      p_start_date: "2026-05-01",
+      p_end_date: "2026-06-30",
+    });
+  });
+
+  it("rejects invalid trend input", async () => {
+    for (const args of [{ start_month: "2026-7", end_month: "2026-08" }, { group_by: "nope" }, { start_month: "2025-01", end_month: "2026-08" }]) {
+      const response = await postMcp({ jsonrpc: "2.0", id: "bad-trend", method: "tools/call", params: { name: "get_trends", arguments: args } });
+      await expect(response.json()).resolves.toMatchObject({ error: { code: -32602 } });
+    }
+    expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_get_category_spending_report_source", expect.anything());
+  });
+
+  it("returns a savings goal history", async () => {
+    mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name);
+      if (authResponse) return authResponse;
+      if (name === "mcp_lookup_api_key") return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
+      if (name === "mcp_get_finance_context") {
+        return Promise.resolve({
+          data: {
+            wallets: [{ id: "w-sav", name: "Savings", type: "saving", currency: "CZK" }],
+            categories: [],
+            goals: [{ id: "goal-1", wallet_id: "w-sav", name: "Oh Sh*t Fund", kind: "goal_targeted", amount: 11024, target_amount: 220000 }],
+          },
+          error: null,
+        });
+      }
+      if (name === "mcp_get_transactions_for_period") {
+        return Promise.resolve({
+          data: {
+            transactions: [
+              { id: "t1", status: "paid", kind: "transfer", occurred_at: "2026-08-09", title: "Fund", amount: 10000, destination_amount: 10000, destination_allocation_id: "goal-1" },
+              { id: "t2", status: "paid", kind: "transfer", occurred_at: "2026-09-09", title: "Fund", amount: 10000, destination_amount: 10000, destination_allocation_id: "goal-1" },
+            ],
+          },
+          error: null,
+        });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    const response = await postMcp({
+      jsonrpc: "2.0",
+      id: "goal-history",
+      method: "tools/call",
+      params: { name: "get_goal_history", arguments: { goal_id: "goal-1", start_month: "2026-08", end_month: "2026-09" } },
+    });
+    const body = (await response.json()) as { result: { structuredContent: Record<string, unknown> } };
+
+    expect(body.result.structuredContent).toMatchObject({
+      goal: { id: "goal-1", name: "Oh Sh*t Fund", currency: "CZK", current_amount: 11024 },
+      totals: { added: 20000, withdrawn: 0, spent: 0, net: 20000 },
+    });
+  });
+
+  it("rejects goal history for an unknown goal or without an id", async () => {
+    mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name);
+      if (authResponse) return authResponse;
+      if (name === "mcp_lookup_api_key") return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
+      if (name === "mcp_get_finance_context") return Promise.resolve({ data: { wallets: [], categories: [], goals: [] }, error: null });
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    for (const args of [{}, { goal_id: "missing" }]) {
+      const response = await postMcp({ jsonrpc: "2.0", id: "bad-goal", method: "tools/call", params: { name: "get_goal_history", arguments: args } });
+      await expect(response.json()).resolves.toMatchObject({ error: { code: -32602 } });
+    }
   });
 
   it("rejects direct creation when required fields are missing", async () => {

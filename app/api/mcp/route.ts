@@ -18,6 +18,14 @@ import {
   type CategorySpendingPeriodInput,
 } from "@/features/finance/lib/category-spending-report";
 import { parseCategoryDescriptionAndBudget } from "@/features/budget/lib/budget-analytics";
+import {
+  buildCategoryTrends,
+  CATEGORY_TREND_GROUPINGS,
+  resolveTrendMonths,
+  trendPeriodDates,
+  type CategoryTrendGroupBy,
+} from "@/features/finance/lib/category-trends";
+import { buildGoalHistory } from "@/features/finance/lib/goal-history";
 import { resolveUserPreferences } from "@/features/finance/lib/preferences";
 import { getRequestTranslator } from "@/i18n/translator";
 import { createAnonClient } from "@/lib/supabase/anon";
@@ -1361,6 +1369,50 @@ function getMcpTools() {
           outputSchema: widgetOutputSchema("Moniq budget month analysis"),
           inputSchema: spendingReportInputSchema("Budget month analysis period"),
         },
+        {
+          name: "get_trends",
+          title: "Get category trends",
+          description:
+            "Compare months side by side: a month-by-category matrix (amounts per currency, aligned with the months array, with total, average and percent of the period's income) plus a per-month, per-currency summary with income, pnl_net, cash_flow_net, net_savings and savings_rate. Defaults to the last 6 complete months; at most 12. Use it instead of calling the spending report once per month.",
+          annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+          _meta: moniqWidgetMeta("Building trends", "Trends ready"),
+          outputSchema: widgetOutputSchema("Moniq category trends"),
+          inputSchema: {
+            type: "object",
+            title: "Trend period",
+            properties: {
+              start_month: { type: "string", title: "First month", description: "YYYY-MM. Defaults to 5 months before end_month." },
+              end_month: { type: "string", title: "Last month", description: "YYYY-MM. Defaults to the last complete month." },
+              group_by: {
+                type: "string",
+                title: "Group by",
+                enum: CATEGORY_TREND_GROUPINGS,
+                description: "envelope (default) = one row per top-level category; category = one row per leaf category.",
+              },
+            },
+            additionalProperties: false,
+          },
+        },
+        {
+          name: "get_goal_history",
+          title: "Get savings goal history",
+          description:
+            "Month-by-month history of one savings goal: money added (transfers and income into it), withdrawn (transfers out of it) and spent (expenses paid from it), plus the individual entries and the goal's current amount. Amounts are in the currency of the goal's savings wallet. Get goal_id from get_finance_context goals. Defaults to the last 6 complete months; at most 12.",
+          annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+          _meta: moniqWidgetMeta("Reading goal history", "Goal history ready"),
+          outputSchema: widgetOutputSchema("Moniq savings goal history"),
+          inputSchema: {
+            type: "object",
+            title: "Goal history",
+            required: ["goal_id"],
+            properties: {
+              goal_id: { type: "string", title: "Goal ID" },
+              start_month: { type: "string", title: "First month", description: "YYYY-MM. Defaults to 5 months before end_month." },
+              end_month: { type: "string", title: "Last month", description: "YYYY-MM. Defaults to the last complete month." },
+            },
+            additionalProperties: false,
+          },
+        },
       ];
 }
 
@@ -1467,6 +1519,34 @@ function getOptionalStringArrayArg(args: Record<string, unknown>, key: string) {
   return normalized;
 }
 
+type ReportSource = {
+  wallets?: WalletRow[];
+  categories?: CategoryRow[];
+  transactions?: TransactionRow[];
+  allocations?: AllocationRow[];
+  default_currency?: string | null;
+};
+
+function mapReportSource(source: ReportSource) {
+  const accounts = (source.wallets ?? []).map(mapWallet);
+  const categories = (source.categories ?? []).map(mapCategory).filter((c) => !c.is_system);
+  const accountsById = new Map(accounts.map((account) => [account.id, account]));
+  const categoriesById = new Map(categories.map((category) => [category.id, category]));
+  const allocations = (source.allocations ?? []).map((allocation): WalletAllocation => ({
+    ...allocation,
+    user_id: "",
+    amount: Number(allocation.amount),
+    target_amount: allocation.target_amount === null ? null : Number(allocation.target_amount),
+    created_at: "",
+    updated_at: "",
+  }));
+  const allocationsById = new Map(allocations.map((allocation) => [allocation.id, allocation]));
+  const transactions = (source.transactions ?? [])
+    .map((transaction) => mapTransaction(transaction, { accountsById, categoriesById, allocationsById }))
+    .filter((transaction) => !transaction.category_id || categoriesById.has(transaction.category_id));
+  return { accounts, categories, transactions };
+}
+
 async function handleCategorySpendingReportTool(
   id: string | number | null,
   args: Record<string, unknown>,
@@ -1511,29 +1591,8 @@ async function handleCategorySpendingReportTool(
     };
   }
 
-  const source = data as {
-    wallets?: WalletRow[];
-    categories?: CategoryRow[];
-    transactions?: TransactionRow[];
-    allocations?: AllocationRow[];
-    default_currency?: string | null;
-  };
-  const accounts = (source.wallets ?? []).map(mapWallet);
-  const categories = (source.categories ?? []).map(mapCategory).filter((c) => !c.is_system);
-  const accountsById = new Map(accounts.map((account) => [account.id, account]));
-  const categoriesById = new Map(categories.map((category) => [category.id, category]));
-  const allocations = (source.allocations ?? []).map((allocation): WalletAllocation => ({
-    ...allocation,
-    user_id: "",
-    amount: Number(allocation.amount),
-    target_amount: allocation.target_amount === null ? null : Number(allocation.target_amount),
-    created_at: "",
-    updated_at: "",
-  }));
-  const allocationsById = new Map(allocations.map((allocation) => [allocation.id, allocation]));
-  const transactions = (source.transactions ?? [])
-    .map((transaction) => mapTransaction(transaction, { accountsById, categoriesById, allocationsById }))
-    .filter((transaction) => !transaction.category_id || categoriesById.has(transaction.category_id));
+  const source = data as ReportSource;
+  const { accounts, categories, transactions } = mapReportSource(source);
 
   let report: ReturnType<typeof buildCategorySpendingReport>;
   try {
@@ -1578,6 +1637,100 @@ async function handleCategorySpendingReportTool(
       structuredContent: compactReport,
     },
   };
+}
+
+async function handleGetTrendsTool(
+  id: string | number | null,
+  args: Record<string, unknown>,
+  keyHash: string,
+  t: McpTranslator,
+): Promise<McpResponse> {
+  const groupBy = (getOptionalStringArg(args, "group_by") ?? "envelope") as CategoryTrendGroupBy;
+  if (!CATEGORY_TREND_GROUPINGS.includes(groupBy)) {
+    return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.invalidTrendGrouping") } };
+  }
+
+  let months: string[];
+  try {
+    months = resolveTrendMonths({ start_month: getOptionalStringArg(args, "start_month"), end_month: getOptionalStringArg(args, "end_month") });
+  } catch {
+    return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.invalidTrendPeriod") } };
+  }
+
+  const { start_date, end_date } = trendPeriodDates(months);
+  const db = createAnonClient();
+  const { data, error } = await db.rpc("mcp_get_category_spending_report_source", {
+    p_key_hash: keyHash,
+    p_start_date: start_date,
+    p_end_date: end_date,
+  });
+  if (error || !data) {
+    return { jsonrpc: "2.0", id, error: { code: -32000, message: t("mcp.errors.spendingReportLoadFailed") } };
+  }
+
+  const { categories, transactions } = mapReportSource(data as ReportSource);
+  const trends = buildCategoryTrends({ categories, transactions, months, groupBy });
+
+  return { jsonrpc: "2.0", id, result: { content: [{ type: "text", text: JSON.stringify(trends) }], structuredContent: trends } };
+}
+
+async function handleGetGoalHistoryTool(
+  id: string | number | null,
+  args: Record<string, unknown>,
+  keyHash: string,
+  t: McpTranslator,
+): Promise<McpResponse> {
+  const goalId = getOptionalStringArg(args, "goal_id");
+  if (!goalId) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.goalIdRequired") } };
+
+  let months: string[];
+  try {
+    months = resolveTrendMonths({ start_month: getOptionalStringArg(args, "start_month"), end_month: getOptionalStringArg(args, "end_month") });
+  } catch {
+    return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.invalidTrendPeriod") } };
+  }
+
+  const db = createAnonClient();
+  const { data: contextData } = await db.rpc("mcp_get_finance_context", { p_key_hash: keyHash });
+  const context = sanitizeFinanceContext(contextData);
+  const goal = context.goals.find((entry) => String(entry.id) === goalId);
+  if (!goal) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.goalNotFound") } };
+  const wallet = context.wallets.find((entry) => String(entry.id) === String(goal.wallet_id));
+
+  const { start_date, end_date } = trendPeriodDates(months);
+  const { data, error } = await db.rpc("mcp_get_transactions_for_period", {
+    p_key_hash: keyHash,
+    p_start_date: start_date,
+    p_end_date: end_date,
+    p_statuses: ["paid"],
+    p_kinds: null,
+    p_account_ids: null,
+    p_category_ids: null,
+    p_include_context: false,
+  });
+  if (error || !isRecord(data) || !Array.isArray(data.transactions)) {
+    return { jsonrpc: "2.0", id, error: { code: -32000, message: error?.message ?? t("mcp.errors.transactionsLoadFailed") } };
+  }
+
+  const currency = typeof wallet?.currency === "string" ? wallet.currency : null;
+  const history = buildGoalHistory(goalId, months, data.transactions.filter(isRecord), currency);
+  const result = {
+    goal: {
+      id: goal.id,
+      name: goal.name,
+      kind: goal.kind,
+      wallet_id: goal.wallet_id,
+      wallet_name: wallet?.name ?? null,
+      currency,
+      current_amount: goal.amount,
+      target_amount: goal.target_amount,
+    },
+    start_month: months[0],
+    end_month: months[months.length - 1],
+    ...history,
+  };
+
+  return { jsonrpc: "2.0", id, result: { content: [{ type: "text", text: JSON.stringify(result) }], structuredContent: result } };
 }
 
 async function handleGetTransactionsTool(
@@ -3227,6 +3380,10 @@ async function handleToolCall(
     return handleDeleteRecurringSchedule(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash, t);
   }
 
+  if (toolName === "get_trends") return handleGetTrendsTool(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash, t);
+  if (toolName === "get_goal_history") {
+    return handleGetGoalHistoryTool(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash, t);
+  }
   if (toolName === "get_category_spending_report" || toolName === "get_budget_month_analysis") {
     return handleCategorySpendingReportTool(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash, t);
   }
