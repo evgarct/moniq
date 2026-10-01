@@ -1422,6 +1422,21 @@ describe("MCP tools", () => {
       goal: { id: "goal-1", name: "Oh Sh*t Fund", currency: "CZK", current_amount: 11024 },
       totals: { added: 20000, withdrawn: 0, spent: 0, net: 20000 },
     });
+    expect(mocks.rpc).toHaveBeenCalledWith("mcp_get_transactions_for_period", expect.objectContaining({ p_account_ids: ["w-sav"], p_statuses: ["paid"] }));
+  });
+
+  it("reports a finance-context failure as a server error, not a missing goal", async () => {
+    mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name);
+      if (authResponse) return authResponse;
+      if (name === "mcp_lookup_api_key") return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
+      if (name === "mcp_get_finance_context") return Promise.resolve({ data: null, error: { message: "connection reset" } });
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    const response = await postMcp({ jsonrpc: "2.0", id: "ctx-fail", method: "tools/call", params: { name: "get_goal_history", arguments: { goal_id: "goal-1" } } });
+
+    await expect(response.json()).resolves.toMatchObject({ error: { code: -32000, message: "connection reset" } });
   });
 
   it("rejects goal history for an unknown goal or without an id", async () => {

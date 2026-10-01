@@ -1463,6 +1463,7 @@
       "invalidTrendPeriod": "start_month и end_month должны быть в формате YYYY-MM, начало не позже конца, не более 12 месяцев.",
       "goalIdRequired": "Нужен goal_id.",
       "goalNotFound": "Цель накоплений не найдена.",
+      "financeContextLoadFailed": "Не удалось загрузить финансовый контекст. Повторите попытку.",
       "rescheduleDatesRequired": "from_occurrence_date ? new_occurrence_date ?????? ???? ? ??????? YYYY-MM-DD.",
       "invalidScheduleState": "state ?????? ???? active ??? paused.",
       "transactionsRequired": "transactions ?????? ???? ???????? ????????.",

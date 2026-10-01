@@ -1375,7 +1375,6 @@ function getMcpTools() {
           description:
             "Compare months side by side: a month-by-category matrix (amounts per currency, aligned with the months array, with total, average and percent of the period's income) plus a per-month, per-currency summary with income, pnl_net, cash_flow_net, net_savings and savings_rate. Defaults to the last 6 complete months; at most 12. Use it instead of calling the spending report once per month.",
           annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
-          _meta: moniqWidgetMeta("Building trends", "Trends ready"),
           outputSchema: widgetOutputSchema("Moniq category trends"),
           inputSchema: {
             type: "object",
@@ -1399,7 +1398,6 @@ function getMcpTools() {
           description:
             "Month-by-month history of one savings goal: money added (transfers and income into it), withdrawn (transfers out of it) and spent (expenses paid from it), plus the individual entries and the goal's current amount. Amounts are in the currency of the goal's savings wallet. Get goal_id from get_finance_context goals. Defaults to the last 6 complete months; at most 12.",
           annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
-          _meta: moniqWidgetMeta("Reading goal history", "Goal history ready"),
           outputSchema: widgetOutputSchema("Moniq savings goal history"),
           inputSchema: {
             type: "object",
@@ -1691,7 +1689,10 @@ async function handleGetGoalHistoryTool(
   }
 
   const db = createAnonClient();
-  const { data: contextData } = await db.rpc("mcp_get_finance_context", { p_key_hash: keyHash });
+  const { data: contextData, error: contextError } = await db.rpc("mcp_get_finance_context", { p_key_hash: keyHash });
+  if (contextError || !contextData) {
+    return { jsonrpc: "2.0", id, error: { code: -32000, message: contextError?.message ?? t("mcp.errors.financeContextLoadFailed") } };
+  }
   const context = sanitizeFinanceContext(contextData);
   const goal = context.goals.find((entry) => String(entry.id) === goalId);
   if (!goal) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.goalNotFound") } };
@@ -1704,7 +1705,8 @@ async function handleGetGoalHistoryTool(
     p_end_date: end_date,
     p_statuses: ["paid"],
     p_kinds: null,
-    p_account_ids: null,
+    // Every movement of a goal involves its savings wallet, so scope the (row-limited) query to it.
+    p_account_ids: [String(goal.wallet_id)],
     p_category_ids: null,
     p_include_context: false,
   });
