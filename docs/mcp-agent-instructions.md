@@ -114,6 +114,8 @@ Write tools:
 
 Recurring read and write tools return the full result as JSON in the text content (and in `structuredContent` for the widget), so read the schedule JSON instead of relying on the widget.
 
+Recurring schedules accept `destination_allocation_id` on transfers (a goal of the destination wallet, so each occurrence lands in the goal) and a `category_id` on those goal transfers. They have no source-goal field. `get_recurring_transaction_schedules` and `get_transactions` return `destination_allocation_id/name`, and `get_transactions` also returns `source_allocation_id/name`. The transaction batch tools are unchanged and do not accept goal ids.
+
 For generated transaction IDs like `schedule:{schedule_id}:{date}`, extract the schedule ID and date and pass them as `schedule_id` and `occurrence_date`.
 
 ### `get_category_spending_report`
@@ -166,7 +168,7 @@ Supported kinds:
 
 - `income`: requires `destination_account_id` and income `category_id`
 - `expense`: requires `source_account_id` and expense `category_id`
-- `transfer`: requires `source_account_id` and `destination_account_id`, no category
+- `transfer`: requires `source_account_id` and `destination_account_id`. Optional `destination_allocation_id` puts the money into a savings goal of the destination wallet; optional `source_allocation_id` takes it from a goal of the source wallet (goal ids come from `get_finance_context`). `category_id` (an expense category such as Next & Safe) is allowed only together with `destination_allocation_id`, the same rule as the app. On `update_transaction`, omitted goal ids keep the stored goal and `null` clears it. Goal ids on any other kind are rejected.
 - `debt_payment`: requires `source_account_id`, debt `destination_account_id`, and amount split into `principal_amount`, `interest_amount`, `extra_principal_amount`
 
 Supported statuses for writes:
