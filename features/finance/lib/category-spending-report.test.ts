@@ -567,7 +567,19 @@ describe("buildCategorySpendingReport cash flow, savings and transfer flows", ()
     });
 
     expect(report.cash_flow).toEqual([
-      { currency: "CZK", income_total: 1000, pnl_net: 650, debt_principal_paid: 300, cash_flow_net: 350, net_savings: 0, savings_rate: 0 },
+      {
+        currency: "CZK",
+        income_total: 1000,
+        pnl_net: 650,
+        debt_principal_paid: 300,
+        credit_card_payments: 0,
+        cash_flow_net: 350,
+        net_savings: 0,
+        invested: 0,
+        total_saved: 0,
+        income_is_partial: false,
+        savings_rate: 0,
+      },
     ]);
   });
 
@@ -599,6 +611,75 @@ describe("buildCategorySpendingReport cash flow, savings and transfer flows", ()
     });
 
     expect(report.cash_flow[0]).toMatchObject({ currency: "CZK", net_savings: 150, savings_rate: 15 });
+  });
+
+  it("does not subtract credit card repayments again in cash_flow_net", () => {
+    const card: Account = { ...accounts[0], id: "card", name: "Card", type: "credit_card" };
+    const repayment = withAccounts(
+      { ...tx({ id: "card-payment", title: "Credit Card", kind: "debt_payment", amount: 500, occurred_at: "2026-04-10", source_account_id: "czk-cash", destination_account_id: "card" }), principal_amount: 500, interest_amount: 0 },
+      accounts[0],
+      card,
+    );
+    const report = buildCategorySpendingReport({
+      categories,
+      transactions: [
+        tx({ id: "salary", title: "Salary", kind: "income", amount: 1000, occurred_at: "2026-04-05", category_id: "salary", destination_account_id: "czk-cash" }),
+        tx({ id: "groceries", title: "Groceries", kind: "expense", amount: 250, occurred_at: "2026-04-06", category_id: "groceries", source_account_id: "czk-cash" }),
+        repayment,
+      ],
+      period: { month: "2026-04" },
+    });
+
+    expect(report.cash_flow[0]).toMatchObject({ pnl_net: 750, debt_principal_paid: 0, credit_card_payments: 500, cash_flow_net: 750 });
+  });
+
+  it("nets expenses paid from savings against what was saved and counts the investment envelope", () => {
+    const investmentCategories = categories.map((item) => (item.id === "investments" ? { ...item, purpose: "investment" as const } : item));
+    const into = withAccounts(
+      tx({ id: "prefund", title: "Prefund rent", kind: "transfer", amount: 330, occurred_at: "2026-04-03", source_account_id: "czk-cash", destination_account_id: "savings" }),
+      accounts[0],
+      savings,
+    );
+    const rentFromSavings = withAccounts(
+      tx({ id: "rent", title: "Rent", kind: "expense", amount: 330, occurred_at: "2026-04-04", category_id: "groceries", source_account_id: "savings" }),
+      savings,
+      null,
+    );
+    const interest = withAccounts(
+      tx({ id: "interest", title: "Interest", kind: "income", amount: 10, occurred_at: "2026-04-05", category_id: "salary", destination_account_id: "savings" }),
+      null,
+      savings,
+    );
+    const etf = tx({ id: "etf", title: "ETF", kind: "expense", amount: 150, occurred_at: "2026-04-07", category_id: "investments", source_account_id: "czk-cash" });
+    const pension = tx({ id: "pension", title: "Pension", kind: "expense", amount: 50, occurred_at: "2026-04-08", category_id: "wealth", source_account_id: "czk-cash" });
+    const report = buildCategorySpendingReport({
+      categories: investmentCategories,
+      transactions: [
+        tx({ id: "salary", title: "Salary", kind: "income", amount: 1000, occurred_at: "2026-04-01", category_id: "salary", destination_account_id: "czk-cash" }),
+        into,
+        rentFromSavings,
+        interest,
+        etf,
+        pension,
+      ],
+      period: { month: "2026-04" },
+    });
+
+    // prefunded and spent rent cancels out, interest stays: 330 - 330 + 10; invested 150 + 50 (whole Wealth envelope)
+    expect(report.cash_flow[0]).toMatchObject({ net_savings: 10, invested: 200, total_saved: 210, savings_rate: 20.79 });
+  });
+
+  it("returns no savings rate for a month with negligible income", () => {
+    const report = buildCategorySpendingReport({
+      categories,
+      transactions: [
+        tx({ id: "interest", title: "Interest", kind: "income", amount: 8.85, occurred_at: "2026-05-20", category_id: "salary", destination_account_id: "czk-cash" }),
+        tx({ id: "groceries", title: "Groceries", kind: "expense", amount: 3000, occurred_at: "2026-05-21", category_id: "groceries", source_account_id: "czk-cash" }),
+      ],
+      period: { month: "2026-05" },
+    });
+
+    expect(report.cash_flow[0]).toMatchObject({ income_is_partial: true, savings_rate: null });
   });
 
   it("reports cross-currency transfer amounts and the effective rate", () => {

@@ -18,15 +18,50 @@ export type GoalHistoryMonth = {
   net: number;
 };
 
+export type GoalReconciliation = {
+  /** The goal's current amount. */
+  current_amount: number;
+  /** Net of all recorded paid movements of the goal (added - withdrawn - spent), over the whole history. */
+  tracked_net: number;
+  /** current_amount - tracked_net: balance that no transaction explains (opening amount or manual balance edits). */
+  untracked_difference: number;
+};
+
 export type GoalHistory = {
   goal_id: string;
   months: GoalHistoryMonth[];
   totals: { added: number; withdrawn: number; spent: number; net: number };
   entries: GoalHistoryEntry[];
   entries_truncated: boolean;
+  reconciliation: GoalReconciliation | null;
 };
 
 export const GOAL_HISTORY_ENTRY_LIMIT = 100;
+
+/** Net effect of every paid movement of the goal in the given rows (no month window). */
+export function summarizeGoalNet(goalId: string, rows: Record<string, unknown>[]) {
+  let net = 0;
+  for (const row of rows) {
+    if (row.status !== "paid") continue;
+    const kind = row.kind;
+    if (row.source_allocation_id === goalId && kind === "transfer") net -= num(row.amount);
+    if (row.destination_allocation_id === goalId) {
+      if (kind === "expense") net -= num(row.amount);
+      else if (kind === "transfer") net += num(row.destination_amount ?? row.amount);
+      else if (kind === "income") net += num(row.amount);
+    }
+  }
+  return round2(net);
+}
+
+export function reconcileGoal(goalId: string, currentAmount: number, allRows: Record<string, unknown>[]): GoalReconciliation {
+  const trackedNet = summarizeGoalNet(goalId, allRows);
+  return {
+    current_amount: round2(currentAmount),
+    tracked_net: trackedNet,
+    untracked_difference: round2(currentAmount - trackedNet),
+  };
+}
 
 type RawTransaction = Record<string, unknown>;
 
@@ -111,5 +146,6 @@ export function buildGoalHistory(goalId: string, months: string[], rows: RawTran
     totals,
     entries: sorted.slice(0, GOAL_HISTORY_ENTRY_LIMIT),
     entries_truncated: sorted.length > GOAL_HISTORY_ENTRY_LIMIT,
+    reconciliation: null,
   };
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { buildCategoryTrends, resolveTrendMonths } from "@/features/finance/lib/category-trends";
-import { buildGoalHistory } from "@/features/finance/lib/goal-history";
+import { buildGoalHistory, reconcileGoal } from "@/features/finance/lib/goal-history";
 import type { Account, Category, Transaction } from "@/types/finance";
 
 const userId = "user-1";
@@ -99,8 +99,22 @@ describe("buildCategoryTrends", () => {
     const living = trends.rows.find((row) => row.name === "Living");
 
     expect(living).toMatchObject({ type: "expense", budget_amount: 1000 });
-    expect(living?.series[0]).toEqual({ currency: "CZK", amounts: [100, 350], total: 450, average: 225, percent_of_period_income: 22.5 });
+    expect(living?.series[0]).toEqual({ currency: "CZK", amounts: [100, 350], total: 450, average: 225, average_months: 2, percent_of_period_income: 22.5 });
     expect(trends.rows[0].type).toBe("income");
+  });
+
+  it("excludes an incomplete month from averages and rates", () => {
+    const withPartialMonth = [
+      tx("interest-apr", "income", 5, "2026-04-20", "salary"),
+      tx("food-apr", "expense", 900, "2026-04-21", "food"),
+      ...transactions,
+    ];
+    const trends = buildCategoryTrends({ categories, transactions: withPartialMonth, months: ["2026-04", "2026-05", "2026-06"] });
+    const living = trends.rows.find((row) => row.name === "Living");
+
+    expect(trends.partial_months).toEqual([{ currency: "CZK", months: ["2026-04"] }]);
+    expect(living?.series[0]).toMatchObject({ amounts: [900, 100, 350], total: 1350, average: 225, average_months: 2 });
+    expect(trends.monthly_summary[0]).toMatchObject({ month: "2026-04", income_is_partial: true, savings_rate: null });
   });
 
   it("can group by leaf category", () => {
@@ -142,5 +156,12 @@ describe("buildGoalHistory", () => {
     expect(history.entries.map((entry) => entry.id)).toEqual(["e1", "t3", "t2", "t1"]);
     expect(history.entries[0]).toMatchObject({ direction: "out", currency: "CZK" });
     expect(history.entries_truncated).toBe(false);
+  });
+
+  it("reconciles the stored balance with every recorded movement", () => {
+    const reconciliation = reconcileGoal("goal", 11024.44, rows);
+
+    // 10000 + 10000 added, 2500 withdrawn, 1000 spent; the planned and other-goal rows are ignored
+    expect(reconciliation).toEqual({ current_amount: 11024.44, tracked_net: 16500, untracked_difference: -5475.56 });
   });
 });
