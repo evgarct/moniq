@@ -1,5 +1,7 @@
 # MCP ChatGPT confirmations
 
+> **The result widget is off by default.** Claude chat opens it above the text reply, which only repeats data the tools already return as text. Set `MCP_WIDGETS_ENABLED=true` (Vercel environment variable) to advertise the widget again: it adds the `ui` / `openai/outputTemplate` tool metadata, the `resources` capability and the `ui://moniq/finance-result.html` resource. Everything below applies only when it is enabled.
+
 ChatGPT renders native confirmation screens for write-capable MCP tool calls.
 Moniq cannot control that UI directly, but the MCP tool descriptor can influence
 the title, running state, approval framing, and field labels.

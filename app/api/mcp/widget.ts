@@ -1,6 +1,25 @@
 export const MONIQ_WIDGET_URI = "ui://moniq/finance-result.html";
 export const MONIQ_WIDGET_MIME_TYPE = "text/html;profile=mcp-app";
 
+/**
+ * The result widget (MCP Apps / ChatGPT) is opt-in: Claude chat opens it above the text reply, which is noise
+ * because the tools already return the full data as text. Set MCP_WIDGETS_ENABLED=true to advertise it again.
+ */
+export function isMoniqWidgetEnabled() {
+  return process.env.MCP_WIDGETS_ENABLED === "true";
+}
+
+const WIDGET_META_KEYS = ["ui", "openai/outputTemplate", "openai/widgetAccessible"];
+
+/** Removes the keys that make a client open the widget, keeping the other tool metadata. */
+export function stripMoniqWidgetMeta<T extends { _meta?: Record<string, unknown> }>(tool: T): T {
+  if (!tool._meta) return tool;
+  const meta = Object.fromEntries(Object.entries(tool._meta).filter(([key]) => !WIDGET_META_KEYS.includes(key)));
+  const { _meta: _removed, ...rest } = tool;
+  void _removed;
+  return (Object.keys(meta).length > 0 ? { ...rest, _meta: meta } : rest) as T;
+}
+
 export function moniqWidgetMeta(invoking: string, invoked: string) {
   return {
     ui: { resourceUri: MONIQ_WIDGET_URI },
