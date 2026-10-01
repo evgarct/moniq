@@ -1096,6 +1096,35 @@ describe("MCP tools", () => {
     });
   });
 
+  it("rejects a goal tag on a debt payment", async () => {
+    const response = await postMcp({
+      jsonrpc: "2.0",
+      id: "debt-goal",
+      method: "tools/call",
+      params: {
+        name: "create_transactions",
+        arguments: {
+          transactions: [
+            {
+              title: "Mortgage",
+              kind: "debt_payment",
+              status: "paid",
+              amount: 100,
+              occurred_at: "2026-05-21",
+              source_account_id: "wallet-savings",
+              destination_account_id: "wallet-debt",
+              principal_amount: 100,
+              destination_allocation_id: "goal-1",
+            },
+          ],
+        },
+      },
+    });
+
+    await expect(response.json()).resolves.toMatchObject({ error: { code: -32602 } });
+    expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_create_transactions", expect.anything());
+  });
+
   it("creates a recurring transfer into a goal", async () => {
     mocks.rpc.mockImplementation((name: string) => {
       const authResponse = authRpcResponse(name);

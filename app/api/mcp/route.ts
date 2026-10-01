@@ -399,7 +399,7 @@ function directTransactionProperties() {
     category_id: { type: ["string", "null"], title: "Category", description: "Required selectable category ID for income/expense. Optional expense category for debt payment interest. For transfers, an expense category is allowed only together with destination_allocation_id (transfer into a savings goal). In user-facing confirmation, describe this by category path from get_finance_context." },
     source_account_id: { type: ["string", "null"], title: "From wallet", description: "Required source wallet ID for expense, transfer, and debt payment. In user-facing confirmation, describe this by wallet name from get_finance_context." },
     destination_account_id: { type: ["string", "null"], title: "To wallet", description: "Required destination wallet ID for income, transfer, and debt payment. Debt payment destination must be a debt wallet. In user-facing confirmation, describe this by wallet name from get_finance_context." },
-    destination_allocation_id: { type: ["string", "null"], title: "Goal", description: "Savings goal ID (from get_finance_context) of the wallet that holds the money: the goal a transfer or income goes into, or the goal an expense or debt payment is paid from (a goal of the source wallet). On update, omit to keep the current goal and send null to clear it." },
+    destination_allocation_id: { type: ["string", "null"], title: "Goal", description: "Savings goal ID (from get_finance_context) of the wallet that holds the money: the goal a transfer or income goes into, or the goal an expense is paid from (a goal of the source wallet). Not supported on debt payments. On update, omit to keep the current goal and send null to clear it." },
     source_allocation_id: { type: ["string", "null"], title: "From goal", description: "Transfers only: savings goal ID of the source wallet that the transfer takes the money from. On update, omit to keep the current goal and send null to clear it." },
   };
 }
@@ -585,7 +585,7 @@ function recurringScheduleProperties(options: { partial?: boolean } = {}) {
       destination_allocation_id: {
         type: ["string", "null"],
         title: "Goal",
-        description: "Savings goal ID of the wallet that holds the money: the goal each transfer or income occurrence goes into, or the goal an expense or debt payment is paid from. A category_id on a transfer needs it. Recurring schedules cannot draw a transfer from a source goal.",
+        description: "Savings goal ID of the wallet that holds the money: the goal each transfer or income occurrence goes into, or the goal an expense is paid from. Not supported on debt payments. A category_id on a transfer needs it. Recurring schedules cannot draw a transfer from a source goal.",
       },
     },
   };
@@ -1807,6 +1807,7 @@ function validateDirectTransaction(
   }
 
   if (tx.kind === "debt_payment") {
+    if (optionalString(tx.destination_allocation_id)) return t("mcp.errors.goalTagNotOnDebtPayment", { label });
     if (!optionalString(tx.source_account_id)) return `Transaction "${label}" debt_payment must include source_account_id`;
     if (!optionalString(tx.destination_account_id)) return `Transaction "${label}" debt_payment must include destination_account_id`;
 
@@ -1881,6 +1882,7 @@ function validateRecurringSchedule(schedule: unknown, t: McpTranslator, labelPre
   }
 
   if (schedule.kind === "debt_payment") {
+    if (optionalString(schedule.destination_allocation_id)) return t("mcp.errors.goalTagNotOnDebtPayment", { label });
     if (!optionalString(schedule.source_account_id)) return `${labelPrefix} "${label}" debt_payment must include source_account_id`;
     if (!optionalString(schedule.destination_account_id)) return `${labelPrefix} "${label}" debt_payment must include destination_account_id`;
 

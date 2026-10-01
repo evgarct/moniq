@@ -1458,6 +1458,7 @@
       "categoryObjectRequired": "category должен быть объектом хотя бы с одним изменяемым полем.",
       "transferCategoryNeedsGoal": "Транзакция \"{label}\": категорию можно указывать только у переводов в цель накоплений (destination_allocation_id).",
       "allocationsTransferOnly": "Транзакция \"{label}\": source_allocation_id поддерживается только у переводов.",
+      "goalTagNotOnDebtPayment": "Транзакция \"{label}\": цели накоплений не поддерживаются у платежей по долгу.",
       "rescheduleDatesRequired": "from_occurrence_date ? new_occurrence_date ?????? ???? ? ??????? YYYY-MM-DD.",
       "invalidScheduleState": "state ?????? ???? active ??? paused.",
       "transactionsRequired": "transactions ?????? ???? ???????? ????????.",
