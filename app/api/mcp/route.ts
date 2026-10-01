@@ -37,7 +37,9 @@ import {
   MONIQ_WIDGET_RESOURCE_META,
   MONIQ_WIDGET_URI,
   moniqWidgetHtml,
+  isMoniqWidgetEnabled,
   moniqWidgetMeta,
+  stripMoniqWidgetMeta,
   type MoniqWidgetCopy,
 } from "./widget";
 
@@ -385,7 +387,7 @@ function handleInitialize(
     id,
     result: {
       protocolVersion,
-      capabilities: { tools: {}, resources: {} },
+      capabilities: { tools: {}, ...(isMoniqWidgetEnabled() ? { resources: {} } : {}) },
       serverInfo: { name: "moniq", version: "1.0.0" },
     },
   };
@@ -1419,7 +1421,7 @@ function handleToolsList(id: string | number | null): McpResponse {
     jsonrpc: "2.0",
     id,
     result: {
-      tools: getMcpTools(),
+      tools: isMoniqWidgetEnabled() ? getMcpTools() : getMcpTools().map((tool) => stripMoniqWidgetMeta(tool)),
     },
   };
 }
@@ -2343,6 +2345,8 @@ function successResponse(id: string | number | null, text: string, data: unknown
 }
 
 function handleResourcesList(id: string | number | null): McpResponse {
+  if (!isMoniqWidgetEnabled()) return { jsonrpc: "2.0", id, result: { resources: [] } };
+
   return {
     jsonrpc: "2.0",
     id,
@@ -2367,7 +2371,7 @@ function handleResourcesRead(
   params?: Record<string, unknown>,
 ): McpResponse {
   const uri = typeof params?.uri === "string" ? params.uri : "";
-  if (uri !== MONIQ_WIDGET_URI) {
+  if (uri !== MONIQ_WIDGET_URI || !isMoniqWidgetEnabled()) {
     return { jsonrpc: "2.0", id, error: { code: -32602, message: `Unknown resource: ${uri}` } };
   }
 

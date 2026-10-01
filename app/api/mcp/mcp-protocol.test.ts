@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   rpc: vi.fn(),
@@ -140,7 +140,7 @@ describe("MCP initialize", () => {
       id: 1,
       result: {
         protocolVersion: "2024-11-05",
-        capabilities: { tools: {}, resources: {} },
+        capabilities: { tools: {} },
         serverInfo: { name: "moniq", version: "1.0.0" },
       },
     });
@@ -148,6 +148,10 @@ describe("MCP initialize", () => {
 });
 
 describe("MCP tools", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   beforeEach(() => {
     mocks.rpc.mockReset();
     setupAuth();
@@ -407,7 +411,24 @@ describe("MCP tools", () => {
     expect(schemaText).toContain("savings goal");
   });
 
+  it("does not advertise the result widget by default", async () => {
+    const tools = await getListedTools();
+
+    for (const tool of tools) {
+      expect(JSON.stringify(tool._meta ?? {})).not.toContain("ui://moniq");
+      expect(tool._meta?.ui).toBeUndefined();
+      expect(tool._meta?.["openai/outputTemplate"]).toBeUndefined();
+    }
+
+    const list = await postMcp({ jsonrpc: "2.0", id: "resources", method: "resources/list" });
+    await expect(list.json()).resolves.toMatchObject({ result: { resources: [] } });
+
+    const read = await postMcp({ jsonrpc: "2.0", id: "read", method: "resources/read", params: { uri: "ui://moniq/finance-result.html" } });
+    await expect(read.json()).resolves.toMatchObject({ error: { code: -32602 } });
+  });
+
   it("exposes human-readable metadata for ChatGPT confirmations", async () => {
+    vi.stubEnv("MCP_WIDGETS_ENABLED", "true");
     const createTransactionsTool = (await getListedTools()).find((tool) => tool.name === "create_transactions");
 
     expect(createTransactionsTool).toMatchObject({
@@ -501,6 +522,7 @@ describe("MCP tools", () => {
   });
 
   it("exposes transaction edit/delete tools with correct safety annotations and widget metadata", async () => {
+    vi.stubEnv("MCP_WIDGETS_ENABLED", "true");
     const tools = await getListedTools();
     const updateDraftTool = tools.find((tool) => tool.name === "update_transaction_draft");
     const deleteDraftTool = tools.find((tool) => tool.name === "delete_transaction_draft");
@@ -522,6 +544,7 @@ describe("MCP tools", () => {
   });
 
   it("serves the ChatGPT transaction result widget resource", async () => {
+    vi.stubEnv("MCP_WIDGETS_ENABLED", "true");
     const listResponse = await postMcp({
       jsonrpc: "2.0",
       id: "resources",
@@ -548,6 +571,7 @@ describe("MCP tools", () => {
   });
 
   it("localizes the widget resource from the MCP request locale", async () => {
+    vi.stubEnv("MCP_WIDGETS_ENABLED", "true");
     const response = await postMcp(
       {
         jsonrpc: "2.0",
