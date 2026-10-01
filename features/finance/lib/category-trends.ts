@@ -19,7 +19,9 @@ export type CategoryTrendSeries = {
   /** One amount per entry of `months`, in the same order. */
   amounts: number[];
   total: number;
+  /** Average per month over the months with meaningful income (see partial_months); all months if none qualify. */
   average: number;
+  average_months: number;
   /** total as a percent of the income of the whole period in the same currency. */
   percent_of_period_income: number | null;
 };
@@ -35,7 +37,17 @@ export type CategoryTrendRow = {
 
 export type CategoryTrendMonthSummary = Pick<
   CategorySpendingCashFlow,
-  "currency" | "income_total" | "pnl_net" | "debt_principal_paid" | "cash_flow_net" | "net_savings" | "savings_rate"
+  | "currency"
+  | "income_total"
+  | "pnl_net"
+  | "debt_principal_paid"
+  | "credit_card_payments"
+  | "cash_flow_net"
+  | "net_savings"
+  | "invested"
+  | "total_saved"
+  | "income_is_partial"
+  | "savings_rate"
 > & { month: string; expense_total: number };
 
 export type CategoryTrends = {
@@ -45,6 +57,8 @@ export type CategoryTrends = {
   group_by: CategoryTrendGroupBy;
   rows: CategoryTrendRow[];
   monthly_summary: CategoryTrendMonthSummary[];
+  /** Months whose income is below 10% of their expenses (incomplete data); excluded from averages and rates. */
+  partial_months: { currency: string; months: string[] }[];
 };
 
 function isIsoMonth(value: string) {
@@ -129,8 +143,12 @@ export function buildCategoryTrends(options: {
         expense_total: round2(total.expense_total),
         pnl_net: flow?.pnl_net ?? round2(total.net),
         debt_principal_paid: flow?.debt_principal_paid ?? 0,
+        credit_card_payments: flow?.credit_card_payments ?? 0,
         cash_flow_net: flow?.cash_flow_net ?? round2(total.net),
         net_savings: flow?.net_savings ?? 0,
+        invested: flow?.invested ?? 0,
+        total_saved: flow?.total_saved ?? 0,
+        income_is_partial: flow?.income_is_partial ?? total.income_total <= 0,
         savings_rate: flow?.savings_rate ?? null,
       });
       incomeByCurrency.set(total.currency, (incomeByCurrency.get(total.currency) ?? 0) + total.income_total);
@@ -152,6 +170,14 @@ export function buildCategoryTrends(options: {
     }
   });
 
+  const partialIndexesByCurrency = new Map<string, Set<number>>();
+  for (const entry of monthlySummary) {
+    if (!entry.income_is_partial) continue;
+    const indexes = partialIndexesByCurrency.get(entry.currency) ?? new Set<number>();
+    indexes.add(months.indexOf(entry.month));
+    partialIndexesByCurrency.set(entry.currency, indexes);
+  }
+
   const rows: CategoryTrendRow[] = Array.from(rowsById.values())
     .map(({ node, type, amountsByCurrency }) => ({
       category_id: node.category_id,
@@ -163,11 +189,15 @@ export function buildCategoryTrends(options: {
         .map(([currency, amounts]): CategoryTrendSeries => {
           const total = round2(amounts.reduce((sum, value) => sum + value, 0));
           const income = incomeByCurrency.get(currency) ?? 0;
+          const partial = partialIndexesByCurrency.get(currency) ?? new Set<number>();
+          let averaged = amounts.filter((_, index) => !partial.has(index));
+          if (averaged.length === 0) averaged = amounts;
           return {
             currency,
             amounts,
             total,
-            average: round2(total / months.length),
+            average: round2(averaged.reduce((sum, value) => sum + value, 0) / averaged.length),
+            average_months: averaged.length,
             percent_of_period_income: income > 0 ? round2((total / income) * 100) : null,
           };
         })
@@ -185,5 +215,9 @@ export function buildCategoryTrends(options: {
     group_by: groupBy,
     rows,
     monthly_summary: monthlySummary,
+    partial_months: Array.from(partialIndexesByCurrency.entries()).map(([currency, indexes]) => ({
+      currency,
+      months: Array.from(indexes).sort((a, b) => a - b).map((index) => months[index]),
+    })),
   };
 }

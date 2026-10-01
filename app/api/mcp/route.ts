@@ -25,7 +25,7 @@ import {
   trendPeriodDates,
   type CategoryTrendGroupBy,
 } from "@/features/finance/lib/category-trends";
-import { buildGoalHistory } from "@/features/finance/lib/goal-history";
+import { buildGoalHistory, reconcileGoal } from "@/features/finance/lib/goal-history";
 import { resolveUserPreferences } from "@/features/finance/lib/preferences";
 import { getRequestTranslator } from "@/i18n/translator";
 import { createAnonClient } from "@/lib/supabase/anon";
@@ -1716,6 +1716,21 @@ async function handleGetGoalHistoryTool(
 
   const currency = typeof wallet?.currency === "string" ? wallet.currency : null;
   const history = buildGoalHistory(goalId, months, data.transactions.filter(isRecord), currency);
+
+  // Reconcile against the stored balance using every recorded movement of the wallet, not just the window.
+  const { data: lifetimeData, error: lifetimeError } = await db.rpc("mcp_get_transactions_for_period", {
+    p_key_hash: keyHash,
+    p_start_date: "2000-01-01",
+    p_end_date: end_date,
+    p_statuses: ["paid"],
+    p_kinds: null,
+    p_account_ids: [String(goal.wallet_id)],
+    p_category_ids: null,
+    p_include_context: false,
+  });
+  if (!lifetimeError && isRecord(lifetimeData) && Array.isArray(lifetimeData.transactions)) {
+    history.reconciliation = reconcileGoal(goalId, Number(goal.amount), lifetimeData.transactions.filter(isRecord));
+  }
   const result = {
     goal: {
       id: goal.id,

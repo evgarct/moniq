@@ -97,13 +97,31 @@ export type CategorySpendingCashFlow = {
   income_total: number;
   /** Income minus P&L expenses (debt payments count only their interest). Same as the currency net. */
   pnl_net: number;
-  /** Debt principal and extra principal paid, which pnl_net does not include. */
+  /** Principal and extra principal of loan/mortgage payments, which pnl_net does not include. */
   debt_principal_paid: number;
+  /**
+   * Credit card repayments. Informational only: the purchases are already expenses, so repaying the card is not
+   * subtracted again in cash_flow_net.
+   */
+  credit_card_payments: number;
   /** pnl_net minus debt_principal_paid: what really left or entered the wallets. */
   cash_flow_net: number;
-  /** Transfers into savings wallets minus withdrawals from them (source currency). */
+  /**
+   * Change of the savings wallets caused by this period's movements, in the source currency: transfers in minus
+   * withdrawals, minus expenses and debt payments paid from them, plus income received there. Money that went into
+   * a goal and was spent from it in the same period nets to zero.
+   */
   net_savings: number;
-  /** net_savings as a percent of income in the same currency; null without income. */
+  /** Spending in the investment envelope (the top-level category that contains the investment-purpose category). */
+  invested: number;
+  /** net_savings + invested. */
+  total_saved: number;
+  /**
+   * True when the period's income is below 10% of its expenses (for example a month where only a few
+   * transactions were recorded), so rates against it would be meaningless.
+   */
+  income_is_partial: boolean;
+  /** total_saved as a percent of income in the same currency; null without meaningful income. */
   savings_rate: number | null;
 };
 
@@ -351,39 +369,73 @@ function buildCashFlow(
   transactions: Transaction[],
   reportTransactions: ReportTransaction[],
   currencies: CategorySpendingCurrencyTotal[],
+  categories: Category[],
 ): CategorySpendingCashFlow[] {
+  const categoriesById = new Map(categories.map((category) => [category.id, category]));
+  const investmentRoots = new Set<string>();
+  for (const category of categories) {
+    if (category.purpose === "investment") investmentRoots.add(getRootCategory(category, categoriesById).id);
+  }
+
   const principalByCurrency = new Map<string, number>();
+  const cardPaymentsByCurrency = new Map<string, number>();
   const savingsByCurrency = new Map<string, number>();
+  const investedByCurrency = new Map<string, number>();
 
   transactions.forEach((transaction, index) => {
-    const currency = reportTransactions[index].currency;
+    const reportTransaction = reportTransactions[index];
+    const currency = reportTransaction.currency;
+    const amount = Math.abs(transaction.amount);
+    const sourceIsSaving = transaction.source_account?.type === "saving";
+    const destinationIsSaving = transaction.destination_account?.type === "saving";
 
     if (transaction.kind === "debt_payment") {
-      addCurrencyAmount(principalByCurrency, currency, reportTransactions[index].principal_paid ?? 0);
+      if (transaction.destination_account?.type === "credit_card") {
+        addCurrencyAmount(cardPaymentsByCurrency, currency, amount);
+      } else {
+        addCurrencyAmount(principalByCurrency, currency, reportTransaction.principal_paid ?? 0);
+      }
+      if (sourceIsSaving) addCurrencyAmount(savingsByCurrency, currency, -amount);
       return;
     }
 
-    if (transaction.kind !== "transfer") return;
-    const sourceIsSaving = transaction.source_account?.type === "saving";
-    const destinationIsSaving = transaction.destination_account?.type === "saving";
+    if (transaction.kind === "expense") {
+      if (sourceIsSaving) addCurrencyAmount(savingsByCurrency, currency, -amount);
+      const category = transaction.category_id ? categoriesById.get(transaction.category_id) : undefined;
+      if (category && investmentRoots.has(getRootCategory(category, categoriesById).id)) {
+        addCurrencyAmount(investedByCurrency, currency, reportTransaction.analytics_amount);
+      }
+      return;
+    }
+
+    if (transaction.kind === "income") {
+      if (destinationIsSaving) addCurrencyAmount(savingsByCurrency, currency, amount);
+      return;
+    }
+
     // Moves between savings wallets (including goal-to-goal) do not change what is saved.
     if (sourceIsSaving === destinationIsSaving) return;
-
-    addCurrencyAmount(savingsByCurrency, currency, destinationIsSaving ? Math.abs(transaction.amount) : -Math.abs(transaction.amount));
+    addCurrencyAmount(savingsByCurrency, currency, destinationIsSaving ? amount : -amount);
   });
 
   return currencies.map((total) => {
     const principal = principalByCurrency.get(total.currency) ?? 0;
     const netSavings = savingsByCurrency.get(total.currency) ?? 0;
+    const invested = investedByCurrency.get(total.currency) ?? 0;
+    const incomeIsPartial = total.income_total <= 0 || total.income_total < 0.1 * total.expense_total;
 
     return {
       currency: total.currency,
       income_total: round2(total.income_total),
       pnl_net: round2(total.net),
       debt_principal_paid: round2(principal),
+      credit_card_payments: round2(cardPaymentsByCurrency.get(total.currency) ?? 0),
       cash_flow_net: round2(total.net - principal),
       net_savings: round2(netSavings),
-      savings_rate: percent(netSavings, total.income_total),
+      invested: round2(invested),
+      total_saved: round2(netSavings + invested),
+      income_is_partial: incomeIsPartial,
+      savings_rate: incomeIsPartial ? null : percent(netSavings + invested, total.income_total),
     };
   });
 }
@@ -523,7 +575,7 @@ export function buildCategorySpendingReport(options: {
     income_categories: incomeCategories,
     uncategorized,
     transfers,
-    cash_flow: buildCashFlow(periodTransactions, reportTransactions, currencies),
+    cash_flow: buildCashFlow(periodTransactions, reportTransactions, currencies, options.categories),
     transfer_flows: buildTransferFlows(transfers),
   };
 }
