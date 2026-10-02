@@ -307,6 +307,7 @@ type CategoryRow = {
 };
 
 type TransactionRow = {
+  posted_destination_amount?: number | string | null;
   id: string;
   user_id: string;
   title: string;
@@ -1489,6 +1490,7 @@ function mapTransaction(
     schedule_id: row.schedule_id,
     schedule_occurrence_date: row.schedule_occurrence_date,
     is_schedule_override: row.is_schedule_override ?? false,
+    posted_destination_amount: row.posted_destination_amount == null ? null : Number(row.posted_destination_amount),
     allocation_id: row.allocation_id ?? null,
     category: row.category_id ? options.categoriesById.get(row.category_id) ?? null : null,
     source_account: row.source_account_id ? options.accountsById.get(row.source_account_id) ?? null : null,

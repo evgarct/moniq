@@ -55,6 +55,7 @@ type CategoryRow = {
 };
 
 type TransactionRow = {
+  posted_destination_amount: number | string | null;
   id: string;
   user_id: string;
   title: string;
@@ -455,7 +456,7 @@ export async function getFinanceSnapshot(
   const { data: transactions, error: transactionError } = await supabase
     .from("finance_transactions")
     .select(
-      "id, user_id, title, note, occurred_at, created_at, status, kind, amount, destination_amount, fx_rate, principal_amount, interest_amount, extra_principal_amount, category_id, source_account_id, destination_account_id, schedule_id, schedule_occurrence_date, is_schedule_override, is_explicit_reschedule, allocation_id, source_allocation_id, linked_transaction_id, system_generated, investment_instrument_id, investment_units, sync_version",
+      "id, user_id, title, note, occurred_at, created_at, status, kind, amount, destination_amount, posted_destination_amount, fx_rate, principal_amount, interest_amount, extra_principal_amount, category_id, source_account_id, destination_account_id, schedule_id, schedule_occurrence_date, is_schedule_override, is_explicit_reschedule, allocation_id, source_allocation_id, linked_transaction_id, system_generated, investment_instrument_id, investment_units, sync_version",
     )
     .eq("user_id", user.id)
     .or(`occurred_at.gte.${transactionCutoff},status.eq.planned,investment_instrument_id.not.is.null`)
@@ -542,6 +543,7 @@ export async function getFinanceSnapshot(
       schedule_occurrence_date: row.schedule_occurrence_date,
       is_schedule_override: row.is_schedule_override ?? false,
       is_explicit_reschedule: row.is_explicit_reschedule ?? false,
+      posted_destination_amount: row.posted_destination_amount == null ? null : Number(row.posted_destination_amount),
       category: row.category_id ? categoriesById.get(row.category_id) ?? null : null,
       source_account: row.source_account_id ? accountsById.get(row.source_account_id) ?? null : null,
       destination_account: row.destination_account_id ? accountsById.get(row.destination_account_id) ?? null : null,
@@ -1394,62 +1396,7 @@ export async function rescheduleScheduleFromDate(
   fromOccurrenceDate: string,
   newOccurrenceDate: string,
 ) {
-  const { supabase, user } = await getAuthenticatedSupabase();
-  const snapshot = await getFinanceSnapshot();
-  const schedule = snapshot.schedules.find((s) => s.id === scheduleId);
-
-  if (!schedule) {
-    throw new Error("Schedule not found.");
-  }
-
-  // Shift the schedule anchor by the same offset as the date change
-  const offsetDays = differenceInCalendarDays(parseISO(newOccurrenceDate), parseISO(fromOccurrenceDate));
-  const newStartDate = format(addDays(parseISO(schedule.start_date), offsetDays), "yyyy-MM-dd");
-
-  const { error: scheduleError } = await supabase
-    .from("finance_transaction_schedules")
-    .update({ start_date: newStartDate })
-    .eq("id", scheduleId)
-    .eq("user_id", user.id);
-
-  if (scheduleError) {
-    throw new Error(normalizeFinanceRepositoryError(scheduleError));
-  }
-
-  // Delete all non-overridden planned occurrences from the original date onwards
-  // so the reconciler regenerates them at the shifted dates
-  const { error: deleteNonOverrideError } = await supabase
-    .from("finance_transactions")
-    .delete()
-    .eq("user_id", user.id)
-    .eq("schedule_id", scheduleId)
-    .eq("status", "planned")
-    .eq("is_schedule_override", false)
-    .gte("occurred_at", fromOccurrenceDate);
-
-  if (deleteNonOverrideError) {
-    throw new Error(normalizeFinanceRepositoryError(deleteNonOverrideError));
-  }
-
-  // Also delete override occurrences whose schedule slot is on or after the pivot date.
-  // The "all following" flow first marks the edited occurrence as an override (via
-  // updateTransaction), then calls this function. Without this delete the override
-  // would survive, the reconciler would also regenerate a planned row for the same
-  // slot, and the user would see duplicate transactions.
-  const { error: deleteOverrideError } = await supabase
-    .from("finance_transactions")
-    .delete()
-    .eq("user_id", user.id)
-    .eq("schedule_id", scheduleId)
-    .eq("status", "planned")
-    .eq("is_schedule_override", true)
-    .gte("schedule_occurrence_date", fromOccurrenceDate);
-
-  if (deleteOverrideError) {
-    throw new Error(normalizeFinanceRepositoryError(deleteOverrideError));
-  }
-
-  await getFinanceSnapshot({ reconcileSchedules: true });
+  await applyRecurringOccurrenceChanges(scheduleId, fromOccurrenceDate, { occurred_at: newOccurrenceDate });
 }
 
 export async function deleteTransaction(transactionId: string) {

@@ -211,6 +211,7 @@ export async function readSyncedFinanceSnapshot(db: AbstractPowerSyncDatabase): 
     schedule_occurrence_date: row.schedule_occurrence_date,
     is_schedule_override: Boolean(row.is_schedule_override),
     is_explicit_reschedule: Boolean(row.is_explicit_reschedule),
+    posted_destination_amount: nullableNumber(row.posted_destination_amount),
     allocation_id: row.allocation_id,
     category: row.category_id ? categoriesById.get(row.category_id) ?? null : null,
     source_account: row.source_account_id ? accountsById.get(row.source_account_id) ?? null : null,

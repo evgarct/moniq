@@ -1,4 +1,4 @@
-import { getTransactionDestinationAmount } from "@/features/transactions/lib/transaction-effects";
+import { getNextPostedDestinationAmount, getTransactionDestinationAmount } from "@/features/transactions/lib/transaction-effects";
 import { addDays, differenceInCalendarDays, format, parseISO, startOfToday } from "date-fns";
 
 import { normalizeAccountBalance, normalizeCreditLimit } from "@/features/accounts/lib/account-state";
@@ -341,6 +341,7 @@ export function updateTransaction(snapshot: FinanceSnapshot, transactionId: stri
     ...resolveTransactionRelations(snapshot, values),
   };
   const reversedAccounts = applyPaidTransactionEffect(snapshot.accounts, existing, -1);
+  nextTransaction.posted_destination_amount = getNextPostedDestinationAmount(nextTransaction, existing);
   const snapshotWithBalance = {
     ...snapshot,
     accounts: applyPaidTransactionEffect(reversedAccounts, nextTransaction, 1),
@@ -369,7 +370,7 @@ export function setTransactionStatus(
 ) {
   const existing = snapshot.transactions.find((transaction) => transaction.id === transactionId);
   if (!existing || existing.status === status) return snapshot;
-  const next = { ...existing, status };
+  const next = { ...existing, status, posted_destination_amount: getNextPostedDestinationAmount({ ...existing, status }, existing) };
   const snapshotWithBalance = {
     ...snapshot,
     accounts: applyPaidTransactionEffect(

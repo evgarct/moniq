@@ -71,6 +71,7 @@ const categories = new Table({
 });
 
 const transactions = new Table({
+  posted_destination_amount: column.real,
   is_explicit_reschedule: column.integer,
   user_id: column.text,
   title: column.text,

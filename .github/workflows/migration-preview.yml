@@ -42,11 +42,15 @@ jobs:
       - name: Seed and verify local database
         shell: bash
         run: |
+          supabase db reset --version 20261002100000
           eval "$(supabase status -o env)"
           STAGING_SUPABASE_URL="$API_URL" \
           STAGING_SUPABASE_ANON_KEY="$ANON_KEY" \
           STAGING_SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" \
           npm run db:staging:seed
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/debt_recurring_upgrade_before.sql
+          supabase migration up --local
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/debt_recurring_upgrade_after.sql
           STAGING_SUPABASE_URL="$API_URL" \
           STAGING_SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" \
           npm run db:verify

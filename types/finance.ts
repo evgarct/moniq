@@ -148,6 +148,8 @@ export type TransactionSchedule = {
 };
 
 export type Transaction = {
+  /** Actual destination effect recorded by the ledger, including pre-fix payments. */
+  posted_destination_amount?: number | null;
   is_explicit_reschedule?: boolean;
   id: string;
   user_id: string;

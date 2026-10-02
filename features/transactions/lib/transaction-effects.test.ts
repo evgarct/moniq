@@ -34,4 +34,15 @@ describe("debt ledger effects", () => {
     expect(paidAgain.accounts.map(a => a.balance)).toEqual([49900, -100000]);
     expect(removeTransaction(paidAgain, "payment").accounts.map(a => a.balance)).toEqual([50000, -100000]);
   });
+
+  it("reverses the recorded historical effect and retains it for a note edit", () => {
+    const legacy = { id: "legacy", title: "Payment", status: "paid", kind: "debt_payment", amount: 1000, destination_amount: null, principal_amount: 800, interest_amount: 200, extra_principal_amount: 0, posted_destination_amount: 1000, source_account_id: "cash", destination_account_id: "debt" } as Transaction;
+    const snapshot = { ...createEmptyFinanceSnapshot(), accounts: [{ id: "cash", balance: 49000 }, { id: "debt", balance: -99000 }] as Account[], transactions: [legacy] };
+    const noteOnly = updateTransaction(snapshot, "legacy", { ...legacy, note: "Bank details" } as TransactionInput);
+    expect(noteOnly.accounts.map(a => a.balance)).toEqual([49000, -99000]);
+    expect(removeTransaction(noteOnly, "legacy").accounts.map(a => a.balance)).toEqual([50000, -100000]);
+    const financialEdit = updateTransaction(snapshot, "legacy", { ...legacy, amount: 1500, principal_amount: 1300 } as TransactionInput);
+    expect(financialEdit.accounts.map(a => a.balance)).toEqual([48500, -98700]);
+    expect(financialEdit.transactions[0].posted_destination_amount).toBe(1300);
+  });
 });

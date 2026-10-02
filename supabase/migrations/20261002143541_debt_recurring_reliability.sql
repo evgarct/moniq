@@ -2,11 +2,48 @@
 begin;
 alter table public.finance_transaction_schedules add column source_allocation_id uuid references public.wallet_allocations(id) on delete set null;
 alter table public.finance_transactions add column is_explicit_reschedule boolean not null default false;
+alter table public.finance_transactions add column posted_destination_amount numeric;
+-- Administrative corrections are auditable and idempotent without synthetic cash-flow rows.
+create table public.finance_balance_reconciliations (
+  id uuid primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  wallet_id uuid not null references public.wallets(id) on delete cascade,
+  before_balance numeric not null,
+  after_balance numeric not null,
+  reason text not null,
+  created_at timestamptz not null default now()
+);
+alter table public.finance_balance_reconciliations enable row level security;
+create policy finance_balance_reconciliations_read_own on public.finance_balance_reconciliations
+for select to authenticated using (user_id=auth.uid());
+revoke all on public.finance_balance_reconciliations from public,anon,authenticated;
+grant select on public.finance_balance_reconciliations to authenticated;
+grant all on public.finance_balance_reconciliations to service_role;
 -- Metadata-only conversion must not reverse/reapply paid rows with the new debt trigger.
 alter table public.finance_transactions disable trigger finance_transactions_sync_wallet_balance;
+-- Capture the immediately preceding ledger contract without replaying any payment.
+update public.finance_transactions set posted_destination_amount=coalesce(destination_amount,amount) where kind='debt_payment' and status='paid';
 update public.finance_transactions set source_allocation_id = coalesce(source_allocation_id, allocation_id), allocation_id = null where kind = 'expense' and allocation_id is not null;
 update public.finance_transaction_schedules set source_allocation_id = allocation_id, allocation_id = null where kind = 'expense' and allocation_id is not null;
 alter table public.finance_transactions enable trigger finance_transactions_sync_wallet_balance;
+create function public.record_posted_destination_amount()
+returns trigger language plpgsql security definer set search_path=public as $posted$
+begin
+  if NEW.kind='debt_payment' and NEW.status='paid' then
+    if TG_OP='UPDATE' and OLD.kind='debt_payment' and OLD.status='paid' and
+      row(NEW.amount,NEW.destination_amount,NEW.principal_amount,NEW.interest_amount,NEW.extra_principal_amount,NEW.source_account_id,NEW.destination_account_id)
+      is not distinct from row(OLD.amount,OLD.destination_amount,OLD.principal_amount,OLD.interest_amount,OLD.extra_principal_amount,OLD.source_account_id,OLD.destination_account_id) then
+      NEW.posted_destination_amount:=OLD.posted_destination_amount;
+    else NEW.posted_destination_amount:=coalesce(NEW.principal_amount,0)+coalesce(NEW.extra_principal_amount,0);
+    end if;
+  else NEW.posted_destination_amount:=null;
+  end if;
+  return NEW;
+end;
+$posted$;
+create trigger finance_transactions_record_posted_destination before insert or update on public.finance_transactions
+for each row execute function public.record_posted_destination_amount();
+revoke all on function public.record_posted_destination_amount() from public,anon,authenticated;
 create or replace function public.sync_wallet_balance_on_transaction()
 returns trigger
 language plpgsql
@@ -74,7 +111,7 @@ begin
     end if;
 
     tx_amount := OLD.amount;
-    destination_amount := case when OLD.kind = 'debt_payment' then coalesce(OLD.principal_amount, 0) + coalesce(OLD.extra_principal_amount, 0) else coalesce(OLD.destination_amount, OLD.amount) end;
+    destination_amount := case when OLD.kind = 'debt_payment' then coalesce(OLD.posted_destination_amount,coalesce(OLD.principal_amount, 0) + coalesce(OLD.extra_principal_amount, 0)) else coalesce(OLD.destination_amount, OLD.amount) end;
 
     if OLD.source_account_id is not null then
       perform public.adjust_wallet_balance(OLD.source_account_id, tx_amount);
@@ -101,7 +138,7 @@ begin
 
   if TG_OP in ('INSERT', 'UPDATE') and NEW.status = 'paid' then
     tx_amount := NEW.amount;
-    destination_amount := case when NEW.kind = 'debt_payment' then coalesce(NEW.principal_amount, 0) + coalesce(NEW.extra_principal_amount, 0) else coalesce(NEW.destination_amount, NEW.amount) end;
+    destination_amount := case when NEW.kind = 'debt_payment' then coalesce(NEW.posted_destination_amount,coalesce(NEW.principal_amount, 0) + coalesce(NEW.extra_principal_amount, 0)) else coalesce(NEW.destination_amount, NEW.amount) end;
 
     select * into source_wallet
     from public.wallets
@@ -1375,6 +1412,7 @@ begin
         'source_allocation_name', (select a.name from public.wallet_allocations a where a.id = t.source_allocation_id),
         'fx_rate', t.fx_rate,
         'principal_amount', t.principal_amount,
+        'posted_destination_amount', t.posted_destination_amount,
         'interest_amount', t.interest_amount,
         'extra_principal_amount', t.extra_principal_amount,
         'category_id', t.category_id,
@@ -1528,6 +1566,7 @@ begin
         'source_allocation_name', (select a.name from public.wallet_allocations a where a.id = t.source_allocation_id),
         'fx_rate', t.fx_rate,
         'principal_amount', t.principal_amount,
+        'posted_destination_amount', t.posted_destination_amount,
         'interest_amount', t.interest_amount,
         'extra_principal_amount', t.extra_principal_amount,
         'category_id', t.category_id,

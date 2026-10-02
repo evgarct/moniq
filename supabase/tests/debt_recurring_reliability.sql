@@ -47,9 +47,29 @@ begin
     or has_function_privilege('authenticated','public.mcp_normalize_recurring_schedule(uuid,jsonb)','execute') then
     raise exception 'Internal SECURITY DEFINER helper exposed';
   end if;
+
+  -- Reproduce a pre-fix paid row's recorded effect using synthetic data only.
+  insert into public.finance_transactions(id,user_id,title,occurred_at,status,kind,amount,principal_amount,interest_amount,extra_principal_amount,source_account_id,destination_account_id)
+    values(tx_id,u,'Historical effect',current_date,'paid','debt_payment',1000,800,200,0,cash_id,debt_id);
+  alter table public.finance_transactions disable trigger finance_transactions_sync_wallet_balance;
+  alter table public.finance_transactions disable trigger finance_transactions_record_posted_destination;
+  update public.finance_transactions set posted_destination_amount=1000 where id=tx_id;
+  update public.wallets set balance=balance+200 where id=debt_id;
+  alter table public.finance_transactions enable trigger finance_transactions_record_posted_destination;
+  alter table public.finance_transactions enable trigger finance_transactions_sync_wallet_balance;
+  update public.finance_transactions set note='Historical note',posted_destination_amount=99999 where id=tx_id;
+  if (select balance from public.wallets where id=debt_id)<>-99000 or (select posted_destination_amount from public.finance_transactions where id=tx_id)<>1000 then raise exception 'Note edit changed historical effect or accepted a client stamp'; end if;
+  update public.finance_transactions set amount=1500,principal_amount=1300 where id=tx_id;
+  if (select balance from public.wallets where id=debt_id)<>-98700 then raise exception 'Historical financial edit did not reverse recorded effect'; end if;
+  delete from public.finance_transactions where id=tx_id;
+  if (select balance from public.wallets where id=debt_id)<>-100000 or (select balance from public.wallets where id=cash_id)<>100000 then raise exception 'Historical deletion left stranded interest'; end if;
   if not has_function_privilege('authenticated','public.reconcile_recurring_schedules()','execute') then
     raise exception 'Authenticated reconciler grant missing';
   end if;
+  if has_table_privilege('authenticated','public.finance_balance_reconciliations','insert')
+    or has_table_privilege('anon','public.finance_balance_reconciliations','select')
+    or not has_table_privilege('authenticated','public.finance_balance_reconciliations','select') then raise exception 'Reconciliation receipt grants are invalid'; end if;
+  if not exists(select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname='finance_balance_reconciliations' and c.relrowsecurity) then raise exception 'Reconciliation receipts lack RLS'; end if;
 
   payload := jsonb_build_object('title','Card','occurred_at',current_date,'status','planned','kind','debt_payment','amount',1200,'principal_amount',1200,'source_account_id',cash_id,'destination_account_id',card_id);
   result := public.mcp_create_transactions(key_hash,jsonb_build_array(payload));
@@ -112,12 +132,23 @@ begin
     result := public.mcp_get_transactions_for_period(key_hash,future_start,future_start+1,null,null,array[saving_id::text],null,include_context);
     if not exists(select 1 from jsonb_array_elements(result->'transactions') item where item->>'schedule_id'=custom_id::text and item->>'source_allocation_id'=goal_id::text and item->>'destination_allocation_id' is null) then raise exception 'Period RPC lost source goal'; end if;
   end loop;
+  insert into public.finance_balance_reconciliations(id,user_id,wallet_id,before_balance,after_balance,reason)
+    values(gen_random_uuid(),u,debt_id,-100000,-100000,'Synthetic receipt');
+  insert into public.finance_balance_reconciliations(id,user_id,wallet_id,before_balance,after_balance,reason)
+    select gen_random_uuid(),w.user_id,w.id,w.balance,w.balance,'Other synthetic tenant' from public.wallets w where w.user_id<>u limit 1;
   begin
     perform public.mcp_normalize_recurring_schedule(u,payload || '{"bad_field":true,"destination_allocation_id":null}'::jsonb);
     raise exception 'Unknown patch field ignored';
   exception when others then
     if sqlerrm='Unknown patch field ignored' or position('Unsupported recurring schedule fields' in sqlerrm)=0 then raise; end if;
   end;
+end;
+$$;
+set local role authenticated;
+do $$
+begin
+  if exists(select 1 from public.finance_balance_reconciliations where user_id<>auth.uid()) then raise exception 'Reconciliation receipt tenant isolation failed'; end if;
+  if not exists(select 1 from public.finance_balance_reconciliations where user_id=auth.uid()) then raise exception 'Own reconciliation receipt unreadable'; end if;
 end;
 $$;
 rollback;
