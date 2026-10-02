@@ -1,3 +1,4 @@
+import { getTransactionDestinationAmount } from "@/features/transactions/lib/transaction-effects";
 import { addDays, addMonths, format, isAfter, parseISO, startOfDay } from "date-fns";
 
 import { convertMoney } from "@/features/finance/lib/exchange-rates";
@@ -133,7 +134,7 @@ function applyPlannedTransaction(
     balances.set(
       transaction.destination_account_id,
       (balances.get(transaction.destination_account_id) ?? 0) +
-        (transaction.destination_amount ?? transaction.amount),
+        getTransactionDestinationAmount(transaction),
     );
   }
 }
@@ -150,7 +151,7 @@ function toOperation(
     destination_account_id: transaction.destination_account_id,
     source_amount: transaction.source_account_id ? transaction.amount : null,
     destination_amount: transaction.destination_account_id
-      ? transaction.destination_amount ?? transaction.amount
+      ? getTransactionDestinationAmount(transaction)
       : null,
     source_currency: transaction.source_account_id
       ? accountsById.get(transaction.source_account_id)?.currency ?? null

@@ -53,8 +53,8 @@ const preview: Preview = {
       defaultTheme: "light",
     }),
     (Story) => (
-      <AppProviders>
-        <NextIntlClientProvider locale="en" messages={messages} timeZone="Europe/Prague">
+      <NextIntlClientProvider locale="en" messages={messages} timeZone="Europe/Prague">
+        <AppProviders>
           <div>
             <style>
               {`
@@ -84,8 +84,8 @@ const preview: Preview = {
               <Story />
             </div>
           </div>
-        </NextIntlClientProvider>
-      </AppProviders>
+        </AppProviders>
+      </NextIntlClientProvider>
     ),
   ],
 };

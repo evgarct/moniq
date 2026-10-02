@@ -93,7 +93,7 @@ export function ExpenseSection() {
         <BatchItemsSection />
         {savingAllocations.length > 0 && (
           <FormPickerRow>
-            <GoalSelect allocations={savingAllocations} name="allocation_id" />
+            <GoalSelect allocations={savingAllocations} name="source_allocation_id" />
           </FormPickerRow>
         )}
         {investmentFields}
@@ -110,7 +110,7 @@ export function ExpenseSection() {
 
       {savingAllocations.length > 0 && (
         <FormPickerRow>
-          <GoalSelect allocations={savingAllocations} name="allocation_id" />
+          <GoalSelect allocations={savingAllocations} name="source_allocation_id" />
         </FormPickerRow>
       )}
 

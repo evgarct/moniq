@@ -149,7 +149,7 @@ describe("validateTransactionRelationships", () => {
           category_id: "cat-expense",
           source_account_id: "savings",
           destination_account_id: null,
-          allocation_id: "alloc-savings",
+          source_allocation_id: "alloc-savings",
         },
         { accounts, categories, allocations },
       ),
@@ -183,11 +183,11 @@ describe("validateTransactionRelationships", () => {
           category_id: "cat-expense",
           source_account_id: "cash",
           destination_account_id: null,
-          allocation_id: "alloc-savings",
+          source_allocation_id: "alloc-savings",
         },
         { accounts, categories, allocations },
       ),
-    ).toThrow("Expense goal allocation must belong to the source account.");
+    ).toThrow("Source goal allocation must belong to the source account.");
 
     // Invalid: transfer goal doesn't belong to destination account
     expect(() =>

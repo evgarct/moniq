@@ -168,6 +168,7 @@ export function buildSchema(
       if (
         (values.kind === "expense" || values.kind === "transfer") &&
         values.source_account_id &&
+        values.status === "paid" &&
         accounts &&
         allocations
       ) {
@@ -178,7 +179,7 @@ export function buildSchema(
           const freeBefore = wallet.balance - totalAllocated;
           const defaultGoal = walletAllocations.find((a) => a.is_default);
 
-          const specificGoalId = values.kind === "expense" ? values.allocation_id : values.source_allocation_id;
+          const specificGoalId = values.source_allocation_id;
           const specificGoal = specificGoalId ? allocations.find((a) => a.id === specificGoalId) : null;
 
           const sameTransactionSource =
@@ -188,11 +189,7 @@ export function buildSchema(
             transaction.source_account_id === values.source_account_id;
 
           const existingTransactionContribution = sameTransactionSource
-            ? values.kind === "expense"
-              ? (transaction!.allocation_id ?? null) === (values.allocation_id ?? null)
-                ? transaction!.amount
-                : 0
-              : (transaction!.source_allocation_id ?? null) === (values.source_allocation_id ?? null)
+            ? (transaction!.source_allocation_id ?? null) === (values.source_allocation_id ?? null)
                 ? transaction!.amount
                 : 0
             : 0;

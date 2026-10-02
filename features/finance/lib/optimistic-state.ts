@@ -1,3 +1,4 @@
+import { getNextPostedDestinationAmount, getTransactionDestinationAmount } from "@/features/transactions/lib/transaction-effects";
 import { addDays, differenceInCalendarDays, format, parseISO, startOfToday } from "date-fns";
 
 import { normalizeAccountBalance, normalizeCreditLimit } from "@/features/accounts/lib/account-state";
@@ -50,7 +51,7 @@ export function applyPaidTransactionEffect(
   next = updateAccountBalance(
     next,
     transaction.destination_account_id,
-    direction * (transaction.destination_amount ?? transaction.amount),
+    direction * getTransactionDestinationAmount(transaction),
   );
   return next;
 }
@@ -97,7 +98,7 @@ export function syncAllocationsOnTransactionChange(
     currentAllocations = currentAllocations.map((a) => {
       if (a.id === oldTransaction.allocation_id) {
         affectedWallets.add(a.wallet_id);
-        const amountChange = oldTransaction.kind === "expense" ? oldTransaction.amount : -oldTransaction.amount;
+        const amountChange = -oldTransaction.amount;
         return {
           ...a,
           amount: Math.max(0, a.amount + amountChange),
@@ -122,10 +123,7 @@ export function syncAllocationsOnTransactionChange(
     currentAllocations = currentAllocations.map((a) => {
       if (a.id === newTransaction.allocation_id) {
         affectedWallets.add(a.wallet_id);
-        const amountChange = newTransaction.kind === "expense" ? -newTransaction.amount : newTransaction.amount;
-        if (newTransaction.kind === "expense" && roundMoney(a.amount + amountChange) < 0) {
-          throw new Error("Selected goal does not have enough funds for this transaction.");
-        }
+        const amountChange = newTransaction.amount;
         return {
           ...a,
           amount: Math.max(0, a.amount + amountChange),
@@ -336,12 +334,14 @@ export function updateTransaction(snapshot: FinanceSnapshot, transactionId: stri
     interest_amount: values.interest_amount ?? null,
     extra_principal_amount: values.extra_principal_amount ?? null,
     allocation_id: values.allocation_id ?? null,
+    source_allocation_id: values.source_allocation_id ?? null,
     investment_instrument_id: values.investment_instrument_id ?? null,
     investment_units: values.investment_units ?? null,
     is_schedule_override: existing.schedule_id ? true : existing.is_schedule_override,
     ...resolveTransactionRelations(snapshot, values),
   };
   const reversedAccounts = applyPaidTransactionEffect(snapshot.accounts, existing, -1);
+  nextTransaction.posted_destination_amount = getNextPostedDestinationAmount(nextTransaction, existing);
   const snapshotWithBalance = {
     ...snapshot,
     accounts: applyPaidTransactionEffect(reversedAccounts, nextTransaction, 1),
@@ -370,7 +370,7 @@ export function setTransactionStatus(
 ) {
   const existing = snapshot.transactions.find((transaction) => transaction.id === transactionId);
   if (!existing || existing.status === status) return snapshot;
-  const next = { ...existing, status };
+  const next = { ...existing, status, posted_destination_amount: getNextPostedDestinationAmount({ ...existing, status }, existing) };
   const snapshotWithBalance = {
     ...snapshot,
     accounts: applyPaidTransactionEffect(
@@ -413,6 +413,7 @@ export function updateSchedule(
     source_account_id: values.source_account_id ?? null,
     destination_account_id: values.destination_account_id ?? null,
     allocation_id: values.allocation_id ?? null,
+    source_allocation_id: values.source_allocation_id ?? null,
     updated_at: new Date().toISOString(),
     ...relations,
   };
@@ -436,10 +437,12 @@ export function updateSchedule(
             source_account_id: next.source_account_id,
             destination_account_id: next.destination_account_id,
             allocation_id: next.allocation_id,
+            source_allocation_id: next.source_allocation_id ?? null,
             category: next.category,
             source_account: next.source_account,
             destination_account: next.destination_account,
             allocation: next.allocation,
+            source_allocation: next.source_allocation,
             schedule: next,
           }
         : transaction,

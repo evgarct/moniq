@@ -776,10 +776,10 @@ describe("MCP tools", () => {
     });
 
     const body = await response.json();
-    expect(body.error).toMatchObject({
+    expect(body.result).toMatchObject(expectedToolFailure({
       code: -32602,
       message: "start_date and end_date must be provided in YYYY-MM-DD format.",
-    });
+    }));
     expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_get_transactions_for_period", expect.anything());
   });
 
@@ -798,10 +798,10 @@ describe("MCP tools", () => {
     });
 
     const body = await response.json();
-    expect(body.error).toMatchObject({
+    expect(body.result).toMatchObject(expectedToolFailure({
       code: -32602,
       message: "start_date and end_date must be provided in YYYY-MM-DD format.",
-    });
+    }));
     expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_get_transactions_for_period", expect.anything());
   });
 
@@ -820,10 +820,10 @@ describe("MCP tools", () => {
     });
 
     const body = await response.json();
-    expect(body.error).toMatchObject({
+    expect(body.result).toMatchObject(expectedToolFailure({
       code: -32602,
       message: "start_date must be on or before end_date.",
-    });
+    }));
     expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_get_transactions_for_period", expect.anything());
   });
 
@@ -1017,10 +1017,10 @@ describe("MCP tools", () => {
     });
 
     const body = await response.json();
-    expect(body.error).toMatchObject({
+    expect(body.result).toMatchObject(expectedToolFailure({
       code: -32002,
       message: "An active Moniq subscription is required to change data. Read-only tools remain available.",
-    });
+    }));
     expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_create_transactions", expect.anything());
   });
 
@@ -1075,7 +1075,7 @@ describe("MCP tools", () => {
     const base = { title: "Move", status: "paid", amount: 10, occurred_at: "2026-05-21" };
     const cases = [
       { ...base, kind: "transfer", source_account_id: "a", destination_account_id: "b", category_id: "cat-next-safe" },
-      { ...base, kind: "expense", source_account_id: "a", category_id: "cat-food", source_allocation_id: "goal-1" },
+      { ...base, kind: "expense", source_account_id: "a", category_id: "cat-food", destination_allocation_id: "goal-1" },
     ];
 
     for (const transaction of cases) {
@@ -1086,7 +1086,7 @@ describe("MCP tools", () => {
         params: { name: "create_transactions", arguments: { transactions: [transaction] } },
       });
 
-      await expect(response.json()).resolves.toMatchObject({ error: { code: -32602 } });
+      await expect(response.json()).resolves.toMatchObject({ result: expectedToolFailure({ code: -32602 }) });
     }
     expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_create_transactions", expect.anything());
   });
@@ -1098,7 +1098,7 @@ describe("MCP tools", () => {
       if (name === "mcp_lookup_api_key") return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
       if (name === "mcp_get_recurring_transaction_schedules") {
         return Promise.resolve({
-          data: { schedules: [{ id: "schedule-rent", ...STORED_INSURANCE_SCHEDULE, destination_allocation_id: "goal-landlord" }] },
+          data: { schedules: [{ id: "schedule-rent", ...STORED_INSURANCE_SCHEDULE, source_allocation_id: "goal-landlord" }] },
           error: null,
         });
       }
@@ -1118,7 +1118,7 @@ describe("MCP tools", () => {
       p_key_hash: AUTH_KEY_HASH,
       p_expected_updated_at: "2026-09-01T10:00:00.123456+00:00",
       p_schedule_id: "schedule-rent",
-      p_schedule: expect.objectContaining({ kind: "expense", amount: 310, destination_allocation_id: "goal-landlord" }),
+      p_schedule: expect.objectContaining({ kind: "expense", amount: 310, source_allocation_id: "goal-landlord" }),
     });
   });
 
@@ -1147,7 +1147,7 @@ describe("MCP tools", () => {
       },
     });
 
-    await expect(response.json()).resolves.toMatchObject({ error: { code: -32602 } });
+    await expect(response.json()).resolves.toMatchObject({ result: expectedToolFailure({ code: -32602 }) });
     expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_create_transactions", expect.anything());
   });
 
@@ -1314,7 +1314,7 @@ describe("MCP tools", () => {
     ];
     for (const params of cases) {
       const response = await postMcp({ jsonrpc: "2.0", id: "bad-category", method: "tools/call", params });
-      await expect(response.json()).resolves.toMatchObject({ error: { code: -32602 } });
+      await expect(response.json()).resolves.toMatchObject({ result: expectedToolFailure({ code: -32602 }) });
     }
     expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_create_category", expect.anything());
     expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_update_category", expect.anything());
@@ -1365,9 +1365,9 @@ describe("MCP tools", () => {
       method: "tools/call",
       params: { name: "create_category", arguments: { name: "Food", type: "expense" } },
     });
-    const body = (await response.json()) as { error: { message: string } };
+    const body = (await response.json()) as { result: { content: { text: string }[] } };
 
-    expect(body.error.message).toBe('A category named "Food" already exists in this place.');
+    expect(body.result.content[0].text).toBe('A category named "Food" already exists in this place.');
   });
 
   it("returns a month-by-category trend matrix", async () => {
@@ -1400,7 +1400,7 @@ describe("MCP tools", () => {
   it("rejects invalid trend input", async () => {
     for (const args of [{ start_month: "2026-7", end_month: "2026-08" }, { group_by: "nope" }, { start_month: "2025-01", end_month: "2026-08" }]) {
       const response = await postMcp({ jsonrpc: "2.0", id: "bad-trend", method: "tools/call", params: { name: "get_trends", arguments: args } });
-      await expect(response.json()).resolves.toMatchObject({ error: { code: -32602 } });
+      await expect(response.json()).resolves.toMatchObject({ result: expectedToolFailure({ code: -32602 }) });
     }
     expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_get_category_spending_report_source", expect.anything());
   });
@@ -1462,7 +1462,7 @@ describe("MCP tools", () => {
 
     const response = await postMcp({ jsonrpc: "2.0", id: "ctx-fail", method: "tools/call", params: { name: "get_goal_history", arguments: { goal_id: "goal-1" } } });
 
-    await expect(response.json()).resolves.toMatchObject({ error: { code: -32000, message: "connection reset" } });
+    await expect(response.json()).resolves.toMatchObject({ result: expectedToolFailure({ code: -32000, message: "connection reset" }) });
   });
 
   it("rejects goal history for an unknown goal or without an id", async () => {
@@ -1476,7 +1476,7 @@ describe("MCP tools", () => {
 
     for (const args of [{}, { goal_id: "missing" }]) {
       const response = await postMcp({ jsonrpc: "2.0", id: "bad-goal", method: "tools/call", params: { name: "get_goal_history", arguments: args } });
-      await expect(response.json()).resolves.toMatchObject({ error: { code: -32602 } });
+      await expect(response.json()).resolves.toMatchObject({ result: expectedToolFailure({ code: -32602 }) });
     }
   });
 
@@ -1503,10 +1503,10 @@ describe("MCP tools", () => {
     });
 
     const body = await response.json();
-    expect(body.error).toMatchObject({
+    expect(body.result).toMatchObject(expectedToolFailure({
       code: -32602,
       message: expect.stringContaining("category_id"),
-    });
+    }));
     expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_create_transactions", expect.anything());
   });
 
@@ -1524,10 +1524,10 @@ describe("MCP tools", () => {
     });
 
     const body = await response.json();
-    expect(body.error).toMatchObject({
+    expect(body.result).toMatchObject(expectedToolFailure({
       code: -32602,
       message: "Transaction 1 must be an object",
-    });
+    }));
     expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_create_transactions", expect.anything());
   });
 
@@ -1570,10 +1570,10 @@ describe("MCP tools", () => {
     });
 
     await expect(response.json()).resolves.toMatchObject({
-      error: {
+      result: expectedToolFailure({
         code: -32000,
         message: 'Transaction "Coffee" category not found',
-      },
+      }),
     });
   });
 
@@ -1905,7 +1905,7 @@ describe("MCP tools", () => {
     });
 
     await expect(response.json()).resolves.toMatchObject({
-      error: { code: -32602, message: expect.stringContaining(field) },
+      result: expectedToolFailure({ code: -32602, message: expect.stringContaining(field) }),
     });
     expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_create_recurring_transaction_schedule", expect.anything());
   });
@@ -2042,7 +2042,7 @@ describe("MCP tools", () => {
       params: { name: "update_recurring_transaction_schedule", arguments: { schedule_id: "nope", schedule: { amount: 5 } } },
     });
 
-    await expect(response.json()).resolves.toMatchObject({ error: { code: -32602 } });
+    await expect(response.json()).resolves.toMatchObject({ result: expectedToolFailure({ code: -32602 }) });
     expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_update_recurring_transaction_schedule_if_unchanged", expect.anything());
   });
 
@@ -2069,10 +2069,10 @@ describe("MCP tools", () => {
     });
 
     await expect(response.json()).resolves.toMatchObject({
-      error: {
+      result: expectedToolFailure({
         code: -32602,
         message: expect.stringContaining("until_date"),
-      },
+      }),
     });
     expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_create_recurring_transaction_schedule", expect.anything());
   });
@@ -2118,5 +2118,44 @@ describe("MCP tools", () => {
       p_occurrence_date: "2026-05-10",
       p_status: "paid",
     });
+  });
+});
+
+function expectedToolFailure(error: { code: number; message?: unknown }) {
+  return { isError: true, content: [{ type: "text", text: error.message ?? expect.any(String) }] };
+}
+
+describe("MCP reliability regressions", () => {
+  beforeEach(() => { vi.resetAllMocks(); setupAuth(); });
+
+  it("rejects an unknown schedule field atomically, including a neighbouring clear", async () => {
+    mocks.rpc.mockImplementation((name: string) => authRpcResponse(name) ?? Promise.resolve({ data: name === "mcp_get_recurring_transaction_schedules" ? { schedules: [{ id: "s", ...STORED_INSURANCE_SCHEDULE }] } : null, error: null }));
+    const response = await postMcp({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "update_recurring_transaction_schedule", arguments: { schedule_id: "s", schedule: { not_a_field: "goal", destination_allocation_id: null } } } });
+    await expect(response.json()).resolves.toMatchObject({ result: { isError: true, content: [{ text: expect.stringContaining("not_a_field") }] } });
+    expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_update_recurring_transaction_schedule_if_unchanged", expect.anything());
+  });
+
+  it("explains stringified invalid JSON in occurrence values without writing", async () => {
+    const response = await postMcp({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "update_recurring_transaction_occurrence", arguments: { transaction_id: "tx", values: '{"amount":10}]' } } });
+    await expect(response.json()).resolves.toMatchObject({ result: { isError: true, content: [{ text: expect.stringContaining("JSON object") }] } });
+    expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_update_recurring_transaction_occurrence", expect.anything());
+  });
+
+  it("returns a parse error for a malformed transport body", async () => {
+    const response = await POST(new Request("https://moniq.test/api/mcp", { method: "POST", headers: AUTH_HEADERS, body: '{"jsonrpc":"2.0"}]' }));
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({ error: { code: -32700, message: expect.stringContaining("JSON syntax") } });
+  });
+
+  it("rejects unknown occurrence fields without an RPC write", async () => {
+    const response = await postMcp({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "update_recurring_transaction_occurrence", arguments: { transaction_id: "tx", values: { amount: 10, unexpected_goal: "goal" } } } });
+    await expect(response.json()).resolves.toMatchObject({ result: { isError: true, content: [{ text: expect.stringContaining("unexpected_goal") }] } });
+    expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_update_recurring_transaction_occurrence", expect.anything());
+  });
+
+  it("returns an actionable debt destination error in the tool result", async () => {
+    mocks.rpc.mockImplementation((name: string) => authRpcResponse(name) ?? Promise.resolve({ data: null, error: { message: 'Transaction "Card" debt_payment destination must be a debt or credit card wallet' } }));
+    const response = await postMcp({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "create_transactions", arguments: { transactions: [{ title: "Card", kind: "debt_payment", status: "planned", occurred_at: "2026-10-09", amount: 12000, principal_amount: 12000, source_account_id: "cash", destination_account_id: "card" }] } } });
+    await expect(response.json()).resolves.toMatchObject({ result: { isError: true, content: [{ text: "Debt payments must target a debt wallet or credit card." }] } });
   });
 });

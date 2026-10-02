@@ -113,6 +113,8 @@ export type ScheduleIntervalUnit = "day" | "week" | "month";
 export type TransactionScheduleState = "active" | "paused";
 
 export type TransactionSchedule = {
+  source_allocation_id?: string | null;
+  source_allocation?: WalletAllocation | null;
   id: string;
   user_id: string;
   title: string;
@@ -146,6 +148,9 @@ export type TransactionSchedule = {
 };
 
 export type Transaction = {
+  /** Actual destination effect recorded by the ledger, including pre-fix payments. */
+  posted_destination_amount?: number | null;
+  is_explicit_reschedule?: boolean;
   id: string;
   user_id: string;
   title: string;

@@ -9,6 +9,7 @@ import type { TransactionInput } from "@/types/finance-schemas";
  */
 export function buildRescheduleInput(transaction: Transaction, newDate: string): TransactionInput {
   return {
+    is_explicit_reschedule: true,
     title: transaction.title,
     note: transaction.note,
     occurred_at: newDate,

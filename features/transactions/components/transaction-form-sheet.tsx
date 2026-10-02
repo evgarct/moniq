@@ -325,7 +325,10 @@ export function TransactionFormSheet({
   const handleOnlyThis = () => {
     if (!pendingChange) return;
     setPendingChange(null);
-    onSubmit(pendingChange.payload);
+    onSubmit({ ...pendingChange.payload, values: {
+      ...pendingChange.payload.values,
+      ...(pendingChange.changes.occurred_at ? { is_explicit_reschedule: true } : {}),
+    } });
     onOpenChange(false);
   };
 

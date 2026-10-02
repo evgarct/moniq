@@ -131,23 +131,19 @@ export function validateTransactionRelationships(
       throw new Error("Goal allocation not found.");
     }
 
-    if (values.kind === "expense") {
-      if (allocation.wallet_id !== values.source_account_id) {
-        throw new Error("Expense goal allocation must belong to the source account.");
-      }
-    } else if (values.kind === "transfer") {
+    if (values.kind === "transfer" || values.kind === "income") {
       if (allocation.wallet_id !== values.destination_account_id) {
         throw new Error("Transfer goal allocation must belong to the destination account.");
       }
     } else {
-      throw new Error("Goal allocations are only supported for expenses and transfers.");
+      throw new Error("Destination goals are only supported for income and transfers.");
     }
   }
 
   let sourceGoal: WalletAllocation | null = null;
   if (values.source_allocation_id) {
-    if (values.kind !== "transfer") {
-      throw new Error("A source goal can only be selected for transfers.");
+    if (values.kind !== "transfer" && values.kind !== "expense") {
+      throw new Error("A source goal can only be selected for expenses and transfers.");
     }
     if (!options.allocations) {
       throw new Error("Allocations not loaded.");
@@ -164,7 +160,7 @@ export function validateTransactionRelationships(
     }
   }
 
-  if ((values.kind === "expense" || values.kind === "transfer") && sourceAccount?.type === "saving") {
+  if (values.status === "paid" && (values.kind === "expense" || values.kind === "transfer") && sourceAccount?.type === "saving") {
     const sameTransactionSource =
       options.transaction &&
       options.transaction.status === "paid" &&
@@ -172,20 +168,12 @@ export function validateTransactionRelationships(
       options.transaction.source_account_id === values.source_account_id;
 
     const existingContribution = sameTransactionSource
-      ? values.kind === "expense"
-        ? (options.transaction!.allocation_id ?? null) === (values.allocation_id ?? null)
-          ? options.transaction!.amount
-          : 0
-        : (options.transaction!.source_allocation_id ?? null) === (values.source_allocation_id ?? null)
+      ? (options.transaction!.source_allocation_id ?? null) === (values.source_allocation_id ?? null)
           ? options.transaction!.amount
           : 0
       : 0;
 
-    // For "expense", allocation_id is the source goal; for "transfer", source_allocation_id is.
-    const effectiveSourceGoal =
-      values.kind === "expense"
-        ? options.allocations?.find((a) => a.id === values.allocation_id) ?? null
-        : sourceGoal;
+    const effectiveSourceGoal = sourceGoal;
 
     if (effectiveSourceGoal) {
       const maxAllowed = effectiveSourceGoal.amount + existingContribution;

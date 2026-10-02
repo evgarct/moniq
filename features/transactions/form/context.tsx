@@ -141,7 +141,7 @@ function makeDefaults({
     source_account_id: schedule?.source_account_id ?? transaction?.source_account_id ?? defaultSourceId,
     destination_account_id: schedule?.destination_account_id ?? transaction?.destination_account_id ?? defaultDestId,
     allocation_id: schedule?.allocation_id ?? transaction?.allocation_id ?? null,
-    source_allocation_id: transaction?.source_allocation_id ?? null,
+    source_allocation_id: schedule?.source_allocation_id ?? transaction?.source_allocation_id ?? null,
     investment_instrument_id: transaction?.investment_instrument_id ?? initialInvestmentInstrumentId ?? null,
     investment_units: transaction?.investment_units ?? null,
     is_recurring: mode === "edit-schedule",
@@ -268,22 +268,21 @@ export function TransactionFormProvider({
 
   const isBatchMode = mode === "add" && supportsBatchItems(kind) && !investmentInstrumentId;
 
+  const sourceAllocationId = useWatch({ control: form.control, name: "source_allocation_id" });
   useEffect(() => {
-    if (!allocationId) return;
-    const allocation = allocations.find((item) => item.id === allocationId);
-    if (kind === "transfer") {
-      const dest = accounts.find((account) => account.id === destinationAccountId);
-      if (dest?.type !== "saving" || allocation?.wallet_id !== dest.id) {
-        form.setValue("allocation_id", null, { shouldDirty: true, shouldValidate: true });
-        form.setValue("category_id", null, { shouldDirty: true, shouldValidate: true });
-      }
-    } else {
-      const source = accounts.find((account) => account.id === sourceAccountId);
-      if (source?.type !== "saving" || allocation?.wallet_id !== source.id) {
+    if (allocationId) {
+      const goal = allocations.find((item) => item.id === allocationId);
+      if ((kind !== "transfer" && kind !== "income") || goal?.wallet_id !== destinationAccountId) {
         form.setValue("allocation_id", null, { shouldDirty: true, shouldValidate: true });
       }
     }
-  }, [accounts, allocationId, allocations, form, sourceAccountId, destinationAccountId, kind]);
+    if (sourceAllocationId) {
+      const goal = allocations.find((item) => item.id === sourceAllocationId);
+      if ((kind !== "expense" && kind !== "transfer") || goal?.wallet_id !== sourceAccountId) {
+        form.setValue("source_allocation_id", null, { shouldDirty: true, shouldValidate: true });
+      }
+    }
+  }, [allocationId, sourceAllocationId, allocations, form, sourceAccountId, destinationAccountId, kind]);
 
   // clear a stray category when a transfer's goal allocation is cleared directly
   useEffect(() => {

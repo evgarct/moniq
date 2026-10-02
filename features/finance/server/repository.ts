@@ -8,10 +8,8 @@ import {
   assertCategoryUpdateAllowed,
 } from "@/features/categories/lib/category-mutations";
 import { validateCategoryHierarchy } from "@/features/categories/lib/category-tree";
-import { getFinanceSnapshotScheduleHorizon } from "@/features/finance/server/snapshot-horizon";
 import { resolveUserPreferences } from "@/features/finance/lib/preferences";
 import { getCachedExchangeRates } from "@/features/finance/server/fx-repository";
-import { generateScheduleOccurrences } from "@/features/transactions/lib/transaction-schedules";
 import { validateTransactionRelationships } from "@/features/transactions/lib/transaction-utils";
 import { recordPerformanceEvent } from "@/lib/performance/server";
 import { createClient } from "@/lib/supabase/server";
@@ -57,6 +55,7 @@ type CategoryRow = {
 };
 
 type TransactionRow = {
+  posted_destination_amount: number | string | null;
   id: string;
   user_id: string;
   title: string;
@@ -77,6 +76,7 @@ type TransactionRow = {
   schedule_id: string | null;
   schedule_occurrence_date: string | null;
   is_schedule_override: boolean | null;
+  is_explicit_reschedule: boolean;
   allocation_id: string | null;
   source_allocation_id: string | null;
   linked_transaction_id: string | null;
@@ -98,6 +98,7 @@ type InvestmentQuoteRow = {
 };
 
 type TransactionScheduleRow = {
+  source_allocation_id: string | null;
   id: string;
   user_id: string;
   title: string;
@@ -192,6 +193,8 @@ function mapSchedule(
     source_account_id: row.source_account_id,
     destination_account_id: row.destination_account_id,
     allocation_id: row.allocation_id ?? null,
+    source_allocation_id: row.source_allocation_id ?? null,
+    source_allocation: row.source_allocation_id ? options.allocationsById.get(row.source_allocation_id) ?? null : null,
     category: row.category_id ? options.categoriesById.get(row.category_id) ?? null : null,
     source_account: row.source_account_id ? options.accountsById.get(row.source_account_id) ?? null : null,
     destination_account: row.destination_account_id ? options.accountsById.get(row.destination_account_id) ?? null : null,
@@ -219,6 +222,7 @@ function buildTransactionInputFromSchedule(
     | "source_account_id"
     | "destination_account_id"
     | "allocation_id"
+    | "source_allocation_id"
   > & { occurred_at: string; status?: Transaction["status"] },
 ): TransactionInput {
   return {
@@ -237,7 +241,7 @@ function buildTransactionInputFromSchedule(
     source_account_id: schedule.source_account_id,
     destination_account_id: schedule.destination_account_id,
     allocation_id: schedule.allocation_id,
-    source_allocation_id: null,
+    source_allocation_id: schedule.source_allocation_id ?? null,
     investment_instrument_id: null,
     investment_units: null,
   };
@@ -337,140 +341,6 @@ function getScheduleValidationError(
   }
 }
 
-async function reconcileTransactionSchedule(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  userId: string,
-  schedule: TransactionSchedule,
-  existingRows: TransactionRow[],
-  horizonStart: string,
-  horizonEnd: string,
-) {
-  const expectedDates = new Set(
-    generateScheduleOccurrences(schedule, horizonStart, horizonEnd).map((occurrence) => occurrence.occurrenceDate),
-  );
-  const rowsByOccurrenceDate = new Map(
-    existingRows
-      .filter((row) => row.schedule_occurrence_date)
-      .map((row) => [row.schedule_occurrence_date!, row]),
-  );
-  const inserts: Record<string, unknown>[] = [];
-  const refreshIds: string[] = [];
-
-  for (const occurrenceDate of expectedDates) {
-    const existing = rowsByOccurrenceDate.get(occurrenceDate);
-    if (!existing) {
-      inserts.push({
-        user_id: userId,
-        title: schedule.title.trim(),
-        note: schedule.note,
-        occurred_at: occurrenceDate,
-        status: "planned",
-        kind: schedule.kind,
-        amount: schedule.amount,
-        destination_amount: schedule.destination_amount,
-        fx_rate: schedule.fx_rate,
-        principal_amount: schedule.principal_amount,
-        interest_amount: schedule.interest_amount,
-        extra_principal_amount: schedule.extra_principal_amount,
-        category_id: schedule.category_id,
-        source_account_id: schedule.source_account_id,
-        destination_account_id: schedule.destination_account_id,
-        allocation_id: schedule.allocation_id ?? null,
-        schedule_id: schedule.id,
-        schedule_occurrence_date: occurrenceDate,
-        is_schedule_override: false,
-      });
-      continue;
-    }
-
-    if (existing.status === "planned" && !existing.is_schedule_override) {
-      refreshIds.push(existing.id);
-    }
-  }
-
-  if (refreshIds.length) {
-    const { error } = await supabase
-      .from("finance_transactions")
-      .update({
-        title: schedule.title.trim(),
-        note: schedule.note,
-        kind: schedule.kind,
-        amount: schedule.amount,
-        destination_amount: schedule.destination_amount,
-        fx_rate: schedule.fx_rate,
-        principal_amount: schedule.principal_amount,
-        interest_amount: schedule.interest_amount,
-        extra_principal_amount: schedule.extra_principal_amount,
-        category_id: schedule.category_id,
-        source_account_id: schedule.source_account_id,
-        destination_account_id: schedule.destination_account_id,
-        allocation_id: schedule.allocation_id ?? null,
-      })
-      .in("id", refreshIds)
-      .eq("user_id", userId);
-
-    if (error) {
-      throw new Error(normalizeFinanceRepositoryError(error));
-    }
-  }
-
-  const rowsToDelete = existingRows.filter((row) => {
-    if (!row.schedule_occurrence_date) {
-      return false;
-    }
-
-    if (row.status !== "planned" || row.is_schedule_override) {
-      return false;
-    }
-
-    return !expectedDates.has(row.schedule_occurrence_date);
-  });
-
-  if (rowsToDelete.length) {
-    const { error } = await supabase
-      .from("finance_transactions")
-      .delete()
-      .eq("user_id", userId)
-      .in(
-        "id",
-        rowsToDelete.map((row) => row.id),
-      );
-
-    if (error) {
-      throw new Error(normalizeFinanceRepositoryError(error));
-    }
-  }
-
-  if (inserts.length) {
-    const { error } = await supabase.from("finance_transactions").insert(inserts);
-    if (error) {
-      throw new Error(normalizeFinanceRepositoryError(error));
-    }
-  }
-}
-
-async function pruneScheduleOccurrencesBeyondHorizon(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  userId: string,
-  scheduleIds: string[],
-  horizonEnd: string,
-) {
-  if (!scheduleIds.length) return;
-
-  const { error } = await supabase
-    .from("finance_transactions")
-    .delete()
-    .eq("user_id", userId)
-    .in("schedule_id", scheduleIds)
-    .eq("status", "planned")
-    .eq("is_schedule_override", false)
-    .gt("schedule_occurrence_date", horizonEnd);
-
-  if (error) {
-    throw new Error(normalizeFinanceRepositoryError(error));
-  }
-}
-
 export async function getFinanceSnapshot(
   { reconcileSchedules = false }: { reconcileSchedules?: boolean } = {},
 ): Promise<FinanceSnapshot> {
@@ -500,7 +370,7 @@ export async function getFinanceSnapshot(
     supabase
       .from("finance_transaction_schedules")
       .select(
-        "id, user_id, title, note, start_date, frequency, interval_count, interval_unit, until_date, state, kind, amount, destination_amount, fx_rate, principal_amount, interest_amount, extra_principal_amount, category_id, source_account_id, destination_account_id, allocation_id, created_at, updated_at, sync_version",
+        "id, user_id, title, note, start_date, frequency, interval_count, interval_unit, until_date, state, kind, amount, destination_amount, fx_rate, principal_amount, interest_amount, extra_principal_amount, category_id, source_account_id, destination_account_id, allocation_id, source_allocation_id, created_at, updated_at, sync_version",
       )
       .eq("user_id", user.id)
       .order("created_at", { ascending: false }),
@@ -575,56 +445,9 @@ export async function getFinanceSnapshot(
     }),
   }));
 
-  const { horizonStart, horizonEnd } = getFinanceSnapshotScheduleHorizon();
-
-  const scheduleIds = validatedSchedules.map((schedule) => schedule.id);
-  const activeScheduleIds = validatedSchedules
-    .filter((schedule) => schedule.state === "active" && !schedule.validation_error)
-    .map((schedule) => schedule.id);
-
-  let existingScheduleTransactions: TransactionRow[] = [];
-
   if (reconcileSchedules) {
-    await pruneScheduleOccurrencesBeyondHorizon(supabase, user.id, scheduleIds, horizonEnd);
-
-    if (activeScheduleIds.length) {
-    phaseStartedAt = performance.now();
-    const { data, error } = await supabase
-      .from("finance_transactions")
-      .select(
-        "id, user_id, title, note, occurred_at, created_at, status, kind, amount, destination_amount, fx_rate, principal_amount, interest_amount, extra_principal_amount, category_id, source_account_id, destination_account_id, schedule_id, schedule_occurrence_date, is_schedule_override, allocation_id, source_allocation_id, linked_transaction_id, system_generated, investment_instrument_id, investment_units, sync_version",
-      )
-      .eq("user_id", user.id)
-      .in("schedule_id", activeScheduleIds)
-      .gte("schedule_occurrence_date", horizonStart)
-      .lte("schedule_occurrence_date", horizonEnd);
-
-    if (error) {
-      throw new Error(normalizeFinanceRepositoryError(error));
-    }
-
-    existingScheduleTransactions = (data ?? []) as TransactionRow[];
-    recordSnapshotPhase(user.id, "schedule_tx_read", phaseStartedAt, {
-      existing_schedule_rows: existingScheduleTransactions.length,
-    });
-
-    phaseStartedAt = performance.now();
-    await Promise.all(
-      validatedSchedules
-        .filter((s) => s.state === "active" && !s.validation_error)
-        .map((s) =>
-          reconcileTransactionSchedule(
-            supabase,
-            user.id,
-            s,
-            existingScheduleTransactions.filter((row) => row.schedule_id === s.id),
-            horizonStart,
-            horizonEnd,
-          ),
-        ),
-    );
-    recordSnapshotPhase(user.id, "reconcile", phaseStartedAt, { active_schedules: activeScheduleIds.length });
-    }
+    const { error } = await supabase.rpc("reconcile_recurring_schedules");
+    if (error) throw new Error(normalizeFinanceRepositoryError(error));
   }
 
   const transactionCutoff = format(subMonths(startOfToday(), 12), "yyyy-MM-dd");
@@ -633,7 +456,7 @@ export async function getFinanceSnapshot(
   const { data: transactions, error: transactionError } = await supabase
     .from("finance_transactions")
     .select(
-      "id, user_id, title, note, occurred_at, created_at, status, kind, amount, destination_amount, fx_rate, principal_amount, interest_amount, extra_principal_amount, category_id, source_account_id, destination_account_id, schedule_id, schedule_occurrence_date, is_schedule_override, allocation_id, source_allocation_id, linked_transaction_id, system_generated, investment_instrument_id, investment_units, sync_version",
+      "id, user_id, title, note, occurred_at, created_at, status, kind, amount, destination_amount, posted_destination_amount, fx_rate, principal_amount, interest_amount, extra_principal_amount, category_id, source_account_id, destination_account_id, schedule_id, schedule_occurrence_date, is_schedule_override, is_explicit_reschedule, allocation_id, source_allocation_id, linked_transaction_id, system_generated, investment_instrument_id, investment_units, sync_version",
     )
     .eq("user_id", user.id)
     .or(`occurred_at.gte.${transactionCutoff},status.eq.planned,investment_instrument_id.not.is.null`)
@@ -719,6 +542,8 @@ export async function getFinanceSnapshot(
       schedule_id: row.schedule_id,
       schedule_occurrence_date: row.schedule_occurrence_date,
       is_schedule_override: row.is_schedule_override ?? false,
+      is_explicit_reschedule: row.is_explicit_reschedule ?? false,
+      posted_destination_amount: row.posted_destination_amount == null ? null : Number(row.posted_destination_amount),
       category: row.category_id ? categoriesById.get(row.category_id) ?? null : null,
       source_account: row.source_account_id ? accountsById.get(row.source_account_id) ?? null : null,
       destination_account: row.destination_account_id ? accountsById.get(row.destination_account_id) ?? null : null,
@@ -1271,6 +1096,7 @@ export async function createTransactionSchedule(values: TransactionScheduleInput
     source_account_id: values.source_account_id ?? null,
     destination_account_id: values.destination_account_id ?? null,
     allocation_id: values.allocation_id ?? null,
+    source_allocation_id: values.source_allocation_id ?? null,
     occurred_at: values.occurred_at,
   });
 
@@ -1298,6 +1124,7 @@ export async function createTransactionSchedule(values: TransactionScheduleInput
     source_account_id: values.source_account_id,
     destination_account_id: values.destination_account_id,
     allocation_id: values.allocation_id ?? null,
+    source_allocation_id: values.source_allocation_id ?? null,
   });
 
   if (error) {
@@ -1319,6 +1146,7 @@ export async function updateTransaction(transactionId: string, values: Transacti
   validateTransactionRelationships(values, { ...snapshot, transaction: existing });
 
   const updateFields: Record<string, unknown> = {
+    ...(values.is_explicit_reschedule !== undefined ? { is_explicit_reschedule: values.is_explicit_reschedule } : {}),
     title: values.title.trim(),
     note: values.note,
     occurred_at: values.occurred_at,
@@ -1380,6 +1208,7 @@ export async function updateTransactionSchedule(scheduleId: string, values: Tran
       destination_account_id: values.destination_account_id ?? null,
       allocation_id: values.allocation_id ?? null,
       occurred_at: values.occurred_at,
+      source_allocation_id: values.source_allocation_id ?? null,
     }),
     snapshot,
   );
@@ -1405,6 +1234,7 @@ export async function updateTransactionSchedule(scheduleId: string, values: Tran
       source_account_id: values.source_account_id,
       destination_account_id: values.destination_account_id,
       allocation_id: values.allocation_id ?? null,
+      source_allocation_id: values.source_allocation_id ?? null,
     })
     .eq("id", scheduleId)
     .eq("user_id", user.id);
@@ -1566,62 +1396,7 @@ export async function rescheduleScheduleFromDate(
   fromOccurrenceDate: string,
   newOccurrenceDate: string,
 ) {
-  const { supabase, user } = await getAuthenticatedSupabase();
-  const snapshot = await getFinanceSnapshot();
-  const schedule = snapshot.schedules.find((s) => s.id === scheduleId);
-
-  if (!schedule) {
-    throw new Error("Schedule not found.");
-  }
-
-  // Shift the schedule anchor by the same offset as the date change
-  const offsetDays = differenceInCalendarDays(parseISO(newOccurrenceDate), parseISO(fromOccurrenceDate));
-  const newStartDate = format(addDays(parseISO(schedule.start_date), offsetDays), "yyyy-MM-dd");
-
-  const { error: scheduleError } = await supabase
-    .from("finance_transaction_schedules")
-    .update({ start_date: newStartDate })
-    .eq("id", scheduleId)
-    .eq("user_id", user.id);
-
-  if (scheduleError) {
-    throw new Error(normalizeFinanceRepositoryError(scheduleError));
-  }
-
-  // Delete all non-overridden planned occurrences from the original date onwards
-  // so the reconciler regenerates them at the shifted dates
-  const { error: deleteNonOverrideError } = await supabase
-    .from("finance_transactions")
-    .delete()
-    .eq("user_id", user.id)
-    .eq("schedule_id", scheduleId)
-    .eq("status", "planned")
-    .eq("is_schedule_override", false)
-    .gte("occurred_at", fromOccurrenceDate);
-
-  if (deleteNonOverrideError) {
-    throw new Error(normalizeFinanceRepositoryError(deleteNonOverrideError));
-  }
-
-  // Also delete override occurrences whose schedule slot is on or after the pivot date.
-  // The "all following" flow first marks the edited occurrence as an override (via
-  // updateTransaction), then calls this function. Without this delete the override
-  // would survive, the reconciler would also regenerate a planned row for the same
-  // slot, and the user would see duplicate transactions.
-  const { error: deleteOverrideError } = await supabase
-    .from("finance_transactions")
-    .delete()
-    .eq("user_id", user.id)
-    .eq("schedule_id", scheduleId)
-    .eq("status", "planned")
-    .eq("is_schedule_override", true)
-    .gte("schedule_occurrence_date", fromOccurrenceDate);
-
-  if (deleteOverrideError) {
-    throw new Error(normalizeFinanceRepositoryError(deleteOverrideError));
-  }
-
-  await getFinanceSnapshot({ reconcileSchedules: true });
+  await applyRecurringOccurrenceChanges(scheduleId, fromOccurrenceDate, { occurred_at: newOccurrenceDate });
 }
 
 export async function deleteTransaction(transactionId: string) {

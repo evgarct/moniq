@@ -427,6 +427,23 @@ export const SavingsGoalExpense: Story = {
   ),
 };
 
+export const EditExpenseFromSourceGoal: Story = {
+  render: () => (
+    <StorySurface>
+      <TransactionFormSheet
+        open
+        mode="edit-transaction"
+        transaction={{ ...defaultTransaction, kind: "expense", source_account_id: savingsAccount.id, source_account: savingsAccount, allocation_id: null, source_allocation_id: "story-source-goal" }}
+        accounts={snapshot.accounts}
+        categories={snapshot.categories}
+        allocations={[{ id: "story-source-goal", user_id: savingsAccount.user_id, wallet_id: savingsAccount.id, name: "Rent reserve", kind: "goal_open", amount: 50000, target_amount: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }]}
+        onOpenChange={() => {}}
+        onSubmit={() => {}}
+      />
+    </StorySurface>
+  ),
+};
+
 export const InvestmentPurchase: Story = {
   render: () => (
     <StorySurface>

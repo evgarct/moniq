@@ -1,4 +1,12 @@
 const FINANCE_ERROR_KEYS = {
+  "source_allocation_id must belong to the source savings wallet": "mcp.errors.sourceGoalWallet",
+  "Expenses use source_allocation_id; debt payments cannot use goals": "mcp.errors.expenseGoalSource",
+  "A source goal can only be selected for expenses and transfers.": "common.errors.transaction.sourceGoalTransferOnly",
+  "Destination goals are only supported for income and transfers.": "mcp.errors.expenseGoalSource",
+  "Occurrence date is outside its schedule period; explicitly reschedule this occurrence first": "mcp.errors.occurrencePeriod",
+  "Recurring occurrence slot cannot change outside a series reschedule": "mcp.errors.occurrenceIdentity",
+  "Debt payment amount must equal principal + interest + extra principal": "transactions.form.validation.debtBreakdownMismatch",
+  "Debt payment must target a debt or credit card wallet": "mcp.errors.debtDestination",
   Unauthorized: "common.errors.unauthorized",
   "Mutation access requires an active Moniq subscription.": "common.errors.billing.subscriptionRequired",
   "Unable to load finance data.": "common.errors.finance.load",

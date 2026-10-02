@@ -1,5 +1,7 @@
 # Recurring transaction editing
 
+Materialization, stable occurrence identity, explicit rescheduling and source-goal semantics are specified in [Debt and recurring reliability](debt-recurring-reliability.md).
+
 ## Cadence
 
 A schedule repeats "every N days / weeks / months", stored as `interval_count` + `interval_unit`. The form offers the presets (daily, weekly, monthly, every 3 months, yearly) and **Custom…**, which reveals a number and a unit (for example every 9 days, or every 3 months). Month-based cadences keep the first occurrence's day of month and clamp to the end of shorter months (31 Jan → 30 Apr with a 3-month cadence). The same cadence is available through the MCP recurring-transaction tools (`create/get/update/delete_recurring_transaction_schedule` and their aliases) as `frequency: "custom"` with `interval_count` and `interval_unit`.

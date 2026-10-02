@@ -255,9 +255,11 @@ interface DirectTransactionItem {
   destination_account_id?: unknown;
   destination_allocation_id?: unknown;
   source_allocation_id?: unknown;
+  is_explicit_reschedule?: unknown;
 }
 
 interface RecurringScheduleItem {
+  source_allocation_id?: unknown;
   title?: unknown;
   note?: unknown;
   start_date?: unknown;
@@ -305,6 +307,7 @@ type CategoryRow = {
 };
 
 type TransactionRow = {
+  posted_destination_amount?: number | string | null;
   id: string;
   user_id: string;
   title: string;
@@ -408,9 +411,10 @@ function directTransactionProperties() {
     extra_principal_amount: { type: ["number", "null"], title: "Extra principal", description: "Debt payment extra principal component." },
     category_id: { type: ["string", "null"], title: "Category", description: "Required selectable category ID for income/expense. Optional expense category for debt payment interest. For transfers, an expense category is allowed only together with destination_allocation_id (transfer into a savings goal). In user-facing confirmation, describe this by category path from get_finance_context." },
     source_account_id: { type: ["string", "null"], title: "From wallet", description: "Required source wallet ID for expense, transfer, and debt payment. In user-facing confirmation, describe this by wallet name from get_finance_context." },
-    destination_account_id: { type: ["string", "null"], title: "To wallet", description: "Required destination wallet ID for income, transfer, and debt payment. Debt payment destination must be a debt wallet. In user-facing confirmation, describe this by wallet name from get_finance_context." },
-    destination_allocation_id: { type: ["string", "null"], title: "Goal", description: "Savings goal ID (from get_finance_context) of the wallet that holds the money: the goal a transfer or income goes into, or the goal an expense is paid from (a goal of the source wallet). Not supported on debt payments. On update, omit to keep the current goal and send null to clear it." },
-    source_allocation_id: { type: ["string", "null"], title: "From goal", description: "Transfers only: savings goal ID of the source wallet that the transfer takes the money from. On update, omit to keep the current goal and send null to clear it." },
+    destination_account_id: { type: ["string", "null"], title: "To wallet", description: "Required destination wallet ID for income, transfer, and debt payment. Debt payment destination must be a debt or credit card wallet. In user-facing confirmation, describe this by wallet name from get_finance_context." },
+    destination_allocation_id: { type: ["string", "null"], title: "Goal", description: "Savings goal ID (from get_finance_context) of the wallet that holds the money: the goal a transfer or income goes into. Expenses use source_allocation_id. Not supported on debt payments. On update, omit to keep the current goal and send null to clear it." },
+    source_allocation_id: { type: ["string", "null"], title: "From goal", description: "Expenses and transfers: savings goal ID of the source wallet that the transfer takes the money from. On update, omit to keep the current goal and send null to clear it." },
+    is_explicit_reschedule: { type: "boolean", description: "Explicitly move one recurring occurrence into another schedule period while preserving its original slot." },
   };
 }
 
@@ -592,10 +596,11 @@ function recurringScheduleProperties(options: { partial?: boolean } = {}) {
       category_id: { type: ["string", "null"], title: "Category" },
       source_account_id: { type: ["string", "null"], title: "From wallet" },
       destination_account_id: { type: ["string", "null"], title: "To wallet" },
+      source_allocation_id: { type: ["string", "null"], title: "From goal", description: "Expenses and transfers: goal of the source savings wallet. Omit on patch to preserve it, null clears it." },
       destination_allocation_id: {
         type: ["string", "null"],
         title: "Goal",
-        description: "Savings goal ID of the wallet that holds the money: the goal each transfer or income occurrence goes into, or the goal an expense is paid from. Not supported on debt payments. A category_id on a transfer needs it. Recurring schedules cannot draw a transfer from a source goal.",
+        description: "Goal that each transfer or income occurrence goes into. Expenses use source_allocation_id. Debt payments cannot use goals. A category_id on a transfer needs a destination goal.",
       },
     },
   };
@@ -1485,6 +1490,7 @@ function mapTransaction(
     schedule_id: row.schedule_id,
     schedule_occurrence_date: row.schedule_occurrence_date,
     is_schedule_override: row.is_schedule_override ?? false,
+    posted_destination_amount: row.posted_destination_amount == null ? null : Number(row.posted_destination_amount),
     allocation_id: row.allocation_id ?? null,
     category: row.category_id ? options.categoriesById.get(row.category_id) ?? null : null,
     source_account: row.source_account_id ? options.accountsById.get(row.source_account_id) ?? null : null,
@@ -1938,6 +1944,8 @@ function validateDirectTransaction(
   mode: "create" | "update" = "create",
 ): string | null {
   if (!isRecord(tx)) return `Transaction ${index + 1} must be an object`;
+  const unsupported = Object.keys(tx).filter((key) => !(key in directTransactionProperties()));
+  if (unsupported.length) return t("mcp.errors.unsupportedFields", { fields: unsupported.join(", ") });
 
   const label = typeof tx.title === "string" && tx.title.trim() ? tx.title.trim() : `transaction ${index + 1}`;
 
@@ -1962,6 +1970,7 @@ function validateDirectTransaction(
   }
 
   if (tx.kind === "expense") {
+    if (optionalString(tx.destination_allocation_id)) return t("mcp.errors.expenseGoalSource");
     if (!optionalString(tx.source_account_id)) return `Transaction "${label}" expense must include source_account_id`;
     if (!optionalString(tx.category_id)) return `Transaction "${label}" expense must include category_id`;
     if (optionalString(tx.destination_account_id)) return `Transaction "${label}" expense must not include destination_account_id`;
@@ -1975,7 +1984,7 @@ function validateDirectTransaction(
     if (optionalString(tx.category_id) && !optionalString(tx.destination_allocation_id) && !goalOmittedOnUpdate) {
       return t("mcp.errors.transferCategoryNeedsGoal", { label });
     }
-  } else if (optionalString(tx.source_allocation_id)) {
+  } else if (tx.kind !== "expense" && optionalString(tx.source_allocation_id)) {
     return t("mcp.errors.allocationsTransferOnly", { label });
   }
 
@@ -2025,6 +2034,7 @@ function validateRecurringSchedule(schedule: unknown, t: McpTranslator, labelPre
     return `${labelPrefix} "${label}" until_date must be on or after start_date`;
   }
   if (!isKind(schedule.kind)) return `${labelPrefix} "${label}" kind must be one of income, expense, transfer, debt_payment`;
+  if (schedule.kind !== "expense" && schedule.kind !== "transfer" && "source_allocation_id" in schedule && schedule.source_allocation_id != null) return t("mcp.errors.allocationsTransferOnly", { label });
   if (schedule.note != null && typeof schedule.note !== "string") return `${labelPrefix} "${label}" note must be a string or null`;
 
   if (schedule.destination_amount != null && !isPositiveNumber(schedule.destination_amount)) {
@@ -2041,6 +2051,7 @@ function validateRecurringSchedule(schedule: unknown, t: McpTranslator, labelPre
   }
 
   if (schedule.kind === "expense") {
+    if (optionalString(schedule.destination_allocation_id)) return t("mcp.errors.expenseGoalSource");
     if (!optionalString(schedule.source_account_id)) return `${labelPrefix} "${label}" expense must include source_account_id`;
     if (!optionalString(schedule.category_id)) return `${labelPrefix} "${label}" expense must include category_id`;
     if (optionalString(schedule.destination_account_id)) return `${labelPrefix} "${label}" expense must not include destination_account_id`;
@@ -2078,6 +2089,7 @@ function validateRecurringSchedule(schedule: unknown, t: McpTranslator, labelPre
 
 function normalizeDirectTransaction(tx: DirectTransactionItem) {
   return {
+    ...(typeof tx.is_explicit_reschedule === "boolean" ? { is_explicit_reschedule: tx.is_explicit_reschedule } : {}),
     title: (tx.title as string).trim(),
     note: optionalString(tx.note),
     occurred_at: tx.occurred_at,
@@ -2094,7 +2106,7 @@ function normalizeDirectTransaction(tx: DirectTransactionItem) {
     destination_account_id: tx.kind === "expense" ? null : optionalString(tx.destination_account_id),
     // Omitted goal ids stay omitted so an update keeps the stored goal; null clears it.
     ...("destination_allocation_id" in tx ? { destination_allocation_id: optionalString(tx.destination_allocation_id) } : {}),
-    ...(tx.kind === "transfer" && "source_allocation_id" in tx ? { source_allocation_id: optionalString(tx.source_allocation_id) } : {}),
+    ...((tx.kind === "transfer" || tx.kind === "expense") && "source_allocation_id" in tx ? { source_allocation_id: optionalString(tx.source_allocation_id) } : {}),
   };
 }
 
@@ -2118,6 +2130,7 @@ function normalizeRecurringSchedule(schedule: RecurringScheduleItem) {
     source_account_id: schedule.kind === "income" ? null : optionalString(schedule.source_account_id),
     destination_account_id: schedule.kind === "expense" ? null : optionalString(schedule.destination_account_id),
     destination_allocation_id: optionalString(schedule.destination_allocation_id),
+    source_allocation_id: optionalString(schedule.source_allocation_id),
   };
 }
 
@@ -2506,6 +2519,7 @@ const RECURRING_SCHEDULE_PATCH_KEYS = [
   "source_account_id",
   "destination_account_id",
   "destination_allocation_id",
+  "source_allocation_id",
 ] as const;
 
 async function fetchRecurringSchedule(keyHash: string, scheduleId: string): Promise<Record<string, unknown> | null> {
@@ -2590,6 +2604,8 @@ async function handleUpdateRecurringSchedule(
     return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.scheduleNotFound", { scheduleId }) } };
   }
 
+  const unsupported = Object.keys(args.schedule).filter((key) => !RECURRING_SCHEDULE_PATCH_KEYS.includes(key as typeof RECURRING_SCHEDULE_PATCH_KEYS[number]));
+  if (unsupported.length) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.unsupportedFields", { fields: unsupported.join(", ") }) } };
   const merged = mergeRecurringSchedulePatch(current, args.schedule);
   const validationError = validateRecurringSchedule(merged, t);
   if (validationError) return { jsonrpc: "2.0", id, error: { code: -32602, message: validationError } };
@@ -2654,6 +2670,7 @@ async function handleUpdateRecurringOccurrence(
   if (ref.error) return { jsonrpc: "2.0", id, error: { code: -32602, message: ref.error } };
 
   const values = args.values;
+  if (!isRecord(values)) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.occurrenceValuesObject") } };
   const validationError = validateDirectTransaction(values, 0, t);
   if (validationError) return { jsonrpc: "2.0", id, error: { code: -32602, message: validationError } };
 
@@ -3571,10 +3588,21 @@ async function dispatchMessage(msg: McpRequest, auth: { userId: string; keyHash:
     case "resources/read":
       return handleResourcesRead(id, t, msg.params);
 
-    case "tools/call":
-      return handleToolCall(id, (msg.params ?? {}) as Record<string, unknown>, auth, t);
+    case "tools/call": {
+      const response = await handleToolCall(id, (msg.params ?? {}) as Record<string, unknown>, auth, t);
+      if (!response.error) return response;
+      return { jsonrpc: "2.0", id, result: { isError: true, content: [{ type: "text", text: localizeToolError(response.error.message, t) }] } };
+    }
 
     default:
       return { jsonrpc: "2.0", id, error: { code: -32601, message: t("mcp.errors.methodNotFound", { method: msg.method }) } };
   }
+}
+
+function localizeToolError(message: string, t: McpTranslator) {
+  if (message.includes("debt_payment destination must") || message.includes("must target a debt or credit card")) return t("mcp.errors.debtDestination");
+  if (message.includes("outside its schedule period")) return t("mcp.errors.occurrencePeriod");
+  if (message.includes("slot cannot change")) return t("mcp.errors.occurrenceIdentity");
+  if (message.includes("source_allocation_id must")) return t("mcp.errors.sourceGoalWallet");
+  return message;
 }
