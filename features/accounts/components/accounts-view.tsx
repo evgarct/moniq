@@ -23,7 +23,7 @@ import { TransactionFormSheet, type TransactionFormSubmitPayload } from "@/featu
 import { useTransactionListActions } from "@/features/transactions/hooks/use-transaction-list-actions";
 import { useTransactionActions } from "@/features/transactions/hooks/use-transaction-actions";
 import { isSettledTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
-import { getTransactionsForAccount } from "@/lib/finance-selectors";
+import { getTransactionsForAccount, getTransactionsForAllocation } from "@/lib/finance-selectors";
 import type { CurrencyCode } from "@/types/currency";
 
 import type { Account, Category, InvestmentPosition, Transaction, WalletAllocation } from "@/types/finance";
@@ -111,7 +111,7 @@ export function AccountsView({
     [transactions],
   );
   const register = selectedAllocation
-    ? settledTransactions.filter((transaction) => transaction.allocation_id === selectedAllocation.id)
+    ? getTransactionsForAllocation(settledTransactions, selectedAllocation.id)
     : (selectedAccount
       ? getTransactionsForAccount(settledTransactions, selectedAccount.id)
       : settledTransactions);

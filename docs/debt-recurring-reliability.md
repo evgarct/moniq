@@ -16,6 +16,10 @@ The authenticated application extends the horizon at login, reconnect and month 
 
 ## Occurrence identity and MCP errors
 
+The Balance goal register includes both incoming destination links and outgoing source links, so migrated expenses remain visible when a goal is selected. `Pages/Balance → Source Goal Spending` covers the outgoing row.
+
+![Source goal register](artifacts/source-goal-register.png)
+
 The selected transaction ID and original `schedule_occurrence_date` identify an occurrence. Ordinary edits, payment and skip cannot change that slot. A date outside its cadence period requires explicit rescheduling; the stored `is_explicit_reschedule` marker permits subsequent payment of that intentional move. Single-occurrence rescheduling preserves the slot; series rescheduling uses the dedicated RPC and moves affected planned slots in collision-safe order. The database period check protects all writers, including MCP.
 
 MCP schedule patches reject unknown fields before merging with stored values. Validation rejects unsupported goal directions before any write, so adjacent valid fields cannot partially apply. Omission preserves a relationship; explicit `null` clears it. `values` must be an object, and JSON strings are never unpacked. Invalid transport JSON produces a parse error. Tool failures use MCP `isError` with readable localized content, while protocol errors keep JSON-RPC semantics.
