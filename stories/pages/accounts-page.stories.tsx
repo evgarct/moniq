@@ -8,6 +8,17 @@ import type { Account, Transaction, WalletAllocation } from "@/types/finance";
 
 const snapshot = makeFinanceSnapshot();
 
+const sourceGoalData = makeGoalsData();
+const sourceGoal = sourceGoalData.allocations[0];
+const sourceGoalWallet = snapshot.accounts.find((account) => account.id === sourceGoal.wallet_id)!;
+const sourceGoalExpense: Transaction = {
+  ...snapshot.transactions[1], id: "source-goal-spend", kind: "expense", status: "paid", amount: 25,
+  occurred_at: format(new Date(), "yyyy-MM-dd"), note: "Synthetic goal spending",
+  source_account_id: sourceGoalWallet.id, source_account: sourceGoalWallet,
+  source_allocation_id: sourceGoal.id, source_allocation: sourceGoal,
+  destination_account_id: null, destination_account: null, allocation_id: null, allocation: null,
+};
+
 function makeScrollableAccounts(baseAccounts: Account[]) {
   const extraCash: Account[] = Array.from({ length: 8 }, (_, index) => ({
     ...baseAccounts[0],
@@ -120,6 +131,15 @@ export const MulticurrencyWallets: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getAllByText("Prague Everyday Card")[0]).toBeInTheDocument();
     await expect(canvas.getAllByText("Ruble Debit Card")[0]).toBeInTheDocument();
+  },
+};
+
+export const SourceGoalSpending: Story = {
+  args: { data: { ...sourceGoalData, transactions: [sourceGoalExpense] } },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getAllByText(sourceGoal.name, { exact: true })[0]);
+    await expect(canvas.getByText(/Synthetic goal spending/)).toBeInTheDocument();
   },
 };
 

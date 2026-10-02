@@ -1,10 +1,17 @@
 import { describe, expect, it } from "vitest";
 
-import { getEffectiveAllocations, getIncomeExpenseSummaryByCurrency, getTotalBalanceByCurrency } from "@/lib/finance-selectors";
+import { getEffectiveAllocations, getIncomeExpenseSummaryByCurrency, getTotalBalanceByCurrency, getTransactionsForAllocation } from "@/lib/finance-selectors";
 import { mockAccounts, mockTransactions } from "@/lib/mock-finance";
 import type { WalletAllocation } from "@/types/finance";
 
 describe("finance-selectors", () => {
+  it("includes incoming and outgoing goal transactions exactly once", () => {
+    const incoming = { ...mockTransactions[0], allocation_id: "goal", source_allocation_id: null };
+    const outgoing = { ...mockTransactions[1], allocation_id: null, source_allocation_id: "goal" };
+    const both = { ...mockTransactions[2], allocation_id: "goal", source_allocation_id: "goal" };
+    const unrelated = { ...mockTransactions[0], allocation_id: "other", source_allocation_id: null };
+    expect(getTransactionsForAllocation([incoming, outgoing, both, unrelated], "goal")).toEqual([incoming, outgoing, both]);
+  });
   it("groups wallet balances by currency instead of mixing them", () => {
     expect(getTotalBalanceByCurrency(mockAccounts)).toEqual([
       { currency: "EUR", amount: 16400 },
