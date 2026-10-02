@@ -12,7 +12,7 @@ Expenses from a savings goal use `source_allocation_id`. `allocation_id` (MCP `d
 
 `reconcile_recurring_schedule_internal` uses the existing SQL cadence generator over the current month through today plus 18 months. A deferred schedule-write trigger runs the same reconciler atomically on creation, edit and resume, including MCP writes. The schedule lock and unique slot index serialize concurrent materialization. Reconciliation updates only ordinary planned records; paid/skipped records and manual overrides retain their IDs, dates, amounts and mortgage splits. Pausing removes only ordinary planned records. Authenticated reconciliation is scoped by `auth.uid()`; internal helpers have no direct execute grants for public, anon or authenticated.
 
-The authenticated application extends the horizon at login, reconnect and month changes in both online and local-first modes. Failures show a localized error. Local-first reconciliation first flushes queued commands. New server-created occurrences arrive through the existing PowerSync subscription.
+The authenticated application extends the horizon at login, reconnect and month changes in both online and local-first modes. Failures show one localized error per outage, with retries backing off from five minutes to one hour. Timer, visibility and reconnect events share that retry budget; success resets it. Local-first reconciliation first flushes queued commands. New server-created occurrences arrive through the existing PowerSync subscription.
 
 ## Occurrence identity and MCP errors
 

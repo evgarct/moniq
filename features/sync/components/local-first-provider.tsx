@@ -17,6 +17,7 @@ import {
   writeCachedFinanceSnapshot,
 } from "@/features/sync/lib/local-finance-store";
 import { moniqPowerSyncSchema, POWER_SYNCED_TABLES } from "@/features/sync/lib/powersync-schema";
+import { createScheduleReconciliationRetry } from "@/features/sync/lib/schedule-reconciliation-retry";
 import { toSyncDetails, type SyncDetails } from "@/features/sync/lib/sync-progress";
 import { reportClientPerformanceEvent } from "@/lib/performance/client";
 import { createClient } from "@/lib/supabase/client";
@@ -158,23 +159,23 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
     if (enabled || !authUserId) return;
     let cancelled = false;
     let reconciling = false;
-    let reconciledMonth = "";
+    const retry = createScheduleReconciliationRetry();
     const month = () => `${new Date().getFullYear()}-${new Date().getMonth()}`;
-    const reconcile = async () => {
-      if (cancelled || reconciling || !navigator.onLine) return;
+    const reconcile = async (reconnect = false) => {
+      if (cancelled || reconciling || !navigator.onLine || !retry.shouldAttempt(month(), Date.now(), reconnect)) return;
       reconciling = true;
       try {
         const response = await fetch("/api/finance/schedules/reconcile", { method: "POST", credentials: "include" });
         if (!response.ok) throw new Error("schedule_reconciliation_failed");
-        reconciledMonth = month();
+        retry.succeeded(month());
         await queryClient.invalidateQueries({ queryKey: financeSnapshotQueryKey });
       } catch {
-        if (!cancelled) toast.error(t("scheduleReconcileFailed"));
+        if (retry.failed(Date.now()) && !cancelled) toast.error(t("scheduleReconcileFailed"));
       } finally { reconciling = false; }
     };
-    const onOnline = () => { void reconcile(); };
+    const onOnline = () => { void reconcile(true); };
     const checkMonth = () => {
-      if (document.visibilityState === "visible" && reconciledMonth !== month()) void reconcile();
+      if (document.visibilityState === "visible") void reconcile();
     };
     const timer = window.setInterval(checkMonth, 60_000);
     window.addEventListener("online", onOnline);
@@ -389,25 +390,26 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
           { onChange: () => { void refreshQueueStatus(); if (navigator.onLine) void flushQueue(); } },
           { tables: ["local_sync_commands"], throttleMs: 50 },
         );
-        let reconciledMonth = "";
+        const retry = createScheduleReconciliationRetry();
         let reconciling = false;
-        const reconcileSchedules = async () => {
-          if (reconciling || cancelled || !navigator.onLine) return;
+        const month = () => `${new Date().getFullYear()}-${new Date().getMonth()}`;
+        const reconcileSchedules = async (reconnect = false) => {
+          if (reconciling || cancelled || !navigator.onLine || !retry.shouldAttempt(month(), Date.now(), reconnect)) return;
           reconciling = true;
           try {
             await flushQueue({ strict: true });
             const response = await fetch("/api/finance/schedules/reconcile", { method: "POST", credentials: "include" });
             if (!response.ok) throw new Error("Schedule reconciliation failed");
-            reconciledMonth = new Date().toISOString().slice(0, 7);
+            retry.succeeded(month());
           } catch {
-            if (!cancelled) toast.error(t("scheduleReconcileFailed"));
+            if (retry.failed(Date.now()) && !cancelled) toast.error(t("scheduleReconcileFailed"));
           } finally {
             reconciling = false;
           }
         };
-        const handleOnline = () => { void reconcileSchedules(); };
+        const handleOnline = () => { void reconcileSchedules(true); };
         const handleMonthChange = () => {
-          if (document.visibilityState === "visible" && reconciledMonth !== new Date().toISOString().slice(0, 7)) void reconcileSchedules();
+          if (document.visibilityState === "visible") void reconcileSchedules();
         };
         const monthTimer = window.setInterval(handleMonthChange, 60_000);
         document.addEventListener("visibilitychange", handleMonthChange);
