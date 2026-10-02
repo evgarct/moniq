@@ -55,3 +55,6 @@ Moniq now models wallets around four user-facing types.
 - Changing a wallet from `saving` to a non-saving type removes its goals because that structure is no longer valid.
 - Wallet edits also update embedded account snapshots inside transactions so the register stays consistent.
 - Wallet delete removes the wallet together with its linked goals and transactions in the mock state layer.
+# Debt payment ledger
+
+Debt and credit-card payments reduce outstanding principal by `principal_amount + extra_principal_amount`; the source pays the full amount and category expense records interest. See [Debt and recurring reliability](debt-recurring-reliability.md) for server, optimistic, projection and migration contracts.

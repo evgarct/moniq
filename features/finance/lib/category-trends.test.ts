@@ -140,7 +140,7 @@ describe("buildGoalHistory", () => {
     { id: "t1", status: "paid", kind: "transfer", occurred_at: "2026-08-09", title: "Fund", amount: 10000, destination_amount: 10000, destination_allocation_id: "goal", source_allocation_id: null },
     { id: "t2", status: "paid", kind: "transfer", occurred_at: "2026-09-09", title: "Fund", amount: 10000, destination_amount: 10000, destination_allocation_id: "goal", source_allocation_id: null },
     { id: "t3", status: "paid", kind: "transfer", occurred_at: "2026-09-12", title: "Release", amount: 2500, destination_amount: 2500, destination_allocation_id: null, source_allocation_id: "goal" },
-    { id: "e1", status: "paid", kind: "expense", occurred_at: "2026-09-15", title: "Rent", amount: 1000, destination_allocation_id: "goal", source_allocation_id: null },
+    { id: "e1", status: "paid", kind: "expense", occurred_at: "2026-09-15", title: "Rent", amount: 1000, destination_allocation_id: null, source_allocation_id: "goal" },
     { id: "x1", status: "paid", kind: "transfer", occurred_at: "2026-09-16", title: "Other goal", amount: 99, destination_amount: 99, destination_allocation_id: "other", source_allocation_id: null },
     { id: "p1", status: "planned", kind: "transfer", occurred_at: "2026-09-20", title: "Planned", amount: 77, destination_amount: 77, destination_allocation_id: "goal", source_allocation_id: null },
   ];

@@ -141,8 +141,8 @@ describe("optimistic finance state", () => {
       category_id: "cat",
       source_account_id: wallet.id,
       destination_account_id: null,
-      allocation_id: allocation.id,
-      source_allocation_id: null,
+      allocation_id: null,
+      source_allocation_id: allocation.id,
       recurrence: null,
     });
 
@@ -161,7 +161,7 @@ describe("optimistic finance state", () => {
       kind: "expense",
       amount: 150,
       source_account_id: wallet.id,
-      allocation_id: allocation.id,
+      source_allocation_id: allocation.id,
     } as Transaction;
 
     const snapshot = {
@@ -251,7 +251,7 @@ describe("optimistic finance state", () => {
       kind: "expense",
       amount: 3000,
       source_account_id: wallet.id,
-      allocation_id: rentGoal.id,
+      source_allocation_id: rentGoal.id,
     } as Transaction;
     const snapshot = {
       ...createEmptyFinanceSnapshot(),
@@ -277,7 +277,7 @@ describe("optimistic finance state", () => {
       kind: "expense",
       amount: 33000,
       source_account_id: wallet.id,
-      allocation_id: landlordGoal.id,
+      source_allocation_id: landlordGoal.id,
     } as Transaction;
     const snapshot = {
       ...createEmptyFinanceSnapshot(),

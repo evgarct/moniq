@@ -1,3 +1,4 @@
+import { getTransactionDestinationAmount } from "@/features/transactions/lib/transaction-effects";
 import { format, isBefore, subMonths, startOfMonth, endOfMonth } from "date-fns";
 import { convertMoney } from "@/features/finance/lib/exchange-rates";
 import { getPurchasedUnits } from "@/features/investments/lib/positions";
@@ -93,7 +94,7 @@ function rollbackTransaction(
     balances.set(
       transaction.destination_account_id,
       (balances.get(transaction.destination_account_id) ?? 0) -
-        (transaction.destination_amount ?? transaction.amount),
+        getTransactionDestinationAmount(transaction),
     );
   }
 

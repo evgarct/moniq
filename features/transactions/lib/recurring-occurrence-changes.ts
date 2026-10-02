@@ -23,6 +23,7 @@ export const recurringOccurrenceChangeFields = [
   "source_account_id",
   "destination_account_id",
   "allocation_id",
+  "source_allocation_id",
 ] as const;
 
 export type RecurringOccurrenceChangeField =
@@ -150,6 +151,7 @@ export function applyRecurringOccurrenceChanges(
         occurred_at: shiftDate(transaction.occurred_at, offsetDays),
         schedule_occurrence_date: shiftedOccurrenceDate,
         is_schedule_override: false,
+        is_explicit_reschedule: false,
         schedule: nextSchedule,
         category:
           "category_id" in changes
@@ -175,6 +177,10 @@ export function applyRecurringOccurrenceChanges(
                 (allocation) => allocation.id === changes.allocation_id,
               ) ?? null)
             : transaction.allocation,
+        source_allocation:
+          "source_allocation_id" in changes
+            ? (snapshot.allocations.find((allocation) => allocation.id === changes.source_allocation_id) ?? null)
+            : transaction.source_allocation,
       };
     }),
   };

@@ -2,6 +2,8 @@
 
 import type { AbstractPowerSyncDatabase, PowerSyncBackendConnector } from "@powersync/web";
 import { useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 
 import { getFinanceMutationCoordinator } from "@/features/finance/lib/coordinator-registry";
@@ -122,6 +124,7 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
   const [database, setDatabase] = useState<AbstractPowerSyncDatabase | null>(null);
   const [conflicts, setConflicts] = useState<LocalSyncConflict[]>([]);
   const [hydrated, setHydrated] = useState(!enabled);
+  const t = useTranslations("mcp.errors");
   const [status, setStatus] = useState<SyncStatus>(defaultStatus);
   const [syncDetails, setSyncDetails] = useState<SyncDetails | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -150,6 +153,40 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
       subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (enabled || !authUserId) return;
+    let cancelled = false;
+    let reconciling = false;
+    let reconciledMonth = "";
+    const month = () => `${new Date().getFullYear()}-${new Date().getMonth()}`;
+    const reconcile = async () => {
+      if (cancelled || reconciling || !navigator.onLine) return;
+      reconciling = true;
+      try {
+        const response = await fetch("/api/finance/schedules/reconcile", { method: "POST", credentials: "include" });
+        if (!response.ok) throw new Error("schedule_reconciliation_failed");
+        reconciledMonth = month();
+        await queryClient.invalidateQueries({ queryKey: financeSnapshotQueryKey });
+      } catch {
+        if (!cancelled) toast.error(t("scheduleReconcileFailed"));
+      } finally { reconciling = false; }
+    };
+    const onOnline = () => { void reconcile(); };
+    const checkMonth = () => {
+      if (document.visibilityState === "visible" && reconciledMonth !== month()) void reconcile();
+    };
+    const timer = window.setInterval(checkMonth, 60_000);
+    window.addEventListener("online", onOnline);
+    document.addEventListener("visibilitychange", checkMonth);
+    void reconcile();
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+      window.removeEventListener("online", onOnline);
+      document.removeEventListener("visibilitychange", checkMonth);
+    };
+  }, [enabled, authUserId, queryClient, t]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -242,10 +279,6 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
         const online = navigator.onLine;
         if (online) {
           await markOnlineAuthVerified(localDatabase, userId);
-          void fetch("/api/finance/schedules/reconcile", {
-            method: "POST",
-            credentials: "include",
-          });
         } else if (!(await hasValidOfflineAuthLease(localDatabase, userId))) {
           if (!cancelled) {
             setStatus({ ...defaultStatus, state: "expired" });
@@ -356,7 +389,29 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
           { onChange: () => { void refreshQueueStatus(); if (navigator.onLine) void flushQueue(); } },
           { tables: ["local_sync_commands"], throttleMs: 50 },
         );
-        const handleOnline = () => { void flushQueue(); };
+        let reconciledMonth = "";
+        let reconciling = false;
+        const reconcileSchedules = async () => {
+          if (reconciling || cancelled || !navigator.onLine) return;
+          reconciling = true;
+          try {
+            await flushQueue({ strict: true });
+            const response = await fetch("/api/finance/schedules/reconcile", { method: "POST", credentials: "include" });
+            if (!response.ok) throw new Error("Schedule reconciliation failed");
+            reconciledMonth = new Date().toISOString().slice(0, 7);
+          } catch {
+            if (!cancelled) toast.error(t("scheduleReconcileFailed"));
+          } finally {
+            reconciling = false;
+          }
+        };
+        const handleOnline = () => { void reconcileSchedules(); };
+        const handleMonthChange = () => {
+          if (document.visibilityState === "visible" && reconciledMonth !== new Date().toISOString().slice(0, 7)) void reconcileSchedules();
+        };
+        const monthTimer = window.setInterval(handleMonthChange, 60_000);
+        document.addEventListener("visibilitychange", handleMonthChange);
+        void reconcileSchedules();
         const handleOffline = () => setStatus((current) => ({ ...current, state: current.pendingCount ? "pending" : "offline" }));
         window.addEventListener("online", handleOnline);
         window.addEventListener("offline", handleOffline);
@@ -407,6 +462,8 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
         disposeChanges = () => {
           previousDispose?.();
           disposeOutbox();
+          window.clearInterval(monthTimer);
+          document.removeEventListener("visibilitychange", handleMonthChange);
           window.removeEventListener("online", handleOnline);
           window.removeEventListener("offline", handleOffline);
         };
@@ -432,7 +489,7 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
       if (activeDatabase === null) activeUserId = null;
       if (localDatabase) void localDatabase.close();
     };
-  }, [enabled, queryClient, authUserId]);
+  }, [enabled, queryClient, authUserId, t]);
 
   const discardConflict = useCallback(async (id: string) => {
     if (!database) return;

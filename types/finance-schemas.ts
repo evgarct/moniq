@@ -72,6 +72,7 @@ const transactionFieldShape = {
   destination_account_id: z.string().uuid().nullable().optional(),
   allocation_id: z.string().uuid().nullable().optional(),
   source_allocation_id: z.string().uuid().nullable().optional(),
+  is_explicit_reschedule: z.boolean().optional(),
   investment_instrument_id: z.string().uuid().nullable().optional(),
   investment_units: z.number().positive("Investment units must be greater than 0.").nullable().optional(),
 } as const;
@@ -114,8 +115,8 @@ function addTransactionValidation<
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["category_id"], message: "Only transfers into a savings goal can use a category." });
     }
 
-    if (values.source_allocation_id && values.kind !== "transfer") {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["source_allocation_id"], message: "A source goal can only be selected for transfers." });
+    if (values.source_allocation_id && values.kind !== "transfer" && values.kind !== "expense") {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["source_allocation_id"], message: "A source goal can only be selected for expenses and transfers." });
     }
 
     if (values.source_allocation_id && values.allocation_id && values.source_allocation_id === values.allocation_id) {
@@ -203,8 +204,8 @@ function normalizeTransactionValues<
     interest_amount: values.kind === "debt_payment" ? values.interest_amount ?? 0 : null,
     extra_principal_amount: values.kind === "debt_payment" ? values.extra_principal_amount ?? 0 : null,
     category_id: values.kind === "transfer" && !values.allocation_id ? null : values.category_id ?? null,
-    allocation_id: (values.kind === "expense" || values.kind === "transfer") ? (values.allocation_id ?? null) : null,
-    source_allocation_id: values.kind === "transfer" ? (values.source_allocation_id ?? null) : null,
+    allocation_id: (values.kind === "income" || values.kind === "transfer") ? (values.allocation_id ?? null) : null,
+    source_allocation_id: (values.kind === "expense" || values.kind === "transfer") ? (values.source_allocation_id ?? null) : null,
   };
 }
 

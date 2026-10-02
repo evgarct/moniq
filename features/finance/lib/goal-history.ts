@@ -44,10 +44,9 @@ export function summarizeGoalNet(goalId: string, rows: Record<string, unknown>[]
   for (const row of rows) {
     if (row.status !== "paid") continue;
     const kind = row.kind;
-    if (row.source_allocation_id === goalId && kind === "transfer") net -= num(row.amount);
+    if (row.source_allocation_id === goalId && (kind === "transfer" || kind === "expense")) net -= num(row.amount);
     if (row.destination_allocation_id === goalId) {
-      if (kind === "expense") net -= num(row.amount);
-      else if (kind === "transfer") net += num(row.destination_amount ?? row.amount);
+      if (kind === "transfer") net += num(row.destination_amount ?? row.amount);
       else if (kind === "income") net += num(row.amount);
     }
   }
@@ -103,18 +102,15 @@ export function buildGoalHistory(goalId: string, months: string[], rows: RawTran
       note: typeof row.note === "string" ? row.note : null,
     };
 
-    if (isSourceGoal && kind === "transfer") {
+    if (isSourceGoal && (kind === "transfer" || kind === "expense")) {
       const amount = num(row.amount);
-      bucket.withdrawn += amount;
+      if (kind === "expense") bucket.spent += amount;
+      else bucket.withdrawn += amount;
       entries.push({ ...base, direction: "out", amount, currency });
     }
 
     if (isDestinationGoal) {
-      if (kind === "expense") {
-        const amount = num(row.amount);
-        bucket.spent += amount;
-        entries.push({ ...base, direction: "out", amount, currency });
-      } else if (kind === "transfer" || kind === "income") {
+      if (kind === "transfer" || kind === "income") {
         const amount = kind === "transfer" ? num(row.destination_amount ?? row.amount) : num(row.amount);
         bucket.added += amount;
         entries.push({ ...base, direction: "in", amount, currency });

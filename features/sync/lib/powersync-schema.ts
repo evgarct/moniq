@@ -71,6 +71,7 @@ const categories = new Table({
 });
 
 const transactions = new Table({
+  is_explicit_reschedule: column.integer,
   user_id: column.text,
   title: column.text,
   note: column.text,
@@ -101,6 +102,7 @@ const transactions = new Table({
 });
 
 const schedules = new Table({
+  source_allocation_id: column.text,
   user_id: column.text,
   title: column.text,
   note: column.text,

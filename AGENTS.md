@@ -12,6 +12,9 @@ The canonical UI reference implementation is `stories/foundations/ui-playbook.st
 
 # Repo Workflow Rules
 
+- Application providers that use localized errors must render inside `NextIntlClientProvider`, including the Storybook decorator. Verify provider order in a live isolated story; a production build alone will not catch a missing client translation context.
+- Debt and recurring transaction changes must run the synthetic rollback suite in `supabase/tests/debt_recurring_reliability.sql` and concurrent reconciliation checks before database promotion. Never replay paid historical records to repair a balance.
+
 - Database changes are isolated-test-first: rebuild every migration twice on local Supabase in CI, seed synthetic personas, verify schema/RLS/grants/tenant isolation, then manually promote the exact verified commit. Never use production as the first migration target.
 - Local CI and optional staging databases contain synthetic personas only. Seed scripts must refuse production targets and may accept localhost only with an explicit `local-*` staging ref.
 - UI pull requests must change a focused Storybook story before application integration; CI enforces this through `npm run check:storybook-first`.

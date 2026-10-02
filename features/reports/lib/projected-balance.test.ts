@@ -163,6 +163,8 @@ describe("projected balance report", () => {
           source_account_id: source.id,
           destination_account_id: destination.id,
           amount: 200,
+          principal_amount: 150,
+          interest_amount: 50,
         }),
       ],
     });
@@ -170,11 +172,11 @@ describe("projected balance report", () => {
     expect(report.series[0]?.points.map((point) => point.balance)).toEqual([
       500,
       520,
-      520,
+      470,
     ]);
     expect(report.series[0]?.points[2]?.accounts.map((item) => item.native_balance)).toEqual([
       700,
-      -180,
+      -230,
     ]);
   });
 

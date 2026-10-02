@@ -5,7 +5,6 @@ import { cookies } from "next/headers";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
-import { AppProviders } from "@/components/providers/app-providers";
 import { ServiceWorkerRegistrar } from "@/components/providers/service-worker-registrar";
 import { WebVitalsReporter } from "@/components/providers/web-vitals";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -119,7 +118,7 @@ export default async function RootLayout({
         <TooltipProvider>
           <ServiceWorkerRegistrar />
           <WebVitalsReporter />
-          <AppProviders>{children}</AppProviders>
+          {children}
         </TooltipProvider>
         <Analytics />
         <SpeedInsights />

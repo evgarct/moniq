@@ -40,8 +40,8 @@ export function normalizePayload(values: TransactionFormInputs): TransactionInpu
     category_id: (isMoveKind(values.kind) && !values.allocation_id) ? null : (values.category_id ?? null),
     source_account_id: values.source_account_id ?? null,
     destination_account_id: values.destination_account_id ?? null,
-    allocation_id: (values.kind === "expense" || values.kind === "transfer") ? (values.allocation_id ?? null) : null,
-    source_allocation_id: values.kind === "transfer" ? (values.source_allocation_id ?? null) : null,
+    allocation_id: (values.kind === "income" || values.kind === "transfer") ? (values.allocation_id ?? null) : null,
+    source_allocation_id: (values.kind === "expense" || values.kind === "transfer") ? (values.source_allocation_id ?? null) : null,
     investment_instrument_id: values.kind === "expense" ? values.investment_instrument_id : null,
     investment_units: values.kind === "expense"
       ? (typeof values.investment_units === "string" && values.investment_units !== ""
