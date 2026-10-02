@@ -67,7 +67,7 @@ begin
   result := public.mcp_create_recurring_transaction_schedule(key_hash,payload);
   schedule_id := (result->>'schedule_id')::uuid;
   set constraints finance_schedules_materialize immediate;
-  if (select count(*) from public.finance_transactions where schedule_id=debt_recurring_reliability.schedule_id) < 18 then raise exception 'New schedule not materialized to 18 months'; end if;
+  if (select count(*) from public.finance_transactions t where t.schedule_id=debt_recurring_reliability.schedule_id) < 18 then raise exception 'New schedule not materialized to 18 months'; end if;
   if exists(select 1 from public.finance_transactions t where t.schedule_id=debt_recurring_reliability.schedule_id and (t.principal_amount<>19975.50 or t.interest_amount<>11724.50)) then raise exception 'Materialization lost breakdown'; end if;
   select id into tx_id from public.finance_transactions t where t.schedule_id=debt_recurring_reliability.schedule_id and t.schedule_occurrence_date=month_date;
   update public.finance_transactions set amount=32000,principal_amount=20275.50,is_schedule_override=true where id=tx_id;

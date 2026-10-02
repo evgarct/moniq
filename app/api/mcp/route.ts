@@ -1942,6 +1942,8 @@ function validateDirectTransaction(
   mode: "create" | "update" = "create",
 ): string | null {
   if (!isRecord(tx)) return `Transaction ${index + 1} must be an object`;
+  const unsupported = Object.keys(tx).filter((key) => !(key in directTransactionProperties()));
+  if (unsupported.length) return t("mcp.errors.unsupportedFields", { fields: unsupported.join(", ") });
 
   const label = typeof tx.title === "string" && tx.title.trim() ? tx.title.trim() : `transaction ${index + 1}`;
 

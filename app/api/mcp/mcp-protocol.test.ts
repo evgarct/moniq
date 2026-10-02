@@ -2144,7 +2144,13 @@ describe("MCP reliability regressions", () => {
   it("returns a parse error for a malformed transport body", async () => {
     const response = await POST(new Request("https://moniq.test/api/mcp", { method: "POST", headers: AUTH_HEADERS, body: '{"jsonrpc":"2.0"}]' }));
     expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toMatchObject({ error: { code: -32700 } });
+    await expect(response.json()).resolves.toMatchObject({ error: { code: -32700, message: expect.stringContaining("JSON syntax") } });
+  });
+
+  it("rejects unknown occurrence fields without an RPC write", async () => {
+    const response = await postMcp({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "update_recurring_transaction_occurrence", arguments: { transaction_id: "tx", values: { amount: 10, unexpected_goal: "goal" } } } });
+    await expect(response.json()).resolves.toMatchObject({ result: { isError: true, content: [{ text: expect.stringContaining("unexpected_goal") }] } });
+    expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_update_recurring_transaction_occurrence", expect.anything());
   });
 
   it("returns an actionable debt destination error in the tool result", async () => {

@@ -1512,7 +1512,7 @@
       "saveBatchFailed": "Failed to save batch in database.",
       "subscriptionRequired": "An active Moniq subscription is required to change data. Read-only tools remain available.",
       "unauthorizedApiKey": "Unauthorized: provide a valid Moniq API key as Bearer token.",
-      "parseError": "Parse error.",
+      "parseError": "Invalid JSON syntax. Check the request body.",
       "methodNotFound": "Method not found: {method}",
       "walletIdRequired": "wallet_id is required.",
       "goalNameRequired": "name is required.",
