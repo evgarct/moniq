@@ -8,6 +8,9 @@ declare
   tx_id uuid := gen_random_uuid(); schedule_id uuid := gen_random_uuid(); result jsonb; payload jsonb;
   key_hash text := md5(gen_random_uuid()::text) || md5(gen_random_uuid()::text);
   month_date date := date_trunc('month',current_date)::date + 9;
+  future_start date := (date_trunc('year',current_date) + case when extract(month from current_date)<7 then interval '6 months' else interval '1 year' end + interval '30 days')::date;
+  custom_id uuid;
+  include_context boolean;
 begin
   select id into u from auth.users where email like '%@example.invalid' order by created_at limit 1;
   if u is null then raise exception 'Synthetic example.invalid user required; refusing a personal database'; end if;
@@ -86,6 +89,29 @@ begin
   if (select schedule_occurrence_date from public.finance_transactions where id=tx_id) <> month_date then raise exception 'Explicit reschedule changed slot'; end if;
   -- A paid September occurrence and skipped September occurrence cannot hide the October slot.
   if not exists(select 1 from public.finance_transactions t where t.schedule_id=debt_recurring_reliability.schedule_id and t.schedule_occurrence_date=(month_date+interval '1 month')::date and t.status='planned') then raise exception 'Following occurrence disappeared'; end if;
+  foreach include_context in array array[false,true] loop
+    result := public.mcp_get_transactions_for_period(key_hash,(month_date+interval '1 month')::date,(month_date+interval '2 months')::date,null,null,null,null,include_context);
+    if not exists(select 1 from jsonb_array_elements(result->'transactions') item
+      where item->>'schedule_id'=schedule_id::text and (item->>'principal_amount')::numeric=19975.50 and (item->>'interest_amount')::numeric=11724.50) then
+      raise exception 'Period RPC lost mortgage split (include_context=%)',include_context;
+    end if;
+  end loop;
+
+  update public.finance_transaction_schedules set state='paused' where id=schedule_id;
+  if exists(select 1 from public.finance_transactions t where t.schedule_id=debt_recurring_reliability.schedule_id and t.status='planned' and not t.is_schedule_override) then raise exception 'Pause left ordinary planned rows'; end if;
+  if not exists(select 1 from public.finance_transactions where id=tx_id and status='paid') then raise exception 'Pause removed settled override'; end if;
+  update public.finance_transaction_schedules set state='active' where id=schedule_id;
+  if (select count(*) from public.finance_transactions t where t.schedule_id=debt_recurring_reliability.schedule_id) < 18 then raise exception 'Resume did not refill horizon'; end if;
+
+  payload := jsonb_build_object('title','Future source goal','start_date',future_start,'frequency','custom','interval_count',3,'interval_unit','month','until_date',(future_start+interval '9 months')::date,'kind','expense','amount',300,'source_account_id',saving_id,'source_allocation_id',goal_id,'category_id',category_id);
+  result := public.mcp_create_recurring_transaction_schedule(key_hash,payload);
+  custom_id := (result->>'schedule_id')::uuid;
+  if not exists(select 1 from public.finance_transactions t where t.schedule_id=custom_id and t.schedule_occurrence_date=(future_start+interval '3 months')::date and t.source_allocation_id=goal_id and t.allocation_id is null) then raise exception 'Future custom cadence lost month-end clamp or source goal'; end if;
+  if (select count(*) from public.finance_transactions t where t.schedule_id=custom_id) <> 4 then raise exception 'Custom cadence ignored until_date'; end if;
+  foreach include_context in array array[false,true] loop
+    result := public.mcp_get_transactions_for_period(key_hash,future_start,future_start+1,null,null,array[saving_id::text],null,include_context);
+    if not exists(select 1 from jsonb_array_elements(result->'transactions') item where item->>'schedule_id'=custom_id::text and item->>'source_allocation_id'=goal_id::text and item->>'destination_allocation_id' is null) then raise exception 'Period RPC lost source goal'; end if;
+  end loop;
   begin
     perform public.mcp_normalize_recurring_schedule(u,payload || '{"bad_field":true,"destination_allocation_id":null}'::jsonb);
     raise exception 'Unknown patch field ignored';
