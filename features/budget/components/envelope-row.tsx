@@ -100,7 +100,12 @@ export function EnvelopeRow({
             />
             <span className="type-body-12 flex justify-between gap-3 tabular-nums text-muted-foreground">
               <span className="truncate">{t("ofPlanned", { spent: money(row.spent!), planned: money(row.planned!) })} {symbol}</span>
-              {upcoming > 0 ? <span className="whitespace-nowrap text-foreground/80">{t("upcoming", { amount: money(upcoming) })}</span> : null}
+              {row.upcoming === null ? (
+                // The upcoming amount needs a missing rate: the right-hand figure is the actual balance, not month end.
+                <span className="whitespace-nowrap">{t("noRate")}</span>
+              ) : upcoming > 0 ? (
+                <span className="whitespace-nowrap text-foreground/80">{t("upcoming", { amount: money(upcoming) })}</span>
+              ) : null}
             </span>
           </span>
         ) : row.spent === null ? (

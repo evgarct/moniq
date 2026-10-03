@@ -83,6 +83,38 @@ describe("converted budget analytics", () => {
     });
   });
 
+  it("also requests rates for planned operations, using today's date for future ones", () => {
+    const past = { ...transaction({ id: "rub-planned", kind: "expense", amount: 1000, account: rubAccount }), status: "planned", occurred_at: "2026-06-05" } as Transaction;
+    const future = { ...past, id: "eur-planned", occurred_at: "2026-06-28", source_account: eurAccount, source_account_id: "eur" } as Transaction;
+    const skipped = { ...past, id: "skipped", status: "skipped", occurred_at: "2026-06-03" } as Transaction;
+
+    expect(buildMissingHistoricalFxRequest({
+      transactions: [past, future, skipped],
+      currentMonth: new Date("2026-06-15T12:00:00"),
+      targetCurrency: "CZK",
+      exchangeRates: [],
+      monthsShown: 1,
+      today: new Date("2026-06-15T12:00:00"),
+    })).toEqual({
+      requestedDates: ["2026-06-05", "2026-06-15"],
+      quoteCurrencies: ["EUR", "RUB"],
+    });
+  });
+
+  it("reports planned net and its missing currencies separately from paid activity", () => {
+    const paid = transaction({ id: "paid", kind: "expense", amount: 500, account: czkAccount });
+    const planned = { ...transaction({ id: "planned", kind: "expense", amount: 10, account: eurAccount }), status: "planned" } as Transaction;
+    const result = buildConvertedBudgetMonths({
+      transactions: [paid, planned],
+      currentMonth: new Date("2026-06-15T12:00:00"),
+      targetCurrency: "CZK",
+      exchangeRates: [],
+      monthsShown: 1,
+    })[0];
+
+    expect(result).toMatchObject({ net: -500, plannedNet: null, plannedMissingCurrencies: ["EUR"], missingCurrencies: [] });
+  });
+
   it("uses a historical RUB rate in the default currency total", () => {
     const rubExpense = transaction({ id: "rub", kind: "expense", amount: 1000, account: rubAccount });
     rubExpense.occurred_at = "2026-05-16";

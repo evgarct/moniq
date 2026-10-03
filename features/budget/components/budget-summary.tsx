@@ -39,8 +39,10 @@ export function BudgetSummary({
   currency: CurrencyCode;
 }) {
   const t = useTranslations("budget.summary");
-  const lead = summary.forecastLeft ?? summary.left;
+  // Never show the actual balance under the month-end label: when an upcoming amount has no rate the forecast is unknown.
+  const lead = summary.forecastLeft;
   const over = lead !== null && lead < 0;
+  const ratesMissing = !summary.available || summary.upcoming === null;
   const plan = summary.available && summary.planned > 0 ? summary.planned : 0;
   const money = (amount: number | null, tone: "default" | "muted" | "negative" = "default") =>
     amount === null ? "—" : <MoneyAmount amount={amount} currency={currency} display="absolute" tone={tone} showMinorUnits={false} />;
@@ -85,7 +87,7 @@ export function BudgetSummary({
         </div>
       </dl>
 
-      {!summary.available ? <p className="type-body-12 text-muted-foreground">{t("missingRates")}</p> : null}
+      {ratesMissing ? <p className="type-body-12 text-muted-foreground">{t("missingRates")}</p> : null}
     </section>
   );
 }

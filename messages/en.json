@@ -730,7 +730,8 @@
       "noPercent": "n/a",
       "percentOfIncome": "{value, number, ::.##}% of income",
       "selectMonth": "Show {month}",
-      "plannedLabel": "Planned"
+      "plannedLabel": "Planned",
+      "plannedMissingRates": "Planned operations: rates unavailable for {currencies}"
     },
     "upcoming": {
       "title": "Upcoming this month",

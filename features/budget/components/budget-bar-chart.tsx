@@ -104,6 +104,8 @@ export function BudgetBarChart({
             const isFuture = isAfter(monthDate, today);
             const projected = projectedOf(month);
             const showProjection = month.plannedNet !== null && month.plannedNet !== 0;
+            // A planned operation without a rate: the projection is unknown, not zero.
+            const plannedUnavailable = month.plannedNet === null;
             const solidHeight = month.net === null ? 0 : heightOf(month.net);
             const ghostHeight = heightOf(projected);
 
@@ -133,6 +135,9 @@ export function BudgetBarChart({
                         )}
                         style={{ height: ghostHeight, top: projected >= 0 ? `calc(50% - ${ghostHeight}px)` : "50%" }}
                       />
+                    ) : null}
+                    {plannedUnavailable && month.net !== null ? (
+                      <span className="absolute inset-x-1 top-1/2 -translate-y-1 border-t border-dashed border-muted-foreground/45" />
                     ) : null}
                     {month.net === null ? (
                       <span className="absolute inset-x-1 top-1/2 border-t border-dashed border-muted-foreground/45" />
@@ -177,6 +182,11 @@ export function BudgetBarChart({
                       ) : null}
                     </div>
                   )}
+                  {plannedUnavailable ? (
+                    <p className="type-body-12 mt-1 text-muted-foreground">
+                      {t("plannedMissingRates", { currencies: month.plannedMissingCurrencies.join(", ") })}
+                    </p>
+                  ) : null}
                 </TooltipContent>
               </Tooltip>
             );

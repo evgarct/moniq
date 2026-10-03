@@ -730,7 +730,8 @@
       "noPercent": "н/д",
       "percentOfIncome": "{value, number, ::.##}% от дохода",
       "selectMonth": "Показать {month}",
-      "plannedLabel": "Запланировано"
+      "plannedLabel": "Запланировано",
+      "plannedMissingRates": "Запланированные операции: нет курса для {currencies}"
     },
     "upcoming": {
       "title": "Предстоит в этом месяце",

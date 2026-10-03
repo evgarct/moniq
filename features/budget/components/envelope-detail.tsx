@@ -238,7 +238,8 @@ export function EnvelopeDetail({
   const addingHere = editor?.mode === "add" && editor.parentId === node.id;
   const canPlan = node.type === "expense" && !node.parent_id;
   const over = row.status === "over";
-  const remaining = row.forecastLeft ?? row.left;
+  // Shown under the month-end label, so no fallback to the actual balance when an upcoming rate is missing.
+  const remaining = row.forecastLeft;
   const negative = over || row.atRisk;
   const ratio = row.planned && row.spent !== null ? row.spent / row.planned : 0;
   const upcomingRatio = row.planned && row.upcoming ? row.upcoming / row.planned : 0;
@@ -333,7 +334,7 @@ export function EnvelopeDetail({
             secondaryFillClassName={row.atRisk ? "bg-destructive/40" : "bg-foreground/22"}
           />
         ) : null}
-        {row.spent === null ? <p className="type-body-12 text-muted-foreground">{summaryT("missingRates")}</p> : null}
+        {row.spent === null || row.upcoming === null ? <p className="type-body-12 text-muted-foreground">{summaryT("missingRates")}</p> : null}
       </div>
 
       {childRows.length ? (

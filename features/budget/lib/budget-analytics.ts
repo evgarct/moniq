@@ -14,6 +14,8 @@ export type ConvertedBudgetMonth = {
   net: number | null;
   /** Net of the month's planned (not yet paid) transactions; null when a rate is missing. */
   plannedNet: number | null;
+  /** Currencies of planned transactions that have no rate (why `plannedNet` is null). */
+  plannedMissingCurrencies: CurrencyCode[];
   transactionCount: number;
   missingCurrencies: CurrencyCode[];
 };
@@ -24,16 +26,19 @@ export function buildMissingHistoricalFxRequest(options: {
   targetCurrency: CurrencyCode;
   exchangeRates: ExchangeRate[];
   monthsShown?: number;
+  today?: Date;
 }) {
   const monthsShown = options.monthsShown ?? 13;
   const startDate = format(startOfMonth(addMonths(options.currentMonth, -(monthsShown - 1))), "yyyy-MM-dd");
   const endDate = format(endOfMonth(options.currentMonth), "yyyy-MM-dd");
+  const today = format(options.today ?? new Date(), "yyyy-MM-dd");
   const requestedDates = new Set<string>();
   const quoteCurrencies = new Set<CurrencyCode>();
 
   for (const transaction of options.transactions) {
+    const planned = transaction.status === "planned";
     if (
-      !isSettledTransactionStatus(transaction.status) ||
+      (!planned && !isSettledTransactionStatus(transaction.status)) ||
       transaction.occurred_at < startDate ||
       transaction.occurred_at > endDate
     ) {
@@ -44,10 +49,12 @@ export function buildMissingHistoricalFxRequest(options: {
       transaction,
       targetCurrency: options.targetCurrency,
       exchangeRates: options.exchangeRates,
+      includePlanned: planned,
     });
     if (conversion?.status !== "missing_rate") continue;
 
-    requestedDates.add(transaction.occurred_at);
+    // Planned operations dated in the future convert with the latest known rate, so ask for today's.
+    requestedDates.add(transaction.occurred_at > today ? today : transaction.occurred_at);
     quoteCurrencies.add(conversion.source_currency);
   }
 
@@ -79,8 +86,8 @@ export function buildConvertedBudgetMonths(options: {
     let income = 0;
     let expenses = 0;
     let plannedNet = 0;
-    let plannedAvailable = true;
     const missingCurrencies = new Set<CurrencyCode>();
+    const plannedMissingCurrencies = new Set<CurrencyCode>();
 
     for (const transaction of inMonth) {
       const planned = transaction.status === "planned";
@@ -94,8 +101,7 @@ export function buildConvertedBudgetMonths(options: {
       });
       if (!conversion) continue;
       if (conversion.status === "missing_rate") {
-        if (planned) plannedAvailable = false;
-        else missingCurrencies.add(conversion.source_currency);
+        (planned ? plannedMissingCurrencies : missingCurrencies).add(conversion.source_currency);
         continue;
       }
       const signed = transaction.kind === "income" ? conversion.amount : -conversion.amount;
@@ -116,7 +122,8 @@ export function buildConvertedBudgetMonths(options: {
       income: available ? income : null,
       expenses: available ? expenses : null,
       net: available ? income - expenses : null,
-      plannedNet: plannedAvailable ? plannedNet : null,
+      plannedNet: plannedMissingCurrencies.size ? null : plannedNet,
+      plannedMissingCurrencies: Array.from(plannedMissingCurrencies).sort(),
       transactionCount: transactions.length,
       missingCurrencies: Array.from(missingCurrencies).sort(),
     };
