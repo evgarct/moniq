@@ -209,6 +209,8 @@ export function convertTransactionAnalyticsAmount(options: {
   transaction: Transaction;
   targetCurrency: CurrencyCode;
   exchangeRates: ExchangeRate[];
+  /** Also convert planned (not yet paid) transactions; future dates use the latest known rate. */
+  includePlanned?: boolean;
 }) {
   const account = getTransactionPrimaryAccount(options.transaction);
 
@@ -217,7 +219,7 @@ export function convertTransactionAnalyticsAmount(options: {
   }
 
   return convertMoney({
-    amount: getTransactionAnalyticsAmount(options.transaction),
+    amount: getTransactionAnalyticsAmount(options.transaction, { includePlanned: options.includePlanned }),
     sourceCurrency: account.currency,
     targetCurrency: options.targetCurrency,
     requestedDate: options.transaction.occurred_at,

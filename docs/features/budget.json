@@ -2,14 +2,16 @@
   "id": "budget",
   "name": "Budget",
   "domain": "budget",
-  "description": "Monthly envelope budgets: planned vs spent vs left per top-level expense category (converted to the default currency), a month summary, a compact 13-month cashflow strip and a detail with subcategories and transactions, using paid transactions only.",
+  "description": "Monthly envelope budgets: planned vs spent vs left per top-level expense category (converted to the default currency), a month-end forecast that includes planned (not yet paid) operations, an upcoming-operations list, a compact 13-month cashflow strip that selects the month in place and a detail with subcategories and transactions.",
   "routes": ["/budget"],
   "keyActions": [
     "see planned, spent and left per envelope for a month",
     "set a monthly plan on an envelope",
     "open an envelope to see subcategories and transactions",
     "view the compact monthly cashflow strip",
-    "navigate between months",
+    "see what will be left at month end once planned operations are paid",
+    "mark upcoming operations paid or skip them from the budget",
+    "navigate between months from the month strip or arrows",
     "manage budget categories inline"
   ],
   "postHogEvents": [],

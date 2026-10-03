@@ -13,8 +13,7 @@ const meta = {
   parameters: { layout: "padded" },
   argTypes: {
     transactions: { table: { disable: true } },
-    categories: { table: { disable: true } },
-    onMonthSelect: { table: { disable: true } },
+    onMonthChange: { table: { disable: true } },
   },
   decorators: [
     (Story) => (
@@ -33,11 +32,10 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   args: {
     transactions: snapshot.transactions,
-    categories: snapshot.categories,
     targetCurrency: snapshot.preferences.default_currency,
     exchangeRates: snapshot.exchange_rates,
     currentMonth: new Date(),
-    onMonthSelect: () => {},
+    onMonthChange: () => {},
   },
 };
 
@@ -45,11 +43,10 @@ export const Default: Story = {
 export const Compact: Story = {
   args: {
     transactions: snapshot.transactions,
-    categories: snapshot.categories,
     targetCurrency: snapshot.preferences.default_currency,
     exchangeRates: snapshot.exchange_rates,
     currentMonth: new Date(),
-    onMonthSelect: () => {},
+    onMonthChange: () => {},
     compact: true,
   },
 };
@@ -57,32 +54,29 @@ export const Compact: Story = {
 export const PreviousMonth: Story = {
   args: {
     transactions: snapshot.transactions,
-    categories: snapshot.categories,
     targetCurrency: snapshot.preferences.default_currency,
     exchangeRates: snapshot.exchange_rates,
     currentMonth: subMonths(new Date(), 3),
-    onMonthSelect: () => {},
+    onMonthChange: () => {},
   },
 };
 
 export const NegativeMonth: Story = {
   args: {
     transactions: snapshot.transactions,
-    categories: snapshot.categories,
     targetCurrency: snapshot.preferences.default_currency,
     exchangeRates: snapshot.exchange_rates,
     currentMonth: subMonths(new Date(), 6),
-    onMonthSelect: () => {},
+    onMonthChange: () => {},
   },
 };
 
 export const Empty: Story = {
   args: {
     transactions: [],
-    categories: snapshot.categories,
     targetCurrency: snapshot.preferences.default_currency,
     exchangeRates: snapshot.exchange_rates,
     currentMonth: new Date(),
-    onMonthSelect: () => {},
+    onMonthChange: () => {},
   },
 };

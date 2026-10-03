@@ -6,13 +6,14 @@ The Budget page (`/budget`) answers one question: **where am I against my plan t
 Each top-level expense category is an *envelope* with an optional monthly plan. The screen shows, for the
 selected month and in the user's default currency:
 
-1. **The month at a glance** — planned, spent and left across the envelopes that have a plan, the month's income, and what was spent without a plan.
-2. **Every envelope as one flat row** — what is left (or by how much it is over), a thin plan track and "spent of planned".
-3. **Detail one tap away** — plan (editable), spend, left, subcategories and the transactions.
+1. **The month at a glance** — what the planned envelopes will have left at month end (plan − spent − upcoming), with spent, upcoming and planned under it, the month's income (received and still expected) and what was spent without a plan.
+2. **Every envelope as one flat row** — what will be left at month end (or by how much it is / will be over), a full-width track with the actual spend (solid) and the upcoming spend (light), and "spent of planned · +upcoming".
+3. **Upcoming this month** — the month's planned, not yet paid operations grouped by date (overdue first), with mark paid / skip / edit.
+4. **Detail one tap away** — plan (editable), spent, upcoming, left at month end, subcategories, the envelope's planned operations and (collapsed) its paid transactions.
 
-A compact strip of the last 13 months (net cashflow) sits above the summary for context and month selection.
+A compact 13-month strip (net cashflow) sits above the summary and is the month picker: clicking a month switches the whole page to it (no side sheet). The window keeps two future months in view and always contains the selected month.
 
-All budget analytics use paid transactions only. Transfers are excluded. Debt payments keep the finance analytics rule that only `interest_amount` contributes to expense analytics. Spend is converted with the historical rate for each transaction date; if any required rate is missing the envelope (and the summary) shows "—" instead of a partial cross-currency total.
+**Spent** counts paid transactions only; **upcoming** counts `status: "planned"` transactions of the month (skipped ones are ignored). Planned amounts dated in the future are converted with the latest known rate. Upcoming never changes an envelope's *status* (which follows actual spend); an envelope that the upcoming operations will take over its plan is flagged `atRisk` ("will be over") and sorts right after the ones already over. Transfers are excluded. Debt payments keep the finance analytics rule that only `interest_amount` contributes to expense analytics. Spend is converted with the historical rate for each transaction date; if any required rate is missing the envelope (and the summary) shows "—" instead of a partial cross-currency total.
 
 ## Planned budgets
 
@@ -26,21 +27,29 @@ Mobile (below 1024px, one layout for every width) is a single list; desktop keep
 +--------------------------------------+
 |  Budget header + category management |
 +--------------------------------------+
-|  Compact 13-month strip + month nav  |
+|  13-month strip (click = select month) |
+|  ‹  October 2026  ›                  |
 +--------------------------------------+
-|  Planned | Spent | Left   (+ track)   |
-|  Income            No plan            |
+|  Left at month end   1 965 Kč        |
+|  ████████████░░░░░░──  (spent|upcoming)|
+|  Spent | Upcoming | Planned           |
+|  Income (+expected)   No plan         |
 +--------------------------------------+
 |  EXPENSES                            |
-|   Enjoy Life        over 13 153 Kč   |
-|   ───────────────── 13 253 of 100    |
-|   Core Bills        left  3 000 Kč   |
+|   Enjoy Life           over 25 Kč    |
+|   ████████████████████████████████   |
+|   125 of 100 Kč                      |
+|   Living Costs  will be over 1 160   |
+|   ████░░░░░░░░░░░░░░░░░░░░░░░░░░░░   |
+|   2 160 of 10 000 Kč   +9 000 upcoming|
 |   ...                                |
-|   Wealth            spent 15 000 Kč  |
-|   No plan                            |
 +--------------------------------------+
 |  INCOME                              |
 |   Income            received ...     |
++--------------------------------------+
+|  UPCOMING THIS MONTH    3 operations |
+|   Oct 1  Core Bills  Overdue   900   |
+|   Oct 6  Living Costs        9 000   |
 +--------------------------------------+
 ```
 
@@ -60,17 +69,17 @@ Owns the selected month, selected category, the category-management workspace an
 
 Location: `features/budget/lib/envelope-budget.ts`
 
-`buildEnvelopeBudgetRows` (per envelope: planned, converted spent incl. subcategories, left, percent, status), `summarizeEnvelopeBudget` (planned, spent of planned envelopes, unplanned, left; unavailable when any rate is missing) and `sumEnvelopeSpend` (converted income). Never merges currencies without a rate.
+`buildEnvelopeBudgetRows` (per envelope: planned, converted spent and upcoming incl. subcategories, forecast, left, forecastLeft, percent, status, atRisk), `summarizeEnvelopeBudget` (planned, spent of planned envelopes, unplanned, left, upcomingPlanned, upcoming, forecastLeft; unavailable when any rate is missing), `sumEnvelopeSpend` / `sumEnvelopeUpcoming` (converted income received / expected), `sumUncategorizedSpend` (paid or planned, by `status`) and `listMonthPlannedTransactions` (overdue + upcoming, oldest first). Never merges currencies without a rate.
 
 ### `EnvelopeRow`, `BudgetSummary`, `EnvelopeDetail`
 
-`envelope-row.tsx` is the flat row (name, left/over, `ProgressTrack`, "spent of planned"; unplanned rows show spent). `budget-summary.tsx` is the month figures. `envelope-detail.tsx` is the detail (plan input, spend, left, subcategory rows with share-of-envelope tracks, collapsed transactions) used both in the desktop panel and the mobile sheet.
+`envelope-row.tsx` is the flat row (name, left/over/will be over at month end, a full-width two-segment `ProgressTrack` — `secondaryValue` is the upcoming share — and "spent of planned · +upcoming"; unplanned rows show spent and "+upcoming"). `budget-summary.tsx` is the month figures led by "left at month end". `budget-upcoming-list.tsx` is the month's planned operations (shared `TransactionList` with the standard row actions). `envelope-detail.tsx` is the detail (plan input, spent, upcoming, left at month end, subcategory rows with share-of-envelope tracks, planned operations, collapsed paid transactions) used both in the desktop panel and the mobile sheet. Row actions and the edit sheet come from `useBudgetTransactionEditor` (`features/budget/hooks`).
 
 ### `BudgetBarChart`
 
 Location: `features/budget/components/budget-bar-chart.tsx`
 
-A 13-month interactive timeline in `preferences.default_currency`; `compact` renders the slim strip used on the Budget screen. Positive months extend upward with a neutral chart color; negative months extend downward with the destructive token. A month with any missing required rate is rendered unavailable. Hover opens a `Tooltip` with converted income, expenses and net; selecting a month opens the month analysis sheet (the report is built on click).
+A 13-month interactive timeline in `preferences.default_currency`; `compact` renders the slim strip used on the Budget screen. Solid bars are paid net (positive up in a neutral chart color, negative down in the destructive token); a light bar behind shows the net once the month's planned operations are paid, so future months show their planned net. A month with any missing required rate is rendered unavailable. Hover opens a `Tooltip` with converted income, expenses, net and planned; clicking a month calls `onMonthChange` and the Budget page switches to it in place (the former month-analysis side sheet was removed).
 
 ### Category management
 
@@ -108,7 +117,7 @@ The pure Budget analytics helper still owns historical conversion and reports mi
 
 Stories:
 
-- `Pages/Budget` covers the default list, over-budget ordering, the desktop panel (expanded and collapsed), the mobile fullscreen detail (closed again and left open), mobile category management and inline category editing. The mock categories carry plans (Core Bills 33 200, Living Costs 10 000, Enjoy Life 100) so planned, over-budget and no-plan rows all render.
+- `Pages/Budget` covers the default list, over-budget ordering, planned operations (`PlannedOperations`: forecast summary, "will be over" envelope, upcoming list with an overdue item — fixtures are dated relative to today), month selection from the strip (`MonthFromChart`), the desktop panel (expanded and collapsed), the mobile fullscreen detail (closed again and left open), mobile category management and inline category editing. The mock categories carry plans (Core Bills 33 200, Living Costs 10 000, Enjoy Life 100) so planned, over-budget and no-plan rows all render.
 - `Features/Budget/BudgetBarChart` covers default, compact, previous-month, negative-month and empty timeline states.
 
 The full-page story wrapper uses `<div className="h-screen">` with no padding so the viewport-fitting layout renders correctly in Storybook.
