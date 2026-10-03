@@ -15,9 +15,7 @@ import { BudgetInlineCategoryEditor } from "@/features/budget/components/budget-
 import { parseCategoryDescriptionAndBudget, serializeCategoryDescriptionAndBudget } from "@/features/budget/lib/budget-analytics";
 import { buildEnvelopeBudgetRows } from "@/features/budget/lib/envelope-budget";
 import { buildCategoryTree, getCategoryDescendantIds } from "@/features/categories/lib/category-tree";
-import { TransactionFormSheet, type TransactionFormSubmitPayload } from "@/features/transactions/components/transaction-form-sheet";
-import { useTransactionActions } from "@/features/transactions/hooks/use-transaction-actions";
-import { useTransactionListActions } from "@/features/transactions/hooks/use-transaction-list-actions";
+import { useBudgetTransactionEditor } from "@/features/budget/hooks/use-budget-transaction-editor";
 import { cn } from "@/lib/utils";
 import type { CurrencyCode } from "@/types/currency";
 import type { Category, CategoryTreeNode, CategoryType, FinanceSnapshot, Transaction } from "@/types/finance";
@@ -196,27 +194,11 @@ export function EnvelopeDetail({
   onDelete: (category: Category) => void;
 }) {
   const t = useTranslations("budget");
-  const envelopeT = useTranslations("budget.envelope");
   const summaryT = useTranslations("budget.summary");
   const categoriesTreeT = useTranslations("categories.tree");
   const currency = snapshot.preferences.default_currency;
   const [showTransactions, setShowTransactions] = useState(false);
-  const transactionActions = useTransactionActions();
-  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
-  const [transactionSheetMode, setTransactionSheetMode] = useState<"edit-transaction" | "edit-schedule">("edit-transaction");
-  const [transactionSheetOpen, setTransactionSheetOpen] = useState(false);
-  const listActions = useTransactionListActions({
-    onEdit(transaction) {
-      setTransactionSheetMode("edit-transaction");
-      setEditingTransaction(transaction);
-      setTransactionSheetOpen(true);
-    },
-    onEditSeries(transaction) {
-      setTransactionSheetMode("edit-schedule");
-      setEditingTransaction(transaction);
-      setTransactionSheetOpen(true);
-    },
-  });
+  const { listActions, sheet } = useBudgetTransactionEditor(snapshot);
 
   const node = useMemo(
     () => findCategoryTreeNode(buildCategoryTree(manageableCategories, transactions), nodeId),
@@ -244,6 +226,11 @@ export function EnvelopeDetail({
     () => transactions.filter((transaction) => transaction.category_id && categoryIds.has(transaction.category_id)),
     [transactions, categoryIds],
   );
+  const plannedTransactions = useMemo(
+    () => linkedTransactions.filter((transaction) => transaction.status === "planned").sort((left, right) => left.occurred_at.localeCompare(right.occurred_at)),
+    [linkedTransactions],
+  );
+  const paidTransactions = useMemo(() => linkedTransactions.filter((transaction) => transaction.status !== "planned"), [linkedTransactions]);
 
   if (!node || !row) return null;
 
@@ -251,7 +238,11 @@ export function EnvelopeDetail({
   const addingHere = editor?.mode === "add" && editor.parentId === node.id;
   const canPlan = node.type === "expense" && !node.parent_id;
   const over = row.status === "over";
+  // Shown under the month-end label, so no fallback to the actual balance when an upcoming rate is missing.
+  const remaining = row.forecastLeft;
+  const negative = over || row.atRisk;
   const ratio = row.planned && row.spent !== null ? row.spent / row.planned : 0;
+  const upcomingRatio = row.planned && row.upcoming ? row.upcoming / row.planned : 0;
   const spentTotal = row.spent ?? 0;
 
   if (editMode && (editingHere || addingHere)) {
@@ -299,7 +290,7 @@ export function EnvelopeDetail({
       </div>
 
       <div className="flex flex-col gap-3">
-        <dl className="grid grid-cols-3 gap-3">
+        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <div className="min-w-0">
             <dt className="type-body-12 text-muted-foreground">{summaryT("planned")}</dt>
             <dd className="type-h5 mt-0.5 tabular-nums">
@@ -319,16 +310,31 @@ export function EnvelopeDetail({
             </dd>
           </div>
           <div className="min-w-0">
-            <dt className="type-body-12 text-muted-foreground">{over ? envelopeT("over") : summaryT("left")}</dt>
+            <dt className="type-body-12 text-muted-foreground">{summaryT("upcoming")}</dt>
             <dd className="type-h5 mt-0.5 tabular-nums">
-              {row.left !== null ? <MoneyAmount amount={Math.abs(row.left)} currency={currency} display="absolute" tone={over ? "negative" : "default"} showMinorUnits={false} /> : "—"}
+              {row.upcoming !== null ? <MoneyAmount amount={row.upcoming} currency={currency} display="absolute" tone={row.upcoming ? "default" : "muted"} showMinorUnits={false} /> : "—"}
+            </dd>
+          </div>
+          <div className="min-w-0">
+            <dt className={cn("type-body-12", negative ? "text-destructive" : "text-muted-foreground")}>
+              {negative ? summaryT("forecastOver") : summaryT("forecastLeft")}
+            </dt>
+            <dd className="type-h5 mt-0.5 tabular-nums">
+              {remaining !== null ? <MoneyAmount amount={Math.abs(remaining)} currency={currency} display="absolute" tone={negative ? "negative" : "default"} showMinorUnits={false} /> : "—"}
             </dd>
           </div>
         </dl>
         {row.planned ? (
-          <ProgressTrack value={ratio} className="h-1" trackClassName="bg-border/55" fillClassName={over ? "bg-destructive" : "bg-foreground/62"} />
+          <ProgressTrack
+            value={ratio}
+            secondaryValue={upcomingRatio}
+            className="h-1"
+            trackClassName="bg-border/55"
+            fillClassName={over ? "bg-destructive" : "bg-foreground/70"}
+            secondaryFillClassName={row.atRisk ? "bg-destructive/40" : "bg-foreground/22"}
+          />
         ) : null}
-        {row.spent === null ? <p className="type-body-12 text-muted-foreground">{summaryT("missingRates")}</p> : null}
+        {row.spent === null || row.upcoming === null ? <p className="type-body-12 text-muted-foreground">{summaryT("missingRates")}</p> : null}
       </div>
 
       {childRows.length ? (
@@ -350,15 +356,30 @@ export function EnvelopeDetail({
         </div>
       ) : null}
 
+      {plannedTransactions.length ? (
+        <div className="flex flex-col gap-1">
+          <span className="type-body-12 font-semibold uppercase tracking-[0.18em] text-muted-foreground">{t("category.upcoming")}</span>
+          <TransactionList
+            transactions={plannedTransactions}
+            emptyMessage={t("category.noTransactions")}
+            showMinorUnits
+            targetCurrency={currency}
+            exchangeRates={snapshot.exchange_rates}
+            onTransactionClick={listActions.onEditOccurrence}
+            {...listActions}
+          />
+        </div>
+      ) : null}
+
       <div className="border-t border-border/40 pt-3">
         <Button type="button" variant="ghost" onClick={() => setShowTransactions((current) => !current)} aria-expanded={showTransactions} className="h-11 w-full justify-between px-1.5">
-          <span>{showTransactions ? t("category.hideTransactions") : t("category.showTransactions", { count: String(linkedTransactions.length) })}</span>
+          <span>{showTransactions ? t("category.hideTransactions") : t("category.showTransactions", { count: String(paidTransactions.length) })}</span>
           {showTransactions ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
         </Button>
         {showTransactions ? (
           <div className="mt-2">
             <TransactionList
-              transactions={linkedTransactions}
+              transactions={paidTransactions}
               emptyMessage={t("category.noTransactions")}
               groupByDate
               showMinorUnits
@@ -380,26 +401,7 @@ export function EnvelopeDetail({
       ) : (
         <div className="flex flex-col gap-4 px-4 pb-8 pt-2">{body}</div>
       )}
-      <TransactionFormSheet
-        open={transactionSheetOpen}
-        mode={transactionSheetMode}
-        transaction={editingTransaction}
-        schedule={transactionSheetMode === "edit-schedule" ? editingTransaction?.schedule ?? null : null}
-        accounts={snapshot.accounts}
-        categories={snapshot.categories}
-        allocations={snapshot.allocations}
-        investmentPositions={snapshot.investment_positions}
-        onOpenChange={setTransactionSheetOpen}
-        onSubmit={(payload: TransactionFormSubmitPayload) => {
-          if (payload.kind === "transaction" && editingTransaction) {
-            transactionActions.updateTransactionOptimistic(editingTransaction.id, payload.values);
-          } else if (payload.kind === "recurring-occurrence-series") {
-            transactionActions.applyRecurringOccurrenceChanges(payload.scheduleId, payload.fromOccurrenceDate, payload.changes);
-          } else if (payload.kind === "schedule" && editingTransaction?.schedule) {
-            transactionActions.updateSchedule(editingTransaction.schedule.id, payload.values);
-          }
-        }}
-      />
+      {sheet}
     </>
   );
 }

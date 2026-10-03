@@ -12,8 +12,8 @@ import { Surface } from "@/components/surface";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { BudgetBarChart } from "@/features/budget/components/budget-bar-chart";
-import { BudgetMonthAnalysisSheet } from "@/features/budget/components/budget-month-analysis-sheet";
 import { BudgetSummary } from "@/features/budget/components/budget-summary";
+import { BudgetUpcomingList } from "@/features/budget/components/budget-upcoming-list";
 import {
   buildCategoryPath,
   EnvelopeDetail,
@@ -24,6 +24,7 @@ import { EnvelopeRow } from "@/features/budget/components/envelope-row";
 import {
   buildEnvelopeBudgetRows,
   sumEnvelopeSpend,
+  sumEnvelopeUpcoming,
   sumUncategorizedSpend,
   summarizeEnvelopeBudget,
   type EnvelopeBudgetRow,
@@ -31,8 +32,7 @@ import {
 import { CategoryDeleteSheet } from "@/features/categories/components/category-delete-sheet";
 import { buildCategoryTree, getManageableCategories } from "@/features/categories/lib/category-tree";
 import { useFinanceActions } from "@/features/finance/hooks/use-finance-actions";
-import type { CategorySpendingReport } from "@/features/finance/lib/category-spending-report";
-import { isSettledTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
+import { isVisibleTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
 import { calDate } from "@/lib/formatters";
 import type { Category, CategoryType, FinanceSnapshot } from "@/types/finance";
 import type { CategoryInput } from "@/types/finance-schemas";
@@ -139,7 +139,6 @@ export function BudgetView({
   const today = startOfToday();
   const [month, setMonth] = useState(today);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
-  const [selectedMonthReport, setSelectedMonthReport] = useState<CategorySpendingReport | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [editor, setEditor] = useState<CategoryEditorState | null>(null);
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
@@ -147,8 +146,9 @@ export function BudgetView({
   const currency = snapshot.preferences.default_currency;
 
   const manageableCategories = useMemo(() => getManageableCategories(snapshot.categories), [snapshot.categories]);
+  // Paid and planned transactions of the month: envelopes count paid ones as spent and planned ones as upcoming.
   const monthTransactions = useMemo(
-    () => snapshot.transactions.filter((transaction) => isSettledTransactionStatus(transaction.status) && isSameMonth(parseISO(transaction.occurred_at), month)),
+    () => snapshot.transactions.filter((transaction) => isVisibleTransactionStatus(transaction.status) && isSameMonth(parseISO(transaction.occurred_at), month)),
     [month, snapshot.transactions],
   );
   const categoryTree = useMemo(() => buildCategoryTree(manageableCategories, monthTransactions), [manageableCategories, monthTransactions]);
@@ -173,11 +173,26 @@ export function BudgetView({
     () => sumUncategorizedSpend({ ...rowOptions, kind: "income" }),
     [rowOptions],
   );
-  const summary = useMemo(() => summarizeEnvelopeBudget(expenseRows, uncategorizedExpense), [expenseRows, uncategorizedExpense]);
+  const uncategorizedUpcomingExpense = useMemo(
+    () => sumUncategorizedSpend({ ...rowOptions, kind: "expense", status: "planned" }),
+    [rowOptions],
+  );
+  const uncategorizedUpcomingIncome = useMemo(
+    () => sumUncategorizedSpend({ ...rowOptions, kind: "income", status: "planned" }),
+    [rowOptions],
+  );
+  const summary = useMemo(
+    () => summarizeEnvelopeBudget(expenseRows, uncategorizedExpense, uncategorizedUpcomingExpense),
+    [expenseRows, uncategorizedExpense, uncategorizedUpcomingExpense],
+  );
   const incomeTotal = useMemo(() => {
     const categorized = sumEnvelopeSpend(incomeRows);
     return categorized === null || uncategorizedIncome === null ? null : categorized + uncategorizedIncome;
   }, [incomeRows, uncategorizedIncome]);
+  const incomeUpcoming = useMemo(() => {
+    const categorized = sumEnvelopeUpcoming(incomeRows);
+    return categorized === null || uncategorizedUpcomingIncome === null ? null : categorized + uncategorizedUpcomingIncome;
+  }, [incomeRows, uncategorizedUpcomingIncome]);
 
   const selectedPath = useMemo(
     () => (selectedCategoryId ? buildCategoryPath(selectedCategoryId, manageableCategories) : []),
@@ -269,11 +284,10 @@ export function BudgetView({
           <BudgetBarChart
             compact
             transactions={snapshot.transactions}
-            categories={manageableCategories}
             currentMonth={month}
             targetCurrency={currency}
             exchangeRates={snapshot.exchange_rates}
-            onMonthSelect={setSelectedMonthReport}
+            onMonthChange={changeMonth}
           />
           <div className="mt-2 grid grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-2">
             <PageHeaderIconButton icon={ChevronLeft} label={t("monthChart.previousMonth")} onClick={() => changeMonth(addMonths(month, -1))} />
@@ -284,12 +298,13 @@ export function BudgetView({
           </div>
         </section>
 
-        <BudgetSummary summary={summary} income={incomeTotal} currency={currency} />
+        <BudgetSummary summary={summary} income={incomeTotal} incomeUpcoming={incomeUpcoming} currency={currency} />
 
         <div className="grid grid-cols-1 gap-6 px-4 pb-8 sm:px-6 lg:grid-cols-[400px_minmax(0,1fr)] lg:px-7">
           <div className="flex flex-col gap-6">
             <EnvelopeGroup title={t("sections.expensesTitle")} type="expense" rows={expenseRows} emptyMessage={t("sections.expensesEmpty")} {...groupProps} />
             <EnvelopeGroup title={t("sections.incomeTitle")} type="income" rows={incomeRows} emptyMessage={t("sections.incomeEmpty")} {...groupProps} />
+            {editMode ? null : <BudgetUpcomingList snapshot={snapshot} transactions={monthTransactions} month={month} />}
           </div>
 
           {isDesktop ? (
@@ -335,12 +350,6 @@ export function BudgetView({
           setDeletingCategory(null);
           setActionError(null);
         }}
-      />
-
-      <BudgetMonthAnalysisSheet
-        report={selectedMonthReport}
-        open={Boolean(selectedMonthReport)}
-        onOpenChange={(open) => { if (!open) setSelectedMonthReport(null); }}
       />
     </>
   );

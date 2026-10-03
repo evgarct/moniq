@@ -440,30 +440,30 @@
     }
   },
   "investments": {
-    "title": "\u0418\u043d\u0432\u0435\u0441\u0442\u0438\u0446\u0438\u0438",
-    "empty": "\u041f\u043e\u0437\u0438\u0446\u0438\u0439 \u043f\u043e\u043a\u0430 \u043d\u0435\u0442.",
-    "units": "{value} \u0435\u0434.",
-    "quoteUnavailable": "\u041d\u0435\u0442 \u043a\u043e\u0442\u0438\u0440\u043e\u0432\u043a\u0438",
-    "quoteDate": "\u0426\u0435\u043d\u0430 \u043d\u0430 {date}",
-    "purchases": "\u041f\u043e\u043a\u0443\u043f\u043a\u0438",
-    "noPurchases": "\u0421\u0432\u044f\u0437\u0430\u043d\u043d\u044b\u0445 \u043f\u043e\u043a\u0443\u043f\u043e\u043a \u043f\u043e\u043a\u0430 \u043d\u0435\u0442.",
+    "title": "Инвестиции",
+    "empty": "Позиций пока нет.",
+    "units": "{value} ед.",
+    "quoteUnavailable": "Нет котировки",
+    "quoteDate": "Цена на {date}",
+    "purchases": "Покупки",
+    "noPurchases": "Связанных покупок пока нет.",
     "labels": {
-      "units": "\u041a\u043e\u043b\u0438\u0447\u0435\u0441\u0442\u0432\u043e",
-      "marketValue": "\u0420\u044b\u043d\u043e\u0447\u043d\u0430\u044f \u0441\u0442\u043e\u0438\u043c\u043e\u0441\u0442\u044c"
+      "units": "Количество",
+      "marketValue": "Рыночная стоимость"
     },
     "actions": {
-      "add": "\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u0438\u043d\u0432\u0435\u0441\u0442\u0438\u0446\u0438\u044e",
-      "addPurchase": "\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u043f\u043e\u043a\u0443\u043f\u043a\u0443",
-      "close": "\u0417\u0430\u043a\u0440\u044b\u0442\u044c \u0434\u0435\u0442\u0430\u043b\u0438"
+      "add": "Добавить инвестицию",
+      "addPurchase": "Добавить покупку",
+      "close": "Закрыть детали"
     },
     "form": {
-      "title": "\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u0438\u043d\u0432\u0435\u0441\u0442\u0438\u0446\u0438\u044e",
-      "description": "\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0430\u043a\u0446\u0438\u044e \u0438\u043b\u0438 ETF \u0438 \u0443\u043a\u0430\u0436\u0438\u0442\u0435 \u0441\u0442\u0430\u0440\u0442\u043e\u0432\u043e\u0435 \u043a\u043e\u043b\u0438\u0447\u0435\u0441\u0442\u0432\u043e.",
-      "instrument": "\u0418\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442",
-      "search": "\u041f\u043e\u0438\u0441\u043a \u043f\u043e \u043d\u0430\u0437\u0432\u0430\u043d\u0438\u044e, \u0442\u0438\u043a\u0435\u0440\u0443 \u0438\u043b\u0438 ISIN",
-      "selected": "\u0412\u044b\u0431\u0440\u0430\u043d\u043e",
-      "openingUnits": "\u0421\u0442\u0430\u0440\u0442\u043e\u0432\u043e\u0435 \u043a\u043e\u043b\u0438\u0447\u0435\u0441\u0442\u0432\u043e",
-      "submit": "\u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c"
+      "title": "Добавить инвестицию",
+      "description": "Выберите акцию или ETF и укажите стартовое количество.",
+      "instrument": "Инструмент",
+      "search": "Поиск по названию, тикеру или ISIN",
+      "selected": "Выбрано",
+      "openingUnits": "Стартовое количество",
+      "submit": "Сохранить"
     }
   },
   "accounts": {
@@ -679,7 +679,8 @@
       "showTransactions": "Показать транзакции ({count})",
       "hideTransactions": "Скрыть транзакции",
       "selectPrompt": "Выберите категорию для просмотра деталей",
-      "selectPromptDesc": "Нажмите на любую категорию слева, чтобы увидеть её подкатегории, управлять бюджетом и отследить транзакции."
+      "selectPromptDesc": "Нажмите на любую категорию слева, чтобы увидеть её подкатегории, управлять бюджетом и отследить транзакции.",
+      "upcoming": "Запланировано"
     },
     "envelope": {
       "left": "осталось",
@@ -690,7 +691,10 @@
       "noPlan": "Без плана",
       "noRate": "Нет курса",
       "setBudget": "Задать бюджет",
-      "delete": "Удалить {name}"
+      "delete": "Удалить {name}",
+      "willBeOver": "будет перерасход",
+      "upcoming": "+{amount} запланировано",
+      "onlyUpcoming": "{amount} запланировано"
     },
     "summary": {
       "planned": "План",
@@ -698,7 +702,13 @@
       "left": "Осталось",
       "income": "Доход",
       "noPlan": "Без плана",
-      "missingRates": "Нет курсов валют, поэтому итоги недоступны."
+      "missingRates": "Нет курсов валют, поэтому итоги недоступны.",
+      "forecastLeft": "Останется к концу месяца",
+      "forecastOver": "Перерасход к концу месяца",
+      "upcoming": "Запланировано",
+      "expected": "+{amount} ожидается",
+      "spentLegend": "Потрачено",
+      "upcomingLegend": "Запланировано"
     },
     "monthChart": {
       "ariaLabel": "Месячный анализ бюджета",
@@ -711,7 +721,6 @@
       "nextMonth": "Следующий месяц",
       "hint": "Наведите для контекста. Нажмите на месяц для деталей.",
       "emptyCurrency": "Нет",
-      "openMonth": "Открыть анализ за {month}",
       "paidTransactions": "{count, plural, =0 {Нет проведённых транзакций} one {# проведённая транзакция} few {# проведённые транзакции} many {# проведённых транзакций} other {# проведённой транзакции}}",
       "netLabel": "Итог",
       "incomeLabel": "Доход",
@@ -719,38 +728,15 @@
       "emptyTooltip": "В этом месяце нет проведённой активности.",
       "topEnvelopes": "Главные конверты",
       "noPercent": "н/д",
-      "percentOfIncome": "{value, number, ::.##}% от дохода"
+      "percentOfIncome": "{value, number, ::.##}% от дохода",
+      "selectMonth": "Показать {month}",
+      "plannedLabel": "Запланировано",
+      "plannedMissingRates": "Запланированные операции: нет курса для {currencies}"
     },
-    "monthAnalysis": {
-      "fallbackTitle": "Анализ месяца",
-      "description": "Проведённые доходы и расходы по валютам, конвертам, категориям и транзакциям.",
-      "overview": "Обзор",
-      "incomeLabel": "Доход",
-      "expensesLabel": "Расходы",
-      "netLabel": "Итог",
-      "leftLabel": "Осталось",
-      "overLabel": "Перерасход",
-      "spentFromIncome": "Потрачено от дохода",
-      "leftFromIncome": "Осталось от дохода",
-      "overIncome": "Сверх дохода",
-      "paidTransactions": "{count, plural, =0 {Нет проведённых транзакций} one {# проведённая транзакция} few {# проведённые транзакции} many {# проведённых транзакций} other {# проведённой транзакции}}",
-      "emptyMonth": "В этом месяце нет проведённой активности.",
-      "envelopes": "Конверты расходов",
-      "emptyEnvelopes": "В конвертах расходов нет проведённой активности.",
-      "incomeCategories": "Категории доходов",
-      "emptyIncome": "В категориях доходов нет проведённой активности.",
-      "uncategorized": "Без категории",
-      "uncategorizedIncome": "Доходы без категории",
-      "uncategorizedExpense": "Расходы без категории",
-      "transactionCount": "{count, plural, =0 {Нет транзакций} one {# транзакция} few {# транзакции} many {# транзакций} other {# транзакции}}",
-      "emptyTransactions": "В этой группе нет транзакций.",
-      "moreTransactions": "{count, plural, one {Ещё # транзакция} few {Ещё # транзакции} many {Ещё # транзакций} other {Ещё # транзакции}}",
-      "spentInCurrency": "Потрачено в {currency}",
-      "ofIncome": "От всего дохода",
-      "ofExpenses": "От всех расходов",
-      "shareExplanation": "Эти проценты сравнивают конверт со всем месяцем в {currency}.",
-      "notApplicable": "н/д",
-      "percent": "{value, number, ::.##}%"
+    "upcoming": {
+      "title": "Предстоит в этом месяце",
+      "empty": "Больше ничего не запланировано в этом месяце.",
+      "total": "{count, plural, one {# операция} few {# операции} many {# операций} other {# операции}}"
     }
   },
   "categories": {
@@ -1446,7 +1432,7 @@
       "accountIdsArray": "account_ids ?????? ???? ???????? ???????? ?????.",
       "categoryIdsArray": "category_ids ?????? ???? ???????? ???????? ?????.",
       "transactionsLoadFailed": "?? ??????? ????????? ??????????.",
-      "financeContextLoadFailed": "?? ??????? ????????? ?????????? ????????.",
+      "financeContextLoadFailed": "Не удалось загрузить финансовый контекст. Повторите попытку.",
       "balancesLoadFailed": "?? ??????? ????????? ???????.",
       "occurrenceRefExclusive": "??????? ???? transaction_id, ???? schedule_id ? occurrence_date, ?? ?? ??? ????????.",
       "occurrenceRefRequired": "??????? transaction_id ??? schedule_id ? occurrence_date ? ??????? YYYY-MM-DD.",
@@ -1482,9 +1468,8 @@
       "goalTagNotOnDebtPayment": "Транзакция \"{label}\": цели накоплений не поддерживаются у платежей по долгу.",
       "invalidTrendGrouping": "group_by должен быть envelope или category.",
       "invalidTrendPeriod": "start_month и end_month должны быть в формате YYYY-MM, начало не позже конца, не более 12 месяцев.",
-      "goalIdRequired": "Нужен goal_id.",
+      "goalIdRequired": "Необходим goal_id.",
       "goalNotFound": "Цель накоплений не найдена.",
-      "financeContextLoadFailed": "Не удалось загрузить финансовый контекст. Повторите попытку.",
       "rescheduleDatesRequired": "from_occurrence_date ? new_occurrence_date ?????? ???? ? ??????? YYYY-MM-DD.",
       "invalidScheduleState": "state ?????? ???? active ??? paused.",
       "transactionsRequired": "transactions ?????? ???? ???????? ????????.",
@@ -1517,7 +1502,6 @@
       "walletIdRequired": "Необходим wallet_id.",
       "goalNameRequired": "Необходимо имя цели (name).",
       "goalKindInvalid": "Неверный тип цели: должен быть goal_open или goal_targeted.",
-      "goalIdRequired": "Необходим goal_id.",
       "createGoalFailed": "Не удалось создать цель сбережений.",
       "updateGoalFailed": "Не удалось обновить цель сбережений.",
       "deleteGoalFailed": "Не удалось удалить цель сбережений.",

@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { buildEnvelopeBudgetRows, summarizeEnvelopeBudget, sumEnvelopeSpend, sumUncategorizedSpend } from "@/features/budget/lib/envelope-budget";
+import {
+  buildEnvelopeBudgetRows,
+  listMonthPlannedTransactions,
+  summarizeEnvelopeBudget,
+  sumEnvelopeSpend,
+  sumUncategorizedSpend,
+} from "@/features/budget/lib/envelope-budget";
 import { buildCategoryTree } from "@/features/categories/lib/category-tree";
 import type { Account, Category, ExchangeRate, Transaction } from "@/types/finance";
 
@@ -100,13 +106,85 @@ describe("buildEnvelopeBudgetRows", () => {
     expect(missing[missing.length - 1].status).toBe("unavailable");
   });
 
-  it("ignores other months and planned transactions", () => {
+  it("ignores other months and keeps planned transactions out of the actual spend", () => {
     const rows = build([
       expense("old", 5000, "living", czk, "2026-08-10"),
       { ...expense("planned", 5000, "living"), status: "planned" } as Transaction,
     ]);
 
-    expect(rows.find((row) => row.name === "Living Costs")?.spent).toBe(0);
+    expect(rows.find((row) => row.name === "Living Costs")).toMatchObject({ spent: 0, upcoming: 5000, forecast: 5000, forecastLeft: 5000 });
+  });
+});
+
+describe("forecast with planned transactions", () => {
+  const planned = (id: string, amount: number, categoryId: string, account: Account = czk, occurredAt = "2026-09-25") =>
+    ({ ...expense(id, amount, categoryId, account, occurredAt), status: "planned" }) as Transaction;
+
+  it("adds upcoming spend to the forecast and flags envelopes the plan will not cover", () => {
+    const rows = build([expense("l1", 6000, "living"), planned("l2", 5000, "living"), planned("b1", 1000, "bills")]);
+    const living = rows.find((row) => row.name === "Living Costs");
+
+    expect(living).toMatchObject({ spent: 6000, upcoming: 5000, forecast: 11000, left: 4000, forecastLeft: -1000, status: "ok", atRisk: true });
+    expect(rows[0].name).toBe("Living Costs");
+  });
+
+  it("ignores skipped occurrences and other months", () => {
+    const rows = build([
+      { ...planned("s1", 4000, "living"), status: "skipped" } as Transaction,
+      planned("next", 4000, "living", czk, "2026-10-02"),
+    ]);
+
+    expect(rows.find((row) => row.name === "Living Costs")).toMatchObject({ upcoming: 0, atRisk: false });
+  });
+
+  it("converts future planned amounts with the latest known rate and reports missing ones", () => {
+    const inMonth = build([planned("e1", 100, "living", eur)], [eurToCzk]);
+    expect(inMonth.find((row) => row.name === "Living Costs")?.upcoming).toBe(2500);
+
+    const missing = build([planned("e1", 100, "living", eur)]);
+    expect(missing.find((row) => row.name === "Living Costs")).toMatchObject({ spent: 0, upcoming: null, forecast: null, missingCurrencies: ["EUR"] });
+  });
+
+  it("summarizes upcoming spend and the month-end forecast", () => {
+    const rows = build([expense("l1", 6000, "living"), planned("l2", 2000, "living"), planned("m1", 700, "misc")]);
+    const summary = summarizeEnvelopeBudget(rows, 0, 300);
+
+    expect(summary).toMatchObject({ planned: 80000, spentPlanned: 6000, upcomingPlanned: 2000, upcoming: 3000, forecastLeft: 72000 });
+  });
+
+  it("sums uncategorized planned spend separately from paid spend", () => {
+    const transactions = [
+      { ...planned("u1", 300, "misc"), category_id: null } as Transaction,
+      { ...expense("u2", 200, "misc"), category_id: null } as Transaction,
+    ];
+
+    expect(sumUncategorizedSpend({ transactions, month, kind: "expense", targetCurrency: "CZK", exchangeRates: [], status: "planned" })).toBe(300);
+    expect(sumUncategorizedSpend({ transactions, month, kind: "expense", targetCurrency: "CZK", exchangeRates: [] })).toBe(200);
+  });
+});
+
+describe("listMonthPlannedTransactions", () => {
+  it("splits the month's planned transactions into overdue and upcoming, oldest first", () => {
+    const planned = (id: string, date: string, status: Transaction["status"] = "planned") =>
+      ({ ...expense(id, 10, "living", czk, date), status }) as Transaction;
+    // `today` is injected, so the split does not depend on the real clock.
+    const today = new Date("2026-09-15T00:00:00");
+
+    const result = listMonthPlannedTransactions(
+      [
+        planned("late", "2026-09-30"),
+        planned("today", "2026-09-15"),
+        planned("paid", "2026-09-20", "paid"),
+        planned("first", "2026-09-01"),
+        planned("skip", "2026-09-18", "skipped"),
+        planned("next", "2026-10-01"),
+      ],
+      month,
+      today,
+    );
+
+    expect(result.overdue.map((transaction) => transaction.id)).toEqual(["first"]);
+    expect(result.upcoming.map((transaction) => transaction.id)).toEqual(["today", "late"]);
   });
 });
 
@@ -126,6 +204,9 @@ describe("summarizeEnvelopeBudget", () => {
       unplanned: 500,
       spent: 57956,
       left: 22544,
+      upcomingPlanned: 0,
+      upcoming: 0,
+      forecastLeft: 22544,
     });
     expect(summary.spentPlanned! + summary.unplanned!).toBe(summary.spent);
   });

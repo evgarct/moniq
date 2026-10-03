@@ -3,8 +3,13 @@ import type { Account, Category, InvestmentPosition, Transaction, WalletAllocati
 import { isInvestmentCategory } from "@/features/categories/lib/category-tree";
 import { isSettledTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
 
-export function getTransactionAnalyticsAmount(transaction: Transaction) {
-  if (!isSettledTransactionStatus(transaction.status)) {
+/**
+ * Amount a transaction contributes to income/expense analytics. Only paid transactions count unless
+ * `includePlanned` is set, which also counts planned (not yet paid) ones for month forecasts.
+ */
+export function getTransactionAnalyticsAmount(transaction: Transaction, options: { includePlanned?: boolean } = {}) {
+  const counts = isSettledTransactionStatus(transaction.status) || (options.includePlanned && transaction.status === "planned");
+  if (!counts) {
     return 0;
   }
 
