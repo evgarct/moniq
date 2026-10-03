@@ -152,10 +152,25 @@ Transactions in the flat list (`detail: full`) carry `destination_amount`, `dest
 
 This report uses paid transactions and separates totals by currency.
 
+### `get_budget_status`
+
+The month against the budget, exactly as the Budget screen shows it. Use it for "how is my budget", "how much is left", "will I stay within the plan" and planning questions instead of combining `get_finance_context`, `get_transactions` and the spending report. Input: `month` (`YYYY-MM`, default the current month). Returns, in `currency` (the user's default currency):
+
+- `envelopes`: one per top-level expense category, sorted like the screen (over budget, then will be over, then closest to plan, then without a plan): `planned` (monthly budget or null), `spent` (paid), `upcoming` (planned, not yet paid operations of the month), `forecast` (`spent + upcoming`), `left` (`planned − spent`), `left_at_month_end` (`planned − forecast`), `percent_used`, `status` (`ok`, `near` ≥ 85%, `over`, `unplanned`, `unavailable`), `will_be_over` (not over yet, but the upcoming operations will take it over the plan) and `missing_currencies`.
+- `summary`: `planned`, `spent_planned` / `spent_unplanned` / `spent`, `left`, `upcoming_planned` / `upcoming`, `left_at_month_end` (for the envelopes with a plan), `income_received`, `income_expected`.
+- `income`: per income category `received` and `expected`.
+- `upcoming_operations`: the month's planned operations, overdue first (`overdue: true`), with the original `amount` and `currency`, `converted_amount`, `category_id`, `category_name` and `schedule_id` (use the recurring tools to mark them paid or skip them).
+
+Subcategories roll up into their envelope. Transfers are excluded and debt payments count only their interest. Amounts are converted with the rate of each transaction date, and future-dated planned ones use the latest known rate. When a rate is missing, the affected values are null, never a partial total.
+
+### `set_budgets`
+
+Sets or clears the monthly budget of several top-level expense categories in one atomic call: either every item is applied or none is. Input: `budgets`, 1 to 100 items of `{ category_id, budget_amount }`, where `budget_amount` is a non-negative number in `default_currency` or `null` to clear the budget. A category may appear only once. A budget applies to every month. Read `get_budget_status` first and confirm the new amounts with the user. Requires the same entitlement as the other write tools.
+
 ### Category tools
 
 - `create_category` creates a category. A top-level category needs `type` (`income` or `expense`); a subcategory takes its parent's type. Names must be unique among siblings. Optional `description`, `icon`, and `budget_amount` (monthly, in `default_currency`, top-level expense categories only).
-- `update_category` patches a category: send `category_id` and only the fields to change in `category` (`name`, `parent_id`, `description`, `icon`, `budget_amount`). `parent_id: null` makes it top-level and `budget_amount: null` clears the budget. Type cannot change, system categories cannot be edited, and a category cannot move under its own descendant.
+- `update_category` patches a category: send `category_id` and only the fields to change in `category` (`name`, `parent_id`, `description`, `icon`, `budget_amount`). `parent_id: null` makes it top-level and `budget_amount: null` clears the budget. Type cannot change, system categories cannot be edited, and a category cannot move under its own descendant. To change the budgets of several envelopes, use `set_budgets` instead.
 - There is no delete or archive tool; ask the user to do that in the app.
 - Budgets are stored in the category description as a `[budget: N]` prefix; the tools and reads expose them as `budget_amount` and strip the prefix from `description`.
 - These tools and the savings-goal tools (`create_savings_goal`, `update_savings_goal`, `delete_savings_goal`) require the same entitlement as the other write tools.
