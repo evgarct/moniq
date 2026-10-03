@@ -194,6 +194,7 @@ describe("MCP tools", () => {
       "delete_recurring_occurrence",
       "create_category",
       "update_category",
+      "set_budgets",
       "create_savings_goal",
       "update_savings_goal",
       "delete_savings_goal",
@@ -204,6 +205,7 @@ describe("MCP tools", () => {
       "submit_transaction_batch",
       "get_category_spending_report",
       "get_budget_month_analysis",
+      "get_budget_status",
       "get_trends",
       "get_goal_history",
     ]);
@@ -1022,6 +1024,19 @@ describe("MCP tools", () => {
       message: "An active Moniq subscription is required to change data. Read-only tools remain available.",
     }));
     expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_create_transactions", expect.anything());
+
+    const budgets = await postMcp({
+      jsonrpc: "2.0",
+      id: "budgets-blocked",
+      method: "tools/call",
+      params: { name: "set_budgets", arguments: { budgets: [{ category_id: "living", budget_amount: 1 }] } },
+    });
+    await expect(budgets.json()).resolves.toMatchObject({ result: expectedToolFailure({ code: -32002 }) });
+    expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_set_category_budgets", expect.anything());
+
+    // Reading the budget stays available without the entitlement.
+    await postMcp({ jsonrpc: "2.0", id: "status-open", method: "tools/call", params: { name: "get_budget_status", arguments: {} } });
+    expect(mocks.rpc).toHaveBeenCalledWith("mcp_get_budget_status_source", expect.anything());
   });
 
   it("passes a categorised goal transfer through to the create RPC", async () => {
@@ -1318,6 +1333,126 @@ describe("MCP tools", () => {
     }
     expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_create_category", expect.anything());
     expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_update_category", expect.anything());
+  });
+
+  it("returns the budget status of a month with planned operations and converted amounts", async () => {
+    const wallet = (id: string, currency: string) => ({
+      id, user_id: "user-1", name: id, type: "cash", cash_kind: "debit_card", debt_kind: null, balance: 0, credit_limit: null, currency, created_at: "2026-01-01",
+    });
+    const category = (id: string, name: string, description: string | null, type = "expense") => ({
+      id, user_id: "user-1", name, description, icon: null, type, parent_id: null, is_system: false, created_at: "2026-01-01",
+    });
+    const transaction = (id: string, amount: number, status: string, occurredAt: string, walletId: string, categoryId: string | null) => ({
+      id, user_id: "user-1", title: id, note: null, occurred_at: occurredAt, created_at: occurredAt, status, kind: "expense", amount,
+      destination_amount: null, fx_rate: null, principal_amount: null, interest_amount: null, extra_principal_amount: null,
+      category_id: categoryId, source_account_id: walletId, destination_account_id: null, schedule_id: null,
+      schedule_occurrence_date: null, is_schedule_override: false, allocation_id: null,
+    });
+    mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name);
+      if (authResponse) return authResponse;
+      if (name === "mcp_lookup_api_key") return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
+      if (name === "mcp_get_budget_status_source") {
+        return Promise.resolve({
+          data: {
+            default_currency: "CZK",
+            wallets: [wallet("czk", "CZK"), wallet("eur", "EUR")],
+            categories: [category("living", "Living Costs", "[budget: 10000] Home")],
+            transactions: [
+              transaction("food", 6000, "paid", "2026-09-10", "czk", "living"),
+              transaction("rent", 200, "planned", "2026-09-25", "eur", "living"),
+            ],
+            exchange_rates: [
+              { provider: "frankfurter", base_currency: "EUR", quote_currency: "CZK", requested_date: "2026-09-01", rate_date: "2026-09-01", rate: "25", fetched_at: "2026-09-01T00:00:00Z" },
+            ],
+          },
+          error: null,
+        });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    const response = await postMcp({ jsonrpc: "2.0", id: "budget-status", method: "tools/call", params: { name: "get_budget_status", arguments: { month: "2026-09" } } });
+    const body = await response.json();
+
+    expect(mocks.rpc).toHaveBeenCalledWith("mcp_get_budget_status_source", { p_key_hash: AUTH_KEY_HASH, p_start_date: "2026-09-01", p_end_date: "2026-09-30" });
+    expect(body.result.structuredContent).toMatchObject({
+      month: "2026-09",
+      currency: "CZK",
+      envelopes: [{ category_id: "living", planned: 10000, spent: 6000, upcoming: 5000, left_at_month_end: -1000, will_be_over: true }],
+      summary: { planned: 10000, spent_planned: 6000, upcoming_planned: 5000, left_at_month_end: -1000 },
+    });
+    expect(body.result.structuredContent.upcoming_operations).toEqual([
+      expect.objectContaining({ id: "rent", amount: 200, currency: "EUR", converted_amount: 5000, category_name: "Living Costs" }),
+    ]);
+  });
+
+  it("rejects a malformed budget status month and reports a failed source load", async () => {
+    mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name);
+      if (authResponse) return authResponse;
+      if (name === "mcp_lookup_api_key") return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
+      return Promise.resolve({ data: null, error: { message: "boom" } });
+    });
+
+    const malformed = await postMcp({ jsonrpc: "2.0", id: "bad-month", method: "tools/call", params: { name: "get_budget_status", arguments: { month: "2026-9" } } });
+    await expect(malformed.json()).resolves.toMatchObject({ result: expectedToolFailure({ code: -32602 }) });
+    expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_get_budget_status_source", expect.anything());
+
+    const failed = await postMcp({ jsonrpc: "2.0", id: "failed", method: "tools/call", params: { name: "get_budget_status", arguments: {} } });
+    await expect(failed.json()).resolves.toMatchObject({ result: expectedToolFailure({ code: -32000 }) });
+  });
+
+  it("sets several budgets in one atomic RPC and localizes its errors", async () => {
+    mocks.rpc.mockImplementation((name: string, payload: { p_budgets?: { category_id: string }[] }) => {
+      const authResponse = authRpcResponse(name);
+      if (authResponse) return authResponse;
+      if (name === "mcp_lookup_api_key") return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
+      if (name === "mcp_set_category_budgets") {
+        if (payload.p_budgets?.[0]?.category_id === "child") {
+          return Promise.resolve({ data: null, error: { message: "budget_amount can only be set on a top-level expense category" } });
+        }
+        return Promise.resolve({ data: { budgets: [{ category_id: "living", name: "Living", budget_amount: 9000 }, { category_id: "fun", name: "Fun", budget_amount: null }] }, error: null });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    const response = await postMcp({
+      jsonrpc: "2.0",
+      id: "set-budgets",
+      method: "tools/call",
+      params: { name: "set_budgets", arguments: { budgets: [{ category_id: "living", budget_amount: 9000 }, { category_id: "fun", budget_amount: null }] } },
+    });
+    await expect(response.json()).resolves.toMatchObject({ result: { structuredContent: { budgets: [{ budget_amount: 9000 }, { budget_amount: null }] } } });
+    expect(mocks.rpc).toHaveBeenCalledWith("mcp_set_category_budgets", {
+      p_key_hash: AUTH_KEY_HASH,
+      p_budgets: [{ category_id: "living", budget_amount: 9000 }, { category_id: "fun", budget_amount: null }],
+    });
+
+    const child = await postMcp(
+      { jsonrpc: "2.0", id: "set-child", method: "tools/call", params: { name: "set_budgets", arguments: { budgets: [{ category_id: "child", budget_amount: 5 }] } } },
+      { "Accept-Language": "ru" },
+    );
+    await expect(child.json()).resolves.toMatchObject({
+      result: expectedToolFailure({ code: -32000, message: "Бюджет можно задать только у категории расходов верхнего уровня." }),
+    });
+  });
+
+  it("rejects invalid set_budgets input before calling the RPC", async () => {
+    const cases = [
+      {},
+      { budgets: [] },
+      { budgets: [{ category_id: "living" }] },
+      { budgets: [{ category_id: "living", budget_amount: -1 }] },
+      { budgets: [{ category_id: "living", budget_amount: "100" }] },
+      { budgets: [{ category_id: "living", budget_amount: 1 }, { category_id: "living", budget_amount: 2 }] },
+      { budgets: Array.from({ length: 101 }, (_, index) => ({ category_id: `c${index}`, budget_amount: 1 })) },
+    ];
+    for (const args of cases) {
+      const response = await postMcp({ jsonrpc: "2.0", id: "bad-budgets", method: "tools/call", params: { name: "set_budgets", arguments: args } });
+      await expect(response.json()).resolves.toMatchObject({ result: expectedToolFailure({ code: -32602 }) });
+    }
+    expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_set_category_budgets", expect.anything());
   });
 
   it("falls back to the most common wallet currency when no default currency is saved", async () => {

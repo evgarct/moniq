@@ -18,6 +18,7 @@ import {
   type CategorySpendingPeriodInput,
 } from "@/features/finance/lib/category-spending-report";
 import { parseCategoryDescriptionAndBudget } from "@/features/budget/lib/budget-analytics";
+import { budgetMonthRange, buildBudgetStatus, parseBudgetMonth } from "@/features/budget/lib/budget-status";
 import {
   buildCategoryTrends,
   CATEGORY_TREND_GROUPINGS,
@@ -30,7 +31,7 @@ import { resolveUserPreferences } from "@/features/finance/lib/preferences";
 import { getRequestTranslator } from "@/i18n/translator";
 import { createAnonClient } from "@/lib/supabase/anon";
 import type { CurrencyCode } from "@/types/currency";
-import type { Account, Category, Transaction, WalletAllocation } from "@/types/finance";
+import type { Account, Category, ExchangeRate, Transaction, WalletAllocation } from "@/types/finance";
 import { getMcpWwwAuthenticate } from "./auth-metadata";
 import {
   MONIQ_WIDGET_MIME_TYPE,
@@ -171,6 +172,7 @@ const MCP_MUTATION_TOOLS = new Set([
   "delete_recurring_transaction",
   "create_category",
   "update_category",
+  "set_budgets",
   "create_savings_goal",
   "update_savings_goal",
   "delete_savings_goal",
@@ -1129,6 +1131,37 @@ function getMcpTools() {
           },
         },
         {
+          name: "set_budgets",
+          title: "Set monthly budgets",
+          description:
+            "Set or clear the monthly budget of several top-level expense categories in one call (all or nothing). Amounts are in the user's default currency (default_currency in get_finance_context); budget_amount null clears a budget. A budget applies to every month. Use get_budget_status to see the current plans and spend first, and confirm the new amounts with the user.",
+          annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: true },
+          outputSchema: widgetOutputSchema("Updated budgets"),
+          inputSchema: {
+            type: "object",
+            title: "Budgets",
+            required: ["budgets"],
+            additionalProperties: false,
+            properties: {
+              budgets: {
+                type: "array",
+                title: "Budgets",
+                minItems: 1,
+                maxItems: SET_BUDGETS_MAX_ITEMS,
+                items: {
+                  type: "object",
+                  required: ["category_id", "budget_amount"],
+                  additionalProperties: false,
+                  properties: {
+                    category_id: { type: "string", title: "Top-level expense category ID" },
+                    budget_amount: { type: ["number", "null"], minimum: 0, title: "Monthly budget", description: "Null clears the budget." },
+                  },
+                },
+              },
+            },
+          },
+        },
+        {
           name: "create_savings_goal",
           title: "Create savings goal",
           description:
@@ -1375,6 +1408,22 @@ function getMcpTools() {
           _meta: moniqWidgetMeta("Building month analysis", "Month analysis ready"),
           outputSchema: widgetOutputSchema("Moniq budget month analysis"),
           inputSchema: spendingReportInputSchema("Budget month analysis period"),
+        },
+        {
+          name: "get_budget_status",
+          title: "Get budget status",
+          description:
+            "How the month is going against the budget, exactly as the Budget screen shows it. Per top-level expense envelope: planned (monthly budget), spent (paid), upcoming (planned, not yet paid operations of the month), left (planned − spent), left_at_month_end (planned − spent − upcoming), status (ok, near, over, unplanned, unavailable) and will_be_over (upcoming operations will take it over its plan). Also the month summary (planned envelopes' totals, spend without a plan, income received and expected) and the month's upcoming operations, overdue first. Amounts are converted to the user's default currency; a value that needs a missing exchange rate is null, never a partial total. Defaults to the current month. Prefer this over combining get_finance_context, get_transactions and the spending report.",
+          annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+          outputSchema: widgetOutputSchema("Moniq budget status"),
+          inputSchema: {
+            type: "object",
+            title: "Budget month",
+            properties: {
+              month: { type: "string", title: "Month", description: "YYYY-MM. Defaults to the current month." },
+            },
+            additionalProperties: false,
+          },
         },
         {
           name: "get_trends",
@@ -2946,7 +2995,74 @@ const CATEGORY_RPC_ERRORS: { pattern: RegExp; key: string; param?: string }[] = 
   { pattern: /cannot be moved under its own descendant/, key: "mcp.errors.categoryMoveUnderDescendant" },
   { pattern: /^budget_amount must not be negative/, key: "mcp.errors.categoryBudgetInvalid" },
   { pattern: /^budget_amount can only be set/, key: "mcp.errors.categoryBudgetTopLevelExpense" },
+  { pattern: /^Each category can appear only once/, key: "mcp.errors.budgetDuplicateCategory" },
+  { pattern: /^(budgets must be a non-empty array|Each budget needs category_id)/, key: "mcp.errors.budgetsRequired" },
 ];
+
+const SET_BUDGETS_MAX_ITEMS = 100;
+
+async function handleSetBudgets(
+  id: string | number | null,
+  params: Record<string, unknown>,
+  keyHash: string,
+  t: McpTranslator,
+): Promise<McpResponse> {
+  const args = (params.arguments ?? {}) as { budgets?: unknown };
+  const invalid = (message: string): McpResponse => ({ jsonrpc: "2.0", id, error: { code: -32602, message } });
+  if (!Array.isArray(args.budgets) || args.budgets.length === 0) return invalid(t("mcp.errors.budgetsRequired"));
+  if (args.budgets.length > SET_BUDGETS_MAX_ITEMS) return invalid(t("mcp.errors.budgetsTooMany", { max: SET_BUDGETS_MAX_ITEMS }));
+
+  const budgets: { category_id: string; budget_amount: number | null }[] = [];
+  for (const item of args.budgets) {
+    const categoryId = isRecord(item) ? optionalString(item.category_id) : null;
+    if (!isRecord(item) || !categoryId || !("budget_amount" in item)) return invalid(t("mcp.errors.budgetsRequired"));
+    if (item.budget_amount !== null && !isNonNegativeNumber(item.budget_amount)) return invalid(t("mcp.errors.categoryBudgetInvalid"));
+    budgets.push({ category_id: categoryId, budget_amount: item.budget_amount as number | null });
+  }
+  if (new Set(budgets.map((budget) => budget.category_id)).size !== budgets.length) {
+    return invalid(t("mcp.errors.budgetDuplicateCategory"));
+  }
+
+  return localizeCategoryRpcError(
+    await callRecurringRpc(id, "mcp_set_category_budgets", { p_key_hash: keyHash, p_budgets: budgets }, t("mcp.success.budgetsSet"), t),
+    t,
+  );
+}
+
+type ExchangeRateRow = Omit<ExchangeRate, "rate"> & { rate: number | string };
+
+async function handleGetBudgetStatusTool(
+  id: string | number | null,
+  args: Record<string, unknown>,
+  keyHash: string,
+  t: McpTranslator,
+): Promise<McpResponse> {
+  const rawMonth = getOptionalStringArg(args, "month");
+  const month = parseBudgetMonth(rawMonth);
+  if (!month) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.invalidBudgetMonth") } };
+
+  const range = budgetMonthRange(month);
+  const db = createAnonClient();
+  const { data, error } = await db.rpc("mcp_get_budget_status_source", {
+    p_key_hash: keyHash,
+    p_start_date: range.start_date,
+    p_end_date: range.end_date,
+  });
+  if (error || !isRecord(data)) {
+    return { jsonrpc: "2.0", id, error: { code: -32000, message: t("mcp.errors.budgetStatusLoadFailed") } };
+  }
+
+  const source = data as ReportSource & { exchange_rates?: ExchangeRateRow[] };
+  const { accounts, categories, transactions } = mapReportSource(source);
+  const exchangeRates = (source.exchange_rates ?? []).map((rate): ExchangeRate => ({ ...rate, rate: Number(rate.rate) }));
+  const currency = resolveUserPreferences(
+    typeof source.default_currency === "string" ? (source.default_currency as CurrencyCode) : null,
+    accounts,
+  ).default_currency;
+  const status = buildBudgetStatus({ categories, transactions, month, targetCurrency: currency, exchangeRates });
+
+  return { jsonrpc: "2.0", id, result: { content: [{ type: "text", text: JSON.stringify(status) }], structuredContent: status } };
+}
 
 function localizeCategoryRpcError(response: McpResponse, t: McpTranslator): McpResponse {
   const message = response.error?.message;
@@ -3351,6 +3467,10 @@ async function handleToolCall(
 
   if (toolName === "create_category") return handleCreateCategory(id, params, auth.keyHash, t);
   if (toolName === "update_category") return handleUpdateCategory(id, params, auth.keyHash, t);
+  if (toolName === "set_budgets") return handleSetBudgets(id, params, auth.keyHash, t);
+  if (toolName === "get_budget_status") {
+    return handleGetBudgetStatusTool(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash, t);
+  }
   if (toolName === "create_savings_goal") {
     return handleCreateSavingsGoal(id, params, auth.keyHash, t);
   }
