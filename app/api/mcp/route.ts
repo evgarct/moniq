@@ -418,7 +418,7 @@ function directTransactionProperties() {
     principal_amount: { type: ["number", "null"], title: "Principal", description: "Debt payment principal component." },
     interest_amount: { type: ["number", "null"], title: "Interest", description: "Debt payment interest component." },
     extra_principal_amount: { type: ["number", "null"], title: "Extra principal", description: "Debt payment extra principal component." },
-    category_id: { type: ["string", "null"], title: "Category", description: "Required selectable category ID for income/expense. Optional expense category for debt payment interest. For transfers, an expense category is allowed only together with destination_allocation_id (transfer into a savings goal). In user-facing confirmation, describe this by category path from get_finance_context." },
+    category_id: { type: ["string", "null"], title: "Category", description: "Required selectable category ID for income/expense. Optional expense category for debt payment interest. For transfers, an expense category is allowed into a savings goal (destination_allocation_id) or a pension account such as Czech DPS. In user-facing confirmation, describe this by category path from get_finance_context." },
     source_account_id: { type: ["string", "null"], title: "From wallet", description: "Required source wallet ID for expense, transfer, and debt payment. In user-facing confirmation, describe this by wallet name from get_finance_context." },
     destination_account_id: { type: ["string", "null"], title: "To wallet", description: "Required destination wallet ID for income, transfer, and debt payment. Debt payment destination must be a debt or credit card wallet. In user-facing confirmation, describe this by wallet name from get_finance_context." },
     destination_allocation_id: { type: ["string", "null"], title: "Goal", description: "Savings goal ID (from get_finance_context) of the wallet that holds the money: the goal a transfer or income goes into. Expenses use source_allocation_id. Not supported on debt payments. On update, omit to keep the current goal and send null to clear it." },
@@ -609,7 +609,7 @@ function recurringScheduleProperties(options: { partial?: boolean } = {}) {
       destination_allocation_id: {
         type: ["string", "null"],
         title: "Goal",
-        description: "Goal that each transfer or income occurrence goes into. Expenses use source_allocation_id. Debt payments cannot use goals. A category_id on a transfer needs a destination goal.",
+        description: "Goal that each transfer or income occurrence goes into. Expenses use source_allocation_id. Debt payments cannot use goals. A categorized transfer needs a destination goal or a pension account such as Czech DPS.",
       },
     },
   };
@@ -2334,7 +2334,7 @@ function sanitizeFinanceContext(data: unknown) {
       typeof source.default_currency === "string" ? (source.default_currency as CurrencyCode) : null,
       wallets.filter(isRecord).map((wallet) => ({ currency: wallet.currency as CurrencyCode })),
     ).default_currency,
-    rules: { ...(isRecord(source.rules) ? source.rules : {}), liquidity: "Goals are reserved, including rent and emergency funds. Pension assets are locked. Never treat expected income as received. Before recommending debt repayment, read upcoming obligations and preserve protected reserves." },
+    rules: { ...(isRecord(source.rules) ? source.rules : {}), transfer: "Requires source and destination accounts. An expense category is allowed when funding a savings goal or pension account. Pension accounts cannot be sources. Czech DPS has product_type=cz_dps independently of its display name.", liquidity: "Goals are reserved, including rent and emergency funds. Pension assets are locked. Never treat expected income as received. Before recommending debt repayment, read upcoming obligations and preserve protected reserves." },
   };
 }
 
