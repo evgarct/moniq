@@ -13,6 +13,7 @@ import { TransactionList } from "@/components/transaction-list";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AccountFormSheet } from "@/features/accounts/components/account-form-sheet";
+import { PensionDetail } from "@/features/accounts/components/pension-detail";
 import { BalanceRegisterHeader, BalanceRegisterPanel } from "@/features/accounts/components/balance-register-panel";
 import { useFinanceActions } from "@/features/finance/hooks/use-finance-actions";
 import { GoalFormSheet } from "@/features/goals/components/goal-form-sheet";
@@ -26,7 +27,8 @@ import { isSettledTransactionStatus } from "@/features/transactions/lib/transact
 import { getTransactionsForAccount, getTransactionsForAllocation } from "@/lib/finance-selectors";
 import type { CurrencyCode } from "@/types/currency";
 
-import type { Account, Category, InvestmentPosition, Transaction, WalletAllocation } from "@/types/finance";
+import type { Account, Category, ExchangeRate, InvestmentPosition, Transaction, WalletAllocation } from "@/types/finance";
+import { resolveUserPreferences } from "@/features/finance/lib/preferences";
 
 export function AccountsView({
   accounts,
@@ -34,12 +36,16 @@ export function AccountsView({
   transactions,
   allocations,
   investmentPositions,
+  defaultCurrency,
+  exchangeRates = [],
 }: {
   accounts: Account[];
   categories: Category[];
   transactions: Transaction[];
   allocations: WalletAllocation[];
   investmentPositions: InvestmentPosition[];
+  defaultCurrency?: CurrencyCode;
+  exchangeRates?: ExchangeRate[];
 }) {
   const tr = useTranslations();
   const t = useTranslations("accounts");
@@ -320,6 +326,14 @@ export function AccountsView({
               }}
             />
             <InvestmentList
+              pensionAccounts={accounts.filter(account=>account.type==="pension")}
+              defaultCurrency={defaultCurrency ?? resolveUserPreferences(null,accounts).default_currency}
+              exchangeRates={exchangeRates}
+              selectedPensionId={selectedAccountId}
+              onSelectPension={(id)=>{setSelectedAccountId(id);setSelectedAllocationId(null);setSelectedInvestmentId(null);if(!isDesktopViewport())setMobileRegisterOpen(true);}}
+              onAddPension={()=>openAddWallet("pension")}
+              onEditPension={openEditWallet}
+              onDeletePension={handleDeleteWallet}
               positions={investmentPositions}
               transactions={transactions}
               selectedId={selectedInvestmentId}
@@ -349,7 +363,7 @@ export function AccountsView({
               setTransactionSheetOpen(true);
             }}
           />
-        ) : <BalanceRegisterPanel
+        ) : selectedAccount?.type === "pension" ? <PensionDetail account={selectedAccount} onBack={closeMobileRegister} onSave={(statement) => financeActions.savePensionStatement(selectedAccount.id, statement)} /> : <BalanceRegisterPanel
           selectedAccount={selectedAccount}
           transactions={filteredRegister}
           showMinorUnits={showMinorUnits}
@@ -390,7 +404,7 @@ export function AccountsView({
           showCloseButton={false}
         >
           <div className="min-h-0 flex-1 overflow-auto" onScroll={(event) => setMobileRegisterScrolled(event.currentTarget.scrollTop > 0)}>
-            <BalanceRegisterHeader
+            {selectedAccount?.type === "pension" ? <PensionDetail account={selectedAccount} onBack={closeMobileRegister} onSave={(statement) => financeActions.savePensionStatement(selectedAccount.id, statement)} /> : <><BalanceRegisterHeader
               title={registerTitle}
               startDate={registerDateFrom}
               endDate={registerDateTo}
@@ -423,7 +437,7 @@ export function AccountsView({
                 onTransactionClick={openTransactionEditor}
                 {...listActions}
               />
-            </div>
+            </div></>}
           </div>
         </SheetContent>
       </Sheet>

@@ -27,7 +27,7 @@ export function TransferSection() {
   return (
     <FormSection>
       <FormPickerRow>
-        <AccountSelect name="source_account_id" accounts={accounts} placeholder={t("placeholders.sourceAccount")} />
+        <AccountSelect name="source_account_id" accounts={accounts.filter((account) => account.type !== "pension")} placeholder={t("placeholders.sourceAccount")} />
       </FormPickerRow>
 
       {sourceAllocations.length > 0 && (
@@ -54,7 +54,7 @@ export function TransferSection() {
         </FormPickerRow>
       )}
 
-      {allocationId && (
+      {(allocationId || accounts.find((account) => account.id === destinationAccountId)?.type === "pension") && (
         <FormPickerRow>
           <div className="flex flex-col gap-1">
             <Controller

@@ -15,7 +15,7 @@ import type {
 
 export const walletInputSchema = z.object({
   name: z.string().trim().min(1, "Wallet name is required."),
-  type: z.enum(["cash", "saving", "credit_card", "debt"] satisfies [AccountType, ...AccountType[]]),
+  type: z.enum(["cash", "saving", "credit_card", "debt", "pension"] satisfies [AccountType, ...AccountType[]]),
   balance: z.number(),
   credit_limit: z.number().positive("Credit limit must be greater than 0.").nullable().optional(),
   currency: z.enum(SUPPORTED_CURRENCY_CODES),

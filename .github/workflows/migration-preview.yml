@@ -56,6 +56,7 @@ jobs:
           npm run db:verify
           psql "$DB_URL" -f scripts/verify-database.sql
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/debt_recurring_reliability.sql
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/pension_reliability.sql
           STAGING_SUPABASE_URL="$API_URL" \
           STAGING_SUPABASE_ANON_KEY="$ANON_KEY" \
           STAGING_SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" \

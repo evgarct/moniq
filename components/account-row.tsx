@@ -50,7 +50,7 @@ export function AccountRow({
   const creditCard = isCreditCardAccount(account);
   const creditCardMetrics = creditCard ? getCreditCardMetrics(account) : null;
   const detailLabel =
-    account.type === "debt"
+    account.type === "pension" ? t("pension.locked") : account.type === "debt"
       ? t(`walletTypes.${account.debt_kind ?? "debt"}` as const)
       : null;
   const AccountIcon =
@@ -58,7 +58,7 @@ export function AccountRow({
       ? PiggyBank
       : account.type === "credit_card"
         ? CreditCard
-        : account.type === "debt"
+        : account.type === "debt" || account.type === "pension"
           ? Landmark
           : BanknoteArrowDown;
   const hasActions = Boolean(onEdit || onDelete || onAdjustBalance || onAddGoal);

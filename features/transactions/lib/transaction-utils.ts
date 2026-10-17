@@ -92,7 +92,8 @@ export function validateTransactionRelationships(
     throw new Error("Debt payment must target a debt or credit card account.");
   }
 
-  if (values.kind === "transfer" && values.category_id && !values.allocation_id) {
+  if (sourceAccount?.type === "pension") throw new Error("Pension funds are locked until retirement.");
+  if (values.kind === "transfer" && values.category_id && !values.allocation_id && destinationAccount?.type !== "pension") {
     throw new Error("Only transfers into a savings goal can use a category.");
   }
 

@@ -1,5 +1,8 @@
 # Wallet Model
 
+Pension wallets (`pension`) are locked assets shown inside Investments, with dated
+statement valuations and contributions. See [pension and budget execution](pension-and-budget-execution.md).
+
 Moniq now models wallets around four user-facing types.
 
 ## Wallet Types

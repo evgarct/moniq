@@ -71,6 +71,18 @@ export const Default: Story = {
   },
 };
 
+export const GoalFunding: Story = {
+  render: () => {
+    const data=makeFinanceSnapshot();
+    const source=data.accounts.find(account=>account.currency==="CZK")!;
+    const destination={...data.accounts.find(account=>account.type==="saving")!,currency:"CZK" as const};
+    const funding={...template,id:"story-funded-goal",kind:"transfer" as const,amount:3000,destination_amount:3000,status:"paid" as const,occurred_at:format(today,"yyyy-MM-dd"),source_account_id:source.id,source_account:source,destination_account_id:destination.id,destination_account:destination,allocation_id:"story-gtfo",source_allocation_id:null,category_id:"cushion"};
+    data.transactions=[funding];
+    data.categories=data.categories.map(category=>category.id==="next-safe"?{...category,description:"[budget: 13000]"}:category);
+    return <StoryWorkspace pathname="/budget"><div className="h-full"><BudgetView snapshot={data} /></div></StoryWorkspace>;
+  },
+};
+
 // Enjoy Life has a 1 000 plan in the fixture and more spend than that: it is flagged as over budget and sorted first.
 export const OverBudget: Story = {
   play: async ({ canvasElement }) => {

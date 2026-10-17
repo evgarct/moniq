@@ -27,6 +27,7 @@ import type {
 import type { Account, Category, FinanceSnapshot, InvestmentInstrument, InvestmentPosition, InvestmentQuote, Transaction, TransactionSchedule, UserPreferences, WalletAllocation, WalletAllocationKind } from "@/types/finance";
 
 type WalletRow = {
+  pension_state?: Account["pension_state"];
   id: string;
   user_id: string;
   name: string;
@@ -132,6 +133,7 @@ type UserPreferenceRow = {
 
 function mapWallet(row: WalletRow): Account {
   return {
+    pension_state: row.pension_state,
     id: row.id,
     user_id: row.user_id,
     name: row.name,
@@ -359,7 +361,7 @@ export async function getFinanceSnapshot(
   ] = await Promise.all([
     supabase
       .from("wallets")
-      .select("id, user_id, name, type, cash_kind, debt_kind, balance, credit_limit, currency, created_at, sync_version")
+      .select("id, user_id, name, type, cash_kind, debt_kind, balance, credit_limit, currency, created_at, sync_version, pension_state")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false }),
     supabase
@@ -453,18 +455,24 @@ export async function getFinanceSnapshot(
   const transactionCutoff = format(subMonths(startOfToday(), 12), "yyyy-MM-dd");
 
   phaseStartedAt = performance.now();
-  const { data: transactions, error: transactionError } = await supabase
+  const transactions: TransactionRow[] = [];
+  for (let offset = 0; ; offset += 1000) {
+  const { data: page, error: transactionError } = await supabase
     .from("finance_transactions")
     .select(
       "id, user_id, title, note, occurred_at, created_at, status, kind, amount, destination_amount, posted_destination_amount, fx_rate, principal_amount, interest_amount, extra_principal_amount, category_id, source_account_id, destination_account_id, schedule_id, schedule_occurrence_date, is_schedule_override, is_explicit_reschedule, allocation_id, source_allocation_id, linked_transaction_id, system_generated, investment_instrument_id, investment_units, sync_version",
     )
     .eq("user_id", user.id)
-    .or(`occurred_at.gte.${transactionCutoff},status.eq.planned,investment_instrument_id.not.is.null`)
     .order("occurred_at", { ascending: false })
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .range(offset, offset + 999);
 
   if (transactionError) {
     throw new Error(normalizeFinanceRepositoryError(transactionError));
+  }
+  transactions.push(...(page ?? []) as TransactionRow[]);
+  if (!page || page.length < 1000) break;
   }
 
   const { data: positionRows, error: positionError } = await supabase
@@ -574,7 +582,7 @@ export async function getFinanceSnapshot(
   const preferences = await getUserPreferencesWithDefault(user.id, mappedAccounts);
   const exchangeRates = await getCachedExchangeRates({
     defaultCurrency: preferences.default_currency,
-    currencies: mappedAccounts.map((account) => account.currency),
+    currencies: [...mappedAccounts.map((account) => account.currency), ...investmentPositions.map((position) => position.latest_quote?.currency ?? position.instrument.quote_currency)],
     sinceDate: transactionCutoff,
   });
   recordSnapshotPhase(user.id, "preferences_fx", phaseStartedAt, {

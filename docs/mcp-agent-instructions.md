@@ -1,5 +1,15 @@
 # Moniq MCP Agent Instructions
 
+For liquidity, use each wallet's `available_to_spend`, never its gross balance or credit
+limit. All named allocations are reserved and pensions are locked. Read upcoming
+obligations and keep expected income separate from confirmed money before suggesting
+debt payments. `get_investment_summary` combines market positions and pensions in the
+saved default currency; unavailable FX/quotes produce null totals. `get_pension_accounts`
+and `upsert_pension_statement` handle monthly statements. Link own contributions to
+existing paid transactions and reuse entry IDs; never add values already included in a
+statement twice. Use `link_budget_return` only for a confirmed return to the original
+funding source. See [the accounting contract](pension-and-budget-execution.md).
+
 Use this instruction block for ChatGPT, Claude, or any agent connected to the Moniq MCP server.
 
 ```text

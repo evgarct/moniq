@@ -37,6 +37,8 @@ export default function AccountsPage() {
       transactions={data?.transactions ?? []}
       allocations={data?.allocations ?? []}
       investmentPositions={data?.investment_positions ?? []}
+      defaultCurrency={data?.preferences.default_currency}
+      exchangeRates={data?.exchange_rates ?? []}
     />
   );
 }

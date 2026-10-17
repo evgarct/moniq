@@ -8,6 +8,12 @@ import type { Account, Transaction, WalletAllocation } from "@/types/finance";
 
 const snapshot = makeFinanceSnapshot();
 
+const pensionAccount: Account = {
+  ...snapshot.accounts[0], id: "pension-fixture", name: "Doplňkové penzijní spoření (DPS)",
+  type: "pension", currency: "CZK", balance: 229294.06,
+  pension_state: { statements: [{ as_of: "2026-10-17", total_value: 229294.06, invested: 190781.8, provider_result: 29572.72 }], entries: [] },
+};
+
 const sourceGoalData = makeGoalsData();
 const sourceGoal = sourceGoalData.allocations[0];
 const sourceGoalWallet = snapshot.accounts.find((account) => account.id === sourceGoal.wallet_id)!;
@@ -95,6 +101,8 @@ const meta = {
           transactions={data.transactions}
           allocations={data.allocations ?? []}
           investmentPositions={data.investment_positions ?? []}
+          defaultCurrency={data.preferences.default_currency}
+          exchangeRates={data.exchange_rates}
         />
       </div>
     </StoryWorkspace>
@@ -108,6 +116,8 @@ const meta = {
 export default meta;
 
 type Story = StoryObj<typeof meta>;
+
+export const Pension: Story = { args: { data: { ...snapshot, accounts: [...snapshot.accounts, pensionAccount], exchange_rates: [...snapshot.exchange_rates, { provider: "frankfurter", base_currency: "EUR", quote_currency: "CZK", rate: 25, requested_date: format(new Date(),"yyyy-MM-dd"), rate_date: format(new Date(),"yyyy-MM-dd"), fetched_at: new Date().toISOString() }] } } };
 
 export const Default: Story = {
   args: {

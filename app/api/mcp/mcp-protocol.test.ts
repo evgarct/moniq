@@ -157,6 +157,22 @@ describe("MCP tools", () => {
     setupAuth();
   });
 
+  it("returns pension and market totals in the saved default currency", async () => {
+    mocks.rpc.mockImplementation((name: string) => {
+      const authResponse=authRpcResponse(name); if(authResponse)return authResponse;
+      if(name==="mcp_get_investment_summary_source")return Promise.resolve({data:{default_currency:"CZK",accounts:[{id:"p",name:"DPS",type:"pension",currency:"CZK",balance:229294.06}],positions:[],transactions:[],exchange_rates:[]},error:null});
+      return Promise.resolve({data:null,error:null});
+    });
+    const response=await postMcp({jsonrpc:"2.0",id:"investment-summary",method:"tools/call",params:{name:"get_investment_summary",arguments:{}}});
+    expect((await response.json()).result.structuredContent).toMatchObject({currency:"CZK",total_value:229294.06,pension_value:229294.06,market_value:0});
+  });
+
+  it("validates pension statement input before any pension write", async () => {
+    const response=await postMcp({jsonrpc:"2.0",id:"invalid-pension",method:"tools/call",params:{name:"upsert_pension_statement",arguments:{statement:{as_of:"invalid",total_value:-1}}}});
+    expect((await response.json()).result.isError).toBe(true);
+    expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_upsert_pension_statement",expect.anything());
+  });
+
   it("lists direct transaction, balance, batch, and spending report tools", async () => {
     const response = await postMcp({
       jsonrpc: "2.0",
@@ -167,6 +183,10 @@ describe("MCP tools", () => {
     const body = await response.json();
     const names = body.result.tools.map((tool: { name: string }) => tool.name);
     expect(names).toEqual([
+      "get_investment_summary",
+      "link_budget_return",
+      "get_pension_accounts",
+      "upsert_pension_statement",
       "get_finance_context",
       "get_card_and_debt_balances",
       "get_transactions",
@@ -657,7 +677,7 @@ describe("MCP tools", () => {
 
     const body = await response.json();
     expect(body.result.structuredContent).not.toHaveProperty("allocations");
-    expect(body.result.structuredContent.wallets[0]).not.toHaveProperty("allocations");
+    expect(body.result.structuredContent.wallets[0].allocations).toEqual([]);
     expect(body.result.content[0].text).not.toContain("hidden-allocation");
     expect(body.result.structuredContent.categories).toContainEqual(
       expect.objectContaining({

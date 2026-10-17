@@ -87,12 +87,17 @@ export type CategoryTreeNode = Category & {
   totals_by_currency: MoneyByCurrency[];
 };
 
-export type AccountType = "cash" | "saving" | "credit_card" | "debt";
+export type AccountType = "cash" | "saving" | "credit_card" | "debt" | "pension";
 export type DebtKind = "loan" | "mortgage" | "personal";
 export type CashKind = "debit_card" | "cash_wallet";
-export type AccountGroupType = "cash" | "saving" | "credit_card" | "debt";
+export type AccountGroupType = AccountType;
+
+export type PensionStatement = { as_of: string; total_value: number; invested?: number | null; provider_result?: number | null };
+export type PensionEntry = { id: string; occurred_at: string; amount: number; source: "own" | "employer" | "state" | "internal_investment"; transaction_id?: string | null };
+export type PensionState = { statements: PensionStatement[]; entries: PensionEntry[] };
 
 export type Account = {
+  pension_state?: PensionState | null;
   id: string;
   user_id: string;
   name: string;

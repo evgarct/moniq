@@ -4,11 +4,16 @@ import { Plus, TrendingUp } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { MoneyAmount } from "@/components/money-amount";
+import { AccountRow } from "@/components/account-row";
+import { buildInvestmentSummary } from "@/features/investments/lib/investment-summary";
+import type { Account, ExchangeRate } from "@/types/finance";
+import type { CurrencyCode } from "@/types/currency";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { InlineIcon } from "@/components/ui/inline-icon";
 import { getPositionMarketValue, getPositionUnits } from "@/features/investments/lib/positions";
 import { cn } from "@/lib/utils";
+import { DEFAULT_CURRENCY_CODE } from "@/lib/currencies";
 import type { InvestmentPosition, Transaction } from "@/types/finance";
 
 export function InvestmentList({
@@ -19,6 +24,7 @@ export function InvestmentList({
   onAdd,
   editing = false,
   showMinorUnits = true,
+  pensionAccounts = [], defaultCurrency = DEFAULT_CURRENCY_CODE, exchangeRates = [], selectedPensionId = null, onSelectPension, onAddPension, onEditPension, onDeletePension,
 }: {
   positions: InvestmentPosition[];
   transactions: Transaction[];
@@ -27,8 +33,13 @@ export function InvestmentList({
   onAdd: () => void;
   editing?: boolean;
   showMinorUnits?: boolean;
+  pensionAccounts?: Account[]; defaultCurrency?: CurrencyCode; exchangeRates?: ExchangeRate[];
+  selectedPensionId?: string | null; onSelectPension?: (id: string) => void;
+  onAddPension?: () => void; onEditPension?: (account: Account) => void; onDeletePension?: (account: Account) => void;
 }) {
   const t = useTranslations("investments");
+  const accountsT = useTranslations("accounts");
+  const summary = buildInvestmentSummary({ accounts: pensionAccounts, positions, transactions, currency: defaultCurrency, exchangeRates });
 
   return (
     <section className="flex flex-col gap-2 sm:gap-2.5">
@@ -57,6 +68,13 @@ export function InvestmentList({
           ) : null}
         </div>
       </div>
+
+      <p className="type-body-14 flex items-center justify-between gap-3 px-2">
+        <span className="text-muted-foreground">{t("total")}</span>
+        {summary.total_value === null ? <span className="type-body-12 text-muted-foreground">{t("totalUnavailable")}</span> : <MoneyAmount amount={summary.total_value} currency={defaultCurrency} showMinorUnits={showMinorUnits} />}
+      </p>
+      {pensionAccounts.map(account => <AccountRow key={account.id} account={account} selected={selectedPensionId===account.id} onSelect={()=>onSelectPension?.(account.id)} showMinorUnits={showMinorUnits} onEdit={editing?onEditPension:undefined} onDelete={editing?onDeletePension:undefined} />)}
+      {editing && onAddPension ? <Button variant="ghost" onClick={onAddPension}>{accountsT("walletTypes.pension")}</Button> : null}
 
       {positions.length ? (
         <div className="flex flex-col gap-0.5 sm:gap-1">
@@ -101,7 +119,7 @@ export function InvestmentList({
             );
           })}
         </div>
-      ) : (
+      ) : pensionAccounts.length ? null : (
         <p className="px-1.5 py-1 text-[13px] leading-5 text-muted-foreground sm:type-body-14 sm:px-2.5">
           {t("empty")}
         </p>

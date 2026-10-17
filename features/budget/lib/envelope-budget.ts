@@ -1,4 +1,5 @@
 import { isBefore, isSameMonth, parseISO, startOfToday } from "date-fns";
+import { buildBudgetExecution } from "@/features/budget/lib/budget-execution";
 
 import { getConvertedCategoryTotal, parseCategoryDescriptionAndBudget } from "@/features/budget/lib/budget-analytics";
 import { convertTransactionAnalyticsAmount } from "@/features/finance/lib/exchange-rates";
@@ -101,11 +102,12 @@ export function buildEnvelopeBudgetRows(options: {
   targetCurrency: CurrencyCode;
   exchangeRates: ExchangeRate[];
 }): EnvelopeBudgetRow[] {
+  const execution = buildBudgetExecution(options.transactions).transactions;
   return options.nodes
     .map((node): EnvelopeBudgetRow => {
       const parsed = parseCategoryDescriptionAndBudget(node.description);
       const totalOptions = {
-        transactions: options.transactions,
+        transactions: execution,
         month: options.month,
         categoryIds: new Set([node.id, ...getCategoryDescendantIds(options.categories, node.id)]),
         targetCurrency: options.targetCurrency,

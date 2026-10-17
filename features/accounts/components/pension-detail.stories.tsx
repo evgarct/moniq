@@ -1,0 +1,10 @@
+import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { PensionDetail } from "./pension-detail";
+import { makeFinanceSnapshot } from "@/stories/fixtures/story-data";
+const account = { ...makeFinanceSnapshot().accounts[0], name: "Doplňkové penzijní spoření (DPS)", type: "pension" as const, currency: "CZK" as const, balance: 229294.06, pension_state: { statements: [{ as_of: "2026-10-17", total_value: 229294.06, invested: 190781.8, provider_result: 29572.72 }], entries: [{ id: "employer", occurred_at: "2026-10-08", amount: 4161, source: "employer" as const }] } };
+const meta = { title: "Organisms/PensionDetail", component: PensionDetail, args: { account, onSave: () => {}, onBack: () => {} } } satisfies Meta<typeof PensionDetail>;
+export default meta;
+type Story = StoryObj<typeof meta>;
+export const Default: Story = {};
+export const Empty: Story = { args: { account: { ...account, balance: 0, pension_state: null } } };
+export const UpdateOpen: Story = { args: { initialOpen: true } };

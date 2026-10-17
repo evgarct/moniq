@@ -32,7 +32,7 @@ export function DebtPaymentSection() {
   const interestDirty = Boolean(dirtyFields.interest_amount);
   const extraDirty = Boolean(dirtyFields.extra_principal_amount);
   const sourceAccounts = useMemo(
-    () => accounts.filter((account) => account.type !== "credit_card" && account.type !== "debt"),
+    () => accounts.filter((account) => account.type !== "credit_card" && account.type !== "debt" && account.type !== "pension"),
     [accounts],
   );
   const destinationAccounts = useMemo(

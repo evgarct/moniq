@@ -29,7 +29,7 @@ import {
 import type { CurrencyCode } from "@/types/currency";
 import type { Account, AccountType, DebtKind } from "@/types/finance";
 
-const accountTypes = ["cash", "saving", "credit_card", "debt"] satisfies [AccountType, ...AccountType[]];
+const accountTypes = ["cash", "saving", "credit_card", "debt", "pension"] satisfies [AccountType, ...AccountType[]];
 const debtKinds = ["loan", "mortgage", "personal"] satisfies [DebtKind, ...DebtKind[]];
 
 type AccountFormValues = {
@@ -157,6 +157,7 @@ export function AccountFormSheet({
               <SelectGroup>
                 <SelectItem value="cash">{accountsT("walletTypes.cash")}</SelectItem>
                 <SelectItem value="saving">{accountsT("walletTypes.saving")}</SelectItem>
+                <SelectItem value="pension">{accountsT("walletTypes.pension")}</SelectItem>
                 <SelectItem value="credit_card">{accountsT("walletTypes.credit_card")}</SelectItem>
                 <SelectItem value="debt">{accountsT("walletTypes.debt")}</SelectItem>
               </SelectGroup>
