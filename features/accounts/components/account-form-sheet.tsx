@@ -29,7 +29,7 @@ import {
 import type { CurrencyCode } from "@/types/currency";
 import type { Account, AccountType, DebtKind } from "@/types/finance";
 
-const accountTypes = ["cash", "saving", "credit_card", "debt"] satisfies [AccountType, ...AccountType[]];
+const accountTypes = ["cash", "saving", "credit_card", "debt", "pension"] satisfies [AccountType, ...AccountType[]];
 const debtKinds = ["loan", "mortgage", "personal"] satisfies [DebtKind, ...DebtKind[]];
 
 type AccountFormValues = {
@@ -126,6 +126,7 @@ export function AccountFormSheet({
       onSubmit={form.handleSubmit((values) => {
         onSubmit({
           ...values,
+          balance: values.type === "pension" ? account?.balance ?? 0 : values.balance,
           credit_limit: values.type === "credit_card" ? values.credit_limit ?? null : null,
           currency: values.currency,
           debt_kind: values.type === "debt" ? values.debt_kind ?? "personal" : undefined,
@@ -149,6 +150,7 @@ export function AccountFormSheet({
           render={({ field }) => (
             <FormSelectField
               id="wallet-type"
+              disabled={mode === "edit" && account?.type === "pension"}
               label={t("fields.type")}
               error={form.formState.errors.type}
               value={field.value}
@@ -157,6 +159,7 @@ export function AccountFormSheet({
               <SelectGroup>
                 <SelectItem value="cash">{accountsT("walletTypes.cash")}</SelectItem>
                 <SelectItem value="saving">{accountsT("walletTypes.saving")}</SelectItem>
+                {mode === "add" || account?.type === "pension" ? <SelectItem value="pension">{accountsT("walletTypes.pension")}</SelectItem> : null}
                 <SelectItem value="credit_card">{accountsT("walletTypes.credit_card")}</SelectItem>
                 <SelectItem value="debt">{accountsT("walletTypes.debt")}</SelectItem>
               </SelectGroup>
@@ -198,6 +201,7 @@ export function AccountFormSheet({
               render={({ field }) => (
                 <MoneyInput
                   id="wallet-balance"
+                  disabled={type === "pension"}
                   autoComplete="off"
                   aria-invalid={Boolean(form.formState.errors.balance)}
                   blankZeroOnFocus
@@ -215,6 +219,7 @@ export function AccountFormSheet({
             render={({ field }) => (
               <FormSelectField
                 id="wallet-currency"
+                disabled={mode === "edit" && account?.type === "pension"}
                 label={t("fields.currency")}
                 error={form.formState.errors.currency}
                 value={field.value}

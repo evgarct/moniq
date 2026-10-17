@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { TransactionFormSheet, type TransactionFormSubmitPayload } from "@/features/transactions/components/transaction-form-sheet";
 import { useTransactionActions } from "@/features/transactions/hooks/use-transaction-actions";
-import { useTransactionListActions } from "@/features/transactions/hooks/use-transaction-list-actions";
+import { useTransactionListActions, type TransactionListActionProps } from "@/features/transactions/hooks/use-transaction-list-actions";
 import type { FinanceSnapshot, Transaction } from "@/types/finance";
 
 /**
@@ -16,7 +16,7 @@ export function useBudgetTransactionEditor(snapshot: FinanceSnapshot) {
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [mode, setMode] = useState<"edit-transaction" | "edit-schedule">("edit-transaction");
   const [open, setOpen] = useState(false);
-  const listActions = useTransactionListActions({
+  const rawListActions = useTransactionListActions({
     onEdit(transaction) {
       setMode("edit-transaction");
       setEditingTransaction(transaction);
@@ -28,6 +28,12 @@ export function useBudgetTransactionEditor(snapshot: FinanceSnapshot) {
       setOpen(true);
     },
   });
+  // Envelope projections may have a different kind/amount or split a return into several lots.
+  // Every mutation and form must receive the actual persisted operation.
+  const listActions = Object.fromEntries(Object.entries(rawListActions).map(([key, action]) => [key, (transaction: Transaction) => {
+    const original = snapshot.transactions.find((item) => item.id === transaction.id || transaction.id.startsWith(`${item.id}:`));
+    if (original) action(original);
+  }])) as TransactionListActionProps;
 
   const sheet = (
     <TransactionFormSheet

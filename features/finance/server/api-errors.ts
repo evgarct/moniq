@@ -1,4 +1,10 @@
 const FINANCE_ERROR_KEYS = {
+  "Use pension statement RPC": "mcp.errors.pensionStatementFailed",
+  "Pension account type and currency cannot change": "mcp.errors.pensionStatementFailed",
+  "Create a separate pension account": "mcp.errors.pensionStatementFailed",
+  "Pension funds are locked until retirement.": "accounts.pension.locked",
+  "pension_statement_failed": "mcp.errors.pensionStatementFailed",
+  "pension_entry_conflict": "accounts.pension.invalid",
   "source_allocation_id must belong to the source savings wallet": "mcp.errors.sourceGoalWallet",
   "Expenses use source_allocation_id; debt payments cannot use goals": "mcp.errors.expenseGoalSource",
   "A source goal can only be selected for expenses and transfers.": "common.errors.transaction.sourceGoalTransferOnly",

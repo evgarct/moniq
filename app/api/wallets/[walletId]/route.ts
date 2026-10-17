@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { financeErrorResponse } from "@/app/api/_lib/error-response";
+import { validateAccountValues } from "@/features/accounts/lib/account-state";
 import { adjustWalletBalance, deleteWallet, getFinanceSnapshot, updateWallet } from "@/features/finance/server/repository";
 import { requireMutationEntitlementForRequest } from "@/lib/billing/server";
 import { withApiPerformance, withMutationPerformance } from "@/lib/performance/api";
@@ -15,6 +16,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ wa
 
       const snapshotBefore = await getFinanceSnapshot();
       const currentWallet = snapshotBefore.accounts.find((a) => a.id === walletId);
+      if (!currentWallet) throw new Error("Wallet not found.");
+      validateAccountValues(payload, currentWallet);
       const oldBalance = currentWallet?.balance ?? 0;
 
       const isNegativeKind = currentWallet?.type === "credit_card" || currentWallet?.type === "debt";

@@ -464,7 +464,9 @@
       "selected": "Selected",
       "openingUnits": "Opening units",
       "submit": "Save investment"
-    }
+    },
+    "total": "Total investments",
+    "totalUnavailable": "Missing quote or exchange rate"
   },
   "accounts": {
     "loading": {
@@ -522,7 +524,8 @@
       "cash": "Cash",
       "savings": "Goals",
       "creditCards": "Credit Cards",
-      "debt": "Debt"
+      "debt": "Debt",
+      "pension": "Pension"
     },
     "metrics": {
       "balance": "Balance",
@@ -542,7 +545,8 @@
       "debt": "Debt",
       "loan": "Loan",
       "mortgage": "Mortgage",
-      "personal": "Personal debt"
+      "personal": "Personal debt",
+      "pension": "Pension"
     },
     "actions": {
       "editWallet": "Edit wallet",
@@ -633,6 +637,26 @@
           "targetRequired": "Target amount is required."
         }
       }
+    },
+    "pension": {
+      "back": "Back",
+      "locked": "Locked until retirement",
+      "available": "Available to spend",
+      "asOf": "Valuation as of {date}",
+      "update": "Update valuation",
+      "valuations": "Valuations",
+      "invested": "Invested (provider)",
+      "providerResult": "Result (provider)",
+      "empty": "Add your first pension statement.",
+      "contributions": "Contributions and fund activity",
+      "own": "Your contribution",
+      "employer": "Employer contribution",
+      "state": "State contribution",
+      "internal_investment": "Internal investment",
+      "save": "Save",
+      "date": "Statement date",
+      "value": "Fund value",
+      "invalid": "Check the date and amounts."
     }
   },
   "budget": {
@@ -1517,7 +1541,8 @@
       "occurrenceIdentity": "The original occurrence slot can only change when rescheduling the series.",
       "sourceGoalWallet": "The goal must belong to the source savings wallet.",
       "expenseGoalSource": "Use source_allocation_id for an expense from a goal.",
-      "scheduleReconcileFailed": "Future occurrences could not be updated. Retry syncing."
+      "scheduleReconcileFailed": "Future occurrences could not be updated. Retry syncing.",
+      "pensionStatementFailed": "Could not update the pension statement."
     },
     "success": {
       "recurringLoaded": "Recurring transactions loaded.",
@@ -1548,7 +1573,9 @@
       "draftHardDeletedTitle": "Draft deleted",
       "draftHardDeleted": "Deleted draft transaction from Moniq Inbox.",
       "batchSubmittedTitle": "Batch submitted",
-      "batchSubmitted": "{count, plural, one {Batch submitted successfully. # transaction is now in the Moniq Claude Inbox for review. Batch ID: {batchId}} other {Batch submitted successfully. # transactions are now in the Moniq Claude Inbox for review. Batch ID: {batchId}}}"
+      "batchSubmitted": "{count, plural, one {Batch submitted successfully. # transaction is now in the Moniq Claude Inbox for review. Batch ID: {batchId}} other {Batch submitted successfully. # transactions are now in the Moniq Claude Inbox for review. Batch ID: {batchId}}}",
+      "pensionStatementUpdated": "Pension statement updated.",
+      "pensionAccountUpdated": "Pension account updated."
     },
     "widget": {
       "locale": "en",

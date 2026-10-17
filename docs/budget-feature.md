@@ -1,5 +1,8 @@
 # Budget Feature
 
+Envelope execution includes categorized goal and pension funding, with FIFO provenance
+to prevent counting later purchases twice. See [execution rules](pension-and-budget-execution.md).
+
 ## Overview
 
 The Budget page (`/budget`) answers one question: **where am I against my plan this month?**

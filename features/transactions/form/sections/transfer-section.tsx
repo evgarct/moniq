@@ -1,4 +1,5 @@
 "use client";
+import { useEffect } from "react";
 
 import { useWatch, Controller, useFormContext } from "react-hook-form";
 import { useTranslations } from "next-intl";
@@ -16,18 +17,23 @@ import type { TransactionFormInputs } from "../types";
 export function TransferSection() {
   const t = useTranslations("transactions.form");
   const { accounts, allocations, categoryOptions, sourceCurrencySymbol, destinationCurrencySymbol } = useTransactionFormContext();
-  const { control, formState: { errors } } = useFormContext<TransactionFormInputs>();
+  const { control, setValue, formState: { errors } } = useFormContext<TransactionFormInputs>();
 
   const sourceAccountId = useWatch({ control, name: "source_account_id" });
   const destinationAccountId = useWatch({ control, name: "destination_account_id" });
   const allocationId = useWatch({ control, name: "allocation_id" });
+  const categoryId = useWatch({ control, name: "category_id" });
+  const pensionDestination = accounts.find((account) => account.id === destinationAccountId)?.type === "pension";
+  useEffect(() => {
+    if (!allocationId && !pensionDestination && categoryId) setValue("category_id", null);
+  }, [allocationId, pensionDestination, categoryId, setValue]);
   const sourceAllocations = getGoalAllocationsForSource(accounts, allocations, sourceAccountId);
   const destinationAllocations = getGoalAllocationsForSource(accounts, allocations, destinationAccountId);
 
   return (
     <FormSection>
       <FormPickerRow>
-        <AccountSelect name="source_account_id" accounts={accounts} placeholder={t("placeholders.sourceAccount")} />
+        <AccountSelect name="source_account_id" accounts={accounts.filter((account) => account.type !== "pension")} placeholder={t("placeholders.sourceAccount")} />
       </FormPickerRow>
 
       {sourceAllocations.length > 0 && (
@@ -54,7 +60,7 @@ export function TransferSection() {
         </FormPickerRow>
       )}
 
-      {allocationId && (
+      {(allocationId || pensionDestination) && (
         <FormPickerRow>
           <div className="flex flex-col gap-1">
             <Controller

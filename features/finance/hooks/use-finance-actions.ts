@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
+import { applyPensionStatement, type PensionStatementInput } from "@/features/accounts/lib/pension";
+import { savePensionStatementRequest } from "@/features/finance/lib/finance-api";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -213,6 +215,12 @@ export function useFinanceActions() {
   }
 
   return {
+    savePensionStatement(walletId: string, statement: PensionStatementInput, options?: ActionOptions) {
+      return execute({
+        apply: (snapshot, resolveId) => ({ ...snapshot, accounts: snapshot.accounts.map((account) => account.id === resolveId(walletId) ? applyPensionStatement(account, statement, snapshot.transactions) : account) }),
+        request: (resolveId) => savePensionStatementRequest(resolveId(walletId)!, statement),
+      }, options);
+    },
     createTransaction(values: TransactionEntryInput | TransactionEntryBatchInput, options?: ActionOptions) {
       const entries = "entries" in values ? values.entries : [values];
       const optimisticIds = entries.map(() => createOptimisticId("transaction"));

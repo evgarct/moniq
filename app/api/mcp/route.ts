@@ -7,6 +7,10 @@
  */
 
 import { createHash } from "crypto";
+import { walletAvailability } from "@/features/finance/lib/wallet-availability";
+import { pensionStatementSchema } from "@/features/accounts/lib/pension";
+import { buildInvestmentSummary } from "@/features/investments/lib/investment-summary";
+import type { InvestmentPosition } from "@/types/finance";
 import { NextResponse } from "next/server";
 import {
   buildCategorySpendingReport,
@@ -146,6 +150,9 @@ type TransactionOperationSummary = {
 };
 
 const MCP_MUTATION_TOOLS = new Set([
+  "upsert_pension_statement",
+  "rename_pension_account",
+  "link_budget_return",
   "submit_transaction_batch",
   "create_transactions",
   "create_transaction",
@@ -411,7 +418,7 @@ function directTransactionProperties() {
     principal_amount: { type: ["number", "null"], title: "Principal", description: "Debt payment principal component." },
     interest_amount: { type: ["number", "null"], title: "Interest", description: "Debt payment interest component." },
     extra_principal_amount: { type: ["number", "null"], title: "Extra principal", description: "Debt payment extra principal component." },
-    category_id: { type: ["string", "null"], title: "Category", description: "Required selectable category ID for income/expense. Optional expense category for debt payment interest. For transfers, an expense category is allowed only together with destination_allocation_id (transfer into a savings goal). In user-facing confirmation, describe this by category path from get_finance_context." },
+    category_id: { type: ["string", "null"], title: "Category", description: "Required selectable category ID for income/expense. Optional expense category for debt payment interest. For transfers, an expense category is allowed into a savings goal (destination_allocation_id) or a pension account such as Czech DPS. In user-facing confirmation, describe this by category path from get_finance_context." },
     source_account_id: { type: ["string", "null"], title: "From wallet", description: "Required source wallet ID for expense, transfer, and debt payment. In user-facing confirmation, describe this by wallet name from get_finance_context." },
     destination_account_id: { type: ["string", "null"], title: "To wallet", description: "Required destination wallet ID for income, transfer, and debt payment. Debt payment destination must be a debt or credit card wallet. In user-facing confirmation, describe this by wallet name from get_finance_context." },
     destination_allocation_id: { type: ["string", "null"], title: "Goal", description: "Savings goal ID (from get_finance_context) of the wallet that holds the money: the goal a transfer or income goes into. Expenses use source_allocation_id. Not supported on debt payments. On update, omit to keep the current goal and send null to clear it." },
@@ -602,7 +609,7 @@ function recurringScheduleProperties(options: { partial?: boolean } = {}) {
       destination_allocation_id: {
         type: ["string", "null"],
         title: "Goal",
-        description: "Goal that each transfer or income occurrence goes into. Expenses use source_allocation_id. Debt payments cannot use goals. A category_id on a transfer needs a destination goal.",
+        description: "Goal that each transfer or income occurrence goes into. Expenses use source_allocation_id. Debt payments cannot use goals. A categorized transfer needs a destination goal or a pension account such as Czech DPS.",
       },
     },
   };
@@ -794,6 +801,32 @@ function recurringToolAliases() {
 
 function getMcpTools() {
   return [
+        { name: "rename_pension_account", title: "Rename pension account", description: "Rename an existing locked pension account using its ID from get_pension_accounts. Changes only the display name, preserving valuations, contributions, transaction links and recurring schedules. Confirm the new name with the user.", annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: true }, inputSchema: { type: "object", properties: { wallet_id: { type: "string" }, name: { type: "string", minLength: 1 } }, required: ["wallet_id","name"], additionalProperties: false } },
+        { name: "get_investment_summary", title: "Get total investments", description: "Read all market investment positions and locked pension accounts, their native values and one combined total in the user's saved default currency. Includes separate market/pension subtotals, quote/valuation dates and FX conversion availability. Missing prices or rates make the affected total null, never a misleading partial total. Pension value remains unavailable for spending.", annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false }, inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+        { name: "link_budget_return", title: "Link savings budget return", description: "Link an existing paid transfer out of a savings goal back to the original categorized funding operation. Use only for a confirmed refund/reversal, not a purchase or goal move. Read get_transactions first. Only unused funding reduces the original envelope, in the return month. Does not create a payment or change wallet balances.", annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: true }, inputSchema: { type: "object", properties: { return_id: { type: "string" }, funding_id: { type: "string" } }, required: ["return_id","funding_id"], additionalProperties: false } },
+        {
+          name: "get_pension_accounts", title: "Get pension accounts",
+          description: "Read locked pension accounts, dated valuations and confirmed contributions. Pension value is wealth, never spendable cash. Use before importing a statement and reuse contribution IDs and existing own transaction links.",
+          annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+          inputSchema: { type: "object", properties: {}, additionalProperties: false },
+        },
+        {
+          name: "upsert_pension_statement", title: "Update pension statement",
+          description: "Atomically record a confirmed pension statement extracted from a screenshot. Reuses entries by stable ID; existing own paid transactions must be linked to avoid a second source debit. A snapshot already includes movements on or before as_of; employer/state contributions are not spendable budget income. Internal investment is fund activity, never an expense. Call get_pension_accounts and get_transactions first. Do not infer unreadable dates or amounts. Reusing an entry ID with different data fails. For a new account omit wallet_id and supply its confirmed name (CZK).",
+          annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: true },
+          inputSchema: { type: "object", properties: {
+            wallet_id: { type: "string" }, name: { type: "string" },
+            statement: { type: "object", properties: {
+              as_of: { type: "string", format: "date" }, total_value: { type: "number", minimum: 0 },
+              product_type: { type: "string", enum: ["cz_dps"], description: "Use cz_dps for Czech Doplňkové penzijní spoření (DPS). Product identity is preserved independently of the account name." },
+              invested: { type: ["number", "null"], minimum: 0 }, provider_result: { type: ["number", "null"] },
+              entries: { type: "array", items: { type: "object", properties: {
+                id: { type: "string" }, occurred_at: { type: "string", format: "date" }, amount: { type: "number", exclusiveMinimum: 0 },
+                source: { type: "string", enum: ["own", "employer", "state", "internal_investment"] }, transaction_id: { type: ["string", "null"] },
+              }, required: ["id", "occurred_at", "amount", "source"], additionalProperties: false } },
+            }, required: ["as_of", "total_value"], additionalProperties: false },
+          }, required: ["statement"], additionalProperties: false },
+        },
         {
           name: "get_finance_context",
           title: "Get Moniq finance context",
@@ -2030,7 +2063,7 @@ function validateDirectTransaction(
     if (!optionalString(tx.destination_account_id)) return `Transaction "${label}" transfer must include destination_account_id`;
     // On update an omitted goal id keeps the stored goal, so the database enforces the category rule.
     const goalOmittedOnUpdate = mode === "update" && !("destination_allocation_id" in tx);
-    if (optionalString(tx.category_id) && !optionalString(tx.destination_allocation_id) && !goalOmittedOnUpdate) {
+    if (optionalString(tx.category_id) && !optionalString(tx.destination_allocation_id) && !optionalString(tx.destination_account_id) && !goalOmittedOnUpdate) {
       return t("mcp.errors.transferCategoryNeedsGoal", { label });
     }
   } else if (tx.kind !== "expense" && optionalString(tx.source_allocation_id)) {
@@ -2109,9 +2142,6 @@ function validateRecurringSchedule(schedule: unknown, t: McpTranslator, labelPre
   if (schedule.kind === "transfer") {
     if (!optionalString(schedule.source_account_id)) return `${labelPrefix} "${label}" transfer must include source_account_id`;
     if (!optionalString(schedule.destination_account_id)) return `${labelPrefix} "${label}" transfer must include destination_account_id`;
-    if (optionalString(schedule.category_id) && !optionalString(schedule.destination_allocation_id)) {
-      return t("mcp.errors.transferCategoryNeedsGoal", { label });
-    }
   }
 
   if (schedule.kind === "debt_payment") {
@@ -2213,6 +2243,7 @@ function buildCardAndDebtBalances(context: { wallets?: WalletRow[] }) {
         name: wallet.name,
         type: wallet.type,
         cash_kind: wallet.cash_kind ?? null,
+        ...walletAvailability(wallet, []),
         currency: wallet.currency,
         balance,
         credit_limit: creditLimit,
@@ -2230,6 +2261,7 @@ function buildCardAndDebtBalances(context: { wallets?: WalletRow[] }) {
         name: wallet.name,
         type: wallet.type,
         debt_kind: wallet.debt_kind ?? null,
+        ...walletAvailability(wallet, []),
         currency: wallet.currency,
         balance,
         outstanding_amount: Math.abs(Math.min(balance, 0)),
@@ -2259,6 +2291,7 @@ function sanitizeFinanceContext(data: unknown) {
 
   return {
     wallets: wallets.filter(isRecord).map((wallet) => ({
+      ...walletAvailability(wallet as {id:unknown;type:unknown;balance:unknown;pension_state?:unknown}, goals.filter(isRecord)),
       id: wallet.id,
       name: wallet.name,
       type: wallet.type,
@@ -2298,7 +2331,7 @@ function sanitizeFinanceContext(data: unknown) {
       typeof source.default_currency === "string" ? (source.default_currency as CurrencyCode) : null,
       wallets.filter(isRecord).map((wallet) => ({ currency: wallet.currency as CurrencyCode })),
     ).default_currency,
-    rules: source.rules,
+    rules: { ...(isRecord(source.rules) ? source.rules : {}), transfer: "Requires source and destination accounts. An expense category is allowed when funding a savings goal or pension account. Pension accounts cannot be sources. Czech DPS has product_type=cz_dps independently of its display name.", liquidity: "Goals are reserved, including rent and emergency funds. Pension assets are locked. Never treat expected income as received. Before recommending debt repayment, read upcoming obligations and preserve protected reserves." },
   };
 }
 
@@ -2615,6 +2648,15 @@ async function handleGetRecurringSchedules(
   );
 }
 
+async function validateRecurringDestination(schedule: unknown, keyHash: string, t: McpTranslator): Promise<string | null> {
+  if (!isRecord(schedule) || schedule.kind !== "transfer" || !optionalString(schedule.category_id)
+    || optionalString(schedule.destination_allocation_id)) return null;
+  const { data, error } = await createAnonClient().rpc("mcp_get_finance_context", { p_key_hash: keyHash });
+  const wallets = isRecord(data) && Array.isArray(data.wallets) ? data.wallets.filter(isRecord) : [];
+  return !error && wallets.some((wallet) => wallet.id === schedule.destination_account_id && wallet.type === "pension")
+    ? null : t("mcp.errors.transferCategoryNeedsGoal", { label: String(schedule.title ?? "") });
+}
+
 async function handleCreateRecurringSchedule(
   id: string | number | null,
   params: Record<string, unknown>,
@@ -2622,7 +2664,8 @@ async function handleCreateRecurringSchedule(
   t: McpTranslator,
 ): Promise<McpResponse> {
   const args = (params.arguments ?? {}) as { schedule?: unknown };
-  const validationError = validateRecurringSchedule(args.schedule, t);
+  const validationError = validateRecurringSchedule(args.schedule, t)
+    ?? await validateRecurringDestination(args.schedule, keyHash, t);
   if (validationError) return { jsonrpc: "2.0", id, error: { code: -32602, message: validationError } };
 
   return callRecurringRpc(
@@ -2656,7 +2699,8 @@ async function handleUpdateRecurringSchedule(
   const unsupported = Object.keys(args.schedule).filter((key) => !RECURRING_SCHEDULE_PATCH_KEYS.includes(key as typeof RECURRING_SCHEDULE_PATCH_KEYS[number]));
   if (unsupported.length) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.unsupportedFields", { fields: unsupported.join(", ") }) } };
   const merged = mergeRecurringSchedulePatch(current, args.schedule);
-  const validationError = validateRecurringSchedule(merged, t);
+  const validationError = validateRecurringSchedule(merged, t)
+    ?? await validateRecurringDestination(merged, keyHash, t);
   if (validationError) return { jsonrpc: "2.0", id, error: { code: -32602, message: validationError } };
 
   const response = await callRecurringRpc(
@@ -3429,6 +3473,19 @@ async function handleToolCall(
 ): Promise<McpResponse> {
   const toolName = params.name as string;
 
+  if (["create_transactions", "create_transaction", "update_transaction"].includes(toolName)) {
+    const args = isRecord(params.arguments) ? params.arguments : {};
+    const candidates = Array.isArray(args.transactions) ? args.transactions : [args.transaction];
+    const needsPension = candidates.filter(isRecord).filter((tx) => tx.kind === "transfer" && tx.category_id && !tx.destination_allocation_id && tx.destination_account_id && (toolName !== "update_transaction" || "destination_allocation_id" in tx));
+    if (needsPension.length) {
+      const { data, error } = await createAnonClient().rpc("mcp_get_finance_context", { p_key_hash: auth.keyHash });
+      const wallets = isRecord(data) && Array.isArray(data.wallets) ? data.wallets.filter(isRecord) : [];
+      if (error || needsPension.some((tx) => !wallets.some((wallet) => wallet.id === tx.destination_account_id && wallet.type === "pension"))) {
+        return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.transferCategoryNeedsGoal", { label: String(needsPension[0].title ?? "") }) } };
+      }
+    }
+  }
+
   if (MCP_MUTATION_TOOLS.has(toolName) && !(await keyHasMutationEntitlement(auth.keyHash))) {
     return {
       jsonrpc: "2.0",
@@ -3439,6 +3496,49 @@ async function handleToolCall(
 
   if (toolName === "get_finance_context") {
     return handleGetFinanceContext(id, auth.keyHash, t);
+  }
+
+  if (toolName === "rename_pension_account") {
+    const args=(params.arguments ?? {}) as Record<string,unknown>;
+    const {data,error}=await createAnonClient().rpc("mcp_rename_pension_account",{p_key_hash:auth.keyHash,p_wallet_id:optionalString(args.wallet_id),p_name:optionalString(args.name)});
+    if(error||!data)return {jsonrpc:"2.0",id,error:{code:-32602,message:t("mcp.errors.pensionStatementFailed")}};
+    return successResponse(id,t("mcp.success.pensionAccountUpdated"),data);
+  }
+
+  if (toolName === "get_investment_summary") {
+    const {data,error}=await createAnonClient().rpc("mcp_get_investment_summary_source",{p_key_hash:auth.keyHash});
+    if(error || !data) return {jsonrpc:"2.0",id,error:{code:-32000,message:t("mcp.errors.financeContextLoadFailed")}};
+    const accounts=(data.accounts ?? []) as Account[];
+    let currencyAccounts: Pick<Account, "currency">[] = accounts;
+    if (!data.default_currency) {
+      // Match the UI's inference from all wallets, including accounts outside Investments.
+      const context = await createAnonClient().rpc("mcp_get_finance_context", { p_key_hash: auth.keyHash });
+      if (context.error || !isRecord(context.data) || !Array.isArray(context.data.wallets)) {
+        return {jsonrpc:"2.0",id,error:{code:-32000,message:t("mcp.errors.financeContextLoadFailed")}};
+      }
+      currencyAccounts = context.data.wallets as Pick<Account, "currency">[];
+    }
+    const positions=(data.positions ?? []).map((p: InvestmentPosition)=>({...p,opening_units:Number(p.opening_units),latest_quote:p.latest_quote?{...p.latest_quote,price:Number(p.latest_quote.price)}:null}));
+    const summary=buildInvestmentSummary({accounts,positions,transactions:(data.transactions??[]).map((tx:Transaction)=>({...tx,investment_units:tx.investment_units==null?null:Number(tx.investment_units)})),currency:resolveUserPreferences(data.default_currency,currencyAccounts).default_currency,exchangeRates:(data.exchange_rates??[]).map((rate:ExchangeRate)=>({...rate,rate:Number(rate.rate)}))});
+    return {jsonrpc:"2.0",id,result:{content:[{type:"text",text:JSON.stringify(summary)}],structuredContent:summary}};
+  }
+
+  if (toolName === "link_budget_return") {
+    const args = (params.arguments ?? {}) as Record<string, unknown>;
+    return callRecurringRpc(id, "mcp_link_budget_return", { p_key_hash: auth.keyHash, p_return_id: optionalString(args.return_id), p_funding_id: optionalString(args.funding_id) }, t("mcp.success.transactionUpdated"), t);
+  }
+
+  if (toolName === "get_pension_accounts" || toolName === "upsert_pension_statement") {
+    const args = (params.arguments ?? {}) as Record<string, unknown>;
+    const statement = toolName === "upsert_pension_statement" ? pensionStatementSchema.safeParse(args.statement) : null;
+    if (statement && !statement.success) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.pensionStatementFailed") } };
+    const { data, error } = await createAnonClient().rpc(toolName === "get_pension_accounts" ? "mcp_get_pension_accounts" : "mcp_upsert_pension_statement", {
+      p_key_hash: auth.keyHash,
+      ...(statement?.success ? { p_wallet_id: optionalString(args.wallet_id), p_name: optionalString(args.name), p_statement: statement.data } : {}),
+    });
+    if (error || !data) return { jsonrpc: "2.0", id, error: { code: -32000, message: t("mcp.errors.pensionStatementFailed") } };
+    const result = toolName === "get_pension_accounts" ? { accounts: data } : { ...data, ...walletAvailability({ id: data.wallet_id, type: "pension", balance: data.balance, pension_state: data.pension_state }, []) };
+    return { jsonrpc: "2.0", id, result: { content: [{ type: "text", text: JSON.stringify(result) }], structuredContent: result } };
   }
 
   if (toolName === "get_card_and_debt_balances") {

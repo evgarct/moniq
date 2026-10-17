@@ -23,6 +23,12 @@ import { routing, type AppLocale } from "@/i18n/routing";
 export { financeSnapshotQueryKey } from "@/features/finance/lib/finance-keys";
 const REQUEST_TIMEOUT_MS = 30_000;
 
+export async function savePensionStatementRequest(walletId: string, statement: import("@/features/accounts/lib/pension").PensionStatementInput): Promise<FinanceSnapshot> {
+  return parseJsonResponse<FinanceSnapshot>(await fetchWithTimeout(`/api/wallets/${walletId}/pension`, {
+    method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(statement),
+  }));
+}
+
 function getDocumentLocale(): AppLocale {
   if (typeof document === "undefined") {
     return routing.defaultLocale;

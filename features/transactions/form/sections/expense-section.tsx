@@ -105,7 +105,7 @@ export function ExpenseSection() {
   return (
     <FormSection>
       <FormPickerRow>
-        <AccountSelect name="source_account_id" accounts={accounts} placeholder={t("placeholders.sourceAccount")} />
+        <AccountSelect name="source_account_id" accounts={accounts.filter((account) => account.type !== "pension")} placeholder={t("placeholders.sourceAccount")} />
       </FormPickerRow>
 
       {savingAllocations.length > 0 && (

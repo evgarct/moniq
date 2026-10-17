@@ -1,5 +1,19 @@
 # Moniq MCP Agent Instructions
 
+For liquidity, use each wallet's `available_to_spend`, never its gross balance or credit
+limit. All named allocations are reserved and pensions are locked. Read upcoming
+obligations and keep expected income separate from confirmed money before suggesting
+debt payments. `get_investment_summary` combines market positions and pensions in the
+saved default currency; unavailable FX/quotes produce null totals. `get_pension_accounts`
+and `upsert_pension_statement` handle monthly statements. Link own contributions to
+existing paid transactions. `rename_pension_account` changes only the account's display
+name, preserving its ID, history and schedule links. Czech DPS is explicitly identified
+by `product_type: cz_dps`, its full Czech product name and `country_code: CZ`, independently
+of the editable wallet name. Link own contributions to
+existing paid transactions and reuse entry IDs; never add values already included in a
+statement twice. Use `link_budget_return` only for a confirmed return to the original
+funding source. See [the accounting contract](pension-and-budget-execution.md).
+
 Use this instruction block for ChatGPT, Claude, or any agent connected to the Moniq MCP server.
 
 ```text
@@ -209,7 +223,7 @@ Supported kinds:
 
 - `income`: requires `destination_account_id` and income `category_id`
 - `expense`: requires `source_account_id` and expense `category_id`
-- `transfer`: requires `source_account_id` and `destination_account_id`. Optional `destination_allocation_id` puts the money into a savings goal of the destination wallet; optional `source_allocation_id` takes it from a goal of the source wallet (goal ids come from `get_finance_context`). `destination_allocation_id` is the goal tag of any transaction: on an expense it is the goal of the source wallet that the expense is paid from, on income the goal of the destination wallet, and it is rejected on debt payments (the balance trigger would add to the goal), and update calls keep the stored tag when it is omitted. `category_id` (an expense category such as Next & Safe) is allowed only together with `destination_allocation_id`, the same rule as the app. On `update_transaction`, omitted goal ids keep the stored goal and `null` clears it. `source_allocation_id` is rejected on any other kind.
+- `transfer`: requires `source_account_id` and `destination_account_id`. Optional `destination_allocation_id` puts the money into a savings goal of the destination wallet; optional `source_allocation_id` takes it from a goal of the source wallet (goal ids come from `get_finance_context`). `destination_allocation_id` is the goal tag of any transaction: on an expense it is the goal of the source wallet that the expense is paid from, on income the goal of the destination wallet, and it is rejected on debt payments (the balance trigger would add to the goal), and update calls keep the stored tag when it is omitted. `category_id` (an expense category such as Next & Safe) is allowed when funding a savings goal (`destination_allocation_id`) or a pension account, the same rule as the app. On `update_transaction`, omitted goal ids keep the stored goal and `null` clears it. `source_allocation_id` is rejected on any other kind.
 - `debt_payment`: requires `source_account_id`, debt `destination_account_id`, and amount split into `principal_amount`, `interest_amount`, `extra_principal_amount`
 
 Supported statuses for writes:

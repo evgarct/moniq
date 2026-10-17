@@ -83,6 +83,16 @@ const transactions: Transaction[] = [
 ];
 
 describe("account-state", () => {
+  it("requires an empty pension opening and a statement for subsequent value changes", () => {
+    const pension = { ...baseAccount, type: "pension" as const, balance: 229294.06, currency: "CZK" as const };
+    expect(() => validateAccountValues({ ...pension, balance: 0 })).not.toThrow();
+    expect(() => validateAccountValues(pension)).toThrow("pension_statement_failed");
+    expect(() => validateAccountValues({ ...pension, name: "Renamed DPS" }, pension)).not.toThrow();
+    for (const patch of [{ balance: 230000 }, { balance: 0 }, { type: "cash" as const }, { currency: "EUR" as const }]) {
+      expect(() => validateAccountValues({ ...pension, ...patch }, pension)).toThrow("pension_statement_failed");
+    }
+    expect(() => validateAccountValues({ ...baseAccount, type: "pension", balance: 0 }, baseAccount)).toThrow("pension_statement_failed");
+  });
   it("normalizes liability balances as negative values", () => {
     expect(normalizeAccountBalance("cash", -120)).toBe(120);
     expect(normalizeAccountBalance("saving", -120)).toBe(120);

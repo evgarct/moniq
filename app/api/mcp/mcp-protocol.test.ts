@@ -148,6 +148,28 @@ describe("MCP initialize", () => {
 });
 
 describe("MCP tools", () => {
+  it.each(["pension", "cash"])("checks the actual %s destination for recurring pension create and patch", async (type) => {
+    mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name); if (authResponse) return authResponse;
+      if (name === "mcp_get_finance_context") return Promise.resolve({ data: { wallets: [{ id: "dps", type }] }, error: null });
+      if (name === "mcp_get_recurring_transaction_schedules") return Promise.resolve({ data: { schedules: [{ id: "series", ...STORED_INSURANCE_SCHEDULE }] }, error: null });
+      return Promise.resolve({ data: { schedule_id: "series" }, error: null });
+    });
+    const patch = { kind: "transfer", destination_account_id: "dps", destination_amount: 300 };
+    for (const [name, args, rpc] of [
+      ["create_recurring_transaction_schedule", { schedule: { ...STORED_INSURANCE_SCHEDULE, ...patch } }, "mcp_create_recurring_transaction_schedule"],
+      ["update_recurring_transaction_schedule", { schedule_id: "series", schedule: patch }, "mcp_update_recurring_transaction_schedule_if_unchanged"],
+    ] as const) {
+      const response = await postMcp({ jsonrpc: "2.0", id: name, method: "tools/call", params: { name, arguments: args } });
+      if (type === "pension") {
+        expect((await response.json()).result.isError).not.toBe(true);
+        expect(mocks.rpc).toHaveBeenCalledWith(rpc, expect.objectContaining({ p_schedule: expect.objectContaining({ ...patch, category_id: "cat-home" }) }));
+      } else {
+        expect((await response.json()).result.isError).toBe(true);
+        expect(mocks.rpc).not.toHaveBeenCalledWith(rpc, expect.anything());
+      }
+    }
+  });
   afterEach(() => {
     vi.unstubAllEnvs();
   });
@@ -155,6 +177,33 @@ describe("MCP tools", () => {
   beforeEach(() => {
     mocks.rpc.mockReset();
     setupAuth();
+  });
+
+  it("returns pension and market totals in the saved default currency", async () => {
+    mocks.rpc.mockImplementation((name: string) => {
+      const authResponse=authRpcResponse(name); if(authResponse)return authResponse;
+      if(name==="mcp_get_investment_summary_source")return Promise.resolve({data:{default_currency:"CZK",accounts:[{id:"p",name:"DPS",type:"pension",currency:"CZK",balance:229294.06}],positions:[],transactions:[],exchange_rates:[]},error:null});
+      return Promise.resolve({data:null,error:null});
+    });
+    const response=await postMcp({jsonrpc:"2.0",id:"investment-summary",method:"tools/call",params:{name:"get_investment_summary",arguments:{}}});
+    expect((await response.json()).result.structuredContent).toMatchObject({currency:"CZK",total_value:229294.06,pension_value:229294.06,market_value:0});
+  });
+
+  it("infers the investment summary currency from all wallets when no preference is saved", async () => {
+    mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name); if (authResponse) return authResponse;
+      if (name === "mcp_get_investment_summary_source") return Promise.resolve({ data: { default_currency: null, accounts: [], positions: [], transactions: [], exchange_rates: [] }, error: null });
+      if (name === "mcp_get_finance_context") return Promise.resolve({ data: { wallets: [{ currency: "CZK" }, { currency: "CZK" }, { currency: "EUR" }] }, error: null });
+      return Promise.resolve({ data: null, error: null });
+    });
+    const response = await postMcp({ jsonrpc: "2.0", id: "inferred-investment-currency", method: "tools/call", params: { name: "get_investment_summary", arguments: {} } });
+    expect((await response.json()).result.structuredContent).toMatchObject({ currency: "CZK", total_value: 0, available: true });
+  });
+
+  it("validates pension statement input before any pension write", async () => {
+    const response=await postMcp({jsonrpc:"2.0",id:"invalid-pension",method:"tools/call",params:{name:"upsert_pension_statement",arguments:{statement:{as_of:"invalid",total_value:-1}}}});
+    expect((await response.json()).result.isError).toBe(true);
+    expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_upsert_pension_statement",expect.anything());
   });
 
   it("lists direct transaction, balance, batch, and spending report tools", async () => {
@@ -167,6 +216,11 @@ describe("MCP tools", () => {
     const body = await response.json();
     const names = body.result.tools.map((tool: { name: string }) => tool.name);
     expect(names).toEqual([
+      "rename_pension_account",
+      "get_investment_summary",
+      "link_budget_return",
+      "get_pension_accounts",
+      "upsert_pension_statement",
       "get_finance_context",
       "get_card_and_debt_balances",
       "get_transactions",
@@ -657,7 +711,7 @@ describe("MCP tools", () => {
 
     const body = await response.json();
     expect(body.result.structuredContent).not.toHaveProperty("allocations");
-    expect(body.result.structuredContent.wallets[0]).not.toHaveProperty("allocations");
+    expect(body.result.structuredContent.wallets[0].allocations).toEqual([]);
     expect(body.result.content[0].text).not.toContain("hidden-allocation");
     expect(body.result.structuredContent.categories).toContainEqual(
       expect.objectContaining({

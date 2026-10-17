@@ -87,6 +87,7 @@ export async function readSyncedFinanceSnapshot(db: AbstractPowerSyncDatabase): 
   if (!hasAnySyncedRows && !db.currentStatus.lastSyncedAt) return null;
 
   const accounts: Account[] = walletRows.map((row) => ({
+    pension_state: row.pension_state ? JSON.parse(row.pension_state) : null,
     id: row.id,
     user_id: row.user_id,
     name: row.name,

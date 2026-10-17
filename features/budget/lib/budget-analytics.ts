@@ -162,7 +162,9 @@ export function getConvertedCategoryTotal(options: {
     if (conversion.status === "missing_rate") {
       missingCurrencies.add(conversion.source_currency);
     } else {
-      amount += conversion.amount;
+      // Budget execution projections use negative expense amounts for linked funding returns.
+      // The ordinary analytics converter intentionally takes absolute ledger amounts.
+      amount += conversion.amount * (transaction.amount < 0 ? -1 : 1);
     }
   }
 

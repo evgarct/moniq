@@ -1,6 +1,7 @@
 import type { Account, AccountGroupType, AccountType } from "@/types/finance";
 
 const accountGroupMap: Record<AccountType, AccountGroupType> = {
+  pension: "pension",
   cash: "cash",
   saving: "saving",
   credit_card: "credit_card",

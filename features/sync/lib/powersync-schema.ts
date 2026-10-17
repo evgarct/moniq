@@ -30,6 +30,7 @@ const localSyncCommands = new Table(
 );
 
 const wallets = new Table({
+  pension_state: column.text,
   user_id: column.text,
   name: column.text,
   type: column.text,

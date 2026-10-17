@@ -112,7 +112,7 @@ export function buildSchema(
       ) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["category_id"], message: v.categoryRequired });
       }
-      if (values.kind === "transfer" && values.category_id && !values.allocation_id) {
+      if (values.kind === "transfer" && values.category_id && !values.allocation_id && accounts?.find((account) => account.id === values.destination_account_id)?.type !== "pension") {
         ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["category_id"], message: v.transferNoCategory });
       }
       if (batchMode) {

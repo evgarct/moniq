@@ -1,4 +1,5 @@
 import { endOfMonth, format, startOfMonth, startOfToday } from "date-fns";
+import { buildBudgetExecution } from "@/features/budget/lib/budget-execution";
 
 import {
   buildEnvelopeBudgetRows,
@@ -94,7 +95,7 @@ export function buildBudgetStatus(options: {
   today?: Date;
 }) {
   const month = startOfMonth(options.month);
-  const transactions = options.transactions.filter((transaction) => isVisibleTransactionStatus(transaction.status));
+  const transactions = buildBudgetExecution(options.transactions).transactions.filter((transaction) => isVisibleTransactionStatus(transaction.status));
   const manageable = getManageableCategories(options.categories);
   const tree = buildCategoryTree(manageable, transactions);
   const rowOptions = {
