@@ -687,8 +687,11 @@ export async function createWallet(values: WalletInput, preferredId?: string, mu
 }
 
 export async function updateWallet(walletId: string, values: WalletInput) {
-  const { supabase } = await getAuthenticatedSupabase();
-  validateAccountValues(values);
+  const { supabase, user } = await getAuthenticatedSupabase();
+  const { data: current, error: readError } = await supabase.from("wallets")
+    .select("type,currency,balance").eq("id", walletId).eq("user_id", user.id).single();
+  if (readError || !current) throw new Error("Wallet not found.");
+  validateAccountValues(values, { ...current, balance: Number(current.balance) });
   const { error } = await supabase.rpc("update_wallet", {
     _wallet_id: walletId,
     _name: values.name,
@@ -843,6 +846,8 @@ export async function adjustWalletBalance(walletId: string, newBalance: number, 
   if (!wallet) {
     throw new Error("Wallet not found.");
   }
+
+  validateAccountValues({ ...wallet, balance: newBalance }, wallet);
 
   const diff = newBalance - wallet.balance;
   if (Math.abs(diff) < 0.001) {

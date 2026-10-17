@@ -148,6 +148,28 @@ describe("MCP initialize", () => {
 });
 
 describe("MCP tools", () => {
+  it.each(["pension", "cash"])("checks the actual %s destination for recurring pension create and patch", async (type) => {
+    mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name); if (authResponse) return authResponse;
+      if (name === "mcp_get_finance_context") return Promise.resolve({ data: { wallets: [{ id: "dps", type }] }, error: null });
+      if (name === "mcp_get_recurring_transaction_schedules") return Promise.resolve({ data: { schedules: [{ id: "series", ...STORED_INSURANCE_SCHEDULE }] }, error: null });
+      return Promise.resolve({ data: { schedule_id: "series" }, error: null });
+    });
+    const patch = { kind: "transfer", destination_account_id: "dps", destination_amount: 300 };
+    for (const [name, args, rpc] of [
+      ["create_recurring_transaction_schedule", { schedule: { ...STORED_INSURANCE_SCHEDULE, ...patch } }, "mcp_create_recurring_transaction_schedule"],
+      ["update_recurring_transaction_schedule", { schedule_id: "series", schedule: patch }, "mcp_update_recurring_transaction_schedule_if_unchanged"],
+    ] as const) {
+      const response = await postMcp({ jsonrpc: "2.0", id: name, method: "tools/call", params: { name, arguments: args } });
+      if (type === "pension") {
+        expect((await response.json()).result.isError).not.toBe(true);
+        expect(mocks.rpc).toHaveBeenCalledWith(rpc, expect.objectContaining({ p_schedule: expect.objectContaining({ ...patch, category_id: "cat-home" }) }));
+      } else {
+        expect((await response.json()).result.isError).toBe(true);
+        expect(mocks.rpc).not.toHaveBeenCalledWith(rpc, expect.anything());
+      }
+    }
+  });
   afterEach(() => {
     vi.unstubAllEnvs();
   });

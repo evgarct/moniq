@@ -2142,9 +2142,6 @@ function validateRecurringSchedule(schedule: unknown, t: McpTranslator, labelPre
   if (schedule.kind === "transfer") {
     if (!optionalString(schedule.source_account_id)) return `${labelPrefix} "${label}" transfer must include source_account_id`;
     if (!optionalString(schedule.destination_account_id)) return `${labelPrefix} "${label}" transfer must include destination_account_id`;
-    if (optionalString(schedule.category_id) && !optionalString(schedule.destination_allocation_id)) {
-      return t("mcp.errors.transferCategoryNeedsGoal", { label });
-    }
   }
 
   if (schedule.kind === "debt_payment") {
@@ -2651,6 +2648,15 @@ async function handleGetRecurringSchedules(
   );
 }
 
+async function validateRecurringDestination(schedule: unknown, keyHash: string, t: McpTranslator): Promise<string | null> {
+  if (!isRecord(schedule) || schedule.kind !== "transfer" || !optionalString(schedule.category_id)
+    || optionalString(schedule.destination_allocation_id)) return null;
+  const { data, error } = await createAnonClient().rpc("mcp_get_finance_context", { p_key_hash: keyHash });
+  const wallets = isRecord(data) && Array.isArray(data.wallets) ? data.wallets.filter(isRecord) : [];
+  return !error && wallets.some((wallet) => wallet.id === schedule.destination_account_id && wallet.type === "pension")
+    ? null : t("mcp.errors.transferCategoryNeedsGoal", { label: String(schedule.title ?? "") });
+}
+
 async function handleCreateRecurringSchedule(
   id: string | number | null,
   params: Record<string, unknown>,
@@ -2658,7 +2664,8 @@ async function handleCreateRecurringSchedule(
   t: McpTranslator,
 ): Promise<McpResponse> {
   const args = (params.arguments ?? {}) as { schedule?: unknown };
-  const validationError = validateRecurringSchedule(args.schedule, t);
+  const validationError = validateRecurringSchedule(args.schedule, t)
+    ?? await validateRecurringDestination(args.schedule, keyHash, t);
   if (validationError) return { jsonrpc: "2.0", id, error: { code: -32602, message: validationError } };
 
   return callRecurringRpc(
@@ -2692,7 +2699,8 @@ async function handleUpdateRecurringSchedule(
   const unsupported = Object.keys(args.schedule).filter((key) => !RECURRING_SCHEDULE_PATCH_KEYS.includes(key as typeof RECURRING_SCHEDULE_PATCH_KEYS[number]));
   if (unsupported.length) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.unsupportedFields", { fields: unsupported.join(", ") }) } };
   const merged = mergeRecurringSchedulePatch(current, args.schedule);
-  const validationError = validateRecurringSchedule(merged, t);
+  const validationError = validateRecurringSchedule(merged, t)
+    ?? await validateRecurringDestination(merged, keyHash, t);
   if (validationError) return { jsonrpc: "2.0", id, error: { code: -32602, message: validationError } };
 
   const response = await callRecurringRpc(

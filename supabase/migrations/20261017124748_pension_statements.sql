@@ -5,13 +5,19 @@ alter table public.wallets add constraint wallets_pension_state_object check (pe
 
 create function public.guard_pension_wallet() returns trigger language plpgsql set search_path=public as $$
 begin
+  if tg_op='INSERT' then
+    if new.type::text='pension' and (new.balance<>0 or new.pension_state is not null) then raise exception 'Use pension statement RPC'; end if;
+    return new;
+  end if;
   if old.type::text='pension' and (new.type<>old.type or new.currency<>old.currency) then raise exception 'Pension account type and currency cannot change'; end if;
   if old.type::text<>'pension' and new.type::text='pension' then raise exception 'Create a separate pension account'; end if;
   if current_user in ('anon','authenticated') and (new.pension_state is distinct from old.pension_state or ((new.type::text='pension') and new.balance<>old.balance)) then raise exception 'Use pension statement RPC'; end if;
   return new;
 end $$;
-create trigger wallets_guard_pension before update on public.wallets for each row execute function public.guard_pension_wallet();
+create trigger wallets_guard_pension before insert or update on public.wallets for each row execute function public.guard_pension_wallet();
 revoke all on function public.guard_pension_wallet() from public,anon,authenticated;
+-- Only the transaction trigger may apply raw deltas. Clients must use ledger operations.
+revoke all on function public.adjust_wallet_balance(uuid,numeric) from public,anon,authenticated;
 
 create function public.revalue_pension_internal(p_wallet_id uuid) returns void
 language plpgsql security definer set search_path=public as $$
@@ -36,6 +42,9 @@ language plpgsql security definer set search_path=public as $$
 begin
   if exists(select 1 from public.wallets where id=new.source_account_id and type::text='pension') then
     raise exception 'Pension funds are locked until retirement.';
+  end if;
+  if new.kind<>'transfer' and exists(select 1 from public.wallets where id=new.destination_account_id and type::text='pension') then
+    raise exception 'Use pension statement RPC';
   end if;
   return new;
 end $$;
@@ -616,7 +625,7 @@ begin
     tx_destination_amount := null; tx_fx_rate := null; tx_principal_amount := null; tx_interest_amount := null; tx_extra_principal_amount := null;
   elsif tx_kind = 'transfer' then
     if tx_source_account_id is null or tx_destination_account_id is null then raise exception 'Transaction "%" transfer must include source_account_id and destination_account_id', tx_title; end if;
-    if tx_category_id is not null and tx_allocation_id is null and not exists (select 1 from public.wallets where id=tx_destination_account_id and user_id=p_user_id and type::text='pension') then raise exception 'Transaction "%" only transfers into a savings goal (destination_allocation_id) can use a category', tx_title; end if;
+    if tx_category_id is not null and tx_allocation_id is null and not exists (select 1 from public.wallets where id=tx_destination_account_id and user_id=key_user_id and type::text='pension') then raise exception 'Transaction "%" only transfers into a savings goal (destination_allocation_id) can use a category', tx_title; end if;
     if tx_category_id is not null and category_type <> 'expense' then raise exception 'Transaction "%" transfer category must be an expense category', tx_title; end if;
     tx_destination_amount := coalesce(tx_destination_amount, tx_amount); tx_principal_amount := null; tx_interest_amount := null; tx_extra_principal_amount := null;
   elsif tx_kind = 'debt_payment' then

@@ -97,3 +97,10 @@ The combined total is aligned with the Investments heading; it has no separate t
 row. Pension wallet edits lock type/currency/balance; valuation changes use statements.
 Categorized transfer schemas preserve the category and defer destination eligibility
 to account-aware validation. Envelope projection is idempotent, including signed returns.
+
+The shared account domain and server reject nonzero pension openings, balance edits,
+currency changes and conversion of existing wallets to/from pension. Database inserts
+also require an empty pension; incoming ledger activity must be a transfer. Raw balance
+delta helpers are unavailable to client roles. Recurring MCP creation and patches check
+the actual destination account before accepting a categorized transfer without a goal.
+The rollback suite exercises key-authenticated edits of already linked own contributions.

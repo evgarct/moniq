@@ -1,4 +1,7 @@
 const FINANCE_ERROR_KEYS = {
+  "Use pension statement RPC": "mcp.errors.pensionStatementFailed",
+  "Pension account type and currency cannot change": "mcp.errors.pensionStatementFailed",
+  "Create a separate pension account": "mcp.errors.pensionStatementFailed",
   "Pension funds are locked until retirement.": "accounts.pension.locked",
   "pension_statement_failed": "mcp.errors.pensionStatementFailed",
   "pension_entry_conflict": "accounts.pension.invalid",

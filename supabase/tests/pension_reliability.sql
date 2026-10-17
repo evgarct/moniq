@@ -20,6 +20,11 @@ begin
   if (select balance from public.wallets where id=c)<>8300 then raise exception 'Own contribution charged twice'; end if;
   if (result->>'balance')::numeric<>229294.06 then raise exception 'Included contributions counted twice'; end if;
   if (select kind from public.finance_transactions where id=tx)<>'transfer' then raise exception 'Own contribution not linked'; end if;
+  -- Exercise the public key-hash edit branch, including its pension category exception.
+  result:=public.mcp_update_transaction(key_hash,tx,jsonb_build_object('title','Own contribution edited','occurred_at',current_date-9,
+    'status','paid','kind','transfer','amount',1700,'destination_amount',1700,'source_account_id',c,'destination_account_id',p,'category_id',cat));
+  if (select title from public.finance_transactions where id=tx)<>'Own contribution edited' or
+    (select balance from public.wallets where id=c)<>8300 then raise exception 'Pension edit failed or charged twice'; end if;
   result:=public.upsert_pension_statement(p,payload);
   if jsonb_array_length(result->'pension_state'->'entries')<>2 then raise exception 'Duplicate import'; end if;
   result:=public.mcp_rename_pension_account(key_hash,p,'Renamed DPS');
@@ -38,6 +43,17 @@ begin
   exception when others then failed:=true; end;
   if not failed then raise exception 'Pension withdrawal allowed'; end if;
   failed:=false;
+  begin
+    perform public.create_wallet('Invalid pension opening','pension',100,null,'CZK',null);
+  exception when others then failed:=true; end;
+  if not failed then raise exception 'Nonzero pension opening allowed'; end if;
+  failed:=false;
+  begin
+    insert into public.finance_transactions(user_id,title,occurred_at,status,kind,amount,destination_account_id,category_id)
+      values(u,'Forbidden balance adjustment',current_date,'paid','income',100,p,cat);
+  exception when others then failed:=true; end;
+  if not failed then raise exception 'Pension adjustment income allowed'; end if;
+  failed:=false;
   begin perform public.upsert_pension_statement_internal(other_u,p,null,payload); exception when others then failed:=true; end;
   if not failed then raise exception 'Cross tenant statement allowed'; end if;
   failed:=false;
@@ -49,7 +65,9 @@ begin
   if not result ? 'transactions' then raise exception 'Budget source missing'; end if;
   result:=public.mcp_get_investment_summary_source(key_hash);
   if not result ? 'positions' or not result ? 'accounts' or jsonb_array_length(result->'accounts')<>1 then raise exception 'Investment context contract changed'; end if;
-  if has_function_privilege('anon','public.upsert_pension_statement_internal(uuid,uuid,text,jsonb)','execute')
+  if has_function_privilege('authenticated','public.adjust_wallet_balance(uuid,numeric)','execute')
+    or has_function_privilege('anon','public.adjust_wallet_balance(uuid,numeric)','execute')
+    or has_function_privilege('anon','public.upsert_pension_statement_internal(uuid,uuid,text,jsonb)','execute')
     or has_function_privilege('authenticated','public.revalue_pension_internal(uuid)','execute')
     or has_function_privilege('anon','public.upsert_pension_statement(uuid,jsonb)','execute') then raise exception 'Pension helper exposed'; end if;
 end $$;

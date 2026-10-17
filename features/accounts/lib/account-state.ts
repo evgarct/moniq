@@ -64,7 +64,14 @@ export function getDefaultDebtKind(type: Account["type"], current?: DebtKind | n
   return next ?? current ?? "personal";
 }
 
-export function validateAccountValues(values: AccountDraftValues) {
+export function validateAccountValues(values: AccountDraftValues, current?: Pick<Account, "type" | "currency" | "balance">) {
+  if (current?.type === "pension") {
+    if (values.type !== current.type || values.currency !== current.currency || values.balance !== current.balance) {
+      throw new Error("pension_statement_failed");
+    }
+  } else if (values.type === "pension" && (current || values.balance !== 0)) {
+    throw new Error("pension_statement_failed");
+  }
   if (values.type === "credit_card") {
     if (values.credit_limit == null || values.credit_limit <= 0) {
       throw new Error("Credit limit is required for a credit card.");
@@ -99,7 +106,7 @@ export function createAccount({
 }
 
 export function updateAccount(account: Account, values: AccountDraftValues): Account {
-  validateAccountValues(values);
+  validateAccountValues(values, account);
 
   return {
     ...account,
