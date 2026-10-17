@@ -97,7 +97,7 @@ export function validateTransactionRelationships(
     throw new Error("Only transfers into a savings goal can use a category.");
   }
 
-  if (values.kind === "transfer" && values.allocation_id && category && category.type !== "expense") {
+  if (values.kind === "transfer" && (values.allocation_id || destinationAccount?.type === "pension") && category && category.type !== "expense") {
     throw new Error("Savings transfers can only use an expense category.");
   }
 

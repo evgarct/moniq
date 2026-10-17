@@ -47,7 +47,10 @@ export function InvestmentList({
         <h3 className="font-heading text-[20px] leading-[1.12] tracking-[-0.028em] text-foreground sm:type-h3">
           {t("title")}
         </h3>
-        <div className="flex h-8 w-8 items-center justify-center">
+        <span className="ml-auto type-h6" aria-label={t("total")}>
+          {summary.total_value === null ? <span className="type-body-12 text-muted-foreground">{t("totalUnavailable")}</span> : <MoneyAmount amount={summary.total_value} currency={defaultCurrency} showMinorUnits={showMinorUnits} />}
+        </span>
+        {editing ? <div className="flex h-8 w-8 items-center justify-center">
           {editing ? (
             <Tooltip>
               <TooltipTrigger
@@ -66,13 +69,9 @@ export function InvestmentList({
               <TooltipContent>{t("actions.add")}</TooltipContent>
             </Tooltip>
           ) : null}
-        </div>
+        </div> : null}
       </div>
 
-      <p className="type-body-14 flex items-center justify-between gap-3 px-2">
-        <span className="text-muted-foreground">{t("total")}</span>
-        {summary.total_value === null ? <span className="type-body-12 text-muted-foreground">{t("totalUnavailable")}</span> : <MoneyAmount amount={summary.total_value} currency={defaultCurrency} showMinorUnits={showMinorUnits} />}
-      </p>
       {pensionAccounts.map(account => <AccountRow key={account.id} account={account} selected={selectedPensionId===account.id} onSelect={()=>onSelectPension?.(account.id)} showMinorUnits={showMinorUnits} onEdit={editing?onEditPension:undefined} onDelete={editing?onDeletePension:undefined} />)}
       {editing && onAddPension ? <Button variant="ghost" onClick={onAddPension}>{accountsT("walletTypes.pension")}</Button> : null}
 

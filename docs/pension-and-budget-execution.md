@@ -87,3 +87,13 @@ migrations: 17 October 2026 value 229294.06 CZK, invested 190781.80, provider re
 transfer, preserving its cadence and overrides. Do not fabricate September or state aid.
 
 The authorized Czech account name is Doplňkové penzijní spoření (DPS).
+
+The account also has structured `product_type: cz_dps`, `product_name` and
+`country_code: CZ` in MCP context, pension reads and the investment summary. Renaming
+the wallet preserves its DPS identity. Imports supply `product_type` once; later
+valuation updates preserve it.
+
+The combined total is aligned with the Investments heading; it has no separate total
+row. Pension wallet edits lock type/currency/balance; valuation changes use statements.
+Categorized transfer schemas preserve the category and defer destination eligibility
+to account-aware validation. Envelope projection is idempotent, including signed returns.

@@ -1,6 +1,6 @@
 /** Shared MCP liquidity contract. Goals reserve money; borrowing capacity is never cash. */
 export function walletAvailability(
-  wallet: { id: unknown; type: unknown; balance: unknown },
+  wallet: { id: unknown; type: unknown; balance: unknown; pension_state?: unknown },
   goals: { id?: unknown; wallet_id?: unknown; name?: unknown; amount?: unknown }[],
 ) {
   const total = Number(wallet.balance);
@@ -12,10 +12,17 @@ export function walletAvailability(
   const reserved = liability ? null : wallet.type === "pension" ? total : allocations.reduce((sum, goal) => sum + goal.amount, 0);
   const available = liability || wallet.type === "pension" ? 0 : Number((total - (reserved ?? 0)).toFixed(2));
   return {
+    ...pensionProduct(wallet.pension_state),
     total_balance: total,
     reserved_balance: reserved === null ? null : Number(reserved.toFixed(2)),
     available_to_spend: available,
     allocations,
     availability_status: liability ? "liability" : wallet.type === "pension" ? "locked_until_retirement" : available < 0 ? "overallocated" : "available",
   };
+}
+
+/** Product identity survives renaming; never infer financial product types from names. */
+export function pensionProduct(state: unknown) {
+  const dps = state !== null && typeof state === "object" && "product_type" in state && state.product_type === "cz_dps";
+  return dps ? { product_type: "cz_dps" as const, product_name: "Doplňkové penzijní spoření (DPS)", country_code: "CZ" as const } : {};
 }

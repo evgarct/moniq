@@ -12,6 +12,10 @@ The canonical UI reference implementation is `stories/foundations/ui-playbook.st
 
 # Repo Workflow Rules
 
+- Account-dependent transaction exceptions must be verified through client normalization, all create/edit/recurring persistence schemas, account-aware domain validation, and SQL. A form-only exception is incomplete; add a test that preserves the category through the whole input pipeline.
+- Envelope execution projections must be idempotent and preserve signed returns. Test the full Budget/MCP composition, including the ordinary analytics converter's absolute-amount behavior, rather than only the projection helper.
+- Before starting a production preview, await the entire verification command chain that can launch a build and confirm that it has exited successfully. A completed earlier build does not make a queued rebuild safe to serve.
+
 - Application providers that use localized errors must render inside `NextIntlClientProvider`, including the Storybook decorator. Verify provider order in a live isolated story; a production build alone will not catch a missing client translation context.
 - Debt and recurring transaction changes must run the synthetic rollback suite in `supabase/tests/debt_recurring_reliability.sql` and concurrent reconciliation checks before database promotion. Never replay paid historical records to repair a balance.
 - Run the standalone TypeScript check and Next production build sequentially; both can write generated type/build state on Windows. Use `--incremental false` for a concurrent live-preview type check, and restore tracked generated files only after writers finish.

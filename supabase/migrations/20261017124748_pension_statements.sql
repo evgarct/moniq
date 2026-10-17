@@ -105,7 +105,8 @@ begin
   end loop;
   select coalesce(jsonb_agg(s),'[]') into statements from jsonb_array_elements(coalesce(state->'statements','[]')) s where s->>'as_of'<>as_of::text;
   statements := statements || jsonb_build_array(p_statement - 'entries');
-  update public.wallets set pension_state=jsonb_build_object('statements',statements,'entries',entries) where id=w.id;
+  if p_statement ? 'product_type' and p_statement->>'product_type'<>'cz_dps' then raise exception 'Unknown pension product'; end if;
+  update public.wallets set pension_state=jsonb_build_object('product_type',coalesce(state->>'product_type',p_statement->>'product_type'),'statements',statements,'entries',entries) where id=w.id;
   perform public.revalue_pension_internal(w.id);
   select * into w from public.wallets where id=w.id;
   return jsonb_build_object('wallet_id',w.id,'name',w.name,'currency',w.currency,'balance',w.balance,'pension_state',w.pension_state);
@@ -128,11 +129,23 @@ grant execute on function public.mcp_upsert_pension_statement(text,uuid,text,jso
 
 create function public.mcp_get_pension_accounts(p_key_hash text) returns jsonb
 language sql security definer set search_path=public as $$
-  select coalesce(jsonb_agg(jsonb_build_object('id',id,'name',name,'type',type,'currency',currency,'balance',balance,'total_balance',balance,'reserved_balance',balance,'available_to_spend',0,'availability_status','locked_until_retirement','allocations','[]'::jsonb,'pension_state',pension_state)),'[]')
+  select coalesce(jsonb_agg(jsonb_build_object('id',id,'name',name,'type',type,'currency',currency,'balance',balance,'total_balance',balance,'reserved_balance',balance,'available_to_spend',0,'availability_status','locked_until_retirement','allocations','[]'::jsonb,'pension_state',pension_state,'product_type',pension_state->>'product_type','product_name',case when pension_state->>'product_type'='cz_dps' then 'Doplňkové penzijní spoření (DPS)' end,'country_code',case when pension_state->>'product_type'='cz_dps' then 'CZ' end)),'[]')
   from public.wallets where user_id=public.mcp_recurring_key_user_id(p_key_hash) and type::text='pension';
 $$;
 revoke all on function public.mcp_get_pension_accounts(text) from public;
 grant execute on function public.mcp_get_pension_accounts(text) to anon,authenticated;
+
+create function public.mcp_rename_pension_account(p_key_hash text,p_wallet_id uuid,p_name text) returns jsonb
+language plpgsql security definer set search_path=public as $$
+declare u uuid:=public.mcp_recurring_key_user_id(p_key_hash); account_name text;
+begin
+  if p_name is null or length(trim(p_name))=0 then raise exception 'Pension account name required'; end if;
+  update public.wallets set name=trim(p_name) where id=p_wallet_id and user_id=u and type::text='pension' returning name into account_name;
+  if account_name is null then raise exception 'Pension account not found'; end if;
+  return jsonb_build_object('wallet_id',p_wallet_id,'name',account_name);
+end $$;
+revoke all on function public.mcp_rename_pension_account(text,uuid,text) from public;
+grant execute on function public.mcp_rename_pension_account(text,uuid,text) to anon,authenticated;
 
 create function public.mcp_get_investment_summary_source(p_key_hash text) returns jsonb
 language plpgsql security definer set search_path=public as $$

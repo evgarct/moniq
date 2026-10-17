@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { Account, PensionEntry, PensionStatement, Transaction } from "@/types/finance";
 
 export const pensionStatementSchema = z.object({
+  product_type: z.literal("cz_dps").optional(),
   as_of: z.string().date(),
   total_value: z.number().finite().nonnegative(),
   invested: z.number().finite().nonnegative().nullable().optional(),
@@ -36,5 +37,5 @@ export function applyPensionStatement(account: Account, statement: PensionStatem
   const { entries: ignored, ...valuation } = statement;
   void ignored;
   const statements = [...(account.pension_state?.statements ?? []).filter((item) => item.as_of !== statement.as_of), valuation].sort((a, b) => a.as_of.localeCompare(b.as_of));
-  return { ...account, pension_state: { statements, entries }, balance: pensionBalance(statements.at(-1)!, entries, transactions, account.id) };
+  return { ...account, pension_state: { product_type: account.pension_state?.product_type ?? statement.product_type, statements, entries }, balance: pensionBalance(statements.at(-1)!, entries, transactions, account.id) };
 }

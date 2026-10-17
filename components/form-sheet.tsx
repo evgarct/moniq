@@ -146,6 +146,7 @@ export function FormSelectField({
   placeholder,
   triggerClassName,
   className,
+  disabled = false,
 }: {
   id?: string;
   label: React.ReactNode;
@@ -156,10 +157,12 @@ export function FormSelectField({
   placeholder?: React.ReactNode;
   triggerClassName?: string;
   className?: string;
+  disabled?: boolean;
 }) {
   return (
     <FormField id={id} label={label} error={error} className={className}>
       <Select
+        disabled={disabled}
         value={value}
         onValueChange={(nextValue) => {
           if (nextValue !== null) {

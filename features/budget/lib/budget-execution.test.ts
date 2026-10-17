@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { buildBudgetExecution } from "./budget-execution";
+import { getConvertedCategoryTotal } from "./budget-analytics";
+import { buildBudgetStatus } from "./budget-status";
+import type { Category } from "@/types/finance";
 import type { Account, Transaction } from "@/types/finance";
 const cash = { id: "cash", currency: "CZK", type: "cash" } as Account;
 const saving = { id: "saving", currency: "CZK", type: "saving" } as Account;
@@ -20,6 +23,8 @@ describe("budget execution provenance", () => {
   it("reverses only unused funding, on the return date and original category", () => {
     const result = buildBudgetExecution([base,{...spend,amount:1000},{...base,id:"return",occurred_at:"2026-10-03",source_account_id:"saving",source_account:saving,source_allocation_id:"travel",allocation_id:null,destination_account_id:"cash",linked_transaction_id:"fund",amount:2500}]);
     expect(result.transactions.map((tx)=>[tx.category_id,tx.amount])).toEqual([["travel-category",3000],["travel-category",-2000]]);
+    expect(getConvertedCategoryTotal({transactions:result.transactions,month:new Date("2026-10-01T12:00:00"),categoryIds:new Set(["travel-category"]),targetCurrency:"CZK",exchangeRates:[]}).amount).toBe(-2000);
+    expect(buildBudgetStatus({categories:[{id:"travel-category",name:"Travel",type:"expense",parent_id:null,description:"[budget: 5000]",is_system:false} as Category],transactions:result.transactions,month:new Date("2026-10-01T12:00:00"),targetCurrency:"CZK",exchangeRates:[]}).envelopes[0].spent).toBe(-2000);
   });
   it("keeps skipped funding out, leaves unknown opening balances as normal spending", () => {
     expect(buildBudgetExecution([{...base,status:"skipped"},spend]).transactions[0].amount).toBe(4000);

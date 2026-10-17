@@ -183,6 +183,7 @@ describe("MCP tools", () => {
     const body = await response.json();
     const names = body.result.tools.map((tool: { name: string }) => tool.name);
     expect(names).toEqual([
+      "rename_pension_account",
       "get_investment_summary",
       "link_budget_return",
       "get_pension_accounts",

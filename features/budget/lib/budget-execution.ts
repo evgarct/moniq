@@ -31,6 +31,8 @@ export function buildBudgetExecution(history: Transaction[]): BudgetExecution {
   for (const status of ["paid", "planned"] as const) {
     const confirmed = new Map([...pools].map(([key, lots]) => [key, lots.map((lot) => ({ ...lot }))]));
     for (const tx of ordered.filter((item) => item.status === status)) {
+      // Accept an already projected signed return when screen/detail helpers share the projection.
+      if (tx.kind === "expense" && tx.amount < 0) { projected.push(tx); continue; }
       const source = pool(tx.source_account_id, tx.source_allocation_id);
       const destination = pool(tx.destination_account_id, tx.allocation_id);
       if (tx.kind === "transfer") {

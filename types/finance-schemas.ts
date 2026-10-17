@@ -111,9 +111,8 @@ function addTransactionValidation<
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["category_id"], message: "Choose a category." });
     }
 
-    if (values.kind === "transfer" && values.category_id && !values.allocation_id) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["category_id"], message: "Only transfers into a savings goal can use a category." });
-    }
+    // Goal/pension category eligibility depends on the destination account. The repository
+    // relationship validator and database enforce it after loading the verified owner's accounts.
 
     if (values.source_allocation_id && values.kind !== "transfer" && values.kind !== "expense") {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["source_allocation_id"], message: "A source goal can only be selected for expenses and transfers." });
@@ -203,7 +202,7 @@ function normalizeTransactionValues<
     principal_amount: values.kind === "debt_payment" ? values.principal_amount ?? 0 : null,
     interest_amount: values.kind === "debt_payment" ? values.interest_amount ?? 0 : null,
     extra_principal_amount: values.kind === "debt_payment" ? values.extra_principal_amount ?? 0 : null,
-    category_id: values.kind === "transfer" && !values.allocation_id ? null : values.category_id ?? null,
+    category_id: values.category_id ?? null,
     allocation_id: (values.kind === "income" || values.kind === "transfer") ? (values.allocation_id ?? null) : null,
     source_allocation_id: (values.kind === "expense" || values.kind === "transfer") ? (values.source_allocation_id ?? null) : null,
   };

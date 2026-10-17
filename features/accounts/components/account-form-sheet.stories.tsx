@@ -41,3 +41,7 @@ export const CreditCardWallet: Story = {
     account: snapshot.accounts[4],
   },
 };
+
+export const PensionWallet: Story = {
+  args: { mode: "edit", account: { ...snapshot.accounts[0], type: "pension", name: "Doplňkové penzijní spoření (DPS)", currency: "CZK", balance: 229294.06 } },
+};

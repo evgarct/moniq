@@ -6,6 +6,10 @@ obligations and keep expected income separate from confirmed money before sugges
 debt payments. `get_investment_summary` combines market positions and pensions in the
 saved default currency; unavailable FX/quotes produce null totals. `get_pension_accounts`
 and `upsert_pension_statement` handle monthly statements. Link own contributions to
+existing paid transactions. `rename_pension_account` changes only the account's display
+name, preserving its ID, history and schedule links. Czech DPS is explicitly identified
+by `product_type: cz_dps`, its full Czech product name and `country_code: CZ`, independently
+of the editable wallet name. Link own contributions to
 existing paid transactions and reuse entry IDs; never add values already included in a
 statement twice. Use `link_budget_return` only for a confirmed return to the original
 funding source. See [the accounting contract](pension-and-budget-execution.md).

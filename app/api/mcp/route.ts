@@ -151,6 +151,7 @@ type TransactionOperationSummary = {
 
 const MCP_MUTATION_TOOLS = new Set([
   "upsert_pension_statement",
+  "rename_pension_account",
   "link_budget_return",
   "submit_transaction_batch",
   "create_transactions",
@@ -800,6 +801,7 @@ function recurringToolAliases() {
 
 function getMcpTools() {
   return [
+        { name: "rename_pension_account", title: "Rename pension account", description: "Rename an existing locked pension account using its ID from get_pension_accounts. Changes only the display name, preserving valuations, contributions, transaction links and recurring schedules. Confirm the new name with the user.", annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: true }, inputSchema: { type: "object", properties: { wallet_id: { type: "string" }, name: { type: "string", minLength: 1 } }, required: ["wallet_id","name"], additionalProperties: false } },
         { name: "get_investment_summary", title: "Get total investments", description: "Read all market investment positions and locked pension accounts, their native values and one combined total in the user's saved default currency. Includes separate market/pension subtotals, quote/valuation dates and FX conversion availability. Missing prices or rates make the affected total null, never a misleading partial total. Pension value remains unavailable for spending.", annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false }, inputSchema: { type: "object", properties: {}, additionalProperties: false } },
         { name: "link_budget_return", title: "Link savings budget return", description: "Link an existing paid transfer out of a savings goal back to the original categorized funding operation. Use only for a confirmed refund/reversal, not a purchase or goal move. Read get_transactions first. Only unused funding reduces the original envelope, in the return month. Does not create a payment or change wallet balances.", annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: true }, inputSchema: { type: "object", properties: { return_id: { type: "string" }, funding_id: { type: "string" } }, required: ["return_id","funding_id"], additionalProperties: false } },
         {
@@ -816,6 +818,7 @@ function getMcpTools() {
             wallet_id: { type: "string" }, name: { type: "string" },
             statement: { type: "object", properties: {
               as_of: { type: "string", format: "date" }, total_value: { type: "number", minimum: 0 },
+              product_type: { type: "string", enum: ["cz_dps"], description: "Use cz_dps for Czech Doplňkové penzijní spoření (DPS). Product identity is preserved independently of the account name." },
               invested: { type: ["number", "null"], minimum: 0 }, provider_result: { type: ["number", "null"] },
               entries: { type: "array", items: { type: "object", properties: {
                 id: { type: "string" }, occurred_at: { type: "string", format: "date" }, amount: { type: "number", exclusiveMinimum: 0 },
@@ -2291,7 +2294,7 @@ function sanitizeFinanceContext(data: unknown) {
 
   return {
     wallets: wallets.filter(isRecord).map((wallet) => ({
-      ...walletAvailability({ id: wallet.id, type: wallet.type, balance: wallet.balance }, goals.filter(isRecord)),
+      ...walletAvailability(wallet as {id:unknown;type:unknown;balance:unknown;pension_state?:unknown}, goals.filter(isRecord)),
       id: wallet.id,
       name: wallet.name,
       type: wallet.type,
@@ -3487,6 +3490,13 @@ async function handleToolCall(
     return handleGetFinanceContext(id, auth.keyHash, t);
   }
 
+  if (toolName === "rename_pension_account") {
+    const args=(params.arguments ?? {}) as Record<string,unknown>;
+    const {data,error}=await createAnonClient().rpc("mcp_rename_pension_account",{p_key_hash:auth.keyHash,p_wallet_id:optionalString(args.wallet_id),p_name:optionalString(args.name)});
+    if(error||!data)return {jsonrpc:"2.0",id,error:{code:-32602,message:t("mcp.errors.pensionStatementFailed")}};
+    return successResponse(id,t("mcp.success.pensionAccountUpdated"),data);
+  }
+
   if (toolName === "get_investment_summary") {
     const {data,error}=await createAnonClient().rpc("mcp_get_investment_summary_source",{p_key_hash:auth.keyHash});
     if(error || !data) return {jsonrpc:"2.0",id,error:{code:-32000,message:t("mcp.errors.financeContextLoadFailed")}};
@@ -3510,7 +3520,7 @@ async function handleToolCall(
       ...(statement?.success ? { p_wallet_id: optionalString(args.wallet_id), p_name: optionalString(args.name), p_statement: statement.data } : {}),
     });
     if (error || !data) return { jsonrpc: "2.0", id, error: { code: -32000, message: t("mcp.errors.pensionStatementFailed") } };
-    const result = toolName === "get_pension_accounts" ? { accounts: data } : { ...data, ...walletAvailability({ id: data.wallet_id, type: "pension", balance: data.balance }, []) };
+    const result = toolName === "get_pension_accounts" ? { accounts: data } : { ...data, ...walletAvailability({ id: data.wallet_id, type: "pension", balance: data.balance, pension_state: data.pension_state }, []) };
     return { jsonrpc: "2.0", id, result: { content: [{ type: "text", text: JSON.stringify(result) }], structuredContent: result } };
   }
 

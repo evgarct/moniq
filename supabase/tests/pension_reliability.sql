@@ -13,7 +13,7 @@ begin
   insert into public.mcp_api_keys(user_id,name,key_hash,key_prefix) values(u,'Pension test',key_hash,'test');
   insert into public.finance_transactions(id,user_id,title,occurred_at,status,kind,amount,source_account_id,category_id)
     values(tx,u,'Own contribution',current_date-9,'paid','expense',1700,c,cat);
-  payload:=jsonb_build_object('as_of',current_date,'total_value',229294.06,'invested',190781.80,'provider_result',29572.72,'entries',jsonb_build_array(
+  payload:=jsonb_build_object('product_type','cz_dps','as_of',current_date,'total_value',229294.06,'invested',190781.80,'provider_result',29572.72,'entries',jsonb_build_array(
     jsonb_build_object('id','own','occurred_at',current_date-9,'amount',1700,'source','own','transaction_id',tx),
     jsonb_build_object('id','employer','occurred_at',current_date-9,'amount',4161,'source','employer')));
   result:=public.upsert_pension_statement(p,payload);
@@ -22,6 +22,10 @@ begin
   if (select kind from public.finance_transactions where id=tx)<>'transfer' then raise exception 'Own contribution not linked'; end if;
   result:=public.upsert_pension_statement(p,payload);
   if jsonb_array_length(result->'pension_state'->'entries')<>2 then raise exception 'Duplicate import'; end if;
+  result:=public.mcp_rename_pension_account(key_hash,p,'Renamed DPS');
+  if result->>'name'<>'Renamed DPS' then raise exception 'Pension rename failed'; end if;
+  result:=public.mcp_get_pension_accounts(key_hash);
+  if result->0->>'product_type'<>'cz_dps' or result->0->>'country_code'<>'CZ' then raise exception 'DPS identity lost after rename'; end if;
   -- Later paid transfers update the account; planned ones do not. A new statement replaces growth.
   insert into public.finance_transactions(user_id,title,occurred_at,status,kind,amount,destination_amount,source_account_id,destination_account_id,category_id)
     values(u,'Later contribution',current_date+1,'planned','transfer',1700,1700,c,p,cat);

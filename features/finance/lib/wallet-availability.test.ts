@@ -10,3 +10,7 @@ it("never treats debt, credit, or pension as spendable cash",()=>{
  expect(walletAvailability({id:"p",type:"pension",balance:229294.06},[])).toMatchObject({reserved_balance:229294.06,available_to_spend:0});
  expect(walletAvailability({id:"d",type:"credit_card",balance:-1000},[])).toMatchObject({reserved_balance:null,available_to_spend:0});
 });
+it("identifies Czech DPS independently of the editable wallet name",()=>{
+ const wallet={id:"p",type:"pension",balance:229294.06,name:"Renamed account",pension_state:{product_type:"cz_dps"}};
+ expect(walletAvailability(wallet,[])).toMatchObject({product_type:"cz_dps",country_code:"CZ",product_name:"Doplňkové penzijní spoření (DPS)",available_to_spend:0});
+});

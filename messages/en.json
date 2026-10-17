@@ -1574,7 +1574,8 @@
       "draftHardDeleted": "Deleted draft transaction from Moniq Inbox.",
       "batchSubmittedTitle": "Batch submitted",
       "batchSubmitted": "{count, plural, one {Batch submitted successfully. # transaction is now in the Moniq Claude Inbox for review. Batch ID: {batchId}} other {Batch submitted successfully. # transactions are now in the Moniq Claude Inbox for review. Batch ID: {batchId}}}",
-      "pensionStatementUpdated": "Pension statement updated."
+      "pensionStatementUpdated": "Pension statement updated.",
+      "pensionAccountUpdated": "Pension account updated."
     },
     "widget": {
       "locale": "en",
