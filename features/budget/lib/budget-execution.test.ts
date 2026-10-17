@@ -9,6 +9,18 @@ const saving = { id: "saving", currency: "CZK", type: "saving" } as Account;
 const base = { id: "fund", kind: "transfer", status: "paid", occurred_at: "2026-09-01", created_at: "2026-09-01T00:00:00Z", amount: 3000, destination_amount: 3000, source_account_id: "cash", source_account: cash, destination_account_id: "saving", destination_account: saving, allocation_id: "travel", source_allocation_id: null, category_id: "travel-category" } as Transaction;
 const spend = { ...base, id: "buy", occurred_at: "2026-10-02", kind: "expense", source_account_id: "saving", source_account: saving, destination_account_id: null, destination_account: null, allocation_id: null, source_allocation_id: "travel", amount: 4000, category_id: "holiday" } as Transaction;
 describe("budget execution provenance", () => {
+  it("counts a new categorized cash contribution in full after an earlier withdrawal into cash", () => {
+    const earlier = { ...base, id: "cushion-funding", amount: 10000, destination_amount: 10000, allocation_id: "cushion" };
+    const release = { ...base, id: "release", occurred_at: "2026-10-06", amount: 2000, destination_amount: 2000, category_id: null,
+      source_account_id: "saving", source_account: saving, source_allocation_id: "cushion", destination_account_id: "cash", destination_account: cash, allocation_id: null };
+    const purchase = { ...spend, id: "own-payment", occurred_at: "2026-10-08", amount: 1700, source_account_id: "cash", source_account: cash, source_allocation_id: null };
+    const october = { ...base, id: "october-funding", occurred_at: "2026-10-08" };
+    const result = buildBudgetExecution([earlier, release, purchase, october]);
+    expect(result.transactions.find(tx => tx.id === october.id)?.amount).toBe(3000);
+    expect(result.lots.find(lot => lot.origin_id === october.id)?.remaining).toBe(3000);
+    expect(buildBudgetExecution([...result.transactions]).transactions.find(tx => tx.id === october.id)?.amount).toBe(3000);
+    expect(buildBudgetExecution([earlier, release, purchase, october, { ...spend, occurred_at: "2026-10-09", amount: 3200 }]).transactions.at(-1)?.amount).toBe(200);
+  });
   it("counts funding once, excludes only covered spending, and preserves the ledger", () => {
     const history = [spend, base]; const result = buildBudgetExecution(history);
     expect(result.transactions.map((tx) => [tx.id,tx.amount])).toEqual([["fund",3000],["buy",1000]]);

@@ -189,6 +189,17 @@ describe("MCP tools", () => {
     expect((await response.json()).result.structuredContent).toMatchObject({currency:"CZK",total_value:229294.06,pension_value:229294.06,market_value:0});
   });
 
+  it("infers the investment summary currency from all wallets when no preference is saved", async () => {
+    mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name); if (authResponse) return authResponse;
+      if (name === "mcp_get_investment_summary_source") return Promise.resolve({ data: { default_currency: null, accounts: [], positions: [], transactions: [], exchange_rates: [] }, error: null });
+      if (name === "mcp_get_finance_context") return Promise.resolve({ data: { wallets: [{ currency: "CZK" }, { currency: "CZK" }, { currency: "EUR" }] }, error: null });
+      return Promise.resolve({ data: null, error: null });
+    });
+    const response = await postMcp({ jsonrpc: "2.0", id: "inferred-investment-currency", method: "tools/call", params: { name: "get_investment_summary", arguments: {} } });
+    expect((await response.json()).result.structuredContent).toMatchObject({ currency: "CZK", total_value: 0, available: true });
+  });
+
   it("validates pension statement input before any pension write", async () => {
     const response=await postMcp({jsonrpc:"2.0",id:"invalid-pension",method:"tools/call",params:{name:"upsert_pension_statement",arguments:{statement:{as_of:"invalid",total_value:-1}}}});
     expect((await response.json()).result.isError).toBe(true);

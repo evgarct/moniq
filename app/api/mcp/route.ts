@@ -3509,8 +3509,17 @@ async function handleToolCall(
     const {data,error}=await createAnonClient().rpc("mcp_get_investment_summary_source",{p_key_hash:auth.keyHash});
     if(error || !data) return {jsonrpc:"2.0",id,error:{code:-32000,message:t("mcp.errors.financeContextLoadFailed")}};
     const accounts=(data.accounts ?? []) as Account[];
+    let currencyAccounts: Pick<Account, "currency">[] = accounts;
+    if (!data.default_currency) {
+      // Match the UI's inference from all wallets, including accounts outside Investments.
+      const context = await createAnonClient().rpc("mcp_get_finance_context", { p_key_hash: auth.keyHash });
+      if (context.error || !isRecord(context.data) || !Array.isArray(context.data.wallets)) {
+        return {jsonrpc:"2.0",id,error:{code:-32000,message:t("mcp.errors.financeContextLoadFailed")}};
+      }
+      currencyAccounts = context.data.wallets as Pick<Account, "currency">[];
+    }
     const positions=(data.positions ?? []).map((p: InvestmentPosition)=>({...p,opening_units:Number(p.opening_units),latest_quote:p.latest_quote?{...p.latest_quote,price:Number(p.latest_quote.price)}:null}));
-    const summary=buildInvestmentSummary({accounts,positions,transactions:(data.transactions??[]).map((tx:Transaction)=>({...tx,investment_units:tx.investment_units==null?null:Number(tx.investment_units)})),currency:resolveUserPreferences(data.default_currency,accounts).default_currency,exchangeRates:(data.exchange_rates??[]).map((rate:ExchangeRate)=>({...rate,rate:Number(rate.rate)}))});
+    const summary=buildInvestmentSummary({accounts,positions,transactions:(data.transactions??[]).map((tx:Transaction)=>({...tx,investment_units:tx.investment_units==null?null:Number(tx.investment_units)})),currency:resolveUserPreferences(data.default_currency,currencyAccounts).default_currency,exchangeRates:(data.exchange_rates??[]).map((rate:ExchangeRate)=>({...rate,rate:Number(rate.rate)}))});
     return {jsonrpc:"2.0",id,result:{content:[{type:"text",text:JSON.stringify(summary)}],structuredContent:summary}};
   }
 

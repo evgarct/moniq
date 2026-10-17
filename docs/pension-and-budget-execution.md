@@ -104,3 +104,11 @@ also require an empty pension; incoming ledger activity must be a transfer. Raw 
 delta helpers are unavailable to client roles. Recurring MCP creation and patches check
 the actual destination account before accepting a categorized transfer without a goal.
 The rollback suite exercises key-authenticated edits of already linked own contributions.
+
+Categorized funding from a general cash wallet is a new budget commitment for its full
+amount, even when that cash wallet previously received money released from a goal.
+Direct goal-to-goal moves carry provenance instead. This matches the explicit October
+acceptance: 3000 CZK paid to GTFO Fund executes 3000 CZK of Next & Safe. A later purchase
+from that goal still consumes the new funding FIFO and does not execute it twice.
+When no default currency has been saved, MCP investment totals infer it from all wallets
+using the same preference resolver as Balance, rather than from pension accounts alone.

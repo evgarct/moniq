@@ -12,7 +12,7 @@ The canonical UI reference implementation is `stories/foundations/ui-playbook.st
 
 # Repo Workflow Rules
 
-- Account-dependent transaction exceptions must be verified through client normalization, all create/edit/recurring persistence schemas, account-aware domain validation, and SQL. A form-only exception is incomplete; add a test that preserves the category through the whole input pipeline.
+- Account-dependent transaction exceptions must be verified through client normalization, all create/edit/recurring persistence schemas, account-aware domain validation, MCP-specific validators, and SQL. Exercise both MCP creation and merged patches plus the key-authenticated SQL edit branch before promotion; successful function creation does not validate branch-local SQL identifiers.
 - Envelope execution projections must be idempotent and preserve signed returns. Test the full Budget/MCP composition, including the ordinary analytics converter's absolute-amount behavior, rather than only the projection helper.
 - Before starting a production preview, await the entire verification command chain that can launch a build and confirm that it has exited successfully. A completed earlier build does not make a queued rebuild safe to serve.
 

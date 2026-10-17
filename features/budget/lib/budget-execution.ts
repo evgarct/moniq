@@ -36,17 +36,20 @@ export function buildBudgetExecution(history: Transaction[]): BudgetExecution {
       const source = pool(tx.source_account_id, tx.source_allocation_id);
       const destination = pool(tx.destination_account_id, tx.allocation_id);
       if (tx.kind === "transfer") {
+        const funding = !!tx.category_id && (!!tx.allocation_id || tx.destination_account?.type === "pension") && !tx.system_generated;
+        // A categorized contribution from general cash is an explicit new budget commitment.
+        // Only a transfer directly out of a goal carries its earlier execution into another goal.
+        const newCommitment = funding && !tx.source_allocation_id;
         const isReturn = !tx.system_generated && !!tx.linked_transaction_id && !!tx.source_allocation_id && !tx.allocation_id;
         const moved = take(source, tx.amount, isReturn ? tx.linked_transaction_id! : undefined);
         const covered = moved.reduce((sum, lot) => sum + lot.remaining, 0);
         if (isReturn) {
           for (const lot of moved) projected.push({ ...tx, id: `${tx.id}:${lot.origin.id}`, kind: "expense", category_id: lot.origin.category_id, amount: -lot.remaining * lot.rate, source_account: lot.origin.source_account });
-        } else {
+        } else if (!newCommitment) {
           const fx = tx.amount ? (tx.destination_amount ?? tx.amount) / tx.amount : 1;
           get(destination).push(...moved.map((lot) => ({ ...lot, remaining: lot.remaining * fx, rate: lot.rate / fx })));
         }
-        const funding = !!tx.category_id && (!!tx.allocation_id || tx.destination_account?.type === "pension") && !tx.system_generated;
-        const fresh = isReturn ? 0 : Math.max(0, tx.amount - covered);
+        const fresh = isReturn ? 0 : newCommitment ? tx.amount : Math.max(0, tx.amount - covered);
         if (funding && fresh > 0) {
           const fx = tx.amount ? (tx.destination_amount ?? tx.amount) / tx.amount : 1;
           get(destination).push({ origin: tx, remaining: fresh * fx, rate: 1 / fx });
