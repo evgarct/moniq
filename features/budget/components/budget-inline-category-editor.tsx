@@ -8,6 +8,7 @@ import { FormField, FormSelectField } from "@/components/form-sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SelectGroup, SelectItem } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { getCategoryDescendantIds } from "@/features/categories/lib/category-tree";
 import { parseCategoryDescriptionAndBudget, serializeCategoryDescriptionAndBudget } from "@/features/budget/lib/budget-analytics";
@@ -39,6 +40,7 @@ export function BudgetInlineCategoryEditor({
   const [type, setType] = useState<CategoryType>(category?.type ?? initialType);
   const [parentId, setParentId] = useState<string | null>(category?.parent_id ?? initialParentId ?? null);
   const [nameError, setNameError] = useState<string | null>(null);
+  const [isContribution, setIsContribution] = useState(Boolean(category?.is_contribution));
 
   const parentOptions = useMemo(() => {
     const excludedIds = category
@@ -66,6 +68,7 @@ export function BudgetInlineCategoryEditor({
           icon,
           type,
           parent_id: parentId,
+          is_contribution: type === "expense" && isContribution,
         });
       }}
     >
@@ -129,6 +132,16 @@ export function BudgetInlineCategoryEditor({
             onChange={(event) => setPlannedBudget(event.target.value)}
           />
         </FormField>
+      ) : null}
+
+      {type === "expense" ? (
+        <div className="flex items-center justify-between gap-3 lg:col-span-2">
+          <label htmlFor="budget-category-contribution" className="grid gap-0.5 text-sm">
+            <span className="font-medium">{t("fields.contribution")}</span>
+            <span className="text-muted-foreground">{t("fields.contributionHint")}</span>
+          </label>
+          <Switch id="budget-category-contribution" checked={isContribution} onCheckedChange={setIsContribution} />
+        </div>
       ) : null}
 
       <FormField id="budget-category-description" label={t("fields.description")} className="lg:col-span-2">

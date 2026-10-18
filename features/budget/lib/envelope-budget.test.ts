@@ -207,6 +207,8 @@ describe("summarizeEnvelopeBudget", () => {
       upcomingPlanned: 0,
       upcoming: 0,
       forecastLeft: 22544,
+      actualSpending: 57956,
+      contributions: 0,
     });
     expect(summary.spentPlanned! + summary.unplanned!).toBe(summary.spent);
   });

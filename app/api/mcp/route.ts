@@ -312,6 +312,7 @@ type CategoryRow = {
   parent_id: string | null;
   is_system: boolean;
   purpose: Category["purpose"];
+  is_contribution?: boolean | null;
   created_at: string;
 };
 
@@ -519,6 +520,11 @@ function categoryProperties(options: { withoutType?: boolean } = {}) {
       type: ["number", "null"],
       title: "Monthly budget",
       description: "Monthly budget in the user's default currency (see default_currency in get_finance_context). Top-level expense categories only; null clears it.",
+    },
+    is_contribution: {
+      type: "boolean",
+      title: "Savings or investment envelope",
+      description: "True when goal transfers into this category are plan contributions (Next & Safe, Wealth); false for spending envelopes. Applied on update_category.",
     },
   };
 }
@@ -1148,7 +1154,7 @@ function getMcpTools() {
           name: "update_category",
           title: "Update category",
           description:
-            "Patch a Moniq category: send category_id and only the fields to change (name, parent_id, description, icon, budget_amount). Send parent_id null to make it top-level and budget_amount null to clear the budget. Type cannot be changed and system categories cannot be edited.",
+            "Patch a Moniq category: send category_id and only the fields to change (name, parent_id, description, icon, budget_amount, is_contribution). is_contribution=true marks a savings/investment envelope: transfers into its goals count as plan progress (contributions); on every other category a transfer is only a reserve and never counts as spending. Send parent_id null to make it top-level and budget_amount null to clear the budget. Type cannot be changed and system categories cannot be edited.",
           annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
           _meta: moniqWidgetMeta("Updating category", "Category updated"),
           outputSchema: widgetOutputSchema("Updated category"),
@@ -1539,6 +1545,7 @@ function mapCategory(row: CategoryRow): Category {
     parent_id: row.parent_id,
     is_system: row.is_system,
     purpose: row.purpose ?? null,
+    is_contribution: Boolean(row.is_contribution),
     created_at: row.created_at,
   };
 }
@@ -3006,7 +3013,7 @@ async function handleDeleteTransaction(
   );
 }
 
-const CATEGORY_FIELD_KEYS = ["name", "type", "parent_id", "description", "icon", "budget_amount"] as const;
+const CATEGORY_FIELD_KEYS = ["name", "type", "parent_id", "description", "icon", "budget_amount", "is_contribution"] as const;
 
 function pickCategoryFields(source: Record<string, unknown>, allowType: boolean) {
   const picked: Record<string, unknown> = {};
@@ -3023,6 +3030,7 @@ function validateCategoryFields(fields: Record<string, unknown>, t: McpTranslato
   if ("budget_amount" in fields && fields.budget_amount !== null && !isNonNegativeNumber(fields.budget_amount)) {
     return t("mcp.errors.categoryBudgetInvalid");
   }
+  if ("is_contribution" in fields && typeof fields.is_contribution !== "boolean") return t("mcp.errors.categoryContributionInvalid");
   return null;
 }
 

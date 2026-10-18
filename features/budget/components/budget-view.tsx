@@ -149,8 +149,8 @@ export function BudgetView({
   const manageableCategories = useMemo(() => getManageableCategories(snapshot.categories), [snapshot.categories]);
   // Paid and planned transactions of the month: envelopes count paid ones as spent and planned ones as upcoming.
   const monthTransactions = useMemo(
-    () => buildBudgetExecution(snapshot.transactions).transactions.filter((transaction) => isVisibleTransactionStatus(transaction.status) && isSameMonth(parseISO(transaction.occurred_at), month)),
-    [month, snapshot.transactions],
+    () => buildBudgetExecution(snapshot.transactions, snapshot.categories).transactions.filter((transaction) => isVisibleTransactionStatus(transaction.status) && isSameMonth(parseISO(transaction.occurred_at), month)),
+    [month, snapshot.transactions, snapshot.categories],
   );
   const categoryTree = useMemo(() => buildCategoryTree(manageableCategories, monthTransactions), [manageableCategories, monthTransactions]);
   const rowOptions = useMemo(

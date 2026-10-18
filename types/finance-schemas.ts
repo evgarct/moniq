@@ -51,6 +51,7 @@ export const categoryInputSchema = z.object({
   icon: z.string().trim().max(48, "Use a short icon token.").nullable().optional(),
   type: z.enum(["income", "expense"] satisfies [CategoryType, ...CategoryType[]]),
   parent_id: z.string().uuid().nullable().optional(),
+  is_contribution: z.boolean().optional(),
 });
 
 const transactionFieldShape = {

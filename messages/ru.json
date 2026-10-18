@@ -784,7 +784,9 @@
         "icon": "Иконка",
         "type": "Тип",
         "parent": "Родительская категория",
-        "plannedBudget": "Запланированный бюджет"
+        "plannedBudget": "Запланированный бюджет",
+        "contribution": "Конверт накоплений или инвестиций",
+        "contributionHint": "Переводы в цели считаются выполнением плана, а не расходом."
       },
       "types": {
         "expense": "Расход",
@@ -1475,6 +1477,7 @@
       "categoryNameRequired": "Нужно название категории.",
       "categoryTypeInvalid": "Тип категории должен быть income или expense.",
       "categoryBudgetInvalid": "budget_amount должен быть неотрицательным числом или null.",
+      "categoryContributionInvalid": "is_contribution должен быть true или false.",
       "categoryIdRequired": "Нужен category_id.",
       "categoryNotFound": "Категория не найдена.",
       "categoryParentNotFound": "Родительская категория не найдена.",

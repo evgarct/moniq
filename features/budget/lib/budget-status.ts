@@ -95,7 +95,7 @@ export function buildBudgetStatus(options: {
   today?: Date;
 }) {
   const month = startOfMonth(options.month);
-  const transactions = buildBudgetExecution(options.transactions).transactions.filter((transaction) => isVisibleTransactionStatus(transaction.status));
+  const transactions = buildBudgetExecution(options.transactions, options.categories).transactions.filter((transaction) => isVisibleTransactionStatus(transaction.status));
   const manageable = getManageableCategories(options.categories);
   const tree = buildCategoryTree(manageable, transactions);
   const rowOptions = {

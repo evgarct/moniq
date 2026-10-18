@@ -51,6 +51,7 @@ type CategoryRow = {
   parent_id: string | null;
   is_system: boolean;
   purpose: Category["purpose"];
+  is_contribution: boolean | null;
   created_at: string;
   sync_version: number | string;
 };
@@ -159,6 +160,7 @@ function mapCategory(row: CategoryRow): Category {
     parent_id: row.parent_id,
     is_system: row.is_system,
     purpose: row.purpose ?? null,
+    is_contribution: Boolean(row.is_contribution),
     created_at: row.created_at,
     sync_version: Number(row.sync_version ?? 1),
   };
@@ -366,7 +368,7 @@ export async function getFinanceSnapshot(
       .order("created_at", { ascending: false }),
     supabase
       .from("finance_categories")
-      .select("id, user_id, name, description, icon, type, parent_id, is_system, purpose, created_at, sync_version")
+      .select("id, user_id, name, description, icon, type, parent_id, is_system, purpose, is_contribution, created_at, sync_version")
       .eq("user_id", user.id)
       .order("created_at", { ascending: true }),
     supabase
@@ -874,6 +876,7 @@ export async function createCategory(values: CategoryInput, preferredId?: string
     icon: values.icon?.trim() || null,
     type: values.type,
     parent_id: values.parent_id ?? null,
+    is_contribution: values.type === "expense" && Boolean(values.is_contribution),
   });
 
   if (error) {
@@ -906,6 +909,7 @@ export async function updateCategory(categoryId: string, values: CategoryInput) 
       icon: values.icon?.trim() || null,
       type: values.type,
       parent_id: values.parent_id ?? null,
+      ...(values.is_contribution === undefined ? {} : { is_contribution: values.type === "expense" && values.is_contribution }),
     })
     .eq("id", categoryId)
     .eq("user_id", user.id);

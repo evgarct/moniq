@@ -13,6 +13,8 @@ export type Category = {
   parent_id: string | null;
   is_system: boolean;
   purpose?: CategoryPurpose | null;
+  /** Savings/investment envelope: goal contributions are plan progress, not spending. */
+  is_contribution?: boolean;
   created_at: string;
   sync_version?: number;
 };

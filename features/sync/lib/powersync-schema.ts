@@ -66,6 +66,7 @@ const categories = new Table({
   parent_id: column.text,
   is_system: column.integer,
   purpose: column.text,
+  is_contribution: column.integer,
   created_at: column.text,
   updated_at: column.text,
   sync_version: column.integer,

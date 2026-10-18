@@ -784,7 +784,9 @@
         "icon": "Icon",
         "type": "Type",
         "parent": "Parent category",
-        "plannedBudget": "Planned budget"
+        "plannedBudget": "Planned budget",
+        "contribution": "Savings or investment envelope",
+        "contributionHint": "Transfers into goals count as plan progress, not spending."
       },
       "types": {
         "expense": "Expense",
@@ -1475,6 +1477,7 @@
       "categoryNameRequired": "Category name is required.",
       "categoryTypeInvalid": "Category type must be income or expense.",
       "categoryBudgetInvalid": "budget_amount must be a non-negative number or null.",
+      "categoryContributionInvalid": "is_contribution must be true or false.",
       "categoryIdRequired": "category_id is required.",
       "categoryNotFound": "Category not found.",
       "categoryParentNotFound": "Parent category not found.",
