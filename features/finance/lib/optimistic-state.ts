@@ -609,6 +609,7 @@ export function saveCategory(
     parent_id: values.parent_id ?? null,
     is_system: false,
     purpose: null,
+    is_contribution: Boolean(values.is_contribution),
     created_at: new Date().toISOString(),
   };
   return { ...snapshot, categories: [...snapshot.categories, category] };

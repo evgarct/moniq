@@ -1,4 +1,18 @@
-import type { Transaction } from "@/types/finance";
+import type { Category, Transaction } from "@/types/finance";
+
+/** Savings/investment envelopes (a flagged category or any descendant): contributions are plan progress. */
+export function getContributionCategoryIds(categories: Pick<Category, "id" | "parent_id" | "purpose" | "is_contribution">[]) {
+  const byId = new Map(categories.map((category) => [category.id, category]));
+  const ids = new Set<string>();
+  for (const category of categories) {
+    const seen = new Set<string>();
+    for (let node: typeof category | undefined = category; node && !seen.has(node.id); node = node.parent_id ? byId.get(node.parent_id) : undefined) {
+      seen.add(node.id);
+      if (node.is_contribution || node.purpose === "investment") { ids.add(category.id); break; }
+    }
+  }
+  return ids;
+}
 
 type Lot = { origin: Transaction; remaining: number; rate: number };
 export type BudgetExecution = { transactions: Transaction[]; lots: { origin_id: string; pool: string; remaining: number; category_id: string | null }[] };
@@ -8,7 +22,8 @@ const pool = (wallet: string | null, goal?: string | null) => goal ? `goal:${goa
 /** Replay the persisted ledger, never a second balance ledger. FIFO provenance survives goal moves.
  * Returned expense projections belong ONLY to envelopes; cashflow/reporting uses original transactions.
  */
-export function buildBudgetExecution(history: Transaction[]): BudgetExecution {
+export function buildBudgetExecution(history: Transaction[], categories: Pick<Category, "id" | "parent_id" | "purpose" | "is_contribution">[] = []): BudgetExecution {
+  const contributionIds = getContributionCategoryIds(categories);
   const pools = new Map<string, Lot[]>();
   const projected: Transaction[] = [];
   const get = (key: string) => { if (!pools.has(key)) pools.set(key, []); return pools.get(key)!; };
@@ -43,8 +58,10 @@ export function buildBudgetExecution(history: Transaction[]): BudgetExecution {
         const isReturn = !tx.system_generated && !!tx.linked_transaction_id && !!tx.source_allocation_id && !tx.allocation_id;
         const moved = take(source, tx.amount, isReturn ? tx.linked_transaction_id! : undefined);
         const covered = moved.reduce((sum, lot) => sum + lot.remaining, 0);
+        // Reserving cash for a spending envelope is not spending: only contribution envelopes project funding.
+        const contributes = !!tx.category_id && contributionIds.has(tx.category_id);
         if (isReturn) {
-          for (const lot of moved) projected.push({ ...tx, id: `${tx.id}:${lot.origin.id}`, kind: "expense", category_id: lot.origin.category_id, amount: -lot.remaining * lot.rate, source_account: lot.origin.source_account });
+          for (const lot of moved) if (lot.origin.category_id && contributionIds.has(lot.origin.category_id)) projected.push({ ...tx, id: `${tx.id}:${lot.origin.id}`, kind: "expense", category_id: lot.origin.category_id, amount: -lot.remaining * lot.rate, source_account: lot.origin.source_account });
         } else if (!newCommitment) {
           const fx = tx.amount ? (tx.destination_amount ?? tx.amount) / tx.amount : 1;
           get(destination).push(...moved.map((lot) => ({ ...lot, remaining: lot.remaining * fx, rate: lot.rate / fx })));
@@ -53,11 +70,12 @@ export function buildBudgetExecution(history: Transaction[]): BudgetExecution {
         if (funding && fresh > 0) {
           const fx = tx.amount ? (tx.destination_amount ?? tx.amount) / tx.amount : 1;
           get(destination).push({ origin: tx, remaining: fresh * fx, rate: 1 / fx });
-          projected.push({ ...tx, kind: "expense", amount: fresh });
+          if (contributes) projected.push({ ...tx, kind: "expense", amount: fresh });
         }
       } else if (tx.kind === "expense") {
-        const used = take(source, tx.amount).reduce((sum, lot) => sum + lot.remaining, 0);
-        if (tx.amount - used > 0.000001) projected.push({ ...tx, amount: round(tx.amount - used) });
+        // A paid expense always counts once, in its own month and category; it only draws the reserve down.
+        take(source, tx.amount);
+        projected.push(tx);
       } else projected.push(tx);
     }
     if (status === "planned") { pools.clear(); for (const [key, lots] of confirmed) pools.set(key, lots); }

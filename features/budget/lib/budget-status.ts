@@ -44,6 +44,8 @@ type BudgetStatusEnvelope = {
   percent_used: number | null;
   status: EnvelopeBudgetRow["status"];
   will_be_over: boolean;
+  /** Savings/investment envelope: `spent` is contributed to the plan, not consumed. */
+  is_contribution: boolean;
   missing_currencies: CurrencyCode[];
 };
 
@@ -76,6 +78,7 @@ const toEnvelope = (row: EnvelopeBudgetRow): BudgetStatusEnvelope => ({
   percent_used: row.percentUsed,
   status: row.status,
   will_be_over: row.atRisk,
+  is_contribution: row.isContribution,
   missing_currencies: row.missingCurrencies,
 });
 
@@ -95,7 +98,7 @@ export function buildBudgetStatus(options: {
   today?: Date;
 }) {
   const month = startOfMonth(options.month);
-  const transactions = buildBudgetExecution(options.transactions).transactions.filter((transaction) => isVisibleTransactionStatus(transaction.status));
+  const transactions = buildBudgetExecution(options.transactions, options.categories).transactions.filter((transaction) => isVisibleTransactionStatus(transaction.status));
   const manageable = getManageableCategories(options.categories);
   const tree = buildCategoryTree(manageable, transactions);
   const rowOptions = {
@@ -149,6 +152,8 @@ export function buildBudgetStatus(options: {
       spent_planned: summary.spentPlanned,
       spent_unplanned: summary.unplanned,
       spent: summary.spent,
+      actual_spending: summary.actualSpending,
+      contributions: summary.contributions,
       left: summary.left,
       upcoming_planned: summary.upcomingPlanned,
       upcoming: summary.upcoming,

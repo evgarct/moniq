@@ -110,6 +110,7 @@ export async function readSyncedFinanceSnapshot(db: AbstractPowerSyncDatabase): 
     parent_id: row.parent_id,
     is_system: Boolean(row.is_system),
     purpose: row.purpose,
+    is_contribution: Boolean(row.is_contribution),
     created_at: row.created_at,
     sync_version: Number(row.sync_version ?? 1),
   }));

@@ -1,5 +1,5 @@
 import { isBefore, isSameMonth, parseISO, startOfToday } from "date-fns";
-import { buildBudgetExecution } from "@/features/budget/lib/budget-execution";
+import { buildBudgetExecution, getContributionCategoryIds } from "@/features/budget/lib/budget-execution";
 
 import { getConvertedCategoryTotal, parseCategoryDescriptionAndBudget } from "@/features/budget/lib/budget-analytics";
 import { convertTransactionAnalyticsAmount } from "@/features/finance/lib/exchange-rates";
@@ -37,6 +37,8 @@ export type EnvelopeBudgetRow = {
   status: EnvelopeBudgetStatus;
   /** Not over yet, but the upcoming transactions will take the envelope over its plan. */
   atRisk: boolean;
+  /** Savings/investment envelope: `spent` is money contributed to the plan, not consumed. */
+  isContribution: boolean;
   missingCurrencies: CurrencyCode[];
 };
 
@@ -58,6 +60,10 @@ export type EnvelopeBudgetSummary = {
   upcoming: number | null;
   /** planned - spentPlanned - upcomingPlanned: what the planned envelopes keep at month end. */
   forecastLeft: number | null;
+  /** Paid spending only (spending envelopes plus uncategorized); excludes plan contributions. */
+  actualSpending: number | null;
+  /** Contributions to savings/investment envelopes; plan progress, never reported as spent. */
+  contributions: number | null;
 };
 
 const roundMoney = (value: number) => Number(value.toFixed(2));
@@ -102,7 +108,8 @@ export function buildEnvelopeBudgetRows(options: {
   targetCurrency: CurrencyCode;
   exchangeRates: ExchangeRate[];
 }): EnvelopeBudgetRow[] {
-  const execution = buildBudgetExecution(options.transactions).transactions;
+  const execution = buildBudgetExecution(options.transactions, options.categories).transactions;
+  const contributionIds = getContributionCategoryIds(options.categories);
   return options.nodes
     .map((node): EnvelopeBudgetRow => {
       const parsed = parseCategoryDescriptionAndBudget(node.description);
@@ -137,6 +144,7 @@ export function buildEnvelopeBudgetRows(options: {
         percentUsed: planned !== null && planned > 0 && spent !== null ? roundMoney((spent / planned) * 100) : null,
         status,
         atRisk: status !== "over" && status !== "unavailable" && forecastLeft !== null && forecastLeft < 0,
+        isContribution: contributionIds.has(node.id),
         missingCurrencies: Array.from(new Set([...paid.missingCurrencies, ...pending.missingCurrencies])).sort(),
       };
     })
@@ -157,8 +165,10 @@ export function summarizeEnvelopeBudget(
   const upcomingAvailable = available && uncategorizedUpcoming !== null && rows.every((row) => row.upcoming !== null);
 
   if (!available) {
-    return { available, planned, spentPlanned: null, unplanned: null, spent: null, left: null, upcomingPlanned: null, upcoming: null, forecastLeft: null };
+    return { available, planned, spentPlanned: null, unplanned: null, spent: null, left: null, upcomingPlanned: null, upcoming: null, forecastLeft: null, actualSpending: null, contributions: null };
   }
+  const contributions = roundMoney(rows.filter((row) => row.isContribution).reduce((sum, row) => sum + (row.spent ?? 0), 0));
+  const actualSpending = roundMoney(rows.filter((row) => !row.isContribution).reduce((sum, row) => sum + (row.spent ?? 0), 0) + (uncategorizedExpense ?? 0));
 
   const withPlan = rows.filter((row) => row.planned !== null);
   const withoutPlan = rows.filter((row) => row.planned === null);
@@ -179,6 +189,8 @@ export function summarizeEnvelopeBudget(
     upcomingPlanned,
     upcoming,
     forecastLeft: upcomingPlanned === null ? null : roundMoney(planned - spentPlanned - upcomingPlanned),
+    actualSpending,
+    contributions,
   };
 }
 

@@ -17,10 +17,30 @@ ratio. The original ledger is the durable provenance; lots are rebuilt after edi
 deletions, rather than maintained as a second mutable money ledger. Opening goal
 amounts without categorized funding do not count as budget execution.
 
-Categorized transfers into a savings goal or pension account execute an envelope.
+Envelope kinds: a category (or any ancestor) with `is_contribution = true`, or the
+`investment` purpose, is a **savings/investment envelope**; every other expense category
+is a **spending envelope**. The flag is user-editable (category editor, MCP
+`update_category`), never inferred from names.
+
+- **Spending envelope (Core Bills, Living Costs…)**: only a *paid expense* spends it,
+  once, in the month and category of the actual payment. A transfer tagged with such a
+  category into a goal/pension is only a **reserve**: Core Bills +0, `total_balance`
+  unchanged, `reserved_balance` +amount, `available_to_spend` not increased. The reserve is
+  a FIFO lot; a later expense from that goal/wallet draws it down by the actual amount
+  (never below zero) and counts in full in its own month.
+- **Savings/investment envelope (Next & Safe, Wealth)**: a categorized transfer into a
+  goal/pension is a **contribution** and immediately counts as plan progress of its month
+  (`contributions`, never `actualSpending`). Moving the same goal money again adds no
+  second contribution. Paying for the purchase later is a real expense on its own
+  (spending) category; the contribution is not counted again. Market value changes are
+  not contributions.
+- Metrics: `actualSpending` (paid expenses), `contributions`, row `spent` (plan
+  progress of that envelope), `reserved_balance` / `available_to_spend`
+  (`walletAvailability`), `transfers` / `transfer_flows` (reports).
+
 Moving already funded money carries its attribution without executing another envelope.
-Expenses consume available funded lots first and only their uncovered part executes
-an envelope. Cashflow and spending reports always use the original operations.
+Cashflow and spending reports use the original operations; their envelope totals include a
+transfer only when its category is a savings/investment envelope.
 Explicit returns (linked through the `link_budget_return` MCP tool, with
 `linked_transaction_id` referring to the funding transaction) reduce
 the original category in the month of the return, capped at unused funding. Automatic
@@ -29,7 +49,7 @@ Paid provenance is replayed before a separate planned forecast; forecasts do not
 confirmed lots. Ordinary uncategorized transfers do not execute envelopes.
 
 Both the online snapshot and MCP budget source include historical operations so prior
-funding can cover this month's purchases. Online transactions are paginated at 1000
+reserves and contributions resolve returns and reserve draw-down. Online transactions are paginated at 1000
 rows; the user-scoped PowerSync stream already contains the complete ledger.
 Budget row editing always resolves projections back to their real persisted operation.
 

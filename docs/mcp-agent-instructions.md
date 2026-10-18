@@ -30,7 +30,7 @@ Always discover tools first:
 
 Core rule:
 - If the user asks about historical transactions, spending, income, cashflow, transfers, debt payments, or analytics for any period, call get_transactions or get_category_spending_report.
-- Month analysis returns every transfer in a separate `transfers` collection. Categorized transfers also appear under their expense category, but transfers never change income, expense, or net cashflow totals.
+- Month analysis returns every transfer in a separate `transfers` collection. Categorized transfers add to an expense category total only when it is a savings/investment envelope (`is_contribution`); transfers never change income, expense, or net cashflow totals.
 - If the user asks about future cashflow, forecasts, upcoming bills, planned payments, or scheduled transactions, call get_transactions with a future date range. Moniq can return generated recurring schedule occurrences for the requested period; do not claim this data is unavailable.
 - If the user asks to create ledger entries, first call get_finance_context, then call create_transactions only after all required fields are known. This writes bookkeeping records inside Moniq; it does not move money, charge a card, or contact a bank.
 - If the user asks to create, inspect, edit, pause, resume, skip, mark paid, or delete recurring payments, use the recurring transaction tools instead of create_transactions.
@@ -175,7 +175,7 @@ The month against the budget, exactly as the Budget screen shows it. Use it for 
 - `income`: per income category `received` and `expected`.
 - `upcoming_operations`: the month's planned operations, overdue first (`overdue: true`), with the original `amount` and `currency`, `converted_amount`, `category_id`, `category_name` and `schedule_id` (use the recurring tools to mark them paid or skip them).
 
-Subcategories roll up into their envelope. Transfers are excluded and debt payments count only their interest. Amounts are converted with the rate of each transaction date, and future-dated planned ones use the latest known rate. When a rate is missing, the affected values are null, never a partial total.
+Subcategories roll up into their envelope. Transfers into goals count only for savings/investment envelopes (`is_contribution`, set via `update_category`), as contributions/plan progress; on spending envelopes a transfer is a reserve and never counts as spent. `summary.actualSpending` and `summary.contributions` are reported separately. Debt payments count only their interest. Amounts are converted with the rate of each transaction date, and future-dated planned ones use the latest known rate. When a rate is missing, the affected values are null, never a partial total.
 
 ### `set_budgets`
 

@@ -1,6 +1,7 @@
 import { addMonths, endOfMonth, format, isValid, parseISO, startOfMonth, subMonths } from "date-fns";
 
 import { parseCategoryDescriptionAndBudget } from "@/features/budget/lib/budget-analytics";
+import { getContributionCategoryIds } from "@/features/budget/lib/budget-execution";
 import { getTransactionAnalyticsAmount, getTransactionPrimaryAccount } from "@/features/transactions/lib/transaction-utils";
 import type { Category, Transaction } from "@/types/finance";
 
@@ -265,13 +266,13 @@ function getPeriodMonth(period: CategorySpendingPeriod) {
   return period.start_date.slice(0, 7);
 }
 
-function toReportTransaction(transaction: Transaction, categoriesById: Map<string, Category>): ReportTransaction {
+function toReportTransaction(transaction: Transaction, categoriesById: Map<string, Category>, contributionIds: Set<string>): ReportTransaction {
   const category = transaction.category_id ? categoriesById.get(transaction.category_id) ?? null : null;
   const path = category ? getCategoryPath(category, categoriesById) : [];
   const currency = getTransactionCurrency(transaction);
   const analyticsAmount =
     transaction.kind === "transfer"
-      ? (transaction.category_id ? Math.abs(transaction.amount) : 0)
+      ? (transaction.category_id && contributionIds.has(transaction.category_id) ? Math.abs(transaction.amount) : 0)
       : getTransactionAnalyticsAmount(transaction);
 
   return {
@@ -497,7 +498,9 @@ export function buildCategorySpendingReport(options: {
       transaction.occurred_at >= period.start_date &&
       transaction.occurred_at <= period.end_date,
   );
-  const reportTransactions = periodTransactions.map((transaction) => toReportTransaction(transaction, categoriesById));
+  // Only savings/investment envelopes count transfers (contributions); a reserve for a spending envelope is not spending.
+  const contributionIds = getContributionCategoryIds(options.categories);
+  const reportTransactions = periodTransactions.map((transaction) => toReportTransaction(transaction, categoriesById, contributionIds));
   const currencyTotals = new Map<string, CategorySpendingCurrencyTotal>();
   const transactionCountsByCurrency = new Map<string, number>();
   const transactionsByCategory = new Map<string, ReportTransaction[]>();

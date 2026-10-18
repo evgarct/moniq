@@ -287,9 +287,23 @@ describe("buildCategorySpendingReport", () => {
     ]);
   });
 
-  it("counts a categorized goal-transfer toward its envelope but not toward cashflow totals", () => {
+  it("does not count a reserve transfer tagged with a spending category", () => {
     const report = buildCategorySpendingReport({
       categories,
+      transactions: [
+        tx({ id: "reserve", title: "Reserve", kind: "transfer", amount: 300, occurred_at: "2026-04-07", category_id: "groceries", source_account_id: "czk-cash", destination_account_id: "czk-cash" }),
+        tx({ id: "paid", title: "Paid", kind: "expense", amount: 120, occurred_at: "2026-04-08", category_id: "groceries", source_account_id: "czk-cash" }),
+      ],
+      period: { month: "2026-04" },
+    });
+    const spending = report.envelopes.find((item) => item.category_id === "groceries" || item.categories.some((child) => child.category_id === "groceries"));
+    expect(JSON.stringify(spending?.totals)).toContain('"amount":120');
+    expect(report.transfers.map((item) => item.id)).toEqual(["reserve"]);
+  });
+
+  it("counts a categorized goal-transfer toward its envelope but not toward cashflow totals", () => {
+    const report = buildCategorySpendingReport({
+      categories: categories.map((item) => (item.id === "investments" ? { ...item, is_contribution: true } : item)),
       transactions: [
         tx({
           id: "salary-czk",
