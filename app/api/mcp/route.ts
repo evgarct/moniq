@@ -2323,6 +2323,7 @@ function sanitizeFinanceContext(data: unknown) {
           budget_amount: parsed.plannedBudget,
           icon: category.icon ?? null,
           is_system: category.is_system,
+          is_contribution: Boolean(category.is_contribution),
           is_selectable: category.is_selectable,
         };
       }),

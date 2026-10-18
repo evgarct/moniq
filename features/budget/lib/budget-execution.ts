@@ -5,7 +5,9 @@ export function getContributionCategoryIds(categories: Pick<Category, "id" | "pa
   const byId = new Map(categories.map((category) => [category.id, category]));
   const ids = new Set<string>();
   for (const category of categories) {
-    for (let node: typeof category | undefined = category, depth = 0; node && depth < 8; node = node.parent_id ? byId.get(node.parent_id) : undefined, depth += 1) {
+    const seen = new Set<string>();
+    for (let node: typeof category | undefined = category; node && !seen.has(node.id); node = node.parent_id ? byId.get(node.parent_id) : undefined) {
+      seen.add(node.id);
       if (node.is_contribution || node.purpose === "investment") { ids.add(category.id); break; }
     }
   }
