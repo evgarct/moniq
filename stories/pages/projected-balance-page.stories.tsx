@@ -140,6 +140,30 @@ export const AccountPickerOpen: Story = {
   },
 };
 
+// Pension funds are locked until retirement, so they must not inflate the projected spendable balance.
+export const ExcludesPensionFunds: Story = {
+  args: {
+    snapshot: {
+      ...reportSnapshot,
+      accounts: [
+        ...reportSnapshot.accounts,
+        {
+          ...reportSnapshot.accounts[0],
+          id: "story-pension-fund",
+          name: "Story pension fund",
+          type: "pension",
+          balance: 229294,
+        },
+      ],
+    },
+    initialAccountPickerOpen: true,
+  },
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body);
+    await expect(body.queryByText("Story pension fund")).not.toBeInTheDocument();
+  },
+};
+
 export const MobileAccountPickerOpen: Story = {
   args: {
     snapshot: reportSnapshot,

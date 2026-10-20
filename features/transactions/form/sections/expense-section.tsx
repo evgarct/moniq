@@ -8,6 +8,7 @@ import { FieldMessage, FormPickerRow, FormRow, FormSection } from "@/components/
 import { MoneyInput } from "@/components/money-input";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger } from "@/components/ui/select";
+import { getSpendableAccounts } from "@/features/accounts/lib/account-utils";
 import { isInvestmentCategory } from "@/features/categories/lib/category-tree";
 
 import { useTransactionFormContext } from "../context";
@@ -105,7 +106,7 @@ export function ExpenseSection() {
   return (
     <FormSection>
       <FormPickerRow>
-        <AccountSelect name="source_account_id" accounts={accounts.filter((account) => account.type !== "pension")} placeholder={t("placeholders.sourceAccount")} />
+        <AccountSelect name="source_account_id" accounts={getSpendableAccounts(accounts)} placeholder={t("placeholders.sourceAccount")} />
       </FormPickerRow>
 
       {savingAllocations.length > 0 && (

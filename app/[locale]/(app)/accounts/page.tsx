@@ -5,11 +5,12 @@ import { useTranslations } from "next-intl";
 import { EmptyState } from "@/components/empty-state";
 import { PageContainer } from "@/components/page-container";
 import { AccountsView } from "@/features/accounts/components/accounts-view";
+import { FinanceLoadError } from "@/features/finance/components/finance-load-error";
 import { useFinanceData } from "@/features/finance/hooks/use-finance-data";
 
 export default function AccountsPage() {
   const t = useTranslations("accounts");
-  const { data, error, isLoading } = useFinanceData();
+  const { data, error, isLoading, refetch } = useFinanceData();
 
   if (isLoading) {
     return (
@@ -22,9 +23,11 @@ export default function AccountsPage() {
   if (error) {
     return (
       <PageContainer>
-        <EmptyState
+        <FinanceLoadError
           title={t("error.title")}
-          description={error instanceof Error ? error.message : t("error.description")}
+          fallbackDescription={t("error.description")}
+          error={error}
+          onRetry={() => void refetch()}
         />
       </PageContainer>
     );

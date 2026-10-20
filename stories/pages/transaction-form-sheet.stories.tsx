@@ -8,7 +8,7 @@ import {
   makeFinanceSnapshot,
   withPathname,
 } from "@/stories/fixtures/story-data";
-import type { Transaction, TransactionSchedule } from "@/types/finance";
+import type { Account, Transaction, TransactionSchedule } from "@/types/finance";
 
 const snapshot = makeFinanceSnapshot();
 const defaultTransaction =
@@ -188,6 +188,37 @@ export const BatchExpense: Story = {
     </StorySurface>
   ),
 };
+// A locked pension account listed first must neither be offered nor auto-selected as the source.
+export const BatchExpenseExcludesPension: Story = {
+  render: () => (
+    <StorySurface>
+      <TransactionFormSheet
+        open
+        mode="add"
+        initialKind="expense"
+        accounts={[
+          {
+            ...(cashAccount as Account),
+            id: "story-pension-fund",
+            name: "Story pension fund",
+            type: "pension",
+          },
+          ...snapshot.accounts,
+        ]}
+        categories={snapshot.categories}
+        transactions={[]}
+        onOpenChange={() => {}}
+        onSubmit={async () => {}}
+      />
+    </StorySurface>
+  ),
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body);
+    await waitFor(() => expect(body.getAllByText(/\d/).length).toBeGreaterThan(0));
+    await expect(body.queryByText("Story pension fund")).not.toBeInTheDocument();
+  },
+};
+
 export const BatchTransfer: Story = {
   render: () => (
     <StorySurface>

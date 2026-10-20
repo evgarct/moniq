@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/empty-state";
 import { ProjectedBalanceView } from "@/features/reports/components/projected-balance-view";
 import { FireView } from "@/features/reports/components/fire-view";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { FinanceLoadError } from "@/features/finance/components/finance-load-error";
 import { getCurrenciesMissingExchangeRates } from "@/features/finance/lib/exchange-rates";
 import { createEmptyFinanceSnapshot } from "@/features/finance/lib/empty-snapshot";
 import { useFinanceData } from "@/features/finance/hooks/use-finance-data";
@@ -23,7 +24,7 @@ function ReportsPageContent() {
   const rawType = searchParams.get("type");
   const activeType = rawType === "fire" ? "fire" : "projected";
 
-  const { data, error, isLoading } = useFinanceData();
+  const { data, error, isLoading, refetch } = useFinanceData();
   const [refreshedRates, setRefreshedRates] = useState<ExchangeRate[]>([]);
   const refreshAttemptedRef = useRef(false);
   const effectiveData = useMemo(
@@ -88,9 +89,11 @@ function ReportsPageContent() {
     const errorT = activeType === "fire" ? tFire : t;
     return (
       <div className="h-full overflow-y-auto p-4 sm:p-6 bg-card lg:bg-background">
-        <EmptyState
+        <FinanceLoadError
           title={errorT("error.title")}
-          description={error instanceof Error ? error.message : errorT("error.description")}
+          fallbackDescription={errorT("error.description")}
+          error={error}
+          onRetry={() => void refetch()}
         />
       </div>
     );

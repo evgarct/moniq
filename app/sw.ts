@@ -21,7 +21,9 @@ const serwist = new Serwist({
     {
       matcher: ({ sameOrigin, url }) => sameOrigin && url.pathname.startsWith("/api/"),
       method: "GET",
-      handler: new NetworkOnly({ networkTimeoutSeconds: 15 }),
+      // No SW-side timeout: finance-api.ts owns request timeouts (30s). A shorter SW timeout
+      // rejected slow snapshot reads with a bare "Failed to fetch" before the client gave up.
+      handler: new NetworkOnly(),
     },
     ...defaultCache,
   ],

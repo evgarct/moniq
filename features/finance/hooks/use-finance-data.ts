@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { fetchFinanceSnapshot, financeSnapshotQueryKey } from "@/features/finance/lib/finance-api";
 import { useLocalFirst } from "@/features/sync/components/local-first-provider";
+import { backoffDelay } from "@/features/sync/lib/backoff";
 import { readCachedFinanceSnapshot, readSyncedFinanceSnapshot } from "@/features/sync/lib/local-finance-store";
 
 export function useFinanceData({ enabled = true }: { enabled?: boolean } = {}) {
@@ -20,8 +21,12 @@ export function useFinanceData({ enabled = true }: { enabled?: boolean } = {}) {
       return fetchFinanceSnapshot();
     },
     enabled: enabled && (!localFirst.enabled || (localFirst.hydrated && localFirst.status.state !== "expired")),
-    retry: 1,
-    retryDelay: 2_000,
+    // Ride out cold starts and brief network drops before showing the error state.
+    retry: 4,
+    retryDelay: (attempt) => backoffDelay(attempt, { baseMs: 1_000, maxMs: 10_000 }),
     refetchOnMount: localFirst.enabled ? false : true,
+    refetchOnReconnect: true,
+    // Normally off (see query-client), but a failed load should recover as soon as the user returns.
+    refetchOnWindowFocus: (query) => query.state.status === "error",
   });
 }

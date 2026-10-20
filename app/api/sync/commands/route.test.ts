@@ -6,6 +6,7 @@ const state = vi.hoisted(() => ({
   existingMutation: null as null | Record<string, unknown>,
   entityRecord: null as null | Record<string, unknown>,
   updateWallet: vi.fn(),
+  getFinanceSnapshot: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -40,7 +41,7 @@ vi.mock("@/features/finance/server/repository", () => ({
   adjustWalletBalance: vi.fn(), createCategory: vi.fn(), createTransactionEntry: vi.fn(),
   createTransactionEntryBatch: vi.fn(), createWallet: vi.fn(), createWalletAllocation: vi.fn(),
   deleteCategory: vi.fn(), deleteTransaction: vi.fn(), deleteTransactionSchedule: vi.fn(),
-  deleteWallet: vi.fn(), deleteWalletAllocation: vi.fn(), getFinanceSnapshot: vi.fn(),
+  deleteWallet: vi.fn(), deleteWalletAllocation: vi.fn(), getFinanceSnapshot: state.getFinanceSnapshot,
   markTransactionPaid: vi.fn(), rescheduleScheduleFromDate: vi.fn(),
   setTransactionScheduleState: vi.fn(), skipTransactionOccurrence: vi.fn(),
   updateCategory: vi.fn(), updateTransaction: vi.fn(), updateTransactionSchedule: vi.fn(),
@@ -64,6 +65,7 @@ describe("POST /api/sync/commands", () => {
     state.existingMutation = null;
     state.entityRecord = null;
     state.updateWallet.mockClear();
+    state.getFinanceSnapshot.mockClear();
   });
 
   it("replays an applied idempotency result without executing the mutation again", async () => {
@@ -96,5 +98,20 @@ describe("POST /api/sync/commands", () => {
     expect(response.status).toBe(409);
     expect(body.results[0]).toMatchObject({ status: "conflict", serverVersion: 4 });
     expect(state.updateWallet).not.toHaveBeenCalled();
+  });
+
+  it("reports the applied row version without rebuilding the full finance snapshot", async () => {
+    state.entityRecord = { id: command.targetId, user_id: "11111111-1111-4111-8111-111111111111", sync_version: 3 };
+    const { POST } = await import("@/app/api/sync/commands/route");
+    const response = await POST(new Request("https://moniq.local/api/sync/commands", {
+      method: "POST",
+      body: JSON.stringify({ commands: [command] }),
+    }));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.results[0]).toMatchObject({ status: "applied", serverVersion: 3 });
+    expect(state.updateWallet).toHaveBeenCalledTimes(1);
+    expect(state.getFinanceSnapshot).not.toHaveBeenCalled();
   });
 });

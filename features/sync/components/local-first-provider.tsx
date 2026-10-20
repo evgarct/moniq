@@ -16,6 +16,7 @@ import {
   readSyncedFinanceSnapshot,
   writeCachedFinanceSnapshot,
 } from "@/features/sync/lib/local-finance-store";
+import { backoffDelay, retryWithBackoff } from "@/features/sync/lib/backoff";
 import { moniqPowerSyncSchema, POWER_SYNCED_TABLES } from "@/features/sync/lib/powersync-schema";
 import { createScheduleReconciliationRetry } from "@/features/sync/lib/schedule-reconciliation-retry";
 import { toSyncDetails, type SyncDetails } from "@/features/sync/lib/sync-progress";
@@ -126,6 +127,11 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
   const [conflicts, setConflicts] = useState<LocalSyncConflict[]>([]);
   const [hydrated, setHydrated] = useState(!enabled);
   const t = useTranslations("mcp.errors");
+  // Keep the translator out of effect dependencies: a changed identity would tear down and re-open the local database.
+  const tRef = useRef(t);
+  useEffect(() => {
+    tRef.current = t;
+  }, [t]);
   const [status, setStatus] = useState<SyncStatus>(defaultStatus);
   const [syncDetails, setSyncDetails] = useState<SyncDetails | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -170,7 +176,7 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
         retry.succeeded(month());
         await queryClient.invalidateQueries({ queryKey: financeSnapshotQueryKey });
       } catch {
-        if (retry.failed(Date.now()) && !cancelled) toast.error(t("scheduleReconcileFailed"));
+        if (retry.failed(Date.now()) && !cancelled) toast.error(tRef.current("scheduleReconcileFailed"));
       } finally { reconciling = false; }
     };
     const onOnline = () => { void reconcile(true); };
@@ -187,7 +193,7 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
       window.removeEventListener("online", onOnline);
       document.removeEventListener("visibilitychange", checkMonth);
     };
-  }, [enabled, authUserId, queryClient, t]);
+  }, [enabled, authUserId, queryClient]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -263,9 +269,23 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
           { tables: [...POWER_SYNCED_TABLES], throttleMs: 100 },
         );
 
-        const bootstrapResponse = await fetch("/api/sync/bootstrap", { credentials: "include", cache: "no-store" });
-        if (!bootstrapResponse.ok) throw new Error(`Sync bootstrap failed with ${bootstrapResponse.status}.`);
-        const bootstrap = await bootstrapResponse.json() as SyncBootstrap;
+        // A transient bootstrap failure must not disable sync for the whole session: retry briefly,
+        // then keep working from local data and let ensureConnected() pick the endpoint up later.
+        let bootstrap: SyncBootstrap;
+        // Only an authenticated server response may renew the offline auth lease.
+        let serverVerified = true;
+        try {
+          bootstrap = await retryWithBackoff(async () => {
+            const bootstrapResponse = await fetch("/api/sync/bootstrap", { credentials: "include", cache: "no-store" });
+            if (!bootstrapResponse.ok) throw new Error(`Sync bootstrap failed with ${bootstrapResponse.status}.`);
+            return await bootstrapResponse.json() as SyncBootstrap;
+          }, { attempts: 3, baseMs: 750, isCancelled: () => cancelled });
+        } catch (error) {
+          if (cancelled) return;
+          console.warn("Sync bootstrap unavailable; continuing with local data", error);
+          serverVerified = false;
+          bootstrap = { enabled: true, mode: "on", powersyncUrl: null, serverTime: new Date().toISOString(), userId };
+        }
         if (!bootstrap.enabled) {
           if (!cancelled) {
             setSyncEnabled(false);
@@ -278,7 +298,7 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
         }
 
         const online = navigator.onLine;
-        if (online) {
+        if (online && serverVerified) {
           await markOnlineAuthVerified(localDatabase, userId);
         } else if (!(await hasValidOfflineAuthLease(localDatabase, userId))) {
           if (!cancelled) {
@@ -288,7 +308,7 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
         }
 
         if (!cancelled) {
-          setStatus({ ...statusFromDatabase(localDatabase), state: online ? "cached" : "offline" });
+          setStatus({ ...statusFromDatabase(localDatabase), state: online && serverVerified ? "cached" : online ? "reconnecting" : "offline" });
           setSyncDetails(toSyncDetails(localDatabase.currentStatus));
         }
 
@@ -310,6 +330,19 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
             conflictCount,
           }));
         }
+
+        // Queued commands are retried with exponential backoff; without this a failed batch only
+        // retried when the outbox table happened to change again.
+        let flushAttempt = 0;
+        let flushTimer: number | null = null;
+        const scheduleFlushRetry = () => {
+          if (cancelled || flushTimer !== null) return;
+          flushTimer = window.setTimeout(() => {
+            flushTimer = null;
+            void flushQueue();
+          }, backoffDelay(flushAttempt, { baseMs: 2_000, maxMs: 60_000 }));
+          flushAttempt += 1;
+        };
 
         /**
          * Pushes queued commands. `strict` (used before a forced refresh) drains every
@@ -339,7 +372,10 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ commands: rows.map((row) => JSON.parse(row.payload)) }),
             });
-            const body = await response.json() as { results?: Array<{ id: string; status: string; [key: string]: unknown }> };
+            // A gateway timeout answers with HTML; treat anything without `results` as a failed attempt.
+            const body = await response.json().catch(() => null) as { results?: Array<{ id: string; status: string; [key: string]: unknown }> } | null;
+            if (!body?.results) throw new Error(`Sync commands failed with ${response.status}.`);
+            flushAttempt = 0;
             const rejected = (body.results ?? []).filter(
               (result) => result.status !== "applied" && result.status !== "conflict",
             );
@@ -365,6 +401,7 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
               await refreshQueueStatus();
               throw error;
             }
+            scheduleFlushRetry();
           }
           await refreshQueueStatus();
 
@@ -386,6 +423,58 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
 
         flushQueueRef.current = flushQueue;
 
+        let endpoint = bootstrap.powersyncUrl;
+        const connector: PowerSyncBackendConnector = {
+          async fetchCredentials() {
+            const { data: { session: freshSession }, error } = await supabase.auth.getSession();
+            if (error) throw error;
+            if (!freshSession || !endpoint) return null;
+            return { endpoint, token: freshSession.access_token };
+          },
+          async uploadData(db) {
+            const batch = await db.getCrudBatch();
+            if (!batch) return;
+            const response = await fetch("/api/sync/powersync", {
+              method: "POST",
+              credentials: "include",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ operations: batch.crud }),
+            });
+            if (!response.ok) throw new Error(`PowerSync upload failed with ${response.status}.`);
+            await batch.complete();
+          },
+        };
+        let connecting = false;
+        /**
+         * Connects PowerSync when it is not already connected. Safe to call repeatedly: it runs at
+         * start-up and again on reconnect, tab refocus and a slow timer, so a page that loaded
+         * offline (or after a failed bootstrap) recovers without a reload.
+         */
+        async function ensureConnected() {
+          if (cancelled || connecting || !localDatabase || !navigator.onLine) return;
+          const current = localDatabase.currentStatus;
+          if (current.connected || current.connecting) return;
+          connecting = true;
+          try {
+            if (!endpoint) {
+              const response = await fetch("/api/sync/bootstrap", { credentials: "include", cache: "no-store" });
+              if (!response.ok) return;
+              const fresh = await response.json() as SyncBootstrap;
+              if (!fresh.enabled || !fresh.powersyncUrl) return;
+              endpoint = fresh.powersyncUrl;
+              // The server just authenticated this session, so the offline lease can be renewed now.
+              await markOnlineAuthVerified(localDatabase, userId);
+            }
+            if (cancelled) return;
+            connectorRef.current = connector;
+            await localDatabase.connect(connector);
+          } catch (error) {
+            console.warn("Unable to connect sync; will retry", error);
+          } finally {
+            connecting = false;
+          }
+        }
+
         const disposeOutbox = localDatabase.onChange(
           { onChange: () => { void refreshQueueStatus(); if (navigator.onLine) void flushQueue(); } },
           { tables: ["local_sync_commands"], throttleMs: 50 },
@@ -402,12 +491,27 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
             if (!response.ok) throw new Error("Schedule reconciliation failed");
             retry.succeeded(month());
           } catch {
-            if (retry.failed(Date.now()) && !cancelled) toast.error(t("scheduleReconcileFailed"));
+            if (retry.failed(Date.now()) && !cancelled) toast.error(tRef.current("scheduleReconcileFailed"));
           } finally {
             reconciling = false;
           }
         };
-        const handleOnline = () => { void reconcileSchedules(true); };
+        const handleOnline = () => {
+          void ensureConnected();
+          void flushQueue();
+          void reconcileSchedules(true);
+        };
+        const checkConnection = () => {
+          void ensureConnected();
+          void flushQueue();
+        };
+        const handleVisible = () => {
+          if (document.visibilityState === "visible") checkConnection();
+        };
+        const syncTimer = window.setInterval(() => {
+          if (document.visibilityState === "visible") checkConnection();
+        }, 30_000);
+        document.addEventListener("visibilitychange", handleVisible);
         const handleMonthChange = () => {
           if (document.visibilityState === "visible") void reconcileSchedules();
         };
@@ -434,36 +538,15 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
           },
         });
 
-        const endpoint = bootstrap.powersyncUrl;
-        if (endpoint && online) {
-          const connector: PowerSyncBackendConnector = {
-            async fetchCredentials() {
-              const { data: { session: freshSession }, error } = await supabase.auth.getSession();
-              if (error) throw error;
-              if (!freshSession) return null;
-              return { endpoint, token: freshSession.access_token };
-            },
-            async uploadData(db) {
-              const batch = await db.getCrudBatch();
-              if (!batch) return;
-              const response = await fetch("/api/sync/powersync", {
-                method: "POST",
-                credentials: "include",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ operations: batch.crud }),
-              });
-              if (!response.ok) throw new Error(`PowerSync upload failed with ${response.status}.`);
-              await batch.complete();
-            },
-          };
-          connectorRef.current = connector;
-          await localDatabase.connect(connector);
-        }
+        await ensureConnected();
 
         const previousDispose = disposeChanges;
         disposeChanges = () => {
           previousDispose?.();
           disposeOutbox();
+          if (flushTimer !== null) window.clearTimeout(flushTimer);
+          window.clearInterval(syncTimer);
+          document.removeEventListener("visibilitychange", handleVisible);
           window.clearInterval(monthTimer);
           document.removeEventListener("visibilitychange", handleMonthChange);
           window.removeEventListener("online", handleOnline);
@@ -491,7 +574,7 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
       if (activeDatabase === null) activeUserId = null;
       if (localDatabase) void localDatabase.close();
     };
-  }, [enabled, queryClient, authUserId, t]);
+  }, [enabled, queryClient, authUserId]);
 
   const discardConflict = useCallback(async (id: string) => {
     if (!database) return;

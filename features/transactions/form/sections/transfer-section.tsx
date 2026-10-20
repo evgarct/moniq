@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { CategoryCascadePicker } from "@/components/category-cascade-picker";
 import { FieldMessage, FormPickerRow, FormRow, FormSection } from "@/components/form-primitives";
 import { MoneyInput } from "@/components/money-input";
+import { getSpendableAccounts } from "@/features/accounts/lib/account-utils";
 
 import { useTransactionFormContext } from "../context";
 import { AccountSelect } from "../account-select";
@@ -33,7 +34,7 @@ export function TransferSection() {
   return (
     <FormSection>
       <FormPickerRow>
-        <AccountSelect name="source_account_id" accounts={accounts.filter((account) => account.type !== "pension")} placeholder={t("placeholders.sourceAccount")} />
+        <AccountSelect name="source_account_id" accounts={getSpendableAccounts(accounts)} placeholder={t("placeholders.sourceAccount")} />
       </FormPickerRow>
 
       {sourceAllocations.length > 0 && (

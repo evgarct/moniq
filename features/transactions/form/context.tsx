@@ -7,6 +7,7 @@ import { FormProvider, useFieldArray, useForm, useWatch, type UseFormReturn } fr
 import { useTranslations } from "next-intl";
 
 import { DEFAULT_CURRENCY_CODE } from "@/lib/currencies";
+import { getSpendableAccounts } from "@/features/accounts/lib/account-utils";
 import { isInvestmentCategory } from "@/features/categories/lib/category-tree";
 import { getCurrencySymbol } from "@/lib/formatters";
 import type { Account, Category, InvestmentPosition, Transaction, TransactionSchedule, WalletAllocation } from "@/types/finance";
@@ -333,9 +334,10 @@ export function TransactionFormProvider({
   }, [fields.length, isBatchMode, replace]);
 
   // smart account defaults on open (add mode)
+  const spendableAccounts = useMemo(() => getSpendableAccounts(accounts), [accounts]);
   const mostUsedSourceAccountId = useMemo(
-    () => getMostUsedAccountId({ kind, role: "source", accounts, transactions }),
-    [accounts, kind, transactions],
+    () => getMostUsedAccountId({ kind, role: "source", accounts: spendableAccounts, transactions }),
+    [spendableAccounts, kind, transactions],
   );
   const mostUsedDestinationAccountId = useMemo(
     () => getMostUsedAccountId({ kind, role: "destination", accounts, transactions }),
@@ -344,11 +346,12 @@ export function TransactionFormProvider({
 
   useEffect(() => {
     if (!open || mode !== "add") return;
+    const sourceIsSpendable = !sourceAccountId || spendableAccounts.some((account) => account.id === sourceAccountId);
     if (
       ["expense", "transfer", "debt_payment"].includes(kind) &&
-      !sourceAccountId
+      (!sourceAccountId || (!sourceIsSpendable && accounts.some((account) => account.id === sourceAccountId)))
     ) {
-      form.setValue("source_account_id", mostUsedSourceAccountId ?? accounts[0]?.id ?? null, {
+      form.setValue("source_account_id", mostUsedSourceAccountId ?? spendableAccounts[0]?.id ?? null, {
         shouldValidate: false,
       });
     }
@@ -370,6 +373,7 @@ export function TransactionFormProvider({
     mostUsedSourceAccountId,
     open,
     sourceAccountId,
+    spendableAccounts,
   ]);
 
   // line menu state

@@ -46,6 +46,7 @@
   "common": {
     "actions": {
       "add": "Add",
+      "retry": "Try again",
       "edit": "Edit",
       "duplicate": "Duplicate",
       "delete": "Delete",
@@ -74,6 +75,7 @@
       "unexpectedResponse": "Finance API returned an unexpected response.",
       "requestFailed": "Request failed.",
       "requestTimedOut": "Finance request timed out. Check the dev server and Supabase connection.",
+      "networkUnavailable": "Can't reach the server. Check your connection and try again.",
       "finance": {
         "load": "Unable to load finance data.",
         "schemaOutOfDate": "Supabase schema is out of date. Run `npx supabase db push` and reload the app."

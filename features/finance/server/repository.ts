@@ -345,6 +345,9 @@ function getScheduleValidationError(
   }
 }
 
+const TRANSACTION_PAGE_SIZE = 1000;
+const TRANSACTION_PAGE_CONCURRENCY = 4;
+
 export async function getFinanceSnapshot(
   { reconcileSchedules = false }: { reconcileSchedules?: boolean } = {},
 ): Promise<FinanceSnapshot> {
@@ -457,37 +460,54 @@ export async function getFinanceSnapshot(
   const transactionCutoff = format(subMonths(startOfToday(), 12), "yyyy-MM-dd");
 
   phaseStartedAt = performance.now();
-  const transactions: TransactionRow[] = [];
-  for (let offset = 0; ; offset += 1000) {
-  const { data: page, error: transactionError } = await supabase
-    .from("finance_transactions")
-    .select(
-      "id, user_id, title, note, occurred_at, created_at, status, kind, amount, destination_amount, posted_destination_amount, fx_rate, principal_amount, interest_amount, extra_principal_amount, category_id, source_account_id, destination_account_id, schedule_id, schedule_occurrence_date, is_schedule_override, is_explicit_reschedule, allocation_id, source_allocation_id, linked_transaction_id, system_generated, investment_instrument_id, investment_units, sync_version",
-    )
-    .eq("user_id", user.id)
-    .order("occurred_at", { ascending: false })
-    .order("created_at", { ascending: false })
-    .order("id", { ascending: false })
-    .range(offset, offset + 999);
-
-  if (transactionError) {
-    throw new Error(normalizeFinanceRepositoryError(transactionError));
-  }
-  transactions.push(...(page ?? []) as TransactionRow[]);
-  if (!page || page.length < 1000) break;
-  }
-
-  const { data: positionRows, error: positionError } = await supabase
-    .from("investment_positions")
-    .select(`
-      id, user_id, instrument_id, opening_units, created_at, updated_at,
-      instrument:investment_instruments(
-        id, name, type, ticker, exchange, quote_currency, isin, provider, provider_symbol,
-        quotes:investment_quotes(instrument_id, provider, market_date, price, currency, fetched_at)
+  const readTransactionPage = async (offset: number) => {
+    const { data: page, error: transactionError } = await supabase
+      .from("finance_transactions")
+      .select(
+        "id, user_id, title, note, occurred_at, created_at, status, kind, amount, destination_amount, posted_destination_amount, fx_rate, principal_amount, interest_amount, extra_principal_amount, category_id, source_account_id, destination_account_id, schedule_id, schedule_occurrence_date, is_schedule_override, is_explicit_reschedule, allocation_id, source_allocation_id, linked_transaction_id, system_generated, investment_instrument_id, investment_units, sync_version",
       )
-    `)
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: true });
+      .eq("user_id", user.id)
+      .order("occurred_at", { ascending: false })
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .range(offset, offset + TRANSACTION_PAGE_SIZE - 1);
+
+    if (transactionError) {
+      throw new Error(normalizeFinanceRepositoryError(transactionError));
+    }
+    return (page ?? []) as TransactionRow[];
+  };
+
+  // Pages are requested in concurrent windows instead of one sequential round trip per 1000 rows.
+  const readAllTransactions = async () => {
+    const rows: TransactionRow[] = [];
+    for (let start = 0; ; start += TRANSACTION_PAGE_SIZE * TRANSACTION_PAGE_CONCURRENCY) {
+      const pages = await Promise.all(
+        Array.from({ length: TRANSACTION_PAGE_CONCURRENCY }, (_, index) =>
+          readTransactionPage(start + index * TRANSACTION_PAGE_SIZE),
+        ),
+      );
+      for (const page of pages) rows.push(...page);
+      if (pages.some((page) => page.length < TRANSACTION_PAGE_SIZE)) break;
+    }
+    return rows;
+  };
+
+  const [transactions, { data: positionRows, error: positionError }, preferences] = await Promise.all([
+    readAllTransactions(),
+    supabase
+      .from("investment_positions")
+      .select(`
+        id, user_id, instrument_id, opening_units, created_at, updated_at,
+        instrument:investment_instruments(
+          id, name, type, ticker, exchange, quote_currency, isin, provider, provider_symbol,
+          quotes:investment_quotes(instrument_id, provider, market_date, price, currency, fetched_at)
+        )
+      `)
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: true }),
+    getUserPreferencesWithDefault(user.id, mappedAccounts),
+  ]);
 
   if (positionError) {
     throw new Error(normalizeFinanceRepositoryError(positionError));
@@ -581,7 +601,6 @@ export async function getFinanceSnapshot(
   });
 
   phaseStartedAt = performance.now();
-  const preferences = await getUserPreferencesWithDefault(user.id, mappedAccounts);
   const exchangeRates = await getCachedExchangeRates({
     defaultCurrency: preferences.default_currency,
     currencies: [...mappedAccounts.map((account) => account.currency), ...investmentPositions.map((position) => position.latest_quote?.currency ?? position.instrument.quote_currency)],

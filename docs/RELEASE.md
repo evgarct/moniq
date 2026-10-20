@@ -39,4 +39,12 @@ The `powersync` Postgres publication is migration-managed and contains only the 
 
 The client keeps a user-scoped SQLite file, a cached finance snapshot, and a 30-day offline authorization lease. API responses are never placed in service-worker Cache Storage. Logout calls `disconnectAndClear()` before invalidating the server session.
 
+### Sync resilience
+
+- A failed `/api/sync/bootstrap` is retried with backoff and never disables sync: the app keeps working from local data and `ensureConnected()` connects PowerSync later (on `online`, tab refocus, or the 30 s check) once the endpoint is known.
+- Queued commands (`/api/sync/commands`) are retried with exponential backoff (2 s up to 60 s); a non-JSON gateway error counts as a failed attempt. The route reads only the touched row's `sync_version` instead of rebuilding the full snapshot per command.
+- `/api/finance/snapshot` reads transaction pages concurrently (4 pages of 1000 per window) alongside positions and preferences. Both heavy routes declare `maxDuration = 60`.
+- The service worker applies no timeout to `/api/*` GETs; `finance-api.ts` owns the 30 s client timeout. Dropped connections surface as the localized `common.errors.networkUnavailable` instead of "Failed to fetch", and finance pages show a **Try again** action. `useFinanceData` retries four times with backoff and refetches on reconnect and, while errored, on window focus.
+- Pension accounts are excluded from spendable pickers and defaults in the transaction form and from the Projected balance report.
+
 The start page's sync footer offers a manual **Refresh from server**. It reads `/api/finance/snapshot` directly (bypassing SQLite), rebases pending optimistic commands on it, and reconnects PowerSync without clearing local data, so it is safe to use with queued offline changes.

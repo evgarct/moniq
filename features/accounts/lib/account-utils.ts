@@ -24,6 +24,11 @@ export function isCreditCardAccount(account: Account) {
   return account.type === "credit_card";
 }
 
+/** Accounts money can be spent or transferred from; pension funds are locked until retirement. */
+export function getSpendableAccounts<T extends Pick<Account, "type">>(accounts: T[]): T[] {
+  return accounts.filter((account) => account.type !== "pension");
+}
+
 export function getCreditCardMetrics(account: Account) {
   const limit = Math.max(account.credit_limit ?? Math.abs(account.balance), 0);
   const debt = Math.abs(account.balance);
