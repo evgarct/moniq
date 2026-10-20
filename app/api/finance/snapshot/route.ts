@@ -4,6 +4,8 @@ import { financeSnapshotErrorResponse } from "@/app/api/_lib/error-response";
 import { getFinanceSnapshot } from "@/features/finance/server/repository";
 import { withApiPerformance } from "@/lib/performance/api";
 
+export const maxDuration = 60;
+
 export async function GET(request: Request) {
   return withApiPerformance(request, "finance_snapshot", async () => {
     try {

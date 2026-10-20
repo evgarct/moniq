@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 
 import { EmptyState } from "@/components/empty-state";
 import { PageContainer } from "@/components/page-container";
+import { FinanceLoadError } from "@/features/finance/components/finance-load-error";
 import { createEmptyFinanceSnapshot } from "@/features/finance/lib/empty-snapshot";
 import { useFinanceData } from "@/features/finance/hooks/use-finance-data";
 import { SyncProgressFooter } from "@/features/sync/components/sync-progress-footer";
@@ -11,7 +12,7 @@ import { TodayView } from "@/features/today/components/today-view";
 
 export default function TodayPage() {
   const t = useTranslations("today");
-  const { data, error, isLoading } = useFinanceData();
+  const { data, error, isLoading, refetch } = useFinanceData();
 
   if (isLoading) {
     return (
@@ -29,9 +30,11 @@ export default function TodayPage() {
   if (error) {
     return (
       <PageContainer>
-        <EmptyState
+        <FinanceLoadError
           title={t("error.title")}
-          description={error instanceof Error ? error.message : t("error.description")}
+          fallbackDescription={t("error.description")}
+          error={error}
+          onRetry={() => void refetch()}
         />
       </PageContainer>
     );

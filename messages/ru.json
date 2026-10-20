@@ -46,6 +46,7 @@
   "common": {
     "actions": {
       "add": "Добавить",
+      "retry": "Повторить",
       "edit": "Изменить",
       "duplicate": "Дублировать",
       "delete": "Удалить",
@@ -74,6 +75,7 @@
       "unexpectedResponse": "Finance API вернул неожиданный ответ.",
       "requestFailed": "Запрос завершился ошибкой.",
       "requestTimedOut": "Запрос к Finance API превысил лимит ожидания. Проверьте dev server и подключение к Supabase.",
+      "networkUnavailable": "Нет связи с сервером. Проверьте подключение и повторите попытку.",
       "finance": {
         "load": "Не удалось загрузить финансовые данные.",
         "schemaOutOfDate": "Схема Supabase устарела. Запустите `npx supabase db push` и перезагрузите приложение."

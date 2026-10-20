@@ -7,13 +7,14 @@ import { EmptyState } from "@/components/empty-state";
 import { PageContainer } from "@/components/page-container";
 import { BudgetView } from "@/features/budget/components/budget-view";
 import { buildMissingHistoricalFxRequest } from "@/features/budget/lib/budget-analytics";
+import { FinanceLoadError } from "@/features/finance/components/finance-load-error";
 import { createEmptyFinanceSnapshot } from "@/features/finance/lib/empty-snapshot";
 import { useFinanceData } from "@/features/finance/hooks/use-finance-data";
 import type { ExchangeRate } from "@/types/finance";
 
 export default function BudgetPage() {
   const t = useTranslations("budget");
-  const { data, error, isLoading } = useFinanceData();
+  const { data, error, isLoading, refetch } = useFinanceData();
   const [refreshedRates, setRefreshedRates] = useState<ExchangeRate[]>([]);
   const [displayedMonth, setDisplayedMonth] = useState(() => new Date());
   const refreshSignatureRef = useRef<string | null>(null);
@@ -63,9 +64,11 @@ export default function BudgetPage() {
   if (error) {
     return (
       <PageContainer>
-        <EmptyState
+        <FinanceLoadError
           title={t("error.title")}
-          description={error instanceof Error ? error.message : t("error.description")}
+          fallbackDescription={t("error.description")}
+          error={error}
+          onRetry={() => void refetch()}
         />
       </PageContainer>
     );

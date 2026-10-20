@@ -3,6 +3,7 @@
 import { createTranslator } from "next-intl";
 import { hasLocale } from "next-intl";
 
+import { isNetworkFetchError } from "@/features/sync/lib/backoff";
 import { loadMessages } from "@/i18n/messages";
 import { reportFetchPerformance } from "@/lib/performance/client";
 import { routing, type AppLocale } from "@/i18n/routing";
@@ -92,6 +93,9 @@ async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit) {
     });
     if (error instanceof DOMException && error.name === "AbortError") {
       throw new Error(t("common.errors.requestTimedOut"));
+    }
+    if (isNetworkFetchError(error)) {
+      throw new Error(t("common.errors.networkUnavailable"));
     }
 
     throw error;

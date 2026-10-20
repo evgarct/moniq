@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/empty-state";
 import { MoneyAmount } from "@/components/money-amount";
 import { PageHeader } from "@/components/page-header";
 import { PageHeaderIconButton } from "@/components/page-header-icon-button";
+import { getSpendableAccounts } from "@/features/accounts/lib/account-utils";
 import { ProjectedBalanceControls } from "@/features/reports/components/projected-balance-account-picker";
 import { ProjectedBalanceChart } from "@/features/reports/components/projected-balance-chart";
 import {
@@ -80,39 +81,41 @@ export function ProjectedBalanceView({
   const formatDate = useFormatter();
   const searchParams = useSearchParams();
   const rememberedPreferences = useMemo(() => readRememberedPreferences(), []);
+  // Pension funds are locked until retirement, so they never belong in a spendable-balance projection.
+  const accounts = useMemo(() => getSpendableAccounts(snapshot.accounts), [snapshot.accounts]);
   const initialState = useMemo(
     () =>
       parseProjectedBalanceUrlState({
         searchParams,
-        accounts: snapshot.accounts,
+        accounts,
         rememberedSelection: rememberedPreferences,
         rememberedPeriodMonths: rememberedPreferences?.periodMonths,
       }),
-    [rememberedPreferences, searchParams, snapshot.accounts],
+    [rememberedPreferences, searchParams, accounts],
   );
   const [endDate, setEndDate] = useState(initialState.endDate);
   const [selection, setSelection] = useState(initialState.selection);
   const series = useMemo(
     () =>
       createProjectedBalanceSeries({
-        accounts: snapshot.accounts,
+        accounts,
         accountIds: selection.accountIds,
         merged: selection.merged,
         mergedName: t("defaultSeriesName"),
       }),
-    [selection, snapshot.accounts, t],
+    [selection, accounts, t],
   );
   const report = useMemo(
     () =>
       buildProjectedBalanceReport({
-        accounts: snapshot.accounts,
+        accounts,
         transactions: snapshot.transactions,
         exchangeRates: snapshot.exchange_rates,
         defaultCurrency: snapshot.preferences.default_currency,
         series,
         endDate,
       }),
-    [endDate, series, snapshot],
+    [accounts, endDate, series, snapshot],
   );
   const [selectedDate, setSelectedDate] = useState(report.start_date);
   const selectedDateInRange =
@@ -141,7 +144,7 @@ export function ProjectedBalanceView({
     replaceUrlState(nextEndDate, selection);
   }
 
-  if (!snapshot.accounts.length) {
+  if (!accounts.length) {
     return (
       <div className="h-full overflow-x-hidden overflow-y-auto p-4 sm:p-6">
         <EmptyState
@@ -166,7 +169,7 @@ export function ProjectedBalanceView({
           >
             <PageHeaderIconButton icon={Info} label={t("description")} className="hidden shrink-0 lg:inline-flex" />
             <ProjectedBalanceControls
-              accounts={snapshot.accounts}
+              accounts={accounts}
               selection={selection}
               onSelectionChange={updateSelection}
               periodMonths={PROJECTED_BALANCE_PRESET_MONTHS}

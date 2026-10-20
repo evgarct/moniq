@@ -9,6 +9,7 @@ import { CategoryCascadePicker } from "@/components/category-cascade-picker";
 import { FieldMessage, FormPickerRow, FormSplitRow } from "@/components/form-primitives";
 import { MoneyInput } from "@/components/money-input";
 import { Button } from "@/components/ui/button";
+import { getSpendableAccounts } from "@/features/accounts/lib/account-utils";
 
 import { useTransactionFormContext } from "../context";
 import { AccountSelect } from "../account-select";
@@ -62,7 +63,7 @@ export function BatchItemsSection() {
         ) : (
           <AccountSelect
             name="source_account_id"
-            accounts={accounts}
+            accounts={getSpendableAccounts(accounts)}
             placeholder={t("placeholders.sourceAccount")}
           />
         )}

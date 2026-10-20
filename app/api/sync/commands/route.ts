@@ -27,7 +27,6 @@ import {
   deleteTransactionSchedule,
   deleteWallet,
   deleteWalletAllocation,
-  getFinanceSnapshot,
   markTransactionPaid,
   rescheduleScheduleFromDate,
   setTransactionScheduleState,
@@ -44,7 +43,9 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { createClient } from "@/lib/supabase/server";
 import type { SyncCommand, SyncCommandResult } from "@/types/sync";
 
-const commandTypeSchema = z.enum([
+export const maxDuration = 60;
+
+const commandTypeSchema =z.enum([
   "wallet.create", "wallet.update", "wallet.adjust", "wallet.delete",
   "category.create", "category.update", "category.delete",
   "transaction.create", "transaction.update", "transaction.delete", "transaction.markPaid", "transaction.skip",
@@ -202,14 +203,16 @@ export async function POST(request: Request) {
 
     try {
       await executeCommand(command);
-      const snapshot = await getFinanceSnapshot();
-      const nextRecord = family === "wallet" ? snapshot.accounts.find((item) => item.id === command.targetId)
-        : family === "category" ? snapshot.categories.find((item) => item.id === command.targetId)
-          : family === "transaction" ? snapshot.transactions.find((item) => item.id === command.targetId)
-            : family === "schedule" ? snapshot.schedules.find((item) => item.id === command.targetId)
-              : family === "allocation" ? snapshot.allocations.find((item) => item.id === command.targetId)
-                : family === "preferences" ? snapshot.preferences : undefined;
-      const serverVersion = nextRecord?.sync_version ?? null;
+      // Read just the touched row's version; rebuilding the whole finance snapshot per command
+      // made a 25-command batch run 25 full snapshot reads and hit the serverless time limit.
+      let serverVersion: number | null = null;
+      if (entity) {
+        const versionId = family === "preferences" ? user.id : command.targetId;
+        if (versionId) {
+          const { data: versionRow } = await service.from(entity.table).select("sync_version").eq(entity.idColumn, versionId).eq("user_id", user.id).maybeSingle();
+          serverVersion = versionRow?.sync_version != null ? Number(versionRow.sync_version) : null;
+        }
+      }
       await service.from("finance_sync_mutations").update({ status: "applied", result: { serverVersion }, completed_at: new Date().toISOString() }).eq("id", command.id);
       results.push({ id: command.id, status: "applied", serverVersion });
     } catch (error) {
