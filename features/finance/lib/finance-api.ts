@@ -136,12 +136,18 @@ function parseResponseBytes(response: Response) {
 
 let inFlightSnapshot: Promise<FinanceSnapshot> | null = null;
 
+/** Forget the shared request; call when the signed-in user changes so one account never receives another's snapshot. */
+export function resetFinanceSnapshotRequests() {
+  inFlightSnapshot = null;
+}
+
 /**
  * Concurrent callers (query refetch, manual refresh, retries) share one request: stacking
  * snapshot reads on a slow backend made every one of them slower and none of them finish.
  */
-export function fetchFinanceSnapshot(): Promise<FinanceSnapshot> {
-  if (inFlightSnapshot) return inFlightSnapshot;
+export function fetchFinanceSnapshot({ fresh = false }: { fresh?: boolean } = {}): Promise<FinanceSnapshot> {
+  // `fresh` (manual refresh after flushing queued commands) must not reuse a read that started earlier.
+  if (!fresh && inFlightSnapshot) return inFlightSnapshot;
   const request = (async () => {
     // The server allows 60 s (maxDuration); give it the same budget instead of abandoning the read at 30 s.
     const response = await fetchWithTimeout("/api/finance/snapshot", {
