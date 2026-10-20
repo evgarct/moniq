@@ -272,6 +272,8 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
         // A transient bootstrap failure must not disable sync for the whole session: retry briefly,
         // then keep working from local data and let ensureConnected() pick the endpoint up later.
         let bootstrap: SyncBootstrap;
+        // Only an authenticated server response may renew the offline auth lease.
+        let serverVerified = true;
         try {
           bootstrap = await retryWithBackoff(async () => {
             const bootstrapResponse = await fetch("/api/sync/bootstrap", { credentials: "include", cache: "no-store" });
@@ -281,6 +283,7 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
         } catch (error) {
           if (cancelled) return;
           console.warn("Sync bootstrap unavailable; continuing with local data", error);
+          serverVerified = false;
           bootstrap = { enabled: true, mode: "on", powersyncUrl: null, serverTime: new Date().toISOString(), userId };
         }
         if (!bootstrap.enabled) {
@@ -295,7 +298,7 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
         }
 
         const online = navigator.onLine;
-        if (online) {
+        if (online && serverVerified) {
           await markOnlineAuthVerified(localDatabase, userId);
         } else if (!(await hasValidOfflineAuthLease(localDatabase, userId))) {
           if (!cancelled) {
@@ -305,7 +308,7 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
         }
 
         if (!cancelled) {
-          setStatus({ ...statusFromDatabase(localDatabase), state: online ? "cached" : "offline" });
+          setStatus({ ...statusFromDatabase(localDatabase), state: online && serverVerified ? "cached" : online ? "reconnecting" : "offline" });
           setSyncDetails(toSyncDetails(localDatabase.currentStatus));
         }
 
@@ -459,6 +462,8 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
               const fresh = await response.json() as SyncBootstrap;
               if (!fresh.enabled || !fresh.powersyncUrl) return;
               endpoint = fresh.powersyncUrl;
+              // The server just authenticated this session, so the offline lease can be renewed now.
+              await markOnlineAuthVerified(localDatabase, userId);
             }
             if (cancelled) return;
             connectorRef.current = connector;
