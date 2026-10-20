@@ -311,16 +311,17 @@ export async function updateUserPreferences(values: { default_currency: Currency
 
 async function getAuthenticatedSupabase() {
   const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
+  // getClaims verifies the JWT locally against cached signing keys; getUser is a network call to
+  // Supabase Auth on every API request and averaged ~5 s (up to 36 s) under load in production.
+  // RLS still enforces the user server-side on every query.
+  const { data, error } = await supabase.auth.getClaims();
+  const userId = data?.claims?.sub;
 
-  if (error || !user) {
+  if (error || !userId) {
     throw new Error("Unauthorized");
   }
 
-  return { supabase, user };
+  return { supabase, user: { id: userId } };
 }
 
 function getScheduleValidationError(
@@ -346,7 +347,8 @@ function getScheduleValidationError(
 }
 
 const TRANSACTION_PAGE_SIZE = 1000;
-const TRANSACTION_PAGE_CONCURRENCY = 4;
+const TRANSACTION_PAGE_CONCURRENCY = 3;
+const SNAPSHOT_PHASE_SAMPLE_RATE = 0.2;
 
 export async function getFinanceSnapshot(
   { reconcileSchedules = false }: { reconcileSchedules?: boolean } = {},
@@ -480,8 +482,11 @@ export async function getFinanceSnapshot(
 
   // Pages are requested in concurrent windows instead of one sequential round trip per 1000 rows.
   const readAllTransactions = async () => {
-    const rows: TransactionRow[] = [];
-    for (let start = 0; ; start += TRANSACTION_PAGE_SIZE * TRANSACTION_PAGE_CONCURRENCY) {
+    // First page alone: most users fit in one, and a burst of parallel reads on a small database
+    // costs more than it saves.
+    const rows = await readTransactionPage(0);
+    if (rows.length < TRANSACTION_PAGE_SIZE) return rows;
+    for (let start = TRANSACTION_PAGE_SIZE; ; start += TRANSACTION_PAGE_SIZE * TRANSACTION_PAGE_CONCURRENCY) {
       const pages = await Promise.all(
         Array.from({ length: TRANSACTION_PAGE_CONCURRENCY }, (_, index) =>
           readTransactionPage(start + index * TRANSACTION_PAGE_SIZE),
@@ -653,6 +658,9 @@ function recordSnapshotPhase(
   startedAt: number,
   metadata?: Record<string, string | number | boolean | null>,
 ) {
+  // Six inserts per snapshot made telemetry the heaviest write load on the database; keep every
+  // `total` and sample the per-phase rows.
+  if (phase !== "total" && Math.random() > SNAPSHOT_PHASE_SAMPLE_RATE) return;
   void recordPerformanceEvent({
     event_type: "db_phase",
     name: "finance_snapshot",

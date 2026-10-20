@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 
 import { getFinanceMutationCoordinator } from "@/features/finance/lib/coordinator-registry";
-import { fetchFinanceSnapshot } from "@/features/finance/lib/finance-api";
+import { fetchFinanceSnapshot, resetFinanceSnapshotRequests } from "@/features/finance/lib/finance-api";
 import { financeSnapshotQueryKey } from "@/features/finance/lib/finance-keys";
 import {
   hasValidOfflineAuthLease,
@@ -152,8 +152,13 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
       setAuthUserId(session?.user.id ?? null);
     });
 
+    let lastUserId: string | null | undefined;
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setAuthUserId(session?.user.id ?? null);
+      const nextUserId = session?.user.id ?? null;
+      // A shared in-flight snapshot read belongs to the previous account; never hand it to the next one.
+      if (lastUserId !== undefined && lastUserId !== nextUserId) resetFinanceSnapshotRequests();
+      lastUserId = nextUserId;
+      setAuthUserId(nextUserId);
     });
 
     return () => {
@@ -612,7 +617,7 @@ export function LocalFirstProvider({ children }: { children: React.ReactNode }) 
       await flushQueueRef.current?.({ strict: true });
       // 2. Read the source of truth directly. The snapshot query prefers local SQLite
       //    when local-first is on, so invalidating it alone would never hit the server.
-      const snapshot = await fetchFinanceSnapshot();
+      const snapshot = await fetchFinanceSnapshot({ fresh: true });
       getFinanceMutationCoordinator(queryClient).rebase(snapshot);
       // 3. Re-pull the local replica from the sync service (keeps the local outbox).
       const connector = connectorRef.current;
