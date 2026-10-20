@@ -22,7 +22,8 @@ export function useFinanceData({ enabled = true }: { enabled?: boolean } = {}) {
     },
     enabled: enabled && (!localFirst.enabled || (localFirst.hydrated && localFirst.status.state !== "expired")),
     // Ride out cold starts and brief network drops before showing the error state.
-    retry: 4,
+    // Few retries: each one is a full snapshot read, and stacking them on a slow backend makes it slower.
+    retry: 2,
     retryDelay: (attempt) => backoffDelay(attempt, { baseMs: 1_000, maxMs: 10_000 }),
     refetchOnMount: localFirst.enabled ? false : true,
     refetchOnReconnect: true,

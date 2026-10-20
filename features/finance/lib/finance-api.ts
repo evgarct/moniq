@@ -23,6 +23,7 @@ import { routing, type AppLocale } from "@/i18n/routing";
 
 export { financeSnapshotQueryKey } from "@/features/finance/lib/finance-keys";
 const REQUEST_TIMEOUT_MS = 30_000;
+const SNAPSHOT_TIMEOUT_MS = 60_000;
 
 export async function savePensionStatementRequest(walletId: string, statement: import("@/features/accounts/lib/pension").PensionStatementInput): Promise<FinanceSnapshot> {
   return parseJsonResponse<FinanceSnapshot>(await fetchWithTimeout(`/api/wallets/${walletId}/pension`, {
@@ -86,10 +87,10 @@ async function parseJsonResponse<T>(response: Response): Promise<T> {
   return payload as T;
 }
 
-async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit) {
+async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit, timeoutMs = REQUEST_TIMEOUT_MS) {
   const t = await getCommonErrorTranslator();
   const controller = new AbortController();
-  const timeoutId = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
   const startedAt = performance.now();
   const method = init.method ?? (input instanceof Request ? input.method : "GET");
 
@@ -133,14 +134,30 @@ function parseResponseBytes(response: Response) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-export async function fetchFinanceSnapshot(): Promise<FinanceSnapshot> {
-  const response = await fetchWithTimeout("/api/finance/snapshot", {
-    method: "GET",
-    credentials: "include",
-    cache: "no-store",
-  });
+let inFlightSnapshot: Promise<FinanceSnapshot> | null = null;
 
-  return parseJsonResponse<FinanceSnapshot>(response);
+/**
+ * Concurrent callers (query refetch, manual refresh, retries) share one request: stacking
+ * snapshot reads on a slow backend made every one of them slower and none of them finish.
+ */
+export function fetchFinanceSnapshot(): Promise<FinanceSnapshot> {
+  if (inFlightSnapshot) return inFlightSnapshot;
+  const request = (async () => {
+    // The server allows 60 s (maxDuration); give it the same budget instead of abandoning the read at 30 s.
+    const response = await fetchWithTimeout("/api/finance/snapshot", {
+      method: "GET",
+      credentials: "include",
+      cache: "no-store",
+    }, SNAPSHOT_TIMEOUT_MS);
+
+    return parseJsonResponse<FinanceSnapshot>(response);
+  })();
+  inFlightSnapshot = request;
+  const clear = () => {
+    if (inFlightSnapshot === request) inFlightSnapshot = null;
+  };
+  request.then(clear, clear);
+  return request;
 }
 export async function saveInvestmentPositionRequest(
   instrument: InvestmentInstrumentCandidate,
