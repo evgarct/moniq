@@ -41,7 +41,7 @@ The digest never waits for the model. If the service is down, the cron logs `spe
 
 ## Rules
 
-- Only paid `expense` transactions of top-level budgeted categories (budget comes from the `[budget: N]` prefix of the category description, the same value every month). Subcategories roll up into their parent. Transfers, debt payments, goal moves, system rows and contribution/investment categories are excluded.
+- Only paid spending of top-level budgeted categories (budget comes from the `[budget: N]` prefix of the category description, the same value every month): `expense` rows at full amount and `debt_payment` rows at their `interest_amount` only, exactly like the Budget screen (principal reduces the debt and is not consumption). Subcategories roll up into their parent. Transfers, goal moves, system rows and contribution/investment categories are excluded. Upcoming debt payments (planned rows and schedule occurrences) count their interest the same way. First live check (2026-10-26) matched the Budget screen for every envelope after this rule.
 - The model sees only variable spending: rows with a `schedule_id` (recurring) are excluded from the series. `spent_to_date` still includes them, because they are real spending.
 - `planned_remaining` is every known upcoming expense from tomorrow to month end: planned rows plus occurrences of active schedules that are not materialized yet (same rule as `mcp_get_transactions_for_period`; paused schedules are ignored).
 - Everything is converted to the user's default currency with the stored FX rates, using the rate of each transaction date (latest known rate for future dates). A category with a missing rate is skipped and logged; there are never partial or cross-currency totals.

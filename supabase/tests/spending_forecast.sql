@@ -6,7 +6,7 @@ declare
   u uuid; other_u uuid;
   w uuid:=gen_random_uuid(); other_w uuid:=gen_random_uuid();
   cafe uuid:=gen_random_uuid(); cafe_child uuid:=gen_random_uuid(); transfer_cat uuid:=gen_random_uuid();
-  schedule uuid:=gen_random_uuid(); paused uuid:=gen_random_uuid();
+  schedule uuid:=gen_random_uuid(); paused uuid:=gen_random_uuid(); debt_w uuid:=gen_random_uuid();
   key_hash text:=md5(gen_random_uuid()::text)||md5(gen_random_uuid()::text);
   other_hash text:=md5(gen_random_uuid()::text)||md5(gen_random_uuid()::text);
   source jsonb; result jsonb; failed boolean;
@@ -28,6 +28,14 @@ begin
           (other_u,'Foreign beans',today-2,'paid','expense',999.99,other_w,null);
   insert into public.finance_transactions(user_id,title,occurred_at,status,kind,amount,destination_amount,source_account_id,destination_account_id)
     values(u,'Move money',today-1,'paid','transfer',543.21,543.21,w,w);
+
+  -- Debt payments count only their interest, like the Budget screen: 77.01 of 177.01 is spending, a
+  -- principal-only payment is not; an upcoming payment contributes its interest too.
+  insert into public.wallets(id,user_id,name,type,currency,balance) values(debt_w,u,'Forecast debt','debt','CZK',-5000);
+  insert into public.finance_transactions(user_id,title,occurred_at,status,kind,amount,principal_amount,interest_amount,extra_principal_amount,source_account_id,destination_account_id,category_id)
+    values(u,'Debt with interest',today-1,'paid','debt_payment',177.01,100,77.01,0,w,debt_w,cafe),
+          (u,'Debt principal only',today-1,'paid','debt_payment',500,500,0,0,w,debt_w,cafe),
+          (u,'Planned debt',today+3,'planned','debt_payment',121.21,100,21.21,0,w,debt_w,cafe);
 
   -- Known upcoming: one stand-alone planned row, a daily schedule with one occurrence already materialized,
   -- and a paused schedule that must be ignored.
@@ -52,8 +60,14 @@ begin
     or (select count(*) from jsonb_array_elements(source->'wallets') x where (x->>'id')::uuid=w)<>1
     then raise exception 'Wallet scoping wrong'; end if;
   -- 1 stand-alone + 1 materialized occurrence + 4 generated (5 days minus the materialized one).
-  if (select count(*) from jsonb_array_elements(source->'planned') p where (p->>'category_id')::uuid=cafe)<>6 then
+  if (select count(*) from jsonb_array_elements(source->'planned') p where (p->>'category_id')::uuid=cafe)<>7 then
     raise exception 'Planned count wrong'; end if;
+  if (select count(*) from jsonb_array_elements(source->'history') h where (h->>'amount')::numeric=77.01)<>1
+    or (select count(*) from jsonb_array_elements(source->'history') h where (h->>'amount')::numeric in (177.01, 500))<>0
+    then raise exception 'Debt payment must count its interest only'; end if;
+  if (select count(*) from jsonb_array_elements(source->'planned') p where (p->>'amount')::numeric=21.21)<>1
+    or (select count(*) from jsonb_array_elements(source->'planned') p where (p->>'amount')::numeric=121.21)<>0
+    then raise exception 'Planned debt payment must count its interest only'; end if;
   if (select count(*) from jsonb_array_elements(source->'planned') p where (p->>'amount')::numeric=10.11)<>5
     or (select count(*) from jsonb_array_elements(source->'planned') p where (p->>'amount')::numeric=51.11)<>1
     then raise exception 'Planned amounts wrong'; end if;
