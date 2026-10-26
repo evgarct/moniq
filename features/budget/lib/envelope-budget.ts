@@ -66,7 +66,7 @@ export type EnvelopeBudgetSummary = {
   contributions: number | null;
 };
 
-const roundMoney = (value: number) => Number(value.toFixed(2));
+export const roundMoney = (value: number) => Number(value.toFixed(2));
 
 function statusFor(planned: number | null, spent: number | null): EnvelopeBudgetStatus {
   if (spent === null) return "unavailable";

@@ -1496,6 +1496,7 @@
       "budgetDuplicateCategory": "Каждая категория может встречаться в budgets только один раз.",
       "invalidBudgetMonth": "month должен быть в формате YYYY-MM.",
       "budgetStatusLoadFailed": "Не удалось загрузить состояние бюджета.",
+      "spendingForecastLoadFailed": "Не удалось загрузить прогноз расходов.",
       "categoryObjectRequired": "category должен быть объектом хотя бы с одним изменяемым полем.",
       "transferCategoryNeedsGoal": "Транзакция \"{label}\": категорию можно указывать только у переводов в цель накоплений (destination_allocation_id).",
       "allocationsTransferOnly": "Исходная цель доступна только для расходов и переводов.",

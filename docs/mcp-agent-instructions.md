@@ -166,6 +166,10 @@ Transactions in the flat list (`detail: full`) carry `destination_amount`, `dest
 
 This report uses paid transactions and separates totals by currency.
 
+### `get_spending_forecast`
+
+Month-end spending forecast per budgeted top-level expense category, as stored by the daily forecast job (it never runs the model on request; see `docs/spending-forecast.md`). Input: `month` (`YYYY-MM`, default the latest month with a forecast). Returns `month`, `forecast_date` (the day it was computed; if it is not today, say the forecast is stale) and `forecasts`, most at-risk first: `category_name`, `category_icon`, `currency` (the user's default currency), `budget`, `spent_to_date`, `planned_remaining` (known upcoming expenses), `forecast_p10` / `forecast_p50` / `forecast_p90` (month-end spend), `baseline_runrate`, `status` (`over_likely`, `over`, `tight`, `ok`), `expected_overrun_date` and `method` (`chronos`, or `baseline` for categories with little history). Empty `forecasts` means nothing has been computed yet. For the live plan against actual operations use `get_budget_status`.
+
 ### `get_budget_status`
 
 The month against the budget, exactly as the Budget screen shows it. Use it for "how is my budget", "how much is left", "will I stay within the plan" and planning questions instead of combining `get_finance_context`, `get_transactions` and the spending report. Input: `month` (`YYYY-MM`, default the current month). Returns, in `currency` (the user's default currency):

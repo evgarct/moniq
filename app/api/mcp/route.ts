@@ -1465,6 +1465,22 @@ function getMcpTools() {
           },
         },
         {
+          name: "get_spending_forecast",
+          title: "Get spending forecast",
+          description:
+            "Month-end spending forecast per budgeted top-level expense category, as computed by the daily forecast job (it does not run the model on request). Returns forecast_date (the day it was computed; compare with today before trusting it) and per category: budget, spent_to_date, planned_remaining (known upcoming expenses), forecast_p10/p50/p90 (month-end spend), baseline_runrate, status (over_likely, over, tight, ok), expected_overrun_date, method (chronos or baseline) and the currency (the user's default currency). Defaults to the latest month with a forecast; empty forecasts mean none has been computed yet.",
+          annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+          outputSchema: widgetOutputSchema("Moniq spending forecast"),
+          inputSchema: {
+            type: "object",
+            title: "Forecast month",
+            properties: {
+              month: { type: "string", title: "Month", description: "YYYY-MM. Defaults to the latest month with a forecast." },
+            },
+            additionalProperties: false,
+          },
+        },
+        {
           name: "get_trends",
           title: "Get category trends",
           description:
@@ -3117,6 +3133,31 @@ async function handleGetBudgetStatusTool(
   return { jsonrpc: "2.0", id, result: { content: [{ type: "text", text: JSON.stringify(status) }], structuredContent: status } };
 }
 
+async function handleGetSpendingForecastTool(
+  id: string | number | null,
+  args: Record<string, unknown>,
+  keyHash: string,
+  t: McpTranslator,
+): Promise<McpResponse> {
+  const rawMonth = getOptionalStringArg(args, "month");
+  let monthStart: string | null = null;
+  if (rawMonth) {
+    const month = parseBudgetMonth(rawMonth);
+    if (!month) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.invalidBudgetMonth") } };
+    monthStart = budgetMonthRange(month).start_date;
+  }
+
+  const { data, error } = await createAnonClient().rpc("mcp_get_spending_forecast", {
+    p_key_hash: keyHash,
+    p_month: monthStart,
+  });
+  if (error || !isRecord(data)) {
+    return { jsonrpc: "2.0", id, error: { code: -32000, message: t("mcp.errors.spendingForecastLoadFailed") } };
+  }
+
+  return { jsonrpc: "2.0", id, result: { content: [{ type: "text", text: JSON.stringify(data) }], structuredContent: data } };
+}
+
 function localizeCategoryRpcError(response: McpResponse, t: McpTranslator): McpResponse {
   const message = response.error?.message;
   if (!message) return response;
@@ -3648,6 +3689,9 @@ async function handleToolCall(
     return handleDeleteRecurringSchedule(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash, t);
   }
 
+  if (toolName === "get_spending_forecast") {
+    return handleGetSpendingForecastTool(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash, t);
+  }
   if (toolName === "get_trends") return handleGetTrendsTool(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash, t);
   if (toolName === "get_goal_history") {
     return handleGetGoalHistoryTool(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash, t);
