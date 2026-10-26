@@ -40,6 +40,8 @@ create policy "Users read own spending forecasts"
 
 revoke all on table public.spending_forecasts from anon, authenticated;
 grant select on table public.spending_forecasts to authenticated;
+-- The cron writes through the service role; projects with automatic public grants disabled do not give it this.
+grant select, insert, update, delete on table public.spending_forecasts to service_role;
 
 create or replace function public.spending_forecast_source(
   p_user_id uuid,

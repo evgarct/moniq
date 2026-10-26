@@ -70,6 +70,10 @@ begin
     or has_table_privilege('authenticated','public.spending_forecasts','update')
     or has_table_privilege('authenticated','public.spending_forecasts','delete')
     then raise exception 'spending_forecasts is writable or readable by the wrong role'; end if;
+  if not has_table_privilege('service_role','public.spending_forecasts','select')
+    or not has_table_privilege('service_role','public.spending_forecasts','insert')
+    or not has_table_privilege('service_role','public.spending_forecasts','update')
+    then raise exception 'service_role cannot write spending_forecasts'; end if;
 
   -- Re-running on the same day overwrites the row (the cron upserts on this key).
   for i in 1..2 loop

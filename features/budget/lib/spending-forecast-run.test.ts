@@ -113,6 +113,34 @@ describe("runSpendingForecast", () => {
     expect(saved).toEqual([]);
   });
 
+  it("defers users that would start after the time budget instead of risking a cut-off write", async () => {
+    const source = sourceWithHistory(10);
+    const loaded: string[] = [];
+    const db: SpendingForecastDb = {
+      listBudgetedUserIds: async () => ["first", "second"],
+      loadSource: async ({ userId }) => {
+        loaded.push(userId);
+        return source;
+      },
+      saveForecasts: async () => {},
+    };
+    let clock = 0;
+    const log = vi.fn();
+    const results = await runSpendingForecast({
+      today: TODAY,
+      dryRun: false,
+      db,
+      requestForecast: vi.fn(),
+      log,
+      startNewUserBefore: 1_500,
+      // The clock advances 800 ms per check, so the second user is past the 1 500 ms budget.
+      now: () => (clock += 800),
+    });
+    expect(results.map((item) => item.status)).toEqual(["ok", "deferred"]);
+    expect(loaded).toEqual(["first"]);
+    expect(log).toHaveBeenCalledWith("spending_forecast_user_deferred", expect.objectContaining({ userId: "second" }));
+  });
+
   it("keeps going with the next user after one fails", async () => {
     const good = sourceWithHistory(10);
     const db: SpendingForecastDb = {

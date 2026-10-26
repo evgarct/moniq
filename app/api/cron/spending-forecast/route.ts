@@ -5,7 +5,8 @@ import { createSpendingForecastDb } from "@/features/budget/server/spending-fore
 import { requestForecast } from "@/lib/forecast/client";
 
 // The model answers in seconds; this leaves room for loading each user's history.
-export const maxDuration = 60;
+const MAX_DURATION_SECONDS = 60;
+export const maxDuration = MAX_DURATION_SECONDS;
 
 const DEFAULT_TIMEZONE = "Europe/Prague";
 
@@ -48,8 +49,10 @@ export async function GET(request: Request) {
       db: createSpendingForecastDb(),
       requestForecast,
       log,
+      // maxDuration minus one model call (30 s) and a margin for saving.
+      startNewUserBefore: startedAt + (MAX_DURATION_SECONDS - 35) * 1000,
     });
-    const failed = results.filter((result) => result.status === "failed");
+    const failed = results.filter((result) => result.status === "failed" || result.status === "deferred");
     console.info(JSON.stringify({
       event: "spending_forecast_finished",
       today,

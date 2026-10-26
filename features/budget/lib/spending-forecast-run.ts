@@ -40,7 +40,8 @@ export type SpendingForecastDb = {
 
 export type UserRunResult = {
   userId: string;
-  status: "ok" | "last_day" | "no_default_currency" | "failed";
+  /** `deferred`: the time budget ran out before this user was started; their previous rows stay untouched. */
+  status: "ok" | "last_day" | "no_default_currency" | "failed" | "deferred";
   rows: SpendingForecastRow[];
   skippedCategories: string[];
   error?: string;
@@ -57,7 +58,15 @@ export async function runSpendingForecast(options: {
   db: SpendingForecastDb;
   requestForecast: (args: { horizon: number; series: ForecastSeries[] }) => Promise<ForecastServiceResult>;
   log?: (event: string, details: Record<string, unknown>) => void;
+  /**
+   * Epoch ms after which no new user is started. Users are processed one at a time (the Supabase instance is
+   * small), so the route sets this to its deadline minus one model timeout; later users are reported as deferred
+   * instead of being cut off mid-write when the invocation ends.
+   */
+  startNewUserBefore?: number;
+  now?: () => number;
 }): Promise<UserRunResult[]> {
+  const now = options.now ?? Date.now;
   const log = options.log ?? (() => {});
   const context = buildForecastContext(options.today);
   const userIds = await options.db.listBudgetedUserIds();
@@ -66,6 +75,12 @@ export async function runSpendingForecast(options: {
   for (const userId of userIds) {
     if (context.horizon === 0) {
       results.push({ userId, status: "last_day", rows: [], skippedCategories: [] });
+      continue;
+    }
+
+    if (options.startNewUserBefore !== undefined && now() > options.startNewUserBefore) {
+      log("spending_forecast_user_deferred", { userId, reason: "time_budget_exhausted" });
+      results.push({ userId, status: "deferred", rows: [], skippedCategories: [] });
       continue;
     }
 
