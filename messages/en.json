@@ -1496,6 +1496,7 @@
       "budgetDuplicateCategory": "Each category can appear only once in budgets.",
       "invalidBudgetMonth": "month must be in YYYY-MM format.",
       "budgetStatusLoadFailed": "Could not load the budget status.",
+      "spendingForecastLoadFailed": "Could not load the spending forecast.",
       "categoryObjectRequired": "category must be an object with at least one field to change.",
       "transferCategoryNeedsGoal": "Transaction \"{label}\": only transfers into a savings goal (destination_allocation_id) can use a category.",
       "allocationsTransferOnly": "Source goals are only supported on expenses and transfers.",

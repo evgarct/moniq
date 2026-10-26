@@ -124,3 +124,7 @@ Stories:
 - `Features/Budget/BudgetBarChart` covers default, compact, previous-month, negative-month and empty timeline states.
 
 The full-page story wrapper uses `<div className="h-screen">` with no padding so the viewport-fitting layout renders correctly in Storybook.
+
+## Statistical month-end forecast
+
+The `left_at_month_end` figures above use only known planned operations. A separate daily job adds a Chronos-based estimate of unplanned variable spending per budgeted category and reports it in the evening Telegram digest and the `get_spending_forecast` MCP tool; see `docs/spending-forecast.md`. It reads the same `[budget: N]` plans and does not change what the Budget screen shows.

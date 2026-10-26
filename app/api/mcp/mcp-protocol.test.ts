@@ -260,6 +260,7 @@ describe("MCP tools", () => {
       "get_category_spending_report",
       "get_budget_month_analysis",
       "get_budget_status",
+      "get_spending_forecast",
       "get_trends",
       "get_goal_history",
     ]);
@@ -1454,6 +1455,44 @@ describe("MCP tools", () => {
     expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_get_budget_status_source", expect.anything());
 
     const failed = await postMcp({ jsonrpc: "2.0", id: "failed", method: "tools/call", params: { name: "get_budget_status", arguments: {} } });
+    await expect(failed.json()).resolves.toMatchObject({ result: expectedToolFailure({ code: -32000 }) });
+  });
+
+  it("reads the stored spending forecast by key hash without running the model", async () => {
+    const stored = {
+      month: "2026-10-01",
+      forecast_date: "2026-10-20",
+      forecasts: [{ category_id: "cafe", category_name: "Cafe", currency: "CZK", budget: 3000, forecast_p50: 4300, status: "over" }],
+    };
+    mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name);
+      if (authResponse) return authResponse;
+      if (name === "mcp_lookup_api_key") return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
+      if (name === "mcp_get_spending_forecast") return Promise.resolve({ data: stored, error: null });
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    const latest = await postMcp({ jsonrpc: "2.0", id: "forecast", method: "tools/call", params: { name: "get_spending_forecast", arguments: {} } });
+    expect(mocks.rpc).toHaveBeenCalledWith("mcp_get_spending_forecast", { p_key_hash: AUTH_KEY_HASH, p_month: null });
+    expect((await latest.json()).result.structuredContent).toEqual(stored);
+
+    await postMcp({ jsonrpc: "2.0", id: "forecast-month", method: "tools/call", params: { name: "get_spending_forecast", arguments: { month: "2026-09" } } });
+    expect(mocks.rpc).toHaveBeenCalledWith("mcp_get_spending_forecast", { p_key_hash: AUTH_KEY_HASH, p_month: "2026-09-01" });
+  });
+
+  it("rejects a malformed forecast month and reports a failed forecast load", async () => {
+    mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name);
+      if (authResponse) return authResponse;
+      if (name === "mcp_lookup_api_key") return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
+      return Promise.resolve({ data: null, error: { message: "boom" } });
+    });
+
+    const malformed = await postMcp({ jsonrpc: "2.0", id: "bad", method: "tools/call", params: { name: "get_spending_forecast", arguments: { month: "2026-9" } } });
+    await expect(malformed.json()).resolves.toMatchObject({ result: expectedToolFailure({ code: -32602 }) });
+    expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_get_spending_forecast", expect.anything());
+
+    const failed = await postMcp({ jsonrpc: "2.0", id: "failed", method: "tools/call", params: { name: "get_spending_forecast", arguments: {} } });
     await expect(failed.json()).resolves.toMatchObject({ result: expectedToolFailure({ code: -32000 }) });
   });
 
