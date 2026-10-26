@@ -5,8 +5,9 @@ import { createSpendingForecastDb } from "@/features/budget/server/spending-fore
 import { requestForecast } from "@/lib/forecast/client";
 
 // The model answers in seconds; this leaves room for loading each user's history.
+// Next.js reads this segment config statically, so it must stay a literal; the constant below mirrors it.
+export const maxDuration = 60;
 const MAX_DURATION_SECONDS = 60;
-export const maxDuration = MAX_DURATION_SECONDS;
 
 const DEFAULT_TIMEZONE = "Europe/Prague";
 
