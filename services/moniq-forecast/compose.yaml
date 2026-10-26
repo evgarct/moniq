@@ -1,0 +1,27 @@
+name: moniq-forecast
+
+services:
+  forecast:
+    build: .
+    image: moniq-forecast:local
+    container_name: moniq-forecast
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      HF_HOME: /models
+    volumes:
+      - hf_cache:/models
+    mem_limit: 2g
+    # The Oracle ARM VM has a single vCPU; Docker rejects a CPU limit above the host count.
+    cpus: 1
+    # No published ports: Caddy reaches the container over the shared edge network.
+    networks:
+      - edge
+
+volumes:
+  hf_cache:
+
+networks:
+  edge:
+    external: true
+    name: moniq-forecast-edge
