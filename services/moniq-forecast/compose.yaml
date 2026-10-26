@@ -12,7 +12,8 @@ services:
     volumes:
       - hf_cache:/models
     mem_limit: 2g
-    cpus: 2
+    # The Oracle ARM VM has a single vCPU; Docker rejects a CPU limit above the host count.
+    cpus: 1
     # No published ports: Caddy reaches the container over the shared edge network.
     networks:
       - edge

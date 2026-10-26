@@ -43,7 +43,8 @@ def run_forecast(pipeline: QuantilePipeline, request: ForecastRequest) -> list[S
     forecasts: list[SeriesForecast] = []
     for item, per_series in zip(request.series, quantile_values, strict=True):
         per_quantile = {
-            f"{q:g}": [float(day[index]) for day in per_series]
+            # repr round-trips a float exactly ("0.5", "0.5000001"), so close levels never share a key.
+            repr(q): [float(day[index]) for day in per_series]
             for index, q in enumerate(request.quantiles)
         }
         forecasts.append(

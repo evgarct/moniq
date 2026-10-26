@@ -73,6 +73,12 @@ def test_constant_series_median_is_close_and_nothing_negative(client):
     assert all(v >= 0 for values in forecast["quantiles"].values() for v in values)
 
 
+def test_closely_spaced_quantiles_keep_separate_keys(client):
+    response = client.post("/forecast", json=body(quantiles=[0.5000001, 0.5000002, 0.9]), headers=AUTH)
+    assert response.status_code == 200
+    assert sorted(response.json()["forecasts"][0]["quantiles"]) == ["0.5000001", "0.5000002", "0.9"]
+
+
 def test_all_series_go_through_one_batch(client):
     calls = []
     original = app.state.pipeline.predict_quantiles
