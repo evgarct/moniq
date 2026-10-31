@@ -1750,10 +1750,16 @@ async function handleCategorySpendingReportTool(
     };
   }
 
-  // The per-month plan only matters for a single-month report; a failed read falls back to the base plan.
-  const categoryBudgets = report.period.start_date.slice(0, 7) === report.period.end_date.slice(0, 7)
-    ? (await loadCategoryBudgetRows(db, keyHash)) ?? undefined
-    : undefined;
+  // The per-month plan only matters for a single-month report; if it cannot be read the report fails
+  // instead of silently showing the base plan for a month that may have an override.
+  let categoryBudgets: CategoryBudgetRow[] | undefined;
+  if (report.period.start_date.slice(0, 7) === report.period.end_date.slice(0, 7)) {
+    const loaded = await loadCategoryBudgetRows(db, keyHash);
+    if (!loaded) {
+      return { jsonrpc: "2.0", id, error: { code: -32000, message: t("mcp.errors.spendingReportLoadFailed") } };
+    }
+    categoryBudgets = loaded;
+  }
   const compactReport = shapeCategorySpendingReport(report, {
     categoryBudgets,
     detail,

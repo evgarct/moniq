@@ -1611,6 +1611,26 @@ describe("MCP tools", () => {
     }
   });
 
+  it("fails a single-month spending report when the budget layers cannot be loaded", async () => {
+    mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name);
+      if (authResponse) return authResponse;
+      if (name === "mcp_lookup_api_key") return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
+      if (name === "mcp_get_category_spending_report_source") {
+        return Promise.resolve({ data: { default_currency: "CZK", wallets: [], categories: [], transactions: [] }, error: null });
+      }
+      if (name === "mcp_get_category_budgets") return Promise.resolve({ data: null, error: { message: "boom" } });
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    const monthly = await postMcp({ jsonrpc: "2.0", id: "report-month", method: "tools/call", params: { name: "get_category_spending_report", arguments: { month: "2026-09" } } });
+    await expect(monthly.json()).resolves.toMatchObject({ result: expectedToolFailure({ code: -32000 }) });
+
+    // A multi-month range never compares against a monthly plan, so it does not need the layers.
+    const range = await postMcp({ jsonrpc: "2.0", id: "report-range", method: "tools/call", params: { name: "get_category_spending_report", arguments: { start_date: "2026-08-01", end_date: "2026-09-30" } } });
+    expect((await range.json()).result.isError).not.toBe(true);
+  });
+
   it("rejects invalid set_budgets input before calling the RPC", async () => {
     const cases = [
       { budgets: [{ category_id: "living", budget_amount: 1 }], month: "2026-11" },
