@@ -7,7 +7,7 @@ import { neutralTheme } from "@astryxdesign/theme-neutral/built";
 
 import { makeQueryClient } from "@/lib/query-client";
 import { Toaster } from "@/components/ui/sonner";
-import { LocalFirstProvider } from "@/features/sync/components/local-first-provider";
+import { FinanceSession } from "@/components/providers/finance-session";
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(makeQueryClient);
@@ -97,10 +97,10 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <Theme theme={neutralTheme} mode={mode}>
       <QueryClientProvider client={queryClient}>
-        <LocalFirstProvider>
+        <FinanceSession>
           {children}
           <Toaster position="top-center" />
-        </LocalFirstProvider>
+        </FinanceSession>
       </QueryClientProvider>
     </Theme>
   );

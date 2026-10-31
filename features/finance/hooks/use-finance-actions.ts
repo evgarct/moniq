@@ -61,11 +61,6 @@ import {
   type ResolveFinanceId,
 } from "@/features/finance/lib/optimistic-coordinator";
 import { getFinanceMutationCoordinator } from "@/features/finance/lib/coordinator-registry";
-import {
-  queueLocalFirstCommand,
-  type SyncCommandDraft,
-  useLocalFirst,
-} from "@/features/sync/components/local-first-provider";
 import type {
   Account,
   Category,
@@ -168,57 +163,20 @@ function transactionMatchesInput(transaction: Transaction, values: TransactionEn
 
 export function useFinanceActions() {
   const queryClient = useQueryClient();
-  const localFirst = useLocalFirst();
   const coordinator = useMemo(
     () => getFinanceMutationCoordinator(queryClient),
     [queryClient],
   );
 
-  function execute(
-    command: Omit<FinanceCommand, "id">,
-    options?: ActionOptions,
-    syncDraft?: (resolveId: ResolveFinanceId) => SyncCommandDraft,
-  ) {
-    const request = command.request;
+  function execute(command: Omit<FinanceCommand, "id">, options?: ActionOptions) {
     return coordinator.execute({
       ...command,
       id: crypto.randomUUID(),
-      async request(resolveId) {
-        const queue = async () => {
-          if (!localFirst.enabled || !syncDraft) return false;
-          return queueLocalFirstCommand(syncDraft(resolveId));
-        };
-        if (typeof navigator !== "undefined" && !navigator.onLine && await queue()) {
-          const snapshot = queryClient.getQueryData<import("@/types/finance").FinanceSnapshot>(["finance-snapshot"]);
-          if (snapshot) return snapshot;
-        }
-        try {
-          return await request(resolveId);
-        } catch (error) {
-          if (error instanceof TypeError && await queue()) {
-            const snapshot = queryClient.getQueryData<import("@/types/finance").FinanceSnapshot>(["finance-snapshot"]);
-            if (snapshot) return snapshot;
-          }
-          throw error;
-        }
-      },
       onError(error) {
         options?.onError?.(error);
         toast.error(error instanceof Error ? error.message : options?.errorMessage);
       },
     });
-  }
-
-  function entityVersion(kind: "wallet" | "category" | "transaction" | "schedule" | "allocation" | "preferences", id?: string) {
-    const snapshot = queryClient.getQueryData<import("@/types/finance").FinanceSnapshot>(["finance-snapshot"]);
-    if (!snapshot) return null;
-    if (kind === "preferences") return snapshot.preferences.sync_version ?? null;
-    const collection = kind === "wallet" ? snapshot.accounts
-      : kind === "category" ? snapshot.categories
-        : kind === "transaction" ? snapshot.transactions
-          : kind === "schedule" ? snapshot.schedules
-            : snapshot.allocations;
-    return collection.find((item) => item.id === id)?.sync_version ?? null;
   }
 
   return {
@@ -254,17 +212,6 @@ export function useFinanceActions() {
           },
         },
         options,
-        (resolveId) => {
-          const mapped = mapTransactionEntry(values, resolveId);
-          return {
-            type: "transaction.create",
-            targetId: optimisticIds.length === 1 ? optimisticIds[0] : null,
-            baseVersion: null,
-            payload: "entries" in mapped && optimisticIds.length > 1
-              ? { entries: mapped.entries.map((entry, index) => ({ id: optimisticIds[index], values: entry })) }
-              : mapped,
-          };
-        },
       );
     },
     updateTransaction(transactionId: string, values: TransactionInput, options?: ActionOptions) {
@@ -283,7 +230,6 @@ export function useFinanceActions() {
             ),
         },
         options,
-        (resolveId) => ({ type: "transaction.update", targetId: resolveRequiredId(resolveId, transactionId), baseVersion: entityVersion("transaction", transactionId), payload: mapTransactionValues(values, resolveId) }),
       );
     },
     deleteTransaction(transactionId: string, options?: ActionOptions) {
@@ -295,7 +241,6 @@ export function useFinanceActions() {
             deleteTransactionRequest(resolveRequiredId(resolveId, transactionId)),
         },
         options,
-        (resolveId) => ({ type: "transaction.delete", targetId: resolveRequiredId(resolveId, transactionId), baseVersion: entityVersion("transaction", transactionId), payload: {} }),
       );
     },
     markTransactionPaid(transactionId: string, options?: ActionOptions) {
@@ -307,7 +252,6 @@ export function useFinanceActions() {
             markTransactionPaidRequest(resolveRequiredId(resolveId, transactionId)),
         },
         options,
-        (resolveId) => ({ type: "transaction.markPaid", targetId: resolveRequiredId(resolveId, transactionId), baseVersion: entityVersion("transaction", transactionId), payload: {} }),
       );
     },
     skipTransaction(transactionId: string, options?: ActionOptions) {
@@ -319,7 +263,6 @@ export function useFinanceActions() {
             skipTransactionOccurrenceRequest(resolveRequiredId(resolveId, transactionId)),
         },
         options,
-        (resolveId) => ({ type: "transaction.skip", targetId: resolveRequiredId(resolveId, transactionId), baseVersion: entityVersion("transaction", transactionId), payload: {} }),
       );
     },
     updateSchedule(scheduleId: string, values: TransactionScheduleInput, options?: ActionOptions) {
@@ -338,7 +281,6 @@ export function useFinanceActions() {
             ),
         },
         options,
-        (resolveId) => ({ type: "schedule.update", targetId: resolveRequiredId(resolveId, scheduleId), baseVersion: entityVersion("schedule", scheduleId), payload: mapTransactionValues(values, resolveId) }),
       );
     },
     setScheduleState(
@@ -354,7 +296,6 @@ export function useFinanceActions() {
             setTransactionScheduleStateRequest(resolveRequiredId(resolveId, scheduleId), state),
         },
         options,
-        (resolveId) => ({ type: "schedule.state", targetId: resolveRequiredId(resolveId, scheduleId), baseVersion: entityVersion("schedule", scheduleId), payload: { state } }),
       );
     },
     deleteSchedule(scheduleId: string, options?: ActionOptions) {
@@ -366,7 +307,6 @@ export function useFinanceActions() {
             deleteTransactionScheduleRequest(resolveRequiredId(resolveId, scheduleId)),
         },
         options,
-        (resolveId) => ({ type: "schedule.delete", targetId: resolveRequiredId(resolveId, scheduleId), baseVersion: entityVersion("schedule", scheduleId), payload: {} }),
       );
     },
     applyRecurringOccurrenceChanges(
@@ -392,15 +332,6 @@ export function useFinanceActions() {
             ),
         },
         options,
-        (resolveId) => ({
-          type: "schedule.updateFromOccurrence",
-          targetId: resolveRequiredId(resolveId, scheduleId),
-          baseVersion: entityVersion("schedule", scheduleId),
-          payload: {
-            fromOccurrenceDate,
-            changes: mapRecurringOccurrenceChanges(changes, resolveId),
-          },
-        }),
       );
     },
     saveWallet(
@@ -438,12 +369,6 @@ export function useFinanceActions() {
           },
         },
         options,
-        (resolveId) => ({
-          type: mode === "add" ? "wallet.create" : "wallet.update",
-          targetId: mode === "add" ? optimisticId! : resolveRequiredId(resolveId, walletId!),
-          baseVersion: mode === "add" ? null : entityVersion("wallet", walletId),
-          payload: values,
-        }),
       );
     },
     deleteWallet(walletId: string, options?: ActionOptions) {
@@ -454,7 +379,6 @@ export function useFinanceActions() {
           request: (resolveId) => deleteWalletRequest(resolveRequiredId(resolveId, walletId)),
         },
         options,
-        (resolveId) => ({ type: "wallet.delete", targetId: resolveRequiredId(resolveId, walletId), baseVersion: entityVersion("wallet", walletId), payload: {} }),
       );
     },
     adjustWalletBalance(
@@ -471,7 +395,6 @@ export function useFinanceActions() {
             adjustWalletBalanceRequest(resolveRequiredId(resolveId, walletId), newBalance, note),
         },
         options,
-        (resolveId) => ({ type: "wallet.adjust", targetId: resolveRequiredId(resolveId, walletId), baseVersion: entityVersion("wallet", walletId), payload: { newBalance, note } }),
       );
     },
     saveCategory(
@@ -513,15 +436,8 @@ export function useFinanceActions() {
           },
         },
         options,
-        (resolveId) => ({
-          type: mode === "add" ? "category.create" : "category.update",
-          targetId: mode === "add" ? optimisticId! : resolveRequiredId(resolveId, categoryId!),
-          baseVersion: mode === "add" ? null : entityVersion("category", categoryId),
-          payload: mapCategoryValues(values, resolveId),
-        }),
       );
     },
-    /** Needs the network: not queued for local-first replay (the online snapshot path stays the source of truth). */
     saveCategoryBudget(change: CategoryBudgetChange, options?: ActionOptions) {
       return execute(
         {
@@ -578,7 +494,6 @@ export function useFinanceActions() {
             ),
         },
         options,
-        (resolveId) => ({ type: "category.delete", targetId: resolveRequiredId(resolveId, categoryId), baseVersion: entityVersion("category", categoryId), payload: { replacementCategoryId: resolveOptionalId(resolveId, replacementCategoryId) } }),
       );
     },
     saveAllocation(
@@ -619,12 +534,6 @@ export function useFinanceActions() {
           },
         },
         options,
-        (resolveId) => ({
-          type: mode === "add" ? "allocation.create" : "allocation.update",
-          targetId: mode === "add" ? optimisticId! : resolveRequiredId(resolveId, allocationId!),
-          baseVersion: mode === "add" ? null : entityVersion("allocation", allocationId),
-          payload: mode === "add" ? { walletId: resolveRequiredId(resolveId, walletId!), values } : values,
-        }),
       );
     },
     deleteAllocation(allocationId: string, replacementAllocationId: string | null = null, options?: ActionOptions) {
@@ -639,7 +548,6 @@ export function useFinanceActions() {
             ),
         },
         options,
-        (resolveId) => ({ type: "allocation.delete", targetId: resolveRequiredId(resolveId, allocationId), baseVersion: entityVersion("allocation", allocationId), payload: { replacementAllocationId: resolveOptionalId(resolveId, replacementAllocationId) } }),
       );
     },
     updatePreferences(values: UserPreferencesInput, options?: ActionOptions) {
@@ -649,7 +557,6 @@ export function useFinanceActions() {
           request: () => updateUserPreferencesRequest(values),
         },
         options,
-        () => ({ type: "preferences.update", targetId: null, baseVersion: entityVersion("preferences"), payload: values }),
       );
     },
     saveInvestmentPosition(instrument: InvestmentInstrumentCandidate, openingUnits: number, options?: ActionOptions) {

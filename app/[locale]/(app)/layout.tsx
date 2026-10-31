@@ -3,7 +3,6 @@ import { createClient } from "@/lib/supabase/server";
 import { AppSidebar, MobileBottomNav } from "@/components/app-sidebar";
 import { redirect } from "@/i18n/navigation";
 import type { AppLocale } from "@/i18n/routing";
-import { SyncStatusIndicator } from "@/features/sync/components/sync-status-indicator";
 
 export default async function AuthenticatedLayout({
   children,
@@ -31,7 +30,6 @@ export default async function AuthenticatedLayout({
       <div className="grid h-full min-h-0 w-full lg:grid-cols-[76px_minmax(0,1fr)]">
         <AppSidebar user={shellUser} onSignOut={signOut} />
         <div className="flex min-h-0 min-w-0 flex-col overflow-hidden bg-card lg:bg-background">
-          <SyncStatusIndicator />
           <main className="min-h-0 flex-1 overflow-hidden">
             {children}
           </main>

@@ -5,7 +5,6 @@ import { useFormStatus } from "react-dom";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
-import { clearLocalFirstData } from "@/features/sync/components/local-first-provider";
 
 type LogoutButtonProps = {
   action: () => Promise<void>;
@@ -35,7 +34,6 @@ function LogoutButtonInner({
 
 export function LogoutButton({ action, ...props }: LogoutButtonProps) {
   async function logout() {
-    await clearLocalFirstData();
     await action();
   }
 

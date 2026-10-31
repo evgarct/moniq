@@ -21,10 +21,9 @@ try {
       active: registration.active?.state,
       controlled: Boolean(navigator.serviceWorker.controller),
       hasOfflineFallback: cachedUrls.some((url) => new URL(url).pathname === "/en/offline"),
-      hasSqliteWasm: cachedUrls.some((url) => url.endsWith(".wasm") && url.includes("wa-sqlite")),
     };
   });
-  if (workerState.active !== "activated" || !workerState.controlled || !workerState.hasOfflineFallback || !workerState.hasSqliteWasm) {
+  if (workerState.active !== "activated" || !workerState.controlled || !workerState.hasOfflineFallback) {
     throw new Error(`Incomplete PWA precache: ${JSON.stringify(workerState)}`);
   }
 
@@ -35,7 +34,7 @@ try {
   await page.goto(`${appUrl}/en/login`, { waitUntil: "domcontentloaded" });
   await page.getByText(/Welcome back|Moniq is offline/, { exact: true }).waitFor();
 
-  console.log(`PWA shell verification passed: warm launch ${warmLaunchMs} ms; offline navigation and SQLite WASM cached.`);
+  console.log(`PWA shell verification passed: warm launch ${warmLaunchMs} ms; offline fallback cached.`);
 } finally {
   await context.setOffline(false);
   await browser.close();

@@ -1,43 +1,7 @@
 {
   "offline": {
     "title": "Moniq is offline",
-    "description": "Open a previously loaded workspace to keep working. Changes will sync after the connection returns."
-  },
-  "sync": {
-    "states": {
-      "cached": "Showing saved data",
-      "syncing": "Syncing changes",
-      "offline": "Working offline",
-      "pending": "{count, plural, one {# change waiting to sync} other {# changes waiting to sync}}",
-      "reconnecting": "Reconnecting",
-      "conflict": "A change needs review",
-      "storage_error": "Local storage is unavailable",
-      "expired": "Connect to the internet to verify this device"
-    },
-    "loader": {
-      "loading": "Loading your data…",
-      "loadingCount": "{count, plural, =0 {Loading your data…} one {# transaction loaded so far} other {# transactions loaded so far}}",
-      "syncingCount": "{count, plural, =0 {Syncing…} one {Syncing · # transaction} other {Syncing · # transactions}}",
-      "upToDate": "{count, plural, =0 {Up to date} one {Up to date · # transaction} other {Up to date · # transactions}}",
-      "offlineCount": "{count, plural, =0 {Offline} one {Offline · # transaction saved on this device} other {Offline · # transactions saved on this device}}",
-      "error": "Local storage is unavailable",
-      "syncedAt": "Synced {time}",
-      "pendingChanges": "{count, plural, one {# change waiting to sync} other {# changes waiting to sync}}",
-      "neverSynced": "Not synced yet",
-      "progress": "{percent}% downloaded",
-      "refresh": "Refresh from server",
-      "refreshing": "Refreshing…",
-      "refreshError": "Couldn't refresh from the server. Your data on this device is unchanged.",
-      "refreshDone": "Refreshed from server"
-    },
-    "conflicts": {
-      "title": "Review sync conflicts",
-      "description": "The same data changed on another device. Choose which version should remain.",
-      "item": "Local change",
-      "version": "The server is now on version {version}.",
-      "keepServer": "Keep server version",
-      "retryLocal": "Apply my change"
-    }
+    "description": "Open a previously loaded workspace to keep working. Reconnect to load fresh data or save changes."
   },
   "metadata": {
     "title": "Moniq",
@@ -1642,7 +1606,7 @@
     "hero": {
       "eyebrow": "Personal Finance Workspace",
       "title": "A calm workspace for your personal finances.",
-      "subtitle": "Moniq helps you track balances, forecast your future, and manage plans with a focus on simplicity, keyboard navigation, and local-first performance.",
+      "subtitle": "Moniq helps you track balances, forecast your future, and manage plans with a focus on simplicity, keyboard navigation, and fast loading.",
       "cta": "Get Started for Free",
       "secondaryCta": "Watch Demo"
     },
@@ -1658,10 +1622,10 @@
         "description": "Focus on allocations and savings plans instead of rigid, stressful limits. Plan your wealth step by step."
       },
       "local": {
-        "title": "Local-First Sync",
-        "description": "Offline-ready, lightning fast. Your data is stored locally in SQLite and synced automatically to Supabase when you connect.",
-        "sqlite": "Local SQLite",
-        "sync": "PowerSync Sync",
+        "title": "Fresh Data, Fast Launch",
+        "description": "Your numbers load straight from Supabase the moment you open the app, and the installable app shell opens even without a connection.",
+        "sqlite": "Your device",
+        "sync": "Secure API",
         "supabase": "Supabase Cloud"
       },
       "mcp": {
@@ -1723,7 +1687,7 @@
         "features": {
           "wallets": "Up to 3 active wallets",
           "history": "30-day transaction history",
-          "local": "Local-first storage (offline)",
+          "local": "App shell works offline",
           "sync": "Manual backups"
         }
       },

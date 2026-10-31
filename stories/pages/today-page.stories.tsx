@@ -33,6 +33,8 @@ export const Default: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole("heading", { name: "Today" })).toBeInTheDocument();
     await expect(canvas.getAllByText("Planned").length).toBeGreaterThan(0);
+    // The online snapshot has no sync footer: nothing under the lists offers a manual refresh.
+    await expect(canvas.queryByText("Refresh from server")).not.toBeInTheDocument();
   },
 };
 
