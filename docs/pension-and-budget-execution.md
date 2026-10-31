@@ -50,7 +50,7 @@ confirmed lots. Ordinary uncategorized transfers do not execute envelopes.
 
 Both the online snapshot and MCP budget source include historical operations so prior
 reserves and contributions resolve returns and reserve draw-down. Online transactions are paginated at 1000
-rows; the user-scoped PowerSync stream already contains the complete ledger.
+rows; the online snapshot already contains the complete ledger.
 Budget row editing always resolves projections back to their real persisted operation.
 
 ## Pension model

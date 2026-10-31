@@ -29,23 +29,19 @@ Never copy production rows into staging. Test accounts and their credentials are
 
 Do not enable Supabase's automatic deploy-to-production integration. Production promotion is intentionally explicit.
 
-## Local-first rollout
+## Data loading (PowerSync retired)
 
-`NEXT_PUBLIC_LOCAL_FIRST_MODE` supports `off`, `pilot`, and `on`. Staging uses `on`; production starts with `pilot` and retains the online snapshot path as rollback for one release. A managed PowerSync instance and `NEXT_PUBLIC_POWERSYNC_URL` are configured independently for staging and production.
+The web app reads one online snapshot: `/api/finance/snapshot` through React Query (`financeSnapshotQueryKey`). The local-first layer (PowerSync, the wa-sqlite replica, the offline command outbox and `/api/sync/*`) was removed in October 2026, together with `NEXT_PUBLIC_LOCAL_FIRST_MODE`, `NEXT_PUBLIC_POWERSYNC_URL` and `LOCAL_FIRST_PILOT_USER_IDS`. Remove those variables from Vercel and shut down the staging and production PowerSync Cloud instances after this release is live.
 
-Configure each PowerSync instance with `powersync/sync-config.yaml`. The edition 3 streams auto-subscribe user-owned rows using only `auth.user_id()`; Supabase RLS remains authoritative for writes. Market instruments, quotes, and FX rates are read-only shared reference data.
+- Mutations are online only: the optimistic coordinator applies them to the query cache and rolls back with a localized toast when the request fails, including when the device is offline. Nothing is queued on the device.
+- The service worker precaches the app shell and the `/offline` fallback only. API responses are never placed in Cache Storage. Logout drops the query cache through the auth listener in `components/providers/finance-session.tsx`, which also clears it whenever the signed-in user changes.
+- `vercel.json` pins the functions to `dub1` (Dublin), next to the Supabase project in `eu-west-1`. The default `iad1` put every database round trip across the Atlantic. Keep the function region and the Supabase region together.
+- Database objects left for a separate, reviewed cleanup migration once this release is stable: the `powersync` publication, `powersync_role`, `finance_sync_mutations`, and the `sync_version` columns with their `bump_sync_version()` triggers. They are inert without the client. Do not drop them in the same release as the code, and keep `scripts/verify-database.sql` aligned with whatever the cleanup removes.
 
-The `powersync` Postgres publication is migration-managed and contains only the tables referenced by those streams. The PowerSync source connection must use a dedicated `powersync_role` with `REPLICATION`, `BYPASSRLS`, and read-only access to the published tables; its generated password belongs only in PowerSync Cloud secrets, never in Git or Vercel client variables.
+### Snapshot performance
 
-The client keeps a user-scoped SQLite file, a cached finance snapshot, and a 30-day offline authorization lease. API responses are never placed in service-worker Cache Storage. Logout calls `disconnectAndClear()` before invalidating the server session.
-
-### Sync resilience
-
-- A failed `/api/sync/bootstrap` is retried with backoff and never disables sync: the app keeps working from local data and `ensureConnected()` connects PowerSync later (on `online`, tab refocus, or the 30 s check) once the endpoint is known.
-- Queued commands (`/api/sync/commands`) are retried with exponential backoff (2 s up to 60 s); a non-JSON gateway error counts as a failed attempt. The route reads only the touched row's `sync_version` instead of rebuilding the full snapshot per command.
 - `/api/finance/snapshot` reads transaction pages concurrently (4 pages of 1000 per window) alongside positions and preferences. Both heavy routes declare `maxDuration = 60`.
 - Production measurements (`performance_events`, Oct 2026): snapshot totals averaged ~20 s with every phase slow, including `auth` (~5 s avg), while the database held only ~1k transactions and queries took milliseconds. The repository now authenticates with `getClaims()` (local JWT verification) instead of a `getUser()` Auth round trip, reads the first transaction page alone, samples per-phase telemetry (20 %; `total` is always recorded), and the client shares one in-flight snapshot request (60 s budget, 2 retries). If `api finance_snapshot` p95 stays high afterwards, the Supabase compute size is the next suspect.
-- The service worker applies no timeout to `/api/*` GETs; `finance-api.ts` owns the 30 s client timeout. Dropped connections surface as the localized `common.errors.networkUnavailable` instead of "Failed to fetch", and finance pages show a **Try again** action. `useFinanceData` retries four times with backoff and refetches on reconnect and, while errored, on window focus.
+- The 14 days up to 2026-10-31 still showed `api finance_snapshot` p50 7.5 s / p95 43 s and every mutation at 5-6 s p50, against a local-first first paint of 0.44 s. The function region (`iad1`) was an ocean away from the database, so the region pin is the fix for that gap; compare `performance_events` before and after the deploy.
+- The service worker applies no timeout to `/api/*` GETs; `finance-api.ts` owns the 30 s client timeout. Dropped connections surface as the localized `common.errors.networkUnavailable` instead of "Failed to fetch", and finance pages show a **Try again** action. `useFinanceData` retries twice with backoff and refetches on reconnect and, while errored, on window focus.
 - Pension accounts are excluded from spendable pickers and defaults in the transaction form and from the Projected balance report.
-
-The start page's sync footer offers a manual **Refresh from server**. It reads `/api/finance/snapshot` directly (bypassing SQLite), rebases pending optimistic commands on it, and reconnects PowerSync without clearing local data, so it is safe to use with queued offline changes.

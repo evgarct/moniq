@@ -24,7 +24,7 @@ A plan is one number in `preferences.default_currency`, stored as a `[budget: N]
 
 ### Monthly budgets
 
-The `[budget: N]` prefix is the **base** plan, valid for every month. Two kinds of layers sit on top of it in `finance_category_budgets` (one row per `category, month, scope`, unique, RLS-owned, synced by PowerSync):
+The `[budget: N]` prefix is the **base** plan, valid for every month. Two kinds of layers sit on top of it in `finance_category_budgets` (one row per `category, month, scope`, unique, RLS-owned, read through the online snapshot):
 
 - `scope = month` — an override for exactly one month ("this month only");
 - `scope = from` — a new base from that month onward ("this month onward"); earlier months keep their plan. `amount` null means no plan from then on.

@@ -202,17 +202,6 @@ Rules:
 - **Reschedule moves only the row you clicked.** For a recurring occurrence that sets the override flag on that occurrence; the rest of the series keeps its own dates. "Tomorrow / In 3 days / In 1 week" are relative to today; "Pick a date…" opens an inline `Calendar` in the submenu.
 - Items are ordered: primary action (mark paid/skip) → date → edit → series management → destructive (after a separator).
 
-## Sync progress footer
-
-Under the transaction lists on the start page (`/today`, also while it is still loading) sits `SyncProgress` (`components/sync-progress.tsx`, connected via `features/sync/components/sync-progress-footer.tsx`). It is the one place that says whether the data on screen is complete:
-
-- **Headline** (`type-body-12`, plain text): `Loading your data…` / `N transactions loaded so far` (first sync), `Syncing · N transactions`, `Up to date · N transactions`, `Offline · N transactions saved on this device`, or a storage error.
-- **Second line** (muted): `Synced 2 minutes ago`, or `N% downloaded` while PowerSync reports a download total.
-- **Progress**: a hairline `ProgressTrack` only when a real download fraction is known — never a decorative spinner bar.
-- **Refresh from server**: ghost button (44px below `lg`). It flushes queued offline commands, fetches `/api/finance/snapshot` (Supabase, the source of truth), rebases the optimistic coordinator (`FinanceMutationCoordinator.rebase`) and reconnects PowerSync. It never clears the local database (the offline outbox lives there). Errors surface as a localized toast.
-- Phases are resolved in `features/sync/lib/sync-progress.ts` (`resolveSyncProgressPhase`, unit-tested); the component is props-driven so Storybook renders every state without the provider (`Molecules/SyncProgress`).
-- No cards, chips or badges — flat text, one ghost button, one hairline track.
-
 ## Transaction kinds — architecture
 
 | Kind | Source account | Destination account | Category | Notes |
@@ -348,7 +337,7 @@ Storybook is not documentation after implementation — it's the living review s
 - **CI enforcement**: `npm run check:storybook-first` blocks PRs with runtime UI changes and no story edits, unless waived in `.storybook/non-visual-change.md`.
 - **Foundations stay visual**: `stories/foundations/` (`DesignLanguage`, `UIPlaybook`, `Typography`, `RadiusSystem`, `VisualTokens`, `BalancePanelPatterns`) render the design system visually — they are reference-only; fix the component, not the foundation story, when a UI bug surfaces.
 - **Isolated interaction stories**: when iterating on stateful primitives (date pickers, popovers, calendars, dropdowns, sheets), maintain a focused story that opens directly into the interaction state under review.
-- **Offline/sync mocking**: stories use isolated mock data and cover offline/local-first-sync/storage-failure/expired-auth states without hitting Supabase or PowerSync.
+- **Offline/sync mocking**: stories use isolated mock data and cover loading/error/offline states without hitting Supabase.
 - **Accessibility**: Storybook runs `axe-core` via Vitest on every story (`a11y: { test: "error" }` in `.storybook/preview.tsx`) — a violation fails the test run. Don't sign off a component that introduces one.
 - **Portal-backed content**: `play` functions must target the portalled surface (Sheet/Dialog/Popover/DropdownMenu) explicitly, never query only the root canvas.
 - Update stories **in the same commit** as the component change.

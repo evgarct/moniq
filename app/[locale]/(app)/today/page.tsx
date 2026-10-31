@@ -7,7 +7,6 @@ import { PageContainer } from "@/components/page-container";
 import { FinanceLoadError } from "@/features/finance/components/finance-load-error";
 import { createEmptyFinanceSnapshot } from "@/features/finance/lib/empty-snapshot";
 import { useFinanceData } from "@/features/finance/hooks/use-finance-data";
-import { SyncProgressFooter } from "@/features/sync/components/sync-progress-footer";
 import { TodayView } from "@/features/today/components/today-view";
 
 export default function TodayPage() {
@@ -21,7 +20,6 @@ export default function TodayPage() {
           <div className="min-h-0 flex-1">
             <EmptyState title={t("loading.title")} description={t("loading.description")} />
           </div>
-          <SyncProgressFooter transactionCount={0} dataLoading />
         </div>
       </PageContainer>
     );

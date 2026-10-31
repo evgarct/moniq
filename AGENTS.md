@@ -23,9 +23,9 @@ The canonical UI reference implementation is `stories/foundations/ui-playbook.st
 - Database changes are isolated-test-first: rebuild every migration twice on local Supabase in CI, seed synthetic personas, verify schema/RLS/grants/tenant isolation, then manually promote the exact verified commit. Never use production as the first migration target.
 - Local CI and optional staging databases contain synthetic personas only. Seed scripts must refuse production targets and may accept localhost only with an explicit `local-*` staging ref.
 - UI pull requests must change a focused Storybook story before application integration; CI enforces this through `npm run check:storybook-first`.
-- Keep `@powersync/web` and its `@journeyapps/wa-sqlite` peer compatible, and keep Storybook Vite workers on `format: "es"`; verify both the Storybook production build and SQLite WASM precache after dependency changes.
+- Keep the Vercel function region next to the database: `vercel.json` pins `dub1` beside the Supabase project in `eu-west-1`. Moving either side without the other puts an ocean on every database round trip (snapshot p50 was 7-9 s from `iad1`); compare `performance_events` before and after any region change.
 - Before upgrading Next.js or its SWC package on Windows, stop active app and Storybook processes that can lock native binaries. Do not run `npm audit fix --omit=dev` in a development checkout because npm removes the installed dev dependency tree.
-- Local-first finance changes must preserve the online snapshot path as a rollback until the staged rollout is complete, namespace local data by verified user ID, and clear the local database on logout.
+- Finance data is online only: the React Query snapshot (`financeSnapshotQueryKey`) is the single source of truth. PowerSync, the local SQLite replica and the offline command queue were removed; do not reintroduce a device-side replica without first measuring `performance_events` for the backend latency it would hide.
 
 - This repo is developed directly on Windows/PowerShell. Do not use WSL for normal project commands unless the user explicitly asks for it.
 - When filtering or deleting Git branches via shell scripts, do not use naive substring matching for "main" as it can incorrectly match branches containing "main" (e.g., "domain"). Use exact matching or anchored regular expressions instead.

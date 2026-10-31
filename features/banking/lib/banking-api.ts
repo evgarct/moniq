@@ -3,7 +3,7 @@
 import { createTranslator } from "next-intl";
 import { hasLocale } from "next-intl";
 
-import { isNetworkFetchError } from "@/features/sync/lib/backoff";
+import { isNetworkFetchError } from "@/lib/backoff";
 import { loadMessages } from "@/i18n/messages";
 import { reportFetchPerformance } from "@/lib/performance/client";
 import { routing, type AppLocale } from "@/i18n/routing";

@@ -16,7 +16,7 @@ import type {
 } from "@/types/finance-schemas";
 import type { FinanceSnapshot } from "@/types/finance";
 import type { InvestmentInstrumentCandidate } from "@/types/finance";
-import { isNetworkFetchError } from "@/features/sync/lib/backoff";
+import { isNetworkFetchError } from "@/lib/backoff";
 import { loadMessages } from "@/i18n/messages";
 import { reportFetchPerformance } from "@/lib/performance/client";
 import { routing, type AppLocale } from "@/i18n/routing";

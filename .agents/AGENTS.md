@@ -82,9 +82,9 @@ Right: category shown as plain muted text below the transaction title.
 - Database changes are isolated-test-first: rebuild every migration twice on local Supabase in CI, seed synthetic personas, verify schema/RLS/grants/tenant isolation, then manually promote the exact verified commit. Never use production as the first migration target.
 - Local CI and optional staging databases contain synthetic personas only. Seed scripts must refuse production targets and may accept localhost only with an explicit `local-*` staging ref.
 - UI pull requests must change a focused Storybook story before application integration; CI enforces this through `npm run check:storybook-first`.
-- Keep `@powersync/web` and its `@journeyapps/wa-sqlite` peer compatible, and keep Storybook Vite workers on `format: "es"`; verify both the Storybook production build and SQLite WASM precache after dependency changes.
+- Keep the Vercel function region next to the database: `vercel.json` pins `dub1` beside the Supabase project in `eu-west-1`. Moving either side without the other puts an ocean on every database round trip (snapshot p50 was 7-9 s from `iad1`); compare `performance_events` before and after any region change.
 - Before upgrading Next.js or its SWC package on Windows, stop active app and Storybook processes that can lock native binaries. Do not run `npm audit fix --omit=dev` in a development checkout because npm removes the installed dev dependency tree.
-- Local-first finance changes must preserve the online snapshot path as a rollback until the staged rollout is complete, namespace local data by verified user ID, and clear the local database on logout.
+- Finance data is online only: the React Query snapshot (`financeSnapshotQueryKey`) is the single source of truth. PowerSync, the local SQLite replica and the offline command queue were removed; do not reintroduce a device-side replica without first measuring `performance_events` for the backend latency it would hide.
 
 - This repo is developed directly on Windows/PowerShell. Do not use WSL for normal project commands unless the user explicitly asks for it.
 - When starting a new feature in this repo, first update from the latest remote `main`, then create a fresh feature branch from that current base.
@@ -186,7 +186,6 @@ Right: category shown as plain muted text below the transaction title.
 - For any change, feature extension, or design update in this repo, agents must document all details in the corresponding Markdown files under `docs/` and capture/refresh visual mockup screenshots under `.codex-artifacts/` or the artifacts directory. No code changes should be published without aligning documentation and visual assets first.
 - In database triggers, avoid running balance-based allocation limits or validations on transient/intermediate tables updates. Use session-local config flags (e.g. `current_setting('moniq.disallow_allocation_enforcement', true)`) to skip enforcement during transient updates and run them once at the end of the transaction.
 - For text inputs mapping to numeric fields in React Hook Form + Zod, use strings in form state and preprocess them in Zod to prevent characters like decimal points from being aggressively formatted/lost during active typing.
-- In local-first mode, avoid fetching from server endpoints like `/api/finance/snapshot` in query functions or letting bootstrap fetches block local database initialization. Load cached or synced database snapshots immediately on startup and defer sync connection tasks to the background.
 - In this repo, when fixing review comments on a pull request, always resolve the matching review threads on GitHub via the API or GraphQL immediately so the user can easily see they are resolved.
 
 <!-- ASTRYX:START -->
