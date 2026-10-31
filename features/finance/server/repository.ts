@@ -15,6 +15,7 @@ import { recordPerformanceEvent } from "@/lib/performance/server";
 import { createClient } from "@/lib/supabase/server";
 import type { CurrencyCode } from "@/types/currency";
 import type {
+  CategoryBudgetInput,
   CategoryInput,
   RecurringOccurrenceChangesInput,
   TransactionEntryInput,
@@ -24,7 +25,7 @@ import type {
   WalletInput,
   InvestmentPositionInput,
 } from "@/types/finance-schemas";
-import type { Account, Category, FinanceSnapshot, InvestmentInstrument, InvestmentPosition, InvestmentQuote, Transaction, TransactionSchedule, UserPreferences, WalletAllocation, WalletAllocationKind } from "@/types/finance";
+import type { Account, Category, CategoryBudgetRow, FinanceSnapshot, InvestmentInstrument, InvestmentPosition, InvestmentQuote, Transaction, TransactionSchedule, UserPreferences, WalletAllocation, WalletAllocationKind } from "@/types/finance";
 
 type WalletRow = {
   pension_state?: Account["pension_state"];
@@ -498,7 +499,7 @@ export async function getFinanceSnapshot(
     return rows;
   };
 
-  const [transactions, { data: positionRows, error: positionError }, preferences] = await Promise.all([
+  const [transactions, { data: positionRows, error: positionError }, preferences, { data: budgetRows, error: budgetError }] = await Promise.all([
     readAllTransactions(),
     supabase
       .from("investment_positions")
@@ -512,11 +513,24 @@ export async function getFinanceSnapshot(
       .eq("user_id", user.id)
       .order("created_at", { ascending: true }),
     getUserPreferencesWithDefault(user.id, mappedAccounts),
+    supabase
+      .from("finance_category_budgets")
+      .select("category_id, month, scope, amount")
+      .eq("user_id", user.id),
   ]);
 
   if (positionError) {
     throw new Error(normalizeFinanceRepositoryError(positionError));
   }
+  if (budgetError) {
+    throw new Error(normalizeFinanceRepositoryError(budgetError));
+  }
+  const categoryBudgets: CategoryBudgetRow[] = (budgetRows ?? []).map((row) => ({
+    category_id: row.category_id as string,
+    month: row.month as string,
+    scope: row.scope as CategoryBudgetRow["scope"],
+    amount: row.amount === null ? null : Number(row.amount),
+  }));
 
   const investmentPositions: InvestmentPosition[] = (positionRows ?? []).map((row) => {
     const instrumentValue = row.instrument as unknown as (InvestmentInstrumentRow & { quotes: InvestmentQuoteRow[] }) | null;
@@ -634,6 +648,7 @@ export async function getFinanceSnapshot(
     preferences,
     exchange_rates: exchangeRates,
     investment_positions: investmentPositions,
+    category_budgets: categoryBudgets,
   };
 }
 
@@ -940,6 +955,46 @@ export async function updateCategory(categoryId: string, values: CategoryInput) 
     })
     .eq("id", categoryId)
     .eq("user_id", user.id);
+
+  if (error) {
+    throw new Error(normalizeFinanceRepositoryError(error));
+  }
+}
+
+/**
+ * Sets a monthly budget layer ("month" override or "from" base). The unique key makes the upsert
+ * idempotent; the table trigger rejects anything but a top-level, non-system expense category.
+ */
+export async function saveCategoryBudget(categoryId: string, values: CategoryBudgetInput) {
+  const { supabase, user } = await getAuthenticatedSupabase();
+  const { error } = await supabase
+    .from("finance_category_budgets")
+    .upsert(
+      {
+        user_id: user.id,
+        category_id: categoryId,
+        month: `${values.month}-01`,
+        scope: values.scope,
+        amount: values.amount,
+      },
+      { onConflict: "user_id,category_id,month,scope" },
+    );
+
+  if (error) {
+    throw new Error(normalizeFinanceRepositoryError(error));
+  }
+}
+
+/** Removes only the month override, so the base plan applies again and no history is touched. */
+export async function clearCategoryBudgetOverride(categoryId: string, month: string) {
+  const { supabase, user } = await getAuthenticatedSupabase();
+  const { error } = await supabase
+    .from("finance_category_budgets")
+    .delete()
+    .eq("user_id", user.id)
+    .eq("category_id", categoryId)
+    .eq("month", `${month}-01`)
+    .eq("scope", "month");
 
   if (error) {
     throw new Error(normalizeFinanceRepositoryError(error));

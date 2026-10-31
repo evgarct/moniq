@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronDown, ChevronLeft, ChevronUp, PencilLine, Plus, Trash2 } from "lucide-react";
+import { format } from "date-fns";
 import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 
@@ -12,13 +13,13 @@ import { TransactionList } from "@/components/transaction-list";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BudgetInlineCategoryEditor } from "@/features/budget/components/budget-inline-category-editor";
-import { parseCategoryDescriptionAndBudget, serializeCategoryDescriptionAndBudget } from "@/features/budget/lib/budget-analytics";
+import type { CategoryBudgetChange } from "@/features/budget/lib/category-budget-changes";
 import { buildEnvelopeBudgetRows } from "@/features/budget/lib/envelope-budget";
 import { buildCategoryTree, getCategoryDescendantIds } from "@/features/categories/lib/category-tree";
 import { useBudgetTransactionEditor } from "@/features/budget/hooks/use-budget-transaction-editor";
 import { cn } from "@/lib/utils";
 import type { CurrencyCode } from "@/types/currency";
-import type { Category, CategoryTreeNode, CategoryType, FinanceSnapshot, Transaction } from "@/types/finance";
+import type { Category, CategoryBudgetScope, CategoryTreeNode, CategoryType, FinanceSnapshot, Transaction } from "@/types/finance";
 import type { CategoryInput } from "@/types/finance-schemas";
 
 export type CategoryEditorState =
@@ -72,51 +73,106 @@ export function InlineEditor({
   );
 }
 
+/**
+ * Plan of the selected month. A changed amount asks where it applies: this month only (an override) or
+ * from this month onward (a new base; earlier months keep their plan). An overridden month shows its
+ * base and a way back to it.
+ */
 function InlineBudgetInput({
-  category,
+  planned,
+  baseAmount,
+  isOverride,
   currency,
   onSave,
+  onRestoreBase,
 }: {
-  category: Category;
-  currency: string;
-  onSave: (values: CategoryInput) => void;
+  planned: number | null;
+  baseAmount: number | null;
+  isOverride: boolean;
+  currency: CurrencyCode;
+  onSave: (amount: number | null, scope: CategoryBudgetScope) => void;
+  onRestoreBase: () => void;
 }) {
   const t = useTranslations("budget.envelope");
-  const parsed = useMemo(() => parseCategoryDescriptionAndBudget(category.description), [category.description]);
-  const [value, setValue] = useState(parsed.plannedBudget !== null ? String(parsed.plannedBudget) : "");
+  const initial = planned !== null ? String(planned) : "";
+  const [value, setValue] = useState(initial);
+  const [pending, setPending] = useState<{ amount: number | null } | null>(null);
 
   const commit = () => {
     const trimmed = value.trim();
-    const budgetValue = trimmed === "" ? null : parseFloat(trimmed);
-    if (budgetValue === parsed.plannedBudget || (budgetValue !== null && Number.isNaN(budgetValue))) return;
+    const amount = trimmed === "" ? null : parseFloat(trimmed);
+    if (amount === planned || (amount !== null && (Number.isNaN(amount) || amount < 0))) {
+      setPending(null);
+      return;
+    }
+    setPending({ amount });
+  };
 
-    onSave({
-      name: category.name,
-      description: serializeCategoryDescriptionAndBudget(parsed.description, budgetValue) || null,
-      icon: category.icon,
-      type: category.type,
-      parent_id: category.parent_id,
-    });
+  const choose = (scope: CategoryBudgetScope) => {
+    if (!pending) return;
+    onSave(pending.amount, scope);
+    setPending(null);
+  };
+
+  const cancel = () => {
+    setValue(initial);
+    setPending(null);
   };
 
   return (
-    <div className="mt-0.5 flex items-center gap-1.5">
-      <Input
-        type="number"
-        inputMode="decimal"
-        step="any"
-        min="0"
-        placeholder={t("setBudget")}
-        aria-label={t("setBudget")}
-        value={value}
-        onChange={(event) => setValue(event.target.value)}
-        onBlur={commit}
-        onKeyDown={(event) => {
-          if (event.key === "Enter") event.currentTarget.blur();
-        }}
-        className="h-9 w-28 border-border/40 bg-background/50 px-2 text-sm font-medium tabular-nums focus:bg-background focus:ring-1 focus:ring-ring/25"
-      />
-      <span className="text-sm text-muted-foreground">{currency}</span>
+    <div className="mt-0.5 flex flex-col gap-1.5">
+      <div className="flex items-center gap-1.5">
+        <Input
+          type="number"
+          inputMode="decimal"
+          step="any"
+          min="0"
+          placeholder={t("setBudget")}
+          aria-label={t("setBudget")}
+          value={value}
+          onChange={(event) => {
+            setValue(event.target.value);
+            setPending(null);
+          }}
+          onBlur={commit}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") event.currentTarget.blur();
+          }}
+          className="h-9 w-28 border-border/40 bg-background/50 px-2 text-sm font-medium tabular-nums focus:bg-background focus:ring-1 focus:ring-ring/25"
+        />
+        <span className="text-sm text-muted-foreground">{currency}</span>
+      </div>
+      {pending ? (
+        <div role="group" aria-label={t("applyTo")} className="flex flex-wrap items-center gap-x-1 gap-y-1">
+          {pending.amount === null ? null : (
+            <Button type="button" variant="outline" size="sm" onMouseDown={(event) => event.preventDefault()} onClick={() => choose("month")}>
+              {t("scopeMonth")}
+            </Button>
+          )}
+          <Button type="button" variant="outline" size="sm" onMouseDown={(event) => event.preventDefault()} onClick={() => choose("from")}>
+            {t("scopeFrom")}
+          </Button>
+          <Button type="button" variant="ghost" size="sm" onMouseDown={(event) => event.preventDefault()} onClick={cancel}>
+            {t("scopeCancel")}
+          </Button>
+        </div>
+      ) : null}
+      {isOverride && !pending ? (
+        <div className="type-body-12 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-muted-foreground">
+          <span>{t("monthOverride")}</span>
+          <span aria-hidden>·</span>
+          {baseAmount === null ? (
+            <span>{t("baseNone")}</span>
+          ) : (
+            <span>
+              {t("baseLabel")} <MoneyAmount amount={baseAmount} currency={currency} display="absolute" showMinorUnits={false} />
+            </span>
+          )}
+          <Button type="button" variant="link" size="sm" onClick={onRestoreBase} className="h-auto p-0 text-xs">
+            {t("restoreBase")}
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -177,6 +233,8 @@ export function EnvelopeDetail({
   onEditState,
   onSave,
   onDelete,
+  onSaveBudget,
+  onClearBudgetOverride,
 }: {
   nodeId: string;
   month: Date;
@@ -192,8 +250,11 @@ export function EnvelopeDetail({
   onEditState: (state: CategoryEditorState | null) => void;
   onSave: (editor: CategoryEditorState, values: CategoryInput) => void;
   onDelete: (category: Category) => void;
+  onSaveBudget: (change: CategoryBudgetChange) => void;
+  onClearBudgetOverride: (categoryId: string, month: string) => void;
 }) {
   const t = useTranslations("budget");
+  const monthKey = format(month, "yyyy-MM");
   const summaryT = useTranslations("budget.summary");
   const categoriesTreeT = useTranslations("categories.tree");
   const currency = snapshot.preferences.default_currency;
@@ -211,16 +272,16 @@ export function EnvelopeDetail({
   const row = useMemo(
     () =>
       node
-        ? buildEnvelopeBudgetRows({ nodes: [node], categories: snapshot.categories, transactions, month, targetCurrency: currency, exchangeRates: snapshot.exchange_rates })[0]
+        ? buildEnvelopeBudgetRows({ nodes: [node], categories: snapshot.categories, transactions, month, targetCurrency: currency, exchangeRates: snapshot.exchange_rates, categoryBudgets: snapshot.category_budgets })[0]
         : null,
-    [node, snapshot.categories, snapshot.exchange_rates, transactions, month, currency],
+    [node, snapshot.categories, snapshot.exchange_rates, snapshot.category_budgets, transactions, month, currency],
   );
   const childRows = useMemo(
     () =>
       node
-        ? buildEnvelopeBudgetRows({ nodes: node.children, categories: snapshot.categories, transactions, month, targetCurrency: currency, exchangeRates: snapshot.exchange_rates })
+        ? buildEnvelopeBudgetRows({ nodes: node.children, categories: snapshot.categories, transactions, month, targetCurrency: currency, exchangeRates: snapshot.exchange_rates, categoryBudgets: snapshot.category_budgets })
         : [],
-    [node, snapshot.categories, snapshot.exchange_rates, transactions, month, currency],
+    [node, snapshot.categories, snapshot.exchange_rates, snapshot.category_budgets, transactions, month, currency],
   );
   const linkedTransactions = useMemo(
     () => transactions.filter((transaction) => transaction.category_id && categoryIds.has(transaction.category_id)),
@@ -299,7 +360,15 @@ export function EnvelopeDetail({
               ) : editMode ? (
                 row.planned !== null ? <MoneyAmount amount={row.planned} currency={currency} display="absolute" showMinorUnits={false} /> : <span className="text-muted-foreground">—</span>
               ) : (
-                <InlineBudgetInput key={node.id} category={node} currency={currency} onSave={(values) => onSave(editor || { mode: "edit", category: node }, values)} />
+                <InlineBudgetInput
+                  key={`${node.id}-${monthKey}-${row.planned ?? "none"}-${row.budgetSource}`}
+                  planned={row.planned}
+                  baseAmount={row.baseAmount}
+                  isOverride={row.budgetSource === "override"}
+                  currency={currency}
+                  onSave={(amount, scope) => onSaveBudget({ categoryId: node.id, month: monthKey, scope, amount })}
+                  onRestoreBase={() => onClearBudgetOverride(node.id, monthKey)}
+                />
               )}
             </dd>
           </div>

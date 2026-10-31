@@ -1,7 +1,12 @@
 import { isBefore, isSameMonth, parseISO, startOfToday } from "date-fns";
 import { buildBudgetExecution, getContributionCategoryIds } from "@/features/budget/lib/budget-execution";
 
-import { getConvertedCategoryTotal, parseCategoryDescriptionAndBudget } from "@/features/budget/lib/budget-analytics";
+import {
+  getConvertedCategoryTotal,
+  parseCategoryDescriptionAndBudget,
+  resolveCategoryBudget,
+  type CategoryBudgetRow,
+} from "@/features/budget/lib/budget-analytics";
 import { convertTransactionAnalyticsAmount } from "@/features/finance/lib/exchange-rates";
 import { getCategoryDescendantIds } from "@/features/categories/lib/category-tree";
 import { isSettledTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
@@ -21,6 +26,10 @@ export type EnvelopeBudgetRow = {
   node: CategoryTreeNode;
   /** Monthly plan in the default currency; null when no budget is set. */
   planned: number | null;
+  /** `override` when a month-scoped budget decides `planned`. */
+  budgetSource: "base" | "override";
+  /** The plan without the month override (the value "restore base" returns to). */
+  baseAmount: number | null;
   /** Converted spend of the envelope and all its subcategories; null when an FX rate is missing. */
   spent: number | null;
   /** Converted planned (not yet paid) transactions of the month; null when an FX rate is missing. */
@@ -107,12 +116,15 @@ export function buildEnvelopeBudgetRows(options: {
   month: Date;
   targetCurrency: CurrencyCode;
   exchangeRates: ExchangeRate[];
+  /** Monthly overrides and "from month" bases layered over the description plan. */
+  categoryBudgets?: CategoryBudgetRow[];
 }): EnvelopeBudgetRow[] {
   const execution = buildBudgetExecution(options.transactions, options.categories).transactions;
   const contributionIds = getContributionCategoryIds(options.categories);
   return options.nodes
     .map((node): EnvelopeBudgetRow => {
       const parsed = parseCategoryDescriptionAndBudget(node.description);
+      const resolved = resolveCategoryBudget(node, options.categoryBudgets, options.month);
       const totalOptions = {
         transactions: execution,
         month: options.month,
@@ -122,7 +134,7 @@ export function buildEnvelopeBudgetRows(options: {
       };
       const paid = getConvertedCategoryTotal(totalOptions);
       const pending = getConvertedCategoryTotal({ ...totalOptions, status: "planned" });
-      const planned = parsed.plannedBudget;
+      const planned = resolved.amount === null ? null : roundMoney(resolved.amount);
       const spent = paid.amount;
       const upcoming = pending.amount;
       const forecast = spent !== null && upcoming !== null ? roundMoney(spent + upcoming) : null;
@@ -136,6 +148,8 @@ export function buildEnvelopeBudgetRows(options: {
         description: parsed.description,
         node,
         planned,
+        budgetSource: resolved.source,
+        baseAmount: resolved.baseAmount === null ? null : roundMoney(resolved.baseAmount),
         spent,
         upcoming,
         forecast,

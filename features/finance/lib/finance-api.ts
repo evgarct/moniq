@@ -250,6 +250,35 @@ export async function updateCategoryRequest(categoryId: string, values: Category
   return parseJsonResponse<FinanceSnapshot>(response);
 }
 
+export async function saveCategoryBudgetRequest(
+  categoryId: string,
+  values: { month: string; scope: "month" | "from"; amount: number | null },
+): Promise<FinanceSnapshot> {
+  const response = await fetchWithTimeout(`/api/categories/${categoryId}/budget`, {
+    method: "PUT",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(values),
+  });
+
+  return parseJsonResponse<FinanceSnapshot>(response);
+}
+
+export async function clearCategoryBudgetOverrideRequest(categoryId: string, month: string): Promise<FinanceSnapshot> {
+  const response = await fetchWithTimeout(`/api/categories/${categoryId}/budget`, {
+    method: "DELETE",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ month }),
+  });
+
+  return parseJsonResponse<FinanceSnapshot>(response);
+}
+
 export async function deleteCategoryRequest(categoryId: string, replacementCategoryId: string | null): Promise<FinanceSnapshot> {
   const response = await fetchWithTimeout(`/api/categories/${categoryId}`, {
     method: "DELETE",

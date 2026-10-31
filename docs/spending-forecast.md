@@ -23,7 +23,7 @@ The digest never waits for the model. If the service is down, the cron logs `spe
 | Forecast service (FastAPI + Chronos) | `services/moniq-forecast` (README has setup and deploy) |
 | Domain rules (series, statuses, baseline, overrun date) | `features/budget/lib/spending-forecast.ts` |
 | Orchestration per user, injectable for tests | `features/budget/lib/spending-forecast-run.ts` |
-| Service-role database access | `features/budget/server/spending-forecast-db.ts` |
+| Service-role database access (also loads the user's monthly budget layers, so the forecast compares against the month's effective budget: override, else latest "from month" base, else the description plan) | `features/budget/server/spending-forecast-db.ts` |
 | Model client (timeout, response validation) | `lib/forecast/client.ts` |
 | Cron route | `app/api/cron/spending-forecast/route.ts`, scheduled in `vercel.json` |
 | Table, source RPC, MCP read RPC | `supabase/migrations/20261026120000_spending_forecasts.sql` |

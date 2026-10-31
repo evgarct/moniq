@@ -35,7 +35,7 @@ import { resolveUserPreferences } from "@/features/finance/lib/preferences";
 import { getRequestTranslator } from "@/i18n/translator";
 import { createAnonClient } from "@/lib/supabase/anon";
 import type { CurrencyCode } from "@/types/currency";
-import type { Account, Category, ExchangeRate, Transaction, WalletAllocation } from "@/types/finance";
+import type { Account, Category, CategoryBudgetRow, ExchangeRate, Transaction, WalletAllocation } from "@/types/finance";
 import { getMcpWwwAuthenticate } from "./auth-metadata";
 import {
   MONIQ_WIDGET_MIME_TYPE,
@@ -180,6 +180,7 @@ const MCP_MUTATION_TOOLS = new Set([
   "create_category",
   "update_category",
   "set_budgets",
+  "clear_budget_override",
   "create_savings_goal",
   "update_savings_goal",
   "delete_savings_goal",
@@ -1173,7 +1174,7 @@ function getMcpTools() {
           name: "set_budgets",
           title: "Set monthly budgets",
           description:
-            "Set or clear the monthly budget of several top-level expense categories in one call (all or nothing). Amounts are in the user's default currency (default_currency in get_finance_context); budget_amount null clears a budget. A budget applies to every month. Use get_budget_status to see the current plans and spend first, and confirm the new amounts with the user.",
+            "Set or clear the monthly budget of several top-level expense categories in one call (all or nothing). Amounts are in the user's default currency (default_currency in get_finance_context); budget_amount null clears a budget. Without month and scope this changes the base budget, which applies to every month that has no later change. With month (YYYY-MM) and scope: 'month' sets a one-month override (budget_amount required; undo it with clear_budget_override), 'from_month' sets a new base from that month onward and leaves earlier months untouched (null means no plan from then on). Use get_budget_status to see the current plans, budget_source and base_amount first, and confirm the new amounts with the user.",
           annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: true },
           outputSchema: widgetOutputSchema("Updated budgets"),
           inputSchema: {
@@ -1182,6 +1183,13 @@ function getMcpTools() {
             required: ["budgets"],
             additionalProperties: false,
             properties: {
+              month: { type: "string", pattern: "^\\d{4}-(0[1-9]|1[0-2])$", title: "Month (YYYY-MM)", description: "Requires scope. Omit both to change the base budget." },
+              scope: {
+                type: "string",
+                enum: ["month", "from_month"],
+                title: "Scope",
+                description: "'month' changes only that month; 'from_month' changes the base from that month onward. Requires month.",
+              },
               budgets: {
                 type: "array",
                 title: "Budgets",
@@ -1197,6 +1205,24 @@ function getMcpTools() {
                   },
                 },
               },
+            },
+          },
+        },
+        {
+          name: "clear_budget_override",
+          title: "Clear a month's budget override",
+          description:
+            "Remove the one-month budget override of a top-level expense category so the base budget applies to that month again. Only the override is deleted; the base budget, other months and all transactions stay untouched. Fails when the month has no override (see budget_source in get_budget_status).",
+          annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
+          outputSchema: widgetOutputSchema("Cleared budget override"),
+          inputSchema: {
+            type: "object",
+            title: "Budget override",
+            required: ["category_id", "month"],
+            additionalProperties: false,
+            properties: {
+              category_id: { type: "string", title: "Top-level expense category ID" },
+              month: { type: "string", pattern: "^\\d{4}-(0[1-9]|1[0-2])$", title: "Month (YYYY-MM)" },
             },
           },
         },
@@ -1724,7 +1750,18 @@ async function handleCategorySpendingReportTool(
     };
   }
 
+  // The per-month plan only matters for a single-month report; if it cannot be read the report fails
+  // instead of silently showing the base plan for a month that may have an override.
+  let categoryBudgets: CategoryBudgetRow[] | undefined;
+  if (report.period.start_date.slice(0, 7) === report.period.end_date.slice(0, 7)) {
+    const loaded = await loadCategoryBudgetRows(db, keyHash);
+    if (!loaded) {
+      return { jsonrpc: "2.0", id, error: { code: -32000, message: t("mcp.errors.spendingReportLoadFailed") } };
+    }
+    categoryBudgets = loaded;
+  }
   const compactReport = shapeCategorySpendingReport(report, {
+    categoryBudgets,
     detail,
     includeTransactions: typeof args.include_transactions === "boolean" ? args.include_transactions : undefined,
     limit: typeof args.transactions_limit === "number" ? args.transactions_limit : undefined,
@@ -3066,6 +3103,10 @@ const CATEGORY_RPC_ERRORS: { pattern: RegExp; key: string; param?: string }[] = 
   { pattern: /^budget_amount can only be set/, key: "mcp.errors.categoryBudgetTopLevelExpense" },
   { pattern: /^Each category can appear only once/, key: "mcp.errors.budgetDuplicateCategory" },
   { pattern: /^(budgets must be a non-empty array|Each budget needs category_id)/, key: "mcp.errors.budgetsRequired" },
+  { pattern: /^(month and scope must be provided together|scope must be month or from_month)/, key: "mcp.errors.budgetScopeInvalid" },
+  { pattern: /^month must be YYYY-MM/, key: "mcp.errors.invalidBudgetMonth" },
+  { pattern: /^A month override needs an amount/, key: "mcp.errors.budgetOverrideNeedsAmount" },
+  { pattern: /^No budget override for this month/, key: "mcp.errors.budgetOverrideNotFound" },
 ];
 
 const SET_BUDGETS_MAX_ITEMS = 100;
@@ -3076,8 +3117,13 @@ async function handleSetBudgets(
   keyHash: string,
   t: McpTranslator,
 ): Promise<McpResponse> {
-  const args = (params.arguments ?? {}) as { budgets?: unknown };
+  const args = (params.arguments ?? {}) as { budgets?: unknown; month?: unknown; scope?: unknown };
   const invalid = (message: string): McpResponse => ({ jsonrpc: "2.0", id, error: { code: -32602, message } });
+  const hasMonth = args.month !== undefined && args.month !== null;
+  const hasScope = args.scope !== undefined && args.scope !== null;
+  if (hasMonth !== hasScope) return invalid(t("mcp.errors.budgetScopeInvalid"));
+  if (hasMonth && (typeof args.month !== "string" || !parseBudgetMonth(args.month))) return invalid(t("mcp.errors.invalidBudgetMonth"));
+  if (hasScope && args.scope !== "month" && args.scope !== "from_month") return invalid(t("mcp.errors.budgetScopeInvalid"));
   if (!Array.isArray(args.budgets) || args.budgets.length === 0) return invalid(t("mcp.errors.budgetsRequired"));
   if (args.budgets.length > SET_BUDGETS_MAX_ITEMS) return invalid(t("mcp.errors.budgetsTooMany", { max: SET_BUDGETS_MAX_ITEMS }));
 
@@ -3086,6 +3132,8 @@ async function handleSetBudgets(
     const categoryId = isRecord(item) ? optionalString(item.category_id) : null;
     if (!isRecord(item) || !categoryId || !("budget_amount" in item)) return invalid(t("mcp.errors.budgetsRequired"));
     if (item.budget_amount !== null && !isNonNegativeNumber(item.budget_amount)) return invalid(t("mcp.errors.categoryBudgetInvalid"));
+    // A month override is a plan for that month; removing it is clear_budget_override, not a null amount.
+    if (args.scope === "month" && item.budget_amount === null) return invalid(t("mcp.errors.budgetOverrideNeedsAmount"));
     budgets.push({ category_id: categoryId, budget_amount: item.budget_amount as number | null });
   }
   if (new Set(budgets.map((budget) => budget.category_id)).size !== budgets.length) {
@@ -3093,12 +3141,55 @@ async function handleSetBudgets(
   }
 
   return localizeCategoryRpcError(
-    await callRecurringRpc(id, "mcp_set_category_budgets", { p_key_hash: keyHash, p_budgets: budgets }, t("mcp.success.budgetsSet"), t),
+    await callRecurringRpc(
+      id,
+      "mcp_set_category_budgets",
+      { p_key_hash: keyHash, p_budgets: budgets, p_month: hasMonth ? args.month : null, p_scope: hasScope ? args.scope : null },
+      t("mcp.success.budgetsSet"),
+      t,
+    ),
+    t,
+  );
+}
+
+async function handleClearBudgetOverride(
+  id: string | number | null,
+  params: Record<string, unknown>,
+  keyHash: string,
+  t: McpTranslator,
+): Promise<McpResponse> {
+  const args = (params.arguments ?? {}) as { category_id?: unknown; month?: unknown };
+  const categoryId = optionalString(args.category_id);
+  if (!categoryId) return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.budgetsRequired") } };
+  if (typeof args.month !== "string" || !parseBudgetMonth(args.month)) {
+    return { jsonrpc: "2.0", id, error: { code: -32602, message: t("mcp.errors.invalidBudgetMonth") } };
+  }
+
+  return localizeCategoryRpcError(
+    await callRecurringRpc(
+      id,
+      "mcp_clear_budget_override",
+      { p_key_hash: keyHash, p_category_id: categoryId, p_month: args.month },
+      t("mcp.success.budgetOverrideCleared"),
+      t,
+    ),
     t,
   );
 }
 
 type ExchangeRateRow = Omit<ExchangeRate, "rate"> & { rate: number | string };
+
+/** Monthly budget layers of the key owner; null when they cannot be read, so a plan is never silently wrong. */
+async function loadCategoryBudgetRows(db: ReturnType<typeof createAnonClient>, keyHash: string): Promise<CategoryBudgetRow[] | null> {
+  const { data, error } = await db.rpc("mcp_get_category_budgets", { p_key_hash: keyHash });
+  if (error) return null;
+  return (Array.isArray(data) ? data : []).map((row): CategoryBudgetRow => ({
+    category_id: String(row.category_id),
+    month: String(row.month),
+    scope: row.scope === "month" ? "month" : "from",
+    amount: row.amount === null || row.amount === undefined ? null : Number(row.amount),
+  }));
+}
 
 async function handleGetBudgetStatusTool(
   id: string | number | null,
@@ -3128,7 +3219,11 @@ async function handleGetBudgetStatusTool(
     typeof source.default_currency === "string" ? (source.default_currency as CurrencyCode) : null,
     accounts,
   ).default_currency;
-  const status = buildBudgetStatus({ categories, transactions, month, targetCurrency: currency, exchangeRates });
+  const categoryBudgets = await loadCategoryBudgetRows(db, keyHash);
+  if (!categoryBudgets) {
+    return { jsonrpc: "2.0", id, error: { code: -32000, message: t("mcp.errors.budgetStatusLoadFailed") } };
+  }
+  const status = buildBudgetStatus({ categories, transactions, month, targetCurrency: currency, exchangeRates, categoryBudgets });
 
   return { jsonrpc: "2.0", id, result: { content: [{ type: "text", text: JSON.stringify(status) }], structuredContent: status } };
 }
@@ -3618,6 +3713,7 @@ async function handleToolCall(
   if (toolName === "create_category") return handleCreateCategory(id, params, auth.keyHash, t);
   if (toolName === "update_category") return handleUpdateCategory(id, params, auth.keyHash, t);
   if (toolName === "set_budgets") return handleSetBudgets(id, params, auth.keyHash, t);
+  if (toolName === "clear_budget_override") return handleClearBudgetOverride(id, params, auth.keyHash, t);
   if (toolName === "get_budget_status") {
     return handleGetBudgetStatusTool(id, (params.arguments ?? {}) as Record<string, unknown>, auth.keyHash, t);
   }
