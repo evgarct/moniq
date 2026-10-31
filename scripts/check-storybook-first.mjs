@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 
 const base = process.env.STORYBOOK_BASE_REF || process.argv[2] || "origin/main";
-const diffOutput = execFileSync("git", ["diff", "--name-only", base], { encoding: "utf8" });
+const diffOutput = execFileSync("git", ["diff", "--name-only", "--diff-filter=d", base], { encoding: "utf8" });
 const untrackedOutput = execFileSync("git", ["ls-files", "--others", "--exclude-standard"], { encoding: "utf8" });
 const changed = [...new Set(`${diffOutput}\n${untrackedOutput}`.split(/\r?\n/).filter(Boolean))];
 const runtimeUi = changed.filter((path) =>
