@@ -5,6 +5,7 @@ import { resolveUserPreferences } from "@/features/finance/lib/preferences";
 import type {
   Account,
   Category,
+  CategoryBudgetRow,
   ExchangeRate,
   FinanceSnapshot,
   InvestmentInstrument,
@@ -70,7 +71,7 @@ function nullableNumber(value: unknown) {
 }
 
 export async function readSyncedFinanceSnapshot(db: AbstractPowerSyncDatabase): Promise<FinanceSnapshot | null> {
-  const [walletRows, categoryRows, allocationRows, scheduleRows, transactionRows, preferenceRows, rateRows, positionRows, instrumentRows, quoteRows] = await Promise.all([
+  const [walletRows, categoryRows, allocationRows, scheduleRows, transactionRows, preferenceRows, rateRows, positionRows, instrumentRows, quoteRows, budgetRows] = await Promise.all([
     db.getAll<Row>("select * from wallets order by created_at desc"),
     db.getAll<Row>("select * from finance_categories order by created_at"),
     db.getAll<Row>("select * from wallet_allocations order by created_at"),
@@ -81,6 +82,7 @@ export async function readSyncedFinanceSnapshot(db: AbstractPowerSyncDatabase): 
     db.getAll<Row>("select * from investment_positions order by created_at"),
     db.getAll<Row>("select * from investment_instruments"),
     db.getAll<Row>("select * from investment_quotes order by market_date desc"),
+    db.getAll<Row>("select * from finance_category_budgets"),
   ]);
 
   const hasAnySyncedRows = walletRows.length + categoryRows.length + transactionRows.length + preferenceRows.length > 0;
@@ -259,5 +261,12 @@ export async function readSyncedFinanceSnapshot(db: AbstractPowerSyncDatabase): 
     ? { default_currency: preference.default_currency as CurrencyCode, default_currency_source: "saved" as const, sync_version: Number(preference.sync_version ?? 1) }
     : resolveUserPreferences(null, accounts);
 
-  return { ...fallback, accounts, categories, allocations, schedules, transactions, preferences, exchange_rates, investment_positions };
+  const category_budgets: CategoryBudgetRow[] = budgetRows.map((row) => ({
+    category_id: row.category_id,
+    month: row.month,
+    scope: row.scope,
+    amount: nullableNumber(row.amount),
+  }));
+
+  return { ...fallback, accounts, categories, allocations, schedules, transactions, preferences, exchange_rates, investment_positions, category_budgets };
 }

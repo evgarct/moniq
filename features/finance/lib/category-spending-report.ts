@@ -1,9 +1,9 @@
 import { addMonths, endOfMonth, format, isValid, parseISO, startOfMonth, subMonths } from "date-fns";
 
-import { parseCategoryDescriptionAndBudget } from "@/features/budget/lib/budget-analytics";
+import { parseCategoryDescriptionAndBudget, resolveCategoryBudget } from "@/features/budget/lib/budget-analytics";
 import { getContributionCategoryIds } from "@/features/budget/lib/budget-execution";
 import { getTransactionAnalyticsAmount, getTransactionPrimaryAccount } from "@/features/transactions/lib/transaction-utils";
-import type { Category, Transaction } from "@/types/finance";
+import type { Category, CategoryBudgetRow, Transaction } from "@/types/finance";
 
 export type CategorySpendingPeriodInput = {
   period_preset?: "last_complete_month";
@@ -694,8 +694,10 @@ function compactNode(
   node: CategorySpendingNode,
   includeChildren: boolean,
   budgetCurrency: string | null,
+  resolvePlanned: (node: CategorySpendingNode, basePlanned: number | null) => number | null,
 ): CompactCategorySpendingNode | null {
-  const parsed = parseCategoryDescriptionAndBudget(node.description);
+  const parsedDescription = parseCategoryDescriptionAndBudget(node.description);
+  const parsed = { description: parsedDescription.description, plannedBudget: resolvePlanned(node, parsedDescription.plannedBudget) };
   // A budgeted category stays visible even when nothing was spent, so "remaining" is not lost.
   if (node.transaction_count === 0 && parsed.plannedBudget === null) return null;
 
@@ -722,7 +724,7 @@ function compactNode(
     budget,
     categories: includeChildren
       ? categories
-          .map((child) => compactNode(child, true, budgetCurrency))
+          .map((child) => compactNode(child, true, budgetCurrency, resolvePlanned))
           .filter((child): child is CompactCategorySpendingNode => child !== null)
       : [],
   };
@@ -754,6 +756,8 @@ export function shapeCategorySpendingReport(
     limit?: number;
     offset?: number;
     budgetCurrency?: string | null;
+    /** Monthly overrides and "from month" bases; applied when the report covers exactly one month. */
+    categoryBudgets?: CategoryBudgetRow[];
   } = {},
 ): CompactCategorySpendingReport {
   const detail = options.detail ?? "categories";
@@ -762,7 +766,13 @@ export function shapeCategorySpendingReport(
   const limit = Math.min(Math.max(Math.floor(options.limit ?? DEFAULT_REPORT_TRANSACTIONS_LIMIT), 1), MAX_REPORT_TRANSACTIONS_LIMIT);
   const offset = Math.max(Math.floor(options.offset ?? 0), 0);
   // A monthly budget only makes sense against exactly one complete calendar month.
-  const budgetCurrency = isSingleCalendarMonth(report.period) ? options.budgetCurrency ?? null : null;
+  const singleMonth = isSingleCalendarMonth(report.period);
+  const budgetCurrency = singleMonth ? options.budgetCurrency ?? null : null;
+  const budgetRows = options.categoryBudgets;
+  const resolvePlanned = (node: CategorySpendingNode, basePlanned: number | null) => {
+    if (!singleMonth || !budgetRows?.length) return basePlanned;
+    return resolveCategoryBudget({ id: node.category_id, description: node.description }, budgetRows, report.period.start_date).amount;
+  };
 
   const shaped: CompactCategorySpendingReport = {
     period: report.period,
@@ -770,10 +780,10 @@ export function shapeCategorySpendingReport(
     summary: report.summary,
     currencies: report.currencies,
     envelopes: report.envelopes
-      .map((node) => compactNode(node, includeTree, budgetCurrency))
+      .map((node) => compactNode(node, includeTree, budgetCurrency, resolvePlanned))
       .filter((node): node is CompactCategorySpendingNode => node !== null),
     income_categories: report.income_categories
-      .map((node) => compactNode(node, includeTree, budgetCurrency))
+      .map((node) => compactNode(node, includeTree, budgetCurrency, resolvePlanned))
       .filter((node): node is CompactCategorySpendingNode => node !== null),
     uncategorized: report.uncategorized.map((group) => ({
       kind: group.kind,

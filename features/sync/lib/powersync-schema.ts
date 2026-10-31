@@ -72,6 +72,17 @@ const categories = new Table({
   sync_version: column.integer,
 });
 
+const categoryBudgets = new Table({
+  user_id: column.text,
+  category_id: column.text,
+  month: column.text,
+  scope: column.text,
+  amount: column.real,
+  created_at: column.text,
+  updated_at: column.text,
+  sync_version: column.integer,
+});
+
 const transactions = new Table({
   posted_destination_amount: column.real,
   is_explicit_reschedule: column.integer,
@@ -183,6 +194,7 @@ export const moniqPowerSyncSchema = new Schema({
   wallets,
   wallet_allocations: walletAllocations,
   finance_categories: categories,
+  finance_category_budgets: categoryBudgets,
   finance_transactions: transactions,
   finance_transaction_schedules: schedules,
   user_preferences: preferences,
@@ -196,6 +208,7 @@ export const POWER_SYNCED_TABLES = [
   "wallets",
   "wallet_allocations",
   "finance_categories",
+  "finance_category_budgets",
   "finance_transactions",
   "finance_transaction_schedules",
   "user_preferences",

@@ -22,6 +22,8 @@ import {
   setTransactionScheduleStateRequest,
   skipTransactionOccurrenceRequest,
   updateCategoryRequest,
+  saveCategoryBudgetRequest,
+  clearCategoryBudgetOverrideRequest,
   updateTransactionRequest,
   updateTransactionScheduleRequest,
   updateUserPreferencesRequest,
@@ -29,6 +31,11 @@ import {
   updateWalletRequest,
   saveInvestmentPositionRequest,
 } from "@/features/finance/lib/finance-api";
+import {
+  applyCategoryBudgetChange,
+  clearCategoryBudgetOverrideRows,
+  type CategoryBudgetChange,
+} from "@/features/budget/lib/category-budget-changes";
 import { applyRecurringOccurrenceChanges } from "@/features/transactions/lib/recurring-occurrence-changes";
 import { savePositionOptimistically } from "@/features/investments/lib/positions";
 import {
@@ -512,6 +519,43 @@ export function useFinanceActions() {
           baseVersion: mode === "add" ? null : entityVersion("category", categoryId),
           payload: mapCategoryValues(values, resolveId),
         }),
+      );
+    },
+    /** Needs the network: not queued for local-first replay (the online snapshot path stays the source of truth). */
+    saveCategoryBudget(change: CategoryBudgetChange, options?: ActionOptions) {
+      return execute(
+        {
+          apply: (snapshot, resolveId) => ({
+            ...snapshot,
+            category_budgets: applyCategoryBudgetChange(snapshot.category_budgets ?? [], {
+              ...change,
+              categoryId: resolveRequiredId(resolveId, change.categoryId),
+            }),
+          }),
+          request: (resolveId) =>
+            saveCategoryBudgetRequest(resolveRequiredId(resolveId, change.categoryId), {
+              month: change.month,
+              scope: change.scope,
+              amount: change.amount,
+            }),
+        },
+        options,
+      );
+    },
+    clearCategoryBudgetOverride(categoryId: string, month: string, options?: ActionOptions) {
+      return execute(
+        {
+          apply: (snapshot, resolveId) => ({
+            ...snapshot,
+            category_budgets: clearCategoryBudgetOverrideRows(
+              snapshot.category_budgets ?? [],
+              resolveRequiredId(resolveId, categoryId),
+              month,
+            ),
+          }),
+          request: (resolveId) => clearCategoryBudgetOverrideRequest(resolveRequiredId(resolveId, categoryId), month),
+        },
+        options,
       );
     },
     deleteCategory(

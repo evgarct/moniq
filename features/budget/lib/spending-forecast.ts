@@ -1,4 +1,5 @@
-import { parseCategoryDescriptionAndBudget } from "@/features/budget/lib/budget-analytics";
+import { resolveCategoryBudget } from "@/features/budget/lib/budget-analytics";
+import type { CategoryBudgetRow } from "@/types/finance";
 import { roundMoney } from "@/features/budget/lib/envelope-budget";
 import { convertMoney } from "@/features/finance/lib/exchange-rates";
 import type { CurrencyCode } from "@/types/currency";
@@ -16,6 +17,8 @@ export type SpendingForecastMethod = "chronos" | "baseline";
 /** JSON returned by the service-only SQL function `spending_forecast_source`. */
 export type SpendingForecastSource = {
   default_currency: CurrencyCode | null;
+  /** Monthly overrides and "from month" bases layered over each category's description plan. */
+  category_budgets?: CategoryBudgetRow[];
   wallets: Array<{ id: string; currency: CurrencyCode }>;
   categories: Array<{
     id: string;
@@ -157,7 +160,7 @@ export function buildForecastInputs(source: SpendingForecastSource, today: strin
   for (const category of source.categories) {
     if (category.parent_id !== null || category.type !== "expense") continue;
     if (category.is_contribution || category.purpose === "investment") continue;
-    const { plannedBudget } = parseCategoryDescriptionAndBudget(category.description);
+    const plannedBudget = resolveCategoryBudget(category, source.category_budgets, context.month).amount;
     if (plannedBudget === null || plannedBudget <= 0) continue;
     budgeted.set(category.id, { name: category.name, icon: category.icon, budget: plannedBudget });
   }

@@ -32,6 +32,7 @@ import {
 } from "@/features/budget/lib/envelope-budget";
 import { CategoryDeleteSheet } from "@/features/categories/components/category-delete-sheet";
 import { buildCategoryTree, getManageableCategories } from "@/features/categories/lib/category-tree";
+import type { CategoryBudgetChange } from "@/features/budget/lib/category-budget-changes";
 import { useFinanceActions } from "@/features/finance/hooks/use-finance-actions";
 import { isVisibleTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
 import { calDate } from "@/lib/formatters";
@@ -154,8 +155,8 @@ export function BudgetView({
   );
   const categoryTree = useMemo(() => buildCategoryTree(manageableCategories, monthTransactions), [manageableCategories, monthTransactions]);
   const rowOptions = useMemo(
-    () => ({ categories: snapshot.categories, transactions: monthTransactions, month, targetCurrency: currency, exchangeRates: snapshot.exchange_rates }),
-    [snapshot.categories, snapshot.exchange_rates, monthTransactions, month, currency],
+    () => ({ categories: snapshot.categories, transactions: monthTransactions, month, targetCurrency: currency, exchangeRates: snapshot.exchange_rates, categoryBudgets: snapshot.category_budgets }),
+    [snapshot.categories, snapshot.exchange_rates, snapshot.category_budgets, monthTransactions, month, currency],
   );
   const expenseRows = useMemo(
     () => buildEnvelopeBudgetRows({ ...rowOptions, nodes: categoryTree.filter((node) => node.type === "expense") }),
@@ -234,7 +235,23 @@ export function BudgetView({
     setActionError(null);
   }
 
+  function saveBudget(change: CategoryBudgetChange) {
+    financeActions.saveCategoryBudget(change, {
+      onError: (error) => setActionError(error instanceof Error ? error.message : categoriesT("saveError")),
+    });
+    setActionError(null);
+  }
+
+  function clearBudgetOverride(categoryId: string, overrideMonth: string) {
+    financeActions.clearCategoryBudgetOverride(categoryId, overrideMonth, {
+      onError: (error) => setActionError(error instanceof Error ? error.message : categoriesT("saveError")),
+    });
+    setActionError(null);
+  }
+
   const detailProps = {
+    onSaveBudget: saveBudget,
+    onClearBudgetOverride: clearBudgetOverride,
     month,
     transactions: monthTransactions,
     snapshot,

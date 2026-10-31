@@ -22,6 +22,19 @@ A compact 13-month strip (net cashflow) sits above the summary and is the month 
 
 A plan is one number in `preferences.default_currency`, stored as a `[budget: N]` prefix of the category description. Plans exist only on **top-level expense categories** (the same rule the MCP tools enforce); the category form hides the field elsewhere. Per envelope: `left = planned - spent`, `percentUsed = spent / planned`, status `ok`, `near` (>= 85%), `over` (spent > planned), `unplanned` (no plan) or `unavailable` (missing FX rate). Rows are sorted over-budget first (most over first), then closest to plan, then unplanned by spend, then unavailable.
 
+### Monthly budgets
+
+The `[budget: N]` prefix is the **base** plan, valid for every month. Two kinds of layers sit on top of it in `finance_category_budgets` (one row per `category, month, scope`, unique, RLS-owned, synced by PowerSync):
+
+- `scope = month` — an override for exactly one month ("this month only");
+- `scope = from` — a new base from that month onward ("this month onward"); earlier months keep their plan. `amount` null means no plan from then on.
+
+The plan of month M is resolved by one rule everywhere (`resolveCategoryBudget` in `budget-analytics.ts`, mirrored by the MCP/report/forecast callers): the month's override, else the latest `from` row at or before M, else the description prefix. `EnvelopeBudgetRow` carries `budgetSource` (`base` | `override`) and `baseAmount` (the plan without the override). Spend history is never touched by any of this; clearing an override only deletes its row.
+
+In the envelope detail, changing the plan asks "This month only / This month onward"; an overridden month shows "Changed for this month · Base N" and a "Restore base" action (`clearCategoryBudgetOverride`). Edits go through `useFinanceActions().saveCategoryBudget` (optimistic, rolled back with a toast; needs the network, not queued for offline replay) and `PUT/DELETE /api/categories/[categoryId]/budget`. The category form's "Planned budget" field still edits the base prefix.
+
+The forecast job (`docs/spending-forecast.md`), `get_budget_status`, `get_category_spending_report` (single-month periods) and `get_finance_context.budget_amount` (base only) read the same layers. "Fill from planned operations" is not built yet.
+
 ## Page Layout
 
 Mobile (below 1024px, one layout for every width) is a single list; desktop keeps the two-panel layout.

@@ -249,6 +249,7 @@ describe("MCP tools", () => {
       "create_category",
       "update_category",
       "set_budgets",
+      "clear_budget_override",
       "create_savings_goal",
       "update_savings_goal",
       "delete_savings_goal",
@@ -1089,6 +1090,15 @@ describe("MCP tools", () => {
     await expect(budgets.json()).resolves.toMatchObject({ result: expectedToolFailure({ code: -32002 }) });
     expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_set_category_budgets", expect.anything());
 
+    const override = await postMcp({
+      jsonrpc: "2.0",
+      id: "override-blocked",
+      method: "tools/call",
+      params: { name: "clear_budget_override", arguments: { category_id: "living", month: "2026-11" } },
+    });
+    await expect(override.json()).resolves.toMatchObject({ result: expectedToolFailure({ code: -32002 }) });
+    expect(mocks.rpc).not.toHaveBeenCalledWith("mcp_clear_budget_override", expect.anything());
+
     // Reading the budget stays available without the entitlement.
     await postMcp({ jsonrpc: "2.0", id: "status-open", method: "tools/call", params: { name: "get_budget_status", arguments: {} } });
     expect(mocks.rpc).toHaveBeenCalledWith("mcp_get_budget_status_source", expect.anything());
@@ -1520,6 +1530,8 @@ describe("MCP tools", () => {
     expect(mocks.rpc).toHaveBeenCalledWith("mcp_set_category_budgets", {
       p_key_hash: AUTH_KEY_HASH,
       p_budgets: [{ category_id: "living", budget_amount: 9000 }, { category_id: "fun", budget_amount: null }],
+      p_month: null,
+      p_scope: null,
     });
 
     const child = await postMcp(
@@ -1531,8 +1543,81 @@ describe("MCP tools", () => {
     });
   });
 
+  it("passes month and scope through to the budget RPC and reports override sources in the status", async () => {
+    const category = { id: "enjoy", user_id: "user-1", name: "Enjoy Life", description: "[budget: 9000]", icon: null, type: "expense", parent_id: null, is_system: false, created_at: "2026-01-01" };
+    mocks.rpc.mockImplementation((name: string) => {
+      const authResponse = authRpcResponse(name);
+      if (authResponse) return authResponse;
+      if (name === "mcp_lookup_api_key") return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
+      if (name === "mcp_set_category_budgets") return Promise.resolve({ data: { budgets: [{ category_id: "enjoy", name: "Enjoy Life", budget_amount: 49900, month: "2026-11", scope: "month" }] }, error: null });
+      if (name === "mcp_get_category_budgets") {
+        return Promise.resolve({ data: [{ category_id: "enjoy", month: "2026-11-01", scope: "month", amount: 49900 }, { category_id: "enjoy", month: "2026-12-01", scope: "from", amount: 13000 }], error: null });
+      }
+      if (name === "mcp_get_budget_status_source") {
+        return Promise.resolve({ data: { default_currency: "CZK", wallets: [{ id: "czk", user_id: "user-1", name: "Card", type: "cash", currency: "CZK", balance: 0, created_at: "2026-01-01" }], categories: [category], transactions: [], exchange_rates: [] }, error: null });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    const set = await postMcp({
+      jsonrpc: "2.0",
+      id: "set-month",
+      method: "tools/call",
+      params: { name: "set_budgets", arguments: { month: "2026-11", scope: "month", budgets: [{ category_id: "enjoy", budget_amount: 49900 }] } },
+    });
+    await expect(set.json()).resolves.toMatchObject({ result: { structuredContent: { budgets: [{ month: "2026-11", scope: "month" }] } } });
+    expect(mocks.rpc).toHaveBeenCalledWith("mcp_set_category_budgets", {
+      p_key_hash: AUTH_KEY_HASH,
+      p_budgets: [{ category_id: "enjoy", budget_amount: 49900 }],
+      p_month: "2026-11",
+      p_scope: "month",
+    });
+
+    const status = async (month: string) => {
+      const response = await postMcp({ jsonrpc: "2.0", id: `status-${month}`, method: "tools/call", params: { name: "get_budget_status", arguments: { month } } });
+      return (await response.json()).result.structuredContent.envelopes[0];
+    };
+    expect(await status("2026-11")).toMatchObject({ planned: 49900, budget_source: "override", base_amount: 9000 });
+    expect(await status("2026-10")).toMatchObject({ planned: 9000, budget_source: "base", base_amount: 9000 });
+    expect(await status("2026-12")).toMatchObject({ planned: 13000, budget_source: "base", base_amount: 13000 });
+  });
+
+  it("clears a month override through its own RPC and localizes a missing override", async () => {
+    mocks.rpc.mockImplementation((name: string, payload: { p_month?: string }) => {
+      const authResponse = authRpcResponse(name);
+      if (authResponse) return authResponse;
+      if (name === "mcp_lookup_api_key") return Promise.resolve({ data: [{ id: "key-1", user_id: "user-1" }], error: null });
+      if (name === "mcp_clear_budget_override") {
+        return payload.p_month === "2026-12"
+          ? Promise.resolve({ data: null, error: { message: "No budget override for this month" } })
+          : Promise.resolve({ data: { category_id: "enjoy", month: "2026-11", cleared: true }, error: null });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    const cleared = await postMcp({ jsonrpc: "2.0", id: "clear", method: "tools/call", params: { name: "clear_budget_override", arguments: { category_id: "enjoy", month: "2026-11" } } });
+    await expect(cleared.json()).resolves.toMatchObject({ result: { structuredContent: { cleared: true } } });
+    expect(mocks.rpc).toHaveBeenCalledWith("mcp_clear_budget_override", { p_key_hash: AUTH_KEY_HASH, p_category_id: "enjoy", p_month: "2026-11" });
+
+    const missing = await postMcp(
+      { jsonrpc: "2.0", id: "clear-missing", method: "tools/call", params: { name: "clear_budget_override", arguments: { category_id: "enjoy", month: "2026-12" } } },
+      { "Accept-Language": "ru" },
+    );
+    await expect(missing.json()).resolves.toMatchObject({ result: expectedToolFailure({ code: -32000, message: "У этого месяца нет переопределения бюджета." }) });
+
+    for (const args of [{ month: "2026-11" }, { category_id: "enjoy" }, { category_id: "enjoy", month: "2026-13" }]) {
+      const bad = await postMcp({ jsonrpc: "2.0", id: "clear-bad", method: "tools/call", params: { name: "clear_budget_override", arguments: args } });
+      await expect(bad.json()).resolves.toMatchObject({ result: expectedToolFailure({ code: -32602 }) });
+    }
+  });
+
   it("rejects invalid set_budgets input before calling the RPC", async () => {
     const cases = [
+      { budgets: [{ category_id: "living", budget_amount: 1 }], month: "2026-11" },
+      { budgets: [{ category_id: "living", budget_amount: 1 }], scope: "month" },
+      { budgets: [{ category_id: "living", budget_amount: 1 }], month: "2026-13", scope: "month" },
+      { budgets: [{ category_id: "living", budget_amount: 1 }], month: "2026-11", scope: "forever" },
+      { budgets: [{ category_id: "living", budget_amount: null }], month: "2026-11", scope: "month" },
       {},
       { budgets: [] },
       { budgets: [{ category_id: "living" }] },

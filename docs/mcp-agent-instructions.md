@@ -174,7 +174,7 @@ Month-end spending forecast per budgeted top-level expense category, as stored b
 
 The month against the budget, exactly as the Budget screen shows it. Use it for "how is my budget", "how much is left", "will I stay within the plan" and planning questions instead of combining `get_finance_context`, `get_transactions` and the spending report. Input: `month` (`YYYY-MM`, default the current month). Returns, in `currency` (the user's default currency):
 
-- `envelopes`: one per top-level expense category, sorted like the screen (over budget, then will be over, then closest to plan, then without a plan): `planned` (monthly budget or null), `spent` (paid), `upcoming` (planned, not yet paid operations of the month), `forecast` (`spent + upcoming`), `left` (`planned − spent`), `left_at_month_end` (`planned − forecast`), `percent_used`, `status` (`ok`, `near` ≥ 85%, `over`, `unplanned`, `unavailable`), `will_be_over` (not over yet, but the upcoming operations will take it over the plan) and `missing_currencies`.
+- `envelopes`: one per top-level expense category, sorted like the screen (over budget, then will be over, then closest to plan, then without a plan): `planned` (the month's budget or null), `budget_source` (`override` when a one-month override decides `planned`, otherwise `base`), `base_amount` (the budget without the override, null when there is none), `spent` (paid), `upcoming` (planned, not yet paid operations of the month), `forecast` (`spent + upcoming`), `left` (`planned − spent`), `left_at_month_end` (`planned − forecast`), `percent_used`, `status` (`ok`, `near` ≥ 85%, `over`, `unplanned`, `unavailable`), `will_be_over` (not over yet, but the upcoming operations will take it over the plan) and `missing_currencies`.
 - `summary`: `planned`, `spent_planned` / `spent_unplanned` / `spent`, `left`, `upcoming_planned` / `upcoming`, `left_at_month_end` (for the envelopes with a plan), `income_received`, `income_expected`.
 - `income`: per income category `received` and `expected`.
 - `upcoming_operations`: the month's planned operations, overdue first (`overdue: true`), with the original `amount` and `currency`, `converted_amount`, `category_id`, `category_name` and `schedule_id` (use the recurring tools to mark them paid or skip them).
@@ -183,7 +183,11 @@ Subcategories roll up into their envelope. Transfers into goals count only for s
 
 ### `set_budgets`
 
-Sets or clears the monthly budget of several top-level expense categories in one atomic call: either every item is applied or none is. Input: `budgets`, 1 to 100 items of `{ category_id, budget_amount }`, where `budget_amount` is a non-negative number in `default_currency` or `null` to clear the budget. A category may appear only once. A budget applies to every month. Read `get_budget_status` first and confirm the new amounts with the user. Requires the same entitlement as the other write tools.
+Sets or clears the monthly budget of several top-level expense categories in one atomic call: either every item is applied or none is. Input: `budgets`, 1 to 100 items of `{ category_id, budget_amount }`, where `budget_amount` is a non-negative number in `default_currency` or `null` to clear the budget. A category may appear only once. Optional `month` (`YYYY-MM`) and `scope` must be sent together: `scope: "month"` sets an override for that month only (the amount is required; remove it with `clear_budget_override`), `scope: "from_month"` sets a new base from that month onward and leaves earlier months untouched (`null` means no plan from then on). Without `month`/`scope` the base budget changes, which applies to every month that has no later `from_month` change or override. Read `get_budget_status` first and confirm the new amounts with the user. Requires the same entitlement as the other write tools.
+
+### `clear_budget_override`
+
+Removes the one-month override of a top-level expense category: input `category_id` and `month` (`YYYY-MM`). Only the override is deleted, so the base budget applies again; other months and all transactions stay untouched. It fails when that month has no override (check `budget_source` in `get_budget_status`). Same entitlement as `set_budgets`.
 
 ### Category tools
 

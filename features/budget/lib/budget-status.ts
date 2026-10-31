@@ -1,4 +1,5 @@
 import { endOfMonth, format, startOfMonth, startOfToday } from "date-fns";
+import type { CategoryBudgetRow } from "@/features/budget/lib/budget-analytics";
 import { buildBudgetExecution } from "@/features/budget/lib/budget-execution";
 
 import {
@@ -36,6 +37,10 @@ type BudgetStatusEnvelope = {
   name: string;
   /** Monthly plan; null when the envelope has no budget. */
   planned: number | null;
+  /** `override` when a month-scoped budget decides `planned`, otherwise the base plan. */
+  budget_source: "base" | "override";
+  /** The plan without the month override. */
+  base_amount: number | null;
   spent: number | null;
   upcoming: number | null;
   forecast: number | null;
@@ -70,6 +75,8 @@ const toEnvelope = (row: EnvelopeBudgetRow): BudgetStatusEnvelope => ({
   category_id: row.id,
   name: row.name,
   planned: row.planned,
+  budget_source: row.budgetSource,
+  base_amount: row.baseAmount,
   spent: row.spent,
   upcoming: row.upcoming,
   forecast: row.forecast,
@@ -95,6 +102,7 @@ export function buildBudgetStatus(options: {
   month: Date;
   targetCurrency: CurrencyCode;
   exchangeRates: ExchangeRate[];
+  categoryBudgets?: CategoryBudgetRow[];
   today?: Date;
 }) {
   const month = startOfMonth(options.month);
@@ -107,6 +115,7 @@ export function buildBudgetStatus(options: {
     month,
     targetCurrency: options.targetCurrency,
     exchangeRates: options.exchangeRates,
+    categoryBudgets: options.categoryBudgets,
   };
   const expenseRows = buildEnvelopeBudgetRows({ ...rowOptions, nodes: tree.filter((node) => node.type === "expense") });
   const incomeRows = buildEnvelopeBudgetRows({ ...rowOptions, nodes: tree.filter((node) => node.type === "income") });

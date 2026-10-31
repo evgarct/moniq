@@ -70,6 +70,7 @@ Rules:
 - categories belong to one user and may be nested without a fixed depth limit.
 - parent and child categories must keep the same `type`.
 - top-level categories are the future anchor point for budgets, but only for `expense`.
+- `finance_category_budgets` (`user_id`, `category_id` → `finance_categories` on delete cascade, `month` = first day of the month, `scope` `month` | `from`, `amount` numeric(14,2), `sync_version`) layers monthly budgets over the base `[budget: N]` description prefix. Unique on `(user_id, category_id, month, scope)`; a `month` override needs a non-negative amount, a `from` row may have a null amount (no plan from then on). A trigger limits rows to top-level, non-system expense categories. RLS: owner-only select/insert/update/delete; published to PowerSync. MCP reads and writes it only through the key-hash wrappers `mcp_get_category_budgets`, `mcp_set_category_budgets(p_key_hash, p_budgets, p_month, p_scope)` and `mcp_clear_budget_override`. Resolution order is documented in `docs/budget-feature.md`.
 - deleting a category must preserve transactions by reassigning them to another category of the same type.
 - category analytics aggregate linked transaction amounts from the full descendant subtree.
 - category totals must stay split by currency instead of merged into one fake number.

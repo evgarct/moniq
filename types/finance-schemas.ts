@@ -54,6 +54,17 @@ export const categoryInputSchema = z.object({
   is_contribution: z.boolean().optional(),
 });
 
+export const categoryBudgetInputSchema = z
+  .object({
+    month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Month must be YYYY-MM."),
+    scope: z.enum(["month", "from"]),
+    amount: z.number().finite().min(0).nullable(),
+  })
+  .refine((value) => value.scope === "from" || value.amount !== null, {
+    message: "A month override needs an amount.",
+    path: ["amount"],
+  });
+
 const transactionFieldShape = {
   title: z.string().trim().min(1, "Title is required."),
   note: z.string().trim().max(500, "Note is too long.").nullable().optional(),
@@ -349,6 +360,7 @@ export type WalletInput = z.output<typeof walletInputSchema>;
 export type WalletInputValues = z.input<typeof walletInputSchema>;
 export type CategoryInput = z.output<typeof categoryInputSchema>;
 export type CategoryInputValues = z.input<typeof categoryInputSchema>;
+export type CategoryBudgetInput = z.output<typeof categoryBudgetInputSchema>;
 export type TransactionInput = z.output<typeof transactionInputSchema>;
 export type TransactionInputValues = z.input<typeof transactionInputSchema>;
 export type TransactionEntryInput = z.output<typeof transactionEntryInputSchema>;

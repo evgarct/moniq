@@ -219,4 +219,16 @@ export type FinanceSnapshot = {
   preferences: UserPreferences;
   exchange_rates: ExchangeRate[];
   investment_positions: InvestmentPosition[];
+  /** Monthly budget overrides and "from month" bases layered over each category's base plan. */
+  category_budgets?: CategoryBudgetRow[];
+};
+
+export type CategoryBudgetScope = "month" | "from";
+
+/** A budget layer stored in `finance_category_budgets`; `month` is the first day (YYYY-MM-01). */
+export type CategoryBudgetRow = {
+  category_id: string;
+  month: string;
+  scope: CategoryBudgetScope;
+  amount: number | null;
 };

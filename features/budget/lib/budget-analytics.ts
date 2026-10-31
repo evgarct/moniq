@@ -3,7 +3,7 @@ import { addMonths, endOfMonth, format, isSameMonth, startOfMonth } from "date-f
 import { convertTransactionAnalyticsAmount } from "@/features/finance/lib/exchange-rates";
 import { isSettledTransactionStatus } from "@/features/transactions/lib/transaction-schedules";
 import type { CurrencyCode } from "@/types/currency";
-import type { ExchangeRate, Transaction } from "@/types/finance";
+import type { CategoryBudgetRow, CategoryBudgetScope, ExchangeRate, Transaction } from "@/types/finance";
 
 export type ConvertedBudgetMonth = {
   month: string;
@@ -185,6 +185,48 @@ export function parseCategoryDescriptionAndBudget(description?: string | null) {
     };
   }
   return { description: description.trim(), plannedBudget: null };
+}
+
+export type { CategoryBudgetRow, CategoryBudgetScope };
+
+export type ResolvedCategoryBudget = {
+  /** Plan of the month; null when there is none. */
+  amount: number | null;
+  /** `override` only when a month-scoped row decides the amount. */
+  source: "base" | "override";
+  /** What the plan would be without the month override. */
+  baseAmount: number | null;
+};
+
+/**
+ * Plan of one category for one month: the month's override, else the latest "from" row at or before
+ * the month, else the `[budget: N]` description prefix (the original base, valid for every month).
+ * `month` is any date inside the month or a YYYY-MM / YYYY-MM-DD string.
+ */
+export function resolveCategoryBudget(
+  category: { id: string; description?: string | null },
+  rows: CategoryBudgetRow[] | undefined,
+  month: Date | string,
+): ResolvedCategoryBudget {
+  const key = typeof month === "string" ? month.slice(0, 7) : format(month, "yyyy-MM");
+  let baseRow: CategoryBudgetRow | null = null;
+  let override: CategoryBudgetRow | null = null;
+  for (const row of rows ?? []) {
+    if (row.category_id !== category.id) continue;
+    const rowKey = row.month.slice(0, 7);
+    if (row.scope === "month") {
+      if (rowKey === key) override = row;
+    } else if (rowKey <= key && (!baseRow || rowKey > baseRow.month.slice(0, 7))) {
+      baseRow = row;
+    }
+  }
+  const baseAmount = baseRow
+    ? (baseRow.amount === null ? null : Number(baseRow.amount))
+    : parseCategoryDescriptionAndBudget(category.description).plannedBudget;
+  if (override && override.amount !== null) {
+    return { amount: Number(override.amount), source: "override", baseAmount };
+  }
+  return { amount: baseAmount, source: "base", baseAmount };
 }
 
 export function serializeCategoryDescriptionAndBudget(description: string, plannedBudget: number | null) {

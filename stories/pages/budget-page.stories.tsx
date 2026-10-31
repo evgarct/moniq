@@ -93,6 +93,41 @@ export const OverBudget: Story = {
   },
 };
 
+// A one-month override: the month plan replaces the base, the detail says so and offers a way back to the base.
+// The fixture's Enjoy Life base is 100; November-style overrides only affect the month they are set for.
+export const MonthOverride: Story = {
+  render: () => {
+    const data = makeFinanceSnapshot();
+    const enjoy = data.categories.find((category) => category.name === "Enjoy Life")!;
+    data.category_budgets = [{ category_id: enjoy.id, month: format(startOfMonth(today), "yyyy-MM-dd"), scope: "month", amount: 49900 }];
+    return <StoryWorkspace pathname="/budget"><div className="h-screen"><BudgetView snapshot={data} /></div></StoryWorkspace>;
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: /^Enjoy Life/, pressed: false }));
+    await expect(await canvas.findByText("Changed for this month")).toBeInTheDocument();
+    await expect(canvas.getByRole("button", { name: "Restore base" })).toBeInTheDocument();
+    await expect(canvas.getByLabelText("Set budget")).toHaveValue(49900);
+  },
+};
+
+// Changing the plan asks where it applies: this month only, or from this month onward (earlier months keep theirs).
+export const ChooseBudgetScope: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: /^Core Bills/, pressed: false }));
+    const input = await canvas.findByLabelText("Set budget");
+    await userEvent.clear(input);
+    await userEvent.type(input, "41000");
+    await userEvent.tab();
+    const group = await canvas.findByRole("group", { name: "Apply to" });
+    await expect(within(group).getByRole("button", { name: "This month only" })).toBeInTheDocument();
+    await expect(within(group).getByRole("button", { name: "This month onward" })).toBeInTheDocument();
+    await userEvent.click(within(group).getByRole("button", { name: "Cancel" }));
+    await expect(canvas.queryByRole("group", { name: "Apply to" })).toBeNull();
+  },
+};
+
 // Desktop: click an envelope row → the right-hand panel shows plan, spend and subcategories.
 export const CategoryExpanded: Story = {
   play: async ({ canvasElement }) => {
