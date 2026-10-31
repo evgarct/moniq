@@ -31,12 +31,12 @@ Do not enable Supabase's automatic deploy-to-production integration. Production 
 
 ## Data loading (PowerSync retired)
 
-The web app reads one online snapshot: `/api/finance/snapshot` through React Query (`financeSnapshotQueryKey`). The local-first layer (PowerSync, the wa-sqlite replica, the offline command outbox and `/api/sync/*`) was removed in October 2026, together with `NEXT_PUBLIC_LOCAL_FIRST_MODE`, `NEXT_PUBLIC_POWERSYNC_URL` and `LOCAL_FIRST_PILOT_USER_IDS`. Remove those variables from Vercel and shut down the staging and production PowerSync Cloud instances after this release is live.
+The web app reads one online snapshot: `/api/finance/snapshot` through React Query (`financeSnapshotQueryKey`). The local-first layer (PowerSync, the wa-sqlite replica, the offline command outbox and `/api/sync/*`) was removed in October 2026, together with `NEXT_PUBLIC_LOCAL_FIRST_MODE`, `NEXT_PUBLIC_POWERSYNC_URL` and `LOCAL_FIRST_PILOT_USER_IDS`. Those variables are removed from Vercel and the PowerSync Cloud instances are shut down.
 
 - Mutations are online only: the optimistic coordinator applies them to the query cache and rolls back with a localized toast when the request fails, including when the device is offline. Nothing is queued on the device.
 - The service worker precaches the app shell and the `/offline` fallback only. API responses are never placed in Cache Storage. Logout drops the query cache through the auth listener in `components/providers/finance-session.tsx`, which also clears it whenever the signed-in user changes.
 - `vercel.json` pins the functions to `dub1` (Dublin), next to the Supabase project in `eu-west-1`. The default `iad1` put every database round trip across the Atlantic. Keep the function region and the Supabase region together.
-- Database objects left for a separate, reviewed cleanup migration once this release is stable: the `powersync` publication, `powersync_role`, `finance_sync_mutations`, and the `sync_version` columns with their `bump_sync_version()` triggers. They are inert without the client. Do not drop them in the same release as the code, and keep `scripts/verify-database.sql` aligned with whatever the cleanup removes.
+- Migration `20261031210000_drop_powersync_objects.sql` removes the `powersync` publication, `powersync_role` and the empty `finance_sync_mutations` table; `scripts/verify-database.sql` asserts they are gone. The `sync_version` columns and `bump_sync_version()` triggers stay because the finance snapshot still reads `sync_version`; removing them would be a separate change to `repository.ts`, the RPCs and the types.
 
 ### Snapshot performance
 

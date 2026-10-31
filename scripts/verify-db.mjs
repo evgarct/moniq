@@ -21,7 +21,6 @@ const requiredTables = [
   "investment_positions",
   "investment_instruments",
   "investment_quotes",
-  "finance_sync_mutations",
 ];
 
 for (const table of requiredTables) {

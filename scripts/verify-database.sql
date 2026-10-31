@@ -40,24 +40,16 @@ end;
 $$;
 
 do $$
-declare
-  v_table text;
 begin
-  foreach v_table in array array[
-    'wallets', 'wallet_allocations', 'finance_categories', 'finance_transactions',
-    'finance_transaction_schedules', 'user_preferences', 'investment_positions',
-    'investment_instruments', 'investment_quotes', 'fx_rates'
-  ] loop
-    if not exists (
-      select 1
-      from pg_publication_rel relation
-      join pg_publication publication on publication.oid = relation.prpubid
-      where publication.pubname = 'powersync'
-        and relation.prrelid = format('public.%I', v_table)::regclass
-    ) then
-      raise exception 'powersync publication is missing %', v_table;
-    end if;
-  end loop;
+  if exists (select 1 from pg_publication where pubname = 'powersync') then
+    raise exception 'powersync publication still exists';
+  end if;
+  if exists (select 1 from pg_roles where rolname = 'powersync_role') then
+    raise exception 'powersync_role still exists';
+  end if;
+  if to_regclass('public.finance_sync_mutations') is not null then
+    raise exception 'finance_sync_mutations still exists';
+  end if;
 end;
 $$;
 
@@ -71,10 +63,6 @@ begin
   if has_function_privilege('anon', 'public.create_wallet_with_id(uuid,text,public.wallet_type,numeric,public.currency_code,public.debt_kind)', 'execute')
     or not has_function_privilege('authenticated', 'public.create_wallet_with_id(uuid,text,public.wallet_type,numeric,public.currency_code,public.debt_kind)', 'execute') then
     raise exception 'create_wallet_with_id grants are incorrect';
-  end if;
-  if has_table_privilege('anon', 'public.finance_sync_mutations', 'select')
-    or has_table_privilege('authenticated', 'public.finance_sync_mutations', 'insert') then
-    raise exception 'finance_sync_mutations grants are too broad';
   end if;
 end;
 $$;
