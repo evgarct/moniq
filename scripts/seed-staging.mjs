@@ -60,7 +60,6 @@ async function deleteOwned(table, userId) {
 
 async function resetUser(userId) {
   for (const table of [
-    "finance_sync_mutations",
     "investment_positions",
     "transaction_import_column_presets",
     "transaction_imports",
