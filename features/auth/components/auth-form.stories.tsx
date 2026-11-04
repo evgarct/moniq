@@ -41,6 +41,16 @@ export const Login: Story = {
   },
 };
 
+export const LoginWithDarkPreference: Story = {
+  ...Login,
+  parameters: { ...Login.parameters, themes: { themeOverride: "dark" } },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const registration = canvas.getByRole("link", { name: /sign up/i });
+    await expect(registration).toHaveStyle({ color: "rgb(25, 25, 25)" });
+  },
+};
+
 export const Signup: Story = {
   args: {
     mode: "signup",

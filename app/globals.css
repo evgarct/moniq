@@ -76,7 +76,8 @@
   --safe-area-inset-top: env(safe-area-inset-top);
   --background: #fafaf7;
   --foreground: #191919;
-  --card: #f0f0eb;
+  --light-card: #f0f0eb;
+  --card: var(--light-card);
   --card-foreground: #191919;
   --popover: #fafaf7;
   --popover-foreground: #191919;

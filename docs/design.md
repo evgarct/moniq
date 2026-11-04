@@ -17,7 +17,7 @@ The public pages share a scoped brand palette, the Architectural M and traced wo
 
 The three editable Rive scenes live in `features/landing/motion`. From the repository root, run `rive features/landing/motion/<scene> --once` and copy `build/<scene>.riv` from that scene directory into `public/brand`. Update the matching SVG poster when changing a scene's final geometry. The scenes use standard timelines with no scripts. The forecast scene binds scroll progress to its `reveal` view-model property and blends between three architectural poses. The static posters remain available with reduced motion, failed loading, or JavaScript disabled. The auth action and page navigation remain outside Rive.
 
-Use `Pages/LandingPage` and `Organisms/AuthForm/Login` for visual review. Capture desktop and mobile screenshots in `.codex-artifacts/` after changes to these compositions.
+Use `Pages/LandingPage` and `Organisms/AuthForm/Login` for visual review, including sign-in under the dark application preference. The public compositions use scoped light controls and the shared light card canvas below 1024px. Capture desktop and mobile screenshots in `.codex-artifacts/` after changes to these compositions.
 
 ## Source of truth, in order
 

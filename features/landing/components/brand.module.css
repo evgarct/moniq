@@ -11,6 +11,15 @@
   --brand-display: var(--font-pt-serif, "PT Serif"), Georgia, serif;
   --brand-gutter: clamp(24px, 5vw, 104px);
   --brand-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --card: var(--light-card);
+  --background: var(--brand-paper);
+  --foreground: var(--brand-ink);
+  --primary: var(--brand-ink);
+  --primary-foreground: var(--brand-paper);
+  --muted: var(--brand-stone);
+  --muted-foreground: #595650;
+  --border: #898680;
+  --destructive: #a13228;
   height: 100%;
   height: 100dvh;
   overflow-y: auto;
@@ -324,13 +333,15 @@
 }
 
 @media (max-width: 1023px) {
+  .page { --brand-paper: var(--card); background-color: var(--card); }
   .header { min-height: 64px; }
+  .chapterLink { display: none; }
   .forecast, .values, .ai, .loginGrid { grid-template-columns: minmax(0, 1fr); }
   .hero { min-height: auto; }
   .heroStage { position: relative; min-height: 100svh; grid-template-rows: auto 1fr auto; }
   .sculpture { top: 64px; width: 100%; height: min(70vw, 520px); overflow: clip; }
   .sculpture::before { inset: 0 28% 0 0; }
-  .heroStage > .header { min-height: 64px; background: var(--brand-paper); margin: 0; padding-inline: var(--brand-gutter); }
+  .heroStage > .header { min-height: 64px; background-color: var(--card); margin: 0; padding-inline: var(--brand-gutter); }
   .heroStage > .header nav { color: var(--brand-ink); }
   .heroText { align-self: start; margin: min(70vw, 520px) var(--brand-gutter) 0; padding: 24px 0; }
   .hero h1 { font-size: clamp(50px, 10vw, 92px); margin-block: 16px; }
@@ -341,10 +352,6 @@
   .forecastArt, .valuesArt { max-height: 540px; }
   .loginGrid { min-height: auto; padding-top: 48px; gap: 48px; }
   .loginArt { min-height: auto; aspect-ratio: 1.18; }
-}
-
-@media (max-width: 480px) {
-  .chapterLink { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
