@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { NextIntlClientProvider } from "next-intl";
+import { expect, within } from "storybook/test";
 
 import { LandingView } from "@/features/landing/components/landing-view";
 import enMessages from "@/messages/en.json";
@@ -24,7 +25,14 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-export const Desktop: Story = {};
+export const Desktop: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("heading", { level: 1 })).toHaveTextContent("More than numbers.");
+    await expect(canvas.getByRole("heading", { name: "See the month ahead." })).toBeInTheDocument();
+    await expect(canvas.queryByRole("link", { name: /pricing/i })).not.toBeInTheDocument();
+  },
+};
 
 export const Mobile: Story = {
   parameters: {

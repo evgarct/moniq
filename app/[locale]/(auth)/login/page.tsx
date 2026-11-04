@@ -1,6 +1,7 @@
 import { getLocale } from "next-intl/server";
 
 import { AuthForm } from "@/features/auth/components/auth-form";
+import { BrandLogin } from "@/features/auth/components/brand-login";
 import { signInWithPassword } from "@/features/auth/actions";
 import { redirect } from "@/i18n/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -16,5 +17,9 @@ export default async function LoginPage() {
     return redirect({ href: "/today", locale });
   }
 
-  return <AuthForm mode="login" action={signInWithPassword} />;
+  return (
+    <BrandLogin>
+      <AuthForm mode="login" action={signInWithPassword} />
+    </BrandLogin>
+  );
 }

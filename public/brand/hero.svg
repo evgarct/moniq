@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+  <g id="poster">
+    <circle cx="465" cy="132" r="199" fill="none" stroke="#F5F6F4" stroke-width="1.35" opacity="0.37"/>
+    <circle cx="465" cy="132" r="146" fill="none" stroke="#F5F6F4" stroke-width="1.35" opacity="0.58"/>
+    <circle cx="465" cy="132" r="94" fill="none" stroke="#F5F6F4" stroke-width="1.35" opacity="0.85"/>
+    <circle cx="473" cy="91" r="16.5" fill="#CC785C"/>
+  </g>
+</svg>
