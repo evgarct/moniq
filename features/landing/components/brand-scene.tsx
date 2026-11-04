@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
+import type { MotionValue } from "framer-motion";
 
 import styles from "./brand.module.css";
 
@@ -9,7 +10,7 @@ const RiveCanvas = dynamic(() => import("./rive-canvas"), { ssr: false });
 
 export type BrandSceneName = "hero" | "forecast" | "login";
 
-export function BrandScene({ scene, className }: { scene: BrandSceneName; className: string }) {
+export function BrandScene({ scene, className, progress }: { scene: BrandSceneName; className: string; progress?: MotionValue<number> }) {
   const frame = useRef<HTMLElement>(null);
   const [visible, setVisible] = useState(false);
   const [enabled, setEnabled] = useState(false);
@@ -49,7 +50,7 @@ export function BrandScene({ scene, className }: { scene: BrandSceneName; classN
       <svg className={styles.poster} viewBox="0 0 600 600" preserveAspectRatio="xMidYMid meet">
         <use href={"/brand/" + scene + ".svg#poster"} />
       </svg>
-      {enabled && <RiveCanvas scene={scene} visible={visible} onReady={setReady} />}
+      {enabled && <RiveCanvas scene={scene} visible={visible} onReady={setReady} progress={progress} />}
     </figure>
   );
 }

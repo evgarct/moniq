@@ -41,3 +41,15 @@ export const Mobile: Story = {
     viewport: { defaultViewport: "mobile2" },
   },
 };
+
+export const Conversation: Story = {
+  play: async ({ canvasElement }) => {
+    const chapter = canvasElement.querySelector("#assistants");
+    if (!(chapter instanceof HTMLElement)) throw new Error("Missing conversation chapter");
+    chapter.closest("main")?.scrollTo({ top: chapter.offsetTop, behavior: "instant" });
+    const heading = within(chapter).getByRole("heading");
+    const description = chapter.querySelector("h2 + p");
+    await expect(heading).toHaveStyle({ color: getComputedStyle(chapter).color });
+    await expect(description).toHaveStyle({ color: getComputedStyle(chapter).color });
+  },
+};

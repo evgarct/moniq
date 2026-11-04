@@ -21,7 +21,7 @@ const config: StorybookConfig = {
   viteFinal: async (config) =>
     mergeConfig(config, {
       optimizeDeps: {
-        include: ["@base-ui/react/switch"],
+        include: ["@base-ui/react/switch", "framer-motion"],
       },
     }),
 };
