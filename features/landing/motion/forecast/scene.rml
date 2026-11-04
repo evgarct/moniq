@@ -1,0 +1,136 @@
+<Rive version="1" kind="fragment">
+  <Artboard width="600" height="600" name="forecast" viewModelId="0:40" defaultStateMachineId="0:7" id="0:2">
+    <Shape x="300" y="292" name="Terracotta point" id="0:20">
+      <Ellipse width="23" height="23" originX="0.5" originY="0.5"/>
+      <Fill><SolidColor colorValue="FFCC785C"/></Fill>
+    </Shape>
+    <Shape x="300" y="383" opacity="1" name="Arch 1" id="0:30">
+      <PointsPath>
+        <CubicAsymmetricVertex x="-84" rotation="-1.5707963" outDistance="46.3932"/>
+        <CubicMirroredVertex y="-84" distance="46.3932"/>
+        <CubicAsymmetricVertex x="84" rotation="1.5707963" inDistance="46.3932"/>
+      </PointsPath>
+      <Stroke thickness="1.7"><SolidColor colorValue="FFF5F6F4"/></Stroke>
+    </Shape>
+    <Shape x="300" y="383" opacity="0.85" name="Arch 2" id="0:31">
+      <PointsPath>
+        <CubicAsymmetricVertex x="-130" rotation="-1.5707963" outDistance="71.799"/>
+        <CubicMirroredVertex y="-130" distance="71.799"/>
+        <CubicAsymmetricVertex x="130" rotation="1.5707963" inDistance="71.799"/>
+      </PointsPath>
+      <Stroke thickness="1.7"><SolidColor colorValue="FFF5F6F4"/></Stroke>
+    </Shape>
+    <Shape x="300" y="383" opacity="0.69" name="Arch 3" id="0:32">
+      <PointsPath>
+        <CubicAsymmetricVertex x="-178" rotation="-1.5707963" outDistance="98.3094"/>
+        <CubicMirroredVertex y="-178" distance="98.3094"/>
+        <CubicAsymmetricVertex x="178" rotation="1.5707963" inDistance="98.3094"/>
+      </PointsPath>
+      <Stroke thickness="1.7"><SolidColor colorValue="FFF5F6F4"/></Stroke>
+    </Shape>
+    <Shape x="300" y="383" opacity="0.55" name="Arch 4" id="0:33">
+      <PointsPath>
+        <CubicAsymmetricVertex x="-226" rotation="-1.5707963" outDistance="124.8198"/>
+        <CubicMirroredVertex y="-226" distance="124.8198"/>
+        <CubicAsymmetricVertex x="226" rotation="1.5707963" inDistance="124.8198"/>
+      </PointsPath>
+      <Stroke thickness="1.7"><SolidColor colorValue="FFF5F6F4"/></Stroke>
+    </Shape>
+    <StateMachine name="Brand" id="0:7">
+      <StateMachineLayer name="Entrance">
+        <AnyState/>
+        <ExitState/>
+        <EntryState><StateTransition stateToId="0:12"/></EntryState>
+        <BlendState1DViewModel id="0:12">
+          <BindablePropertyNumber>
+            <DataBindContext sourcePathIds="0:40-0:45" propertyKey="636"/>
+          </BindablePropertyNumber>
+          <BlendAnimation1D animationId="0:60" value="0"/>
+          <BlendAnimation1D animationId="0:61" value="50"/>
+          <BlendAnimation1D animationId="0:62" value="100"/>
+        </BlendState1DViewModel>
+      </StateMachineLayer>
+    </StateMachine>
+    <LinearAnimation duration="1" name="Perspective 1" id="0:60">
+      <KeyedObject objectId="0:20">
+        <KeyedProperty property="y"><KeyFrameDouble value="354" frame="0"/></KeyedProperty>
+      </KeyedObject>
+      <KeyedObject objectId="0:30">
+        <KeyedProperty property="scaleX"><KeyFrameDouble value="0.68" frame="0"/></KeyedProperty>
+        <KeyedProperty property="scaleY"><KeyFrameDouble value="0.68" frame="0"/></KeyedProperty>
+        <KeyedProperty property="opacity"><KeyFrameDouble value="0.05" frame="0"/></KeyedProperty>
+      </KeyedObject>
+      <KeyedObject objectId="0:31">
+        <KeyedProperty property="scaleX"><KeyFrameDouble value="0.68" frame="0"/></KeyedProperty>
+        <KeyedProperty property="scaleY"><KeyFrameDouble value="0.68" frame="0"/></KeyedProperty>
+        <KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0"/></KeyedProperty>
+      </KeyedObject>
+      <KeyedObject objectId="0:32">
+        <KeyedProperty property="scaleX"><KeyFrameDouble value="0.68" frame="0"/></KeyedProperty>
+        <KeyedProperty property="scaleY"><KeyFrameDouble value="0.68" frame="0"/></KeyedProperty>
+        <KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0"/></KeyedProperty>
+      </KeyedObject>
+      <KeyedObject objectId="0:33">
+        <KeyedProperty property="scaleX"><KeyFrameDouble value="0.68" frame="0"/></KeyedProperty>
+        <KeyedProperty property="scaleY"><KeyFrameDouble value="0.68" frame="0"/></KeyedProperty>
+        <KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0"/></KeyedProperty>
+      </KeyedObject>
+    </LinearAnimation>
+    <LinearAnimation duration="1" name="Perspective 2" id="0:61">
+      <KeyedObject objectId="0:20">
+        <KeyedProperty property="y"><KeyFrameDouble value="324" frame="0"/></KeyedProperty>
+      </KeyedObject>
+      <KeyedObject objectId="0:30">
+        <KeyedProperty property="scaleX"><KeyFrameDouble value="0.86" frame="0"/></KeyedProperty>
+        <KeyedProperty property="scaleY"><KeyFrameDouble value="0.86" frame="0"/></KeyedProperty>
+        <KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0"/></KeyedProperty>
+      </KeyedObject>
+      <KeyedObject objectId="0:31">
+        <KeyedProperty property="scaleX"><KeyFrameDouble value="0.86" frame="0"/></KeyedProperty>
+        <KeyedProperty property="scaleY"><KeyFrameDouble value="0.86" frame="0"/></KeyedProperty>
+        <KeyedProperty property="opacity"><KeyFrameDouble value="0.6" frame="0"/></KeyedProperty>
+      </KeyedObject>
+      <KeyedObject objectId="0:32">
+        <KeyedProperty property="scaleX"><KeyFrameDouble value="0.86" frame="0"/></KeyedProperty>
+        <KeyedProperty property="scaleY"><KeyFrameDouble value="0.86" frame="0"/></KeyedProperty>
+        <KeyedProperty property="opacity"><KeyFrameDouble value="0.22" frame="0"/></KeyedProperty>
+      </KeyedObject>
+      <KeyedObject objectId="0:33">
+        <KeyedProperty property="scaleX"><KeyFrameDouble value="0.86" frame="0"/></KeyedProperty>
+        <KeyedProperty property="scaleY"><KeyFrameDouble value="0.86" frame="0"/></KeyedProperty>
+        <KeyedProperty property="opacity"><KeyFrameDouble value="0.05" frame="0"/></KeyedProperty>
+      </KeyedObject>
+    </LinearAnimation>
+    <LinearAnimation duration="1" name="Perspective 3" id="0:62">
+      <KeyedObject objectId="0:20">
+        <KeyedProperty property="y"><KeyFrameDouble value="292" frame="0"/></KeyedProperty>
+      </KeyedObject>
+      <KeyedObject objectId="0:30">
+        <KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0"/></KeyedProperty>
+        <KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0"/></KeyedProperty>
+        <KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0"/></KeyedProperty>
+      </KeyedObject>
+      <KeyedObject objectId="0:31">
+        <KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0"/></KeyedProperty>
+        <KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0"/></KeyedProperty>
+        <KeyedProperty property="opacity"><KeyFrameDouble value="0.85" frame="0"/></KeyedProperty>
+      </KeyedObject>
+      <KeyedObject objectId="0:32">
+        <KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0"/></KeyedProperty>
+        <KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0"/></KeyedProperty>
+        <KeyedProperty property="opacity"><KeyFrameDouble value="0.69" frame="0"/></KeyedProperty>
+      </KeyedObject>
+      <KeyedObject objectId="0:33">
+        <KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0"/></KeyedProperty>
+        <KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0"/></KeyedProperty>
+        <KeyedProperty property="opacity"><KeyFrameDouble value="0.55" frame="0"/></KeyedProperty>
+      </KeyedObject>
+    </LinearAnimation>
+  </Artboard>
+  <ViewModel defaultInstanceId="0:41" name="Perspective" id="0:40">
+    <ViewModelPropertyNumber name="reveal" id="0:45"/>
+    <ViewModelInstance exports="true" name="Default" id="0:41">
+      <ViewModelInstanceNumber propertyValue="100" viewModelPropertyId="0:45"/>
+    </ViewModelInstance>
+  </ViewModel>
+</Rive>

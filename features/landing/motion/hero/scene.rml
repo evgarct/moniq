@@ -1,0 +1,128 @@
+<Rive version="1" kind="fragment">
+  <Artboard width="600" height="600" name="hero" defaultStateMachineId="0:7" id="0:2">
+    <Shape x="473" y="91" name="Terracotta point" id="0:20">
+      <Ellipse width="33" height="33" originX="0.5" originY="0.5"/>
+      <Fill><SolidColor colorValue="FFCC785C"/></Fill>
+    </Shape>
+    <Shape x="465" y="132" opacity="0.85" name="Orbit 1" id="0:30">
+      <Ellipse width="188" height="188" originX="0.5" originY="0.5"/>
+      <Stroke thickness="1.35"><SolidColor colorValue="FFF5F6F4"/><TrimPath start="0" end="1" offset="-0.19" id="0:50"/></Stroke>
+    </Shape>
+    <Shape x="465" y="132" opacity="0.58" name="Orbit 2" id="0:31">
+      <Ellipse width="292" height="292" originX="0.5" originY="0.5"/>
+      <Stroke thickness="1.35"><SolidColor colorValue="FFF5F6F4"/><TrimPath start="0" end="1" offset="-0.19" id="0:51"/></Stroke>
+    </Shape>
+    <Shape x="465" y="132" opacity="0.37" name="Orbit 3" id="0:32">
+      <Ellipse width="398" height="398" originX="0.5" originY="0.5"/>
+      <Stroke thickness="1.35"><SolidColor colorValue="FFF5F6F4"/><TrimPath start="0" end="1" offset="-0.19" id="0:52"/></Stroke>
+    </Shape>
+    <StateMachine name="Brand" id="0:7">
+      <StateMachineLayer name="Entrance">
+        <AnyState/>
+        <ExitState/>
+        <EntryState><StateTransition stateToId="0:12"/></EntryState>
+        <AnimationState animationId="0:6" id="0:12"/>
+      </StateMachineLayer>
+    </StateMachine>
+    <LinearAnimation duration="76" name="Entrance" id="0:6">
+      <KeyedObject objectId="0:20">
+        <KeyedProperty property="y">
+          <KeyFrameDouble value="55" frame="0" interpolationType="cubic">
+            <CubicEaseInterpolator x1="0.22" y1="1" x2="0.36" y2="1"/>
+          </KeyFrameDouble>
+          <KeyFrameDouble value="91" frame="42"/>
+        </KeyedProperty>
+        <KeyedProperty property="opacity">
+          <KeyFrameDouble value="0.2" frame="0" interpolationType="cubic">
+            <CubicEaseInterpolator x1="0.22" y1="1" x2="0.36" y2="1"/>
+          </KeyFrameDouble>
+          <KeyFrameDouble value="1" frame="34"/>
+        </KeyedProperty>
+      </KeyedObject>
+      <KeyedObject objectId="0:30">
+        <KeyedProperty property="opacity">
+          <KeyFrameDouble value="0" frame="5" interpolationType="cubic">
+            <CubicEaseInterpolator x1="0.22" y1="1" x2="0.36" y2="1"/>
+          </KeyFrameDouble>
+          <KeyFrameDouble value="0.85" frame="41"/>
+        </KeyedProperty>
+        <KeyedProperty property="scaleX">
+          <KeyFrameDouble value="0.78" frame="5" interpolationType="cubic">
+            <CubicEaseInterpolator x1="0.22" y1="1" x2="0.36" y2="1"/>
+          </KeyFrameDouble>
+          <KeyFrameDouble value="1" frame="42"/>
+        </KeyedProperty>
+        <KeyedProperty property="scaleY">
+          <KeyFrameDouble value="0.78" frame="5" interpolationType="cubic">
+            <CubicEaseInterpolator x1="0.22" y1="1" x2="0.36" y2="1"/>
+          </KeyFrameDouble>
+          <KeyFrameDouble value="1" frame="42"/>
+        </KeyedProperty>
+      </KeyedObject>
+      <KeyedObject objectId="0:31">
+        <KeyedProperty property="opacity">
+          <KeyFrameDouble value="0" frame="11" interpolationType="cubic">
+            <CubicEaseInterpolator x1="0.22" y1="1" x2="0.36" y2="1"/>
+          </KeyFrameDouble>
+          <KeyFrameDouble value="0.58" frame="47"/>
+        </KeyedProperty>
+        <KeyedProperty property="scaleX">
+          <KeyFrameDouble value="0.78" frame="11" interpolationType="cubic">
+            <CubicEaseInterpolator x1="0.22" y1="1" x2="0.36" y2="1"/>
+          </KeyFrameDouble>
+          <KeyFrameDouble value="1" frame="48"/>
+        </KeyedProperty>
+        <KeyedProperty property="scaleY">
+          <KeyFrameDouble value="0.78" frame="11" interpolationType="cubic">
+            <CubicEaseInterpolator x1="0.22" y1="1" x2="0.36" y2="1"/>
+          </KeyFrameDouble>
+          <KeyFrameDouble value="1" frame="48"/>
+        </KeyedProperty>
+      </KeyedObject>
+      <KeyedObject objectId="0:32">
+        <KeyedProperty property="opacity">
+          <KeyFrameDouble value="0" frame="17" interpolationType="cubic">
+            <CubicEaseInterpolator x1="0.22" y1="1" x2="0.36" y2="1"/>
+          </KeyFrameDouble>
+          <KeyFrameDouble value="0.37" frame="53"/>
+        </KeyedProperty>
+        <KeyedProperty property="scaleX">
+          <KeyFrameDouble value="0.78" frame="17" interpolationType="cubic">
+            <CubicEaseInterpolator x1="0.22" y1="1" x2="0.36" y2="1"/>
+          </KeyFrameDouble>
+          <KeyFrameDouble value="1" frame="54"/>
+        </KeyedProperty>
+        <KeyedProperty property="scaleY">
+          <KeyFrameDouble value="0.78" frame="17" interpolationType="cubic">
+            <CubicEaseInterpolator x1="0.22" y1="1" x2="0.36" y2="1"/>
+          </KeyFrameDouble>
+          <KeyFrameDouble value="1" frame="54"/>
+        </KeyedProperty>
+      </KeyedObject>
+      <KeyedObject objectId="0:50">
+        <KeyedProperty property="end">
+          <KeyFrameDouble value="0.03" frame="5" interpolationType="cubic">
+            <CubicEaseInterpolator x1="0.22" y1="1" x2="0.36" y2="1"/>
+          </KeyFrameDouble>
+          <KeyFrameDouble value="1" frame="49"/>
+        </KeyedProperty>
+      </KeyedObject>
+      <KeyedObject objectId="0:51">
+        <KeyedProperty property="end">
+          <KeyFrameDouble value="0.03" frame="11" interpolationType="cubic">
+            <CubicEaseInterpolator x1="0.22" y1="1" x2="0.36" y2="1"/>
+          </KeyFrameDouble>
+          <KeyFrameDouble value="1" frame="59"/>
+        </KeyedProperty>
+      </KeyedObject>
+      <KeyedObject objectId="0:52">
+        <KeyedProperty property="end">
+          <KeyFrameDouble value="0.03" frame="18" interpolationType="cubic">
+            <CubicEaseInterpolator x1="0.22" y1="1" x2="0.36" y2="1"/>
+          </KeyFrameDouble>
+          <KeyFrameDouble value="1" frame="72"/>
+        </KeyedProperty>
+      </KeyedObject>
+    </LinearAnimation>
+  </Artboard>
+</Rive>

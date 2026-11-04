@@ -16,5 +16,11 @@ export default async function SignupPage() {
     return redirect({ href: "/today", locale });
   }
 
-  return <AuthForm mode="signup" action={signUp} />;
+  return (
+    <main className="h-full overflow-y-auto bg-muted/30">
+      <section className="mx-auto flex min-h-screen w-full max-w-7xl items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
+        <AuthForm mode="signup" action={signUp} />
+      </section>
+    </main>
+  );
 }

@@ -1,0 +1,57 @@
+<Rive version="1" kind="fragment">
+  <Artboard width="600" height="600" name="login" defaultStateMachineId="0:7" id="0:2">
+    <Shape x="455" y="413" name="Terracotta point" id="0:20">
+      <Ellipse width="52" height="52" originX="0.5" originY="0.5"/>
+      <Fill><SolidColor colorValue="FFCC785C"/></Fill>
+    </Shape>
+    <Shape x="455" y="413" opacity="0.7" name="Orbit 1" id="0:30">
+      <Ellipse width="94" height="94" originX="0.5" originY="0.5"/>
+      <Stroke thickness="1.7"><SolidColor colorValue="FFF5F6F4"/></Stroke>
+    </Shape>
+    <Shape x="455" y="440" name="Plane"><Rectangle width="210" height="2" originX="0.5" originY="0.5"/><Fill><SolidColor colorValue="FFF5F6F4"/></Fill></Shape>
+    <StateMachine name="Brand" id="0:7">
+      <StateMachineLayer name="Entrance">
+        <AnyState/>
+        <ExitState/>
+        <EntryState><StateTransition stateToId="0:12"/></EntryState>
+        <AnimationState animationId="0:6" id="0:12"/>
+      </StateMachineLayer>
+    </StateMachine>
+    <LinearAnimation duration="66" name="Entrance" id="0:6">
+      <KeyedObject objectId="0:20">
+        <KeyedProperty property="y">
+          <KeyFrameDouble value="320" frame="0" interpolationType="cubic">
+            <CubicEaseInterpolator x1="0.22" y1="1" x2="0.36" y2="1"/>
+          </KeyFrameDouble>
+          <KeyFrameDouble value="413" frame="42"/>
+        </KeyedProperty>
+        <KeyedProperty property="opacity">
+          <KeyFrameDouble value="0.55" frame="0" interpolationType="cubic">
+            <CubicEaseInterpolator x1="0.22" y1="1" x2="0.36" y2="1"/>
+          </KeyFrameDouble>
+          <KeyFrameDouble value="1" frame="34"/>
+        </KeyedProperty>
+      </KeyedObject>
+      <KeyedObject objectId="0:30">
+        <KeyedProperty property="opacity">
+          <KeyFrameDouble value="0" frame="5" interpolationType="cubic">
+            <CubicEaseInterpolator x1="0.22" y1="1" x2="0.36" y2="1"/>
+          </KeyFrameDouble>
+          <KeyFrameDouble value="0.7" frame="41"/>
+        </KeyedProperty>
+        <KeyedProperty property="scaleX">
+          <KeyFrameDouble value="0.78" frame="5" interpolationType="cubic">
+            <CubicEaseInterpolator x1="0.22" y1="1" x2="0.36" y2="1"/>
+          </KeyFrameDouble>
+          <KeyFrameDouble value="1" frame="42"/>
+        </KeyedProperty>
+        <KeyedProperty property="scaleY">
+          <KeyFrameDouble value="0.78" frame="5" interpolationType="cubic">
+            <CubicEaseInterpolator x1="0.22" y1="1" x2="0.36" y2="1"/>
+          </KeyFrameDouble>
+          <KeyFrameDouble value="1" frame="42"/>
+        </KeyedProperty>
+      </KeyedObject>
+    </LinearAnimation>
+  </Artboard>
+</Rive>

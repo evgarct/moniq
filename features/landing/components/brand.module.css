@@ -1,0 +1,60 @@
+@import "@fontsource/pt-serif/400-italic.css";
+
+.page {
+  --brand-ink: #191919;
+  --brand-paper: #f5f6f4;
+  --brand-stone: #e8ded3;
+  --brand-clay: #cc785c;
+  --brand-clay-text: #9c452d;
+  --brand-line: #19191935;
+  --brand-display: var(--font-pt-serif, "PT Serif"), Georgia, serif;
+  --brand-gutter: clamp(24px, 5vw, 104px);
+  --brand-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --card: var(--light-card);
+  --background: var(--brand-paper);
+  --foreground: var(--brand-ink);
+  --primary: var(--brand-ink);
+  --primary-foreground: var(--brand-paper);
+  --muted: var(--brand-stone);
+  --muted-foreground: #595650;
+  --border: #898680;
+  --destructive: #a13228;
+  height: 100dvh;
+  overflow-y: auto;
+  color: var(--brand-ink);
+  background: var(--brand-paper);
+  color-scheme: light;
+  font-family: var(--font-inter, Inter), sans-serif;
+  scroll-behavior: smooth;
+}
+.page :where(a):focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
+.page :is(h1, h2) { font-family: var(--brand-display); font-weight: 400; line-height: .99; letter-spacing: -.05em; text-wrap: balance; color: inherit; }
+.header {
+  min-height: 80px;
+  margin-inline: var(--brand-gutter);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--brand-line);
+}
+.logo { display: block; flex: none; width: clamp(104px, 12vw, 152px); }
+.logo svg { display: block; width: 100%; }
+.header nav { display: flex; align-items: center; gap: clamp(16px, 3vw, 48px); font-size: 14px; }
+.header a:not(.logo) { text-underline-offset: 6px; }
+.header a:hover { text-decoration: underline; }
+.loginLink { border: 1px solid var(--brand-line); padding: 10px 16px; }
+.eyebrow { font-size: 11px; line-height: 1.5; letter-spacing: .16em; text-transform: uppercase; font-weight: 600; }
+.poster, .rive { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.rive { opacity: 0; }
+[data-motion-ready="true"] > .poster { visibility: hidden; }
+[data-motion-ready="true"] > .rive { opacity: 1; }
+
+@media (max-width: 1023px) {
+  .page { --brand-paper: var(--card); }
+  .header { min-height: 64px; }
+  .chapterLink { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .page { scroll-behavior: auto; }
+}

@@ -295,7 +295,10 @@
       "emailRequired": "Email is required.",
       "emailInvalid": "Enter a valid email address.",
       "passwordRequired": "Password is required.",
-      "passwordMin": "Password must be at least 8 characters."
+      "passwordMin": "Password must be at least 8 characters.",
+      "invalidCredentials": "Check your email and password and try again.",
+      "emailNotConfirmed": "Confirm your email before signing in.",
+      "loginUnavailable": "Sign-in is temporarily unavailable. Try again in a moment."
     }
   },
   "dashboard": {
@@ -1596,120 +1599,46 @@
   },
   "landing": {
     "nav": {
-      "features": "Features",
-      "pricing": "Pricing",
-      "mcp": "MCP",
-      "docs": "Docs",
-      "login": "Log In",
-      "getStarted": "Get Started"
+      "home": "Moniq home",
+      "label": "Main navigation",
+      "story": "The story",
+      "language": "Read in Russian",
+      "login": "Sign in"
     },
     "hero": {
-      "eyebrow": "Personal Finance Workspace",
-      "title": "A calm workspace for your personal finances.",
-      "subtitle": "Moniq helps you track balances, forecast your future, and manage plans with a focus on simplicity, keyboard navigation, and fast loading.",
-      "cta": "Get Started for Free",
-      "secondaryCta": "Watch Demo"
+      "kicker": "Moniq / Personal finance",
+      "title": "More than numbers.",
+      "accent": "A clearer view.",
+      "body": "See what’s safe to spend, what’s due next, and where this month’s spending is headed.",
+      "explore": "Explore Moniq",
+      "plate": "Fig. 01 — A point of support"
     },
-    "features": {
-      "title": "Designed for clarity and control.",
-      "subtitle": "No complex dashboards, no noisy notifications. Just your numbers, clear and calm.",
-      "multicurrency": {
-        "title": "Multi-Currency Tracking",
-        "description": "Keep cash, bank accounts, and investments separate. View your assets in their native currencies without mixing values."
-      },
-      "calm": {
-        "title": "Calm Budgeting",
-        "description": "Focus on allocations and savings plans instead of rigid, stressful limits. Plan your wealth step by step."
-      },
-      "local": {
-        "title": "Fresh Data, Fast Launch",
-        "description": "Your numbers load straight from Supabase the moment you open the app, and the installable app shell opens even without a connection.",
-        "sqlite": "Your device",
-        "sync": "Secure API",
-        "supabase": "Supabase Cloud"
-      },
-      "mcp": {
-        "title": "AI & MCP Integration",
-        "description": "Use Model Context Protocol to securely connect your LLM assistants directly to your financial workspace.",
-        "headline": "Integrate with your AI workflows.",
-        "terminalLabel": "MCP Config",
-        "sub1Title": "Zero-trust access",
-        "sub1Desc": "Your API keys remain stored locally and requests are fully auditable.",
-        "sub2Title": "Natural queries",
-        "sub2Desc": "Ask your assistant: \"How much did I spend on coffee this week?\" or \"Run my July net worth projection.\""
-      }
+    "forecast": {
+      "kicker": "01 / Perspective",
+      "title": "See the month ahead.",
+      "modelTitle": "Month-end spending forecast",
+      "modelBody": "The Chronos model estimates where spending could land by month end, using your spending history and known upcoming payments.",
+      "balanceTitle": "Projected balances",
+      "balanceBody": "See how the payments and transfers you’ve already planned could change what’s left in your accounts."
     },
-    "demo": {
-      "title": "Interactive Preview",
-      "subtitle": "See how Moniq structures your financial records in real time.",
-      "balanceSheet": "Balance Sheet",
-      "ledger": "Recent Activity",
-      "netWorth": "Net Worth",
-      "keyboardTip": "Press [Enter] to inspect",
-      "mock": {
-        "workspace": "WORKSPACE",
-        "cashBanks": "CASH & BANKS",
-        "checking": "Checking",
-        "savings": "Savings",
-        "debts": "DEBTS",
-        "card": "Card",
-        "tx1Title": "Coffee at Stumptown",
-        "tx1Category": "Food & Drinks",
-        "tx1Date": "Today",
-        "tx2Title": "Monthly Salary Deposit",
-        "tx2Category": "Income",
-        "tx2Date": "Today",
-        "tx3Title": "SaaS Subscription",
-        "tx3Category": "Software",
-        "tx3Date": "Yesterday",
-        "txNewTitle": "Grocery Store Run",
-        "txNewCategory": "Groceries",
-        "txNewDate": "Just now",
-        "wallet1": "Euro Wallet",
-        "wallet2": "US Dollar Checking",
-        "wallet3": "Ruble Cash",
-        "goal1": "Emergency Fund",
-        "goal2": "Vacation Travel"
-      }
+    "ai": {
+      "kicker": "02 / A conversation",
+      "title": "Ask about your money.",
+      "body": "Connect a compatible AI assistant through MCP to explore spending, budgets, and upcoming payments in your own words.",
+      "questionOne": "“Where did I spend the most this month?”",
+      "questionTwo": "“Which budgets are getting tight?”",
+      "questionThree": "“What payments are coming up next?”"
     },
-    "pricing": {
-      "title": "Simple, honest pricing.",
-      "subtitle": "Start tracking for free, upgrade to Pro when you need advanced capabilities.",
-      "monthly": "Monthly",
-      "annual": "Annually",
-      "save20": "Save 20%",
-      "stripeBilling": "Stripe Billing",
-      "free": {
-        "name": "Free",
-        "price": "$0",
-        "period": "forever",
-        "cta": "Start for Free",
-        "features": {
-          "wallets": "Up to 3 active wallets",
-          "history": "30-day transaction history",
-          "local": "App shell works offline",
-          "sync": "Manual backups"
-        }
-      },
-      "pro": {
-        "name": "Pro",
-        "priceMonthly": "$9",
-        "periodMonthly": "billed monthly",
-        "priceAnnual": "$7.20",
-        "periodAnnual": "billed annually",
-        "cta": "Get Pro Access",
-        "features": {
-          "wallets": "Unlimited wallets & accounts",
-          "history": "Full transaction history",
-          "sync": "Automatic real-time sync",
-          "mcp": "Model Context Protocol API keys",
-          "stripe": "Secure Stripe billing"
-        }
-      }
+    "values": {
+      "kicker": "03 / A foundation",
+      "title": "Make room for what matters.",
+      "clarity": "Clarity",
+      "clarityBody": "See accounts, spending, and obligations in context.",
+      "stability": "Stability",
+      "stabilityBody": "Plan for recurring payments and give each part of your budget a purpose.",
+      "freedom": "Freedom",
+      "freedomBody": "Set money aside for your goals and see what’s available for the choices you want to make."
     },
-    "footer": {
-      "tagline": "A calm workspace for your personal finances.",
-      "copyright": "© {year} Moniq. All rights reserved."
-    }
+    "closing": "Feel grounded. Live freely."
   }
 }

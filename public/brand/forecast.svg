@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+  <g id="poster">
+    <path d="M74 383 A226 226 0 0 1 526 383" fill="none" stroke="#F5F6F4" stroke-width="1.7" opacity="0.55"/>
+    <path d="M122 383 A178 178 0 0 1 478 383" fill="none" stroke="#F5F6F4" stroke-width="1.7" opacity="0.69"/>
+    <path d="M170 383 A130 130 0 0 1 430 383" fill="none" stroke="#F5F6F4" stroke-width="1.7" opacity="0.85"/>
+    <path d="M216 383 A84 84 0 0 1 384 383" fill="none" stroke="#F5F6F4" stroke-width="1.7" opacity="1"/>
+    <circle cx="300" cy="292" r="11.5" fill="#CC785C"/>
+  </g>
+</svg>

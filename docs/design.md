@@ -9,6 +9,18 @@ originSessionId: a724e347-5813-4f1e-81e3-b5b181fcbddb
 
 This is the **single canonical design document** for moniq. It replaces `design-principles.md`, `design-language.md`, `design-system-spec.md`, `storybook.md`, and `ui-guidelines.md`, which previously duplicated and in places contradicted each other and the rules baked into `AGENTS.md` and `stories/foundations/design-language.stories.tsx`. Those files now only point back here.
 
+## Public brand and sign-in
+
+The localized homepage tells the Moniq story through three chapters: financial perspective, conversation, and a foundation for everyday choices. Product capabilities appear in copy and abstract illustrations. The forecast chapter separates the Chronos month-end spending estimate from the projected balance based on planned activity.
+
+The public pages share a scoped brand palette, the Architectural M and traced wordmark from the Logo Master Sheet, PT Serif and Inter, and an ease-out motion curve. One persistent stage follows the landing chapters. The terracotta disc opens into an aperture onto the forecast, contracts into the dialogue, and comes to rest in the still life. The native scroll position controls the camera, image masks, geometry and forecast illustration in both directions. Sign-in uses the same disc and framing, with the labeled form ahead of the image on small screens.
+
+The three editable Rive scenes live in `features/landing/motion`. From the repository root, run `rive features/landing/motion/<scene> --once` and copy `build/<scene>.riv` from that scene directory into `public/brand`. Update the matching SVG poster when changing a scene's final geometry. The scenes use standard timelines with no scripts. The forecast scene binds scroll progress to its `reveal` view-model property and blends between three architectural poses. The static posters remain available with reduced motion, failed loading, or JavaScript disabled. The auth action and page navigation remain outside Rive.
+
+Use `Pages/LandingPage` and `Organisms/AuthForm/Login` for visual review, including sign-in under the dark application preference. The public compositions use scoped light controls and the shared light card canvas below 1024px. Capture desktop and mobile screenshots in `.codex-artifacts/` after changes to these compositions.
+
+With reduced motion, the portrait is static and all chapters remain readable in document order. Use the Conversation story to check chapter contrast. On sign-in, keyboard focus in the form gives the disc a small visual response while reduced motion keeps it still.
+
 ## Source of truth, in order
 
 1. This document (`docs/design.md`).

@@ -2,6 +2,7 @@ import type { StorybookConfig } from "@storybook/nextjs-vite";
 import { mergeConfig } from "vite";
 
 const config: StorybookConfig = {
+  staticDirs: ["../public"],
   stories: [
     "../components/**/*.stories.@(ts|tsx)",
     "../features/**/*.stories.@(ts|tsx)",
@@ -20,7 +21,7 @@ const config: StorybookConfig = {
   viteFinal: async (config) =>
     mergeConfig(config, {
       optimizeDeps: {
-        include: ["@base-ui/react/switch"],
+        include: ["@base-ui/react/switch", "framer-motion"],
       },
     }),
 };

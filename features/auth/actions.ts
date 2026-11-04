@@ -110,7 +110,11 @@ export async function signInWithPassword(
 
   if (error) {
     return {
-      error: error.message,
+      error: error.code === "invalid_credentials"
+        ? t("errors.invalidCredentials")
+        : error.code === "email_not_confirmed"
+          ? t("errors.emailNotConfirmed")
+          : t("errors.loginUnavailable"),
       values: { email },
     };
   }
