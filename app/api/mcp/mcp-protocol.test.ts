@@ -233,19 +233,9 @@ describe("MCP tools", () => {
       "reschedule_recurring_transaction_series_from_occurrence",
       "update_recurring_transaction_occurrence",
       "mark_recurring_transaction_occurrence_paid",
-      "delete_recurring_transaction_occurrence",
+      "skip_recurring_occurrence",
       "set_recurring_transaction_schedule_state",
       "delete_recurring_transaction_schedule",
-      "list_recurring_transactions",
-      "create_recurring_transaction",
-      "update_recurring_transaction",
-      "set_recurring_transaction_state",
-      "delete_recurring_transaction",
-      "reschedule_recurring_transaction",
-      "update_recurring_occurrence",
-      "mark_recurring_occurrence_paid",
-      "skip_recurring_occurrence",
-      "delete_recurring_occurrence",
       "create_category",
       "update_category",
       "set_budgets",
@@ -519,6 +509,31 @@ describe("MCP tools", () => {
         },
       },
     });
+  });
+
+  it("hides legacy recurring aliases from discovery but still routes them", async () => {
+    const hiddenAliases = [
+      "list_recurring_transactions",
+      "create_recurring_transaction",
+      "update_recurring_transaction",
+      "set_recurring_transaction_state",
+      "delete_recurring_transaction",
+      "reschedule_recurring_transaction",
+      "update_recurring_occurrence",
+      "mark_recurring_occurrence_paid",
+      "delete_recurring_occurrence",
+      "delete_recurring_transaction_occurrence",
+    ];
+    const tools = await getListedTools();
+    const names = tools.map((tool) => tool.name);
+    for (const alias of hiddenAliases) expect(names).not.toContain(alias);
+    for (const tool of tools) expect(String(tool.description)).not.toMatch(/alias of/i);
+
+    mocks.rpc.mockImplementation((name: string) => authRpcResponse(name) ?? Promise.resolve({ data: null, error: null }));
+    for (const alias of hiddenAliases) {
+      const response = await postMcp({ jsonrpc: "2.0", id: `legacy-${alias}`, method: "tools/call", params: { name: alias, arguments: {} } });
+      expect(JSON.stringify(await response.json())).not.toContain("Unknown tool");
+    }
   });
 
   it("keeps the singular create alias callable but hidden from discovery", async () => {
