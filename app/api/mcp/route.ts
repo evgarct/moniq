@@ -1233,7 +1233,7 @@ function getMcpTools() {
           name: "submit_transaction_batch",
           title: "Send transactions to Moniq Inbox",
           description:
-            "Legacy review flow: submit a batch of transactions extracted from a bank screenshot, statement, or file for review inside Moniq. Use this when confidence is low or the user explicitly wants inbox approval instead of direct ledger writes.",
+            "Review flow: submit a batch of transactions extracted from a bank screenshot, statement, or file as drafts in the Moniq Inbox, where the user approves or rejects them. Nothing is written to the ledger until approval. Use this when confidence is low or the user explicitly wants inbox approval; when the user has already confirmed every field, use create_transactions instead.",
           annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
           _meta: transactionWidgetMeta("Sending to Moniq Inbox", "Sent to Moniq Inbox"),
           outputSchema: transactionOperationOutputSchema("Submitted transaction batch"),

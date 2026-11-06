@@ -237,7 +237,7 @@ Do not use this tool if required wallet/category/date/amount fields are missing.
 
 ### `submit_transaction_batch`
 
-Legacy review flow for uncertain imports.
+Review flow for uncertain imports: drafts land in the Moniq Inbox and nothing is written to the ledger until the user approves them there. This is a supported flow, not a deprecated one; use `create_transactions` when every field is already confirmed.
 
 Use it when:
 
