@@ -1603,15 +1603,21 @@
       "label": "Main navigation",
       "story": "The story",
       "language": "Read in Russian",
-      "login": "Sign in"
+      "login": "Sign in",
+      "start": "Get started",
+      "skip": "Skip to the product",
+      "top": "Back to the beginning"
     },
     "hero": {
       "kicker": "Moniq / Personal finance",
       "title": "More than numbers.",
+      "lineOne": "More than",
+      "lineTwo": "numbers.",
       "accent": "A clearer view.",
       "body": "See what’s safe to spend, what’s due next, and where this month’s spending is headed.",
       "explore": "Explore Moniq",
-      "plate": "Fig. 01 — A point of support"
+      "plate": "Fig. 01 — A point of support",
+      "caption": "A little perspective changes everything."
     },
     "forecast": {
       "kicker": "01 / Perspective",
@@ -1639,6 +1645,75 @@
       "freedom": "Freedom",
       "freedomBody": "Set money aside for your goals and see what’s available for the choices you want to make."
     },
-    "closing": "Feel grounded. Live freely."
+    "closing": "Feel grounded. Live freely.",
+    "perspective": {
+      "label": "Perspective",
+      "title": "See the",
+      "accent": "bigger picture.",
+      "body": "Your accounts. Your commitments. Your plans. A little distance brings everything into focus.",
+      "action": "Find your clarity",
+      "caption": "Perspective makes room for possibility."
+    },
+    "product": {
+      "label": "Clarity",
+      "title": "Clarity in",
+      "accent": "every decision.",
+      "body": "Bring your accounts, everyday spending and savings into one considered view.",
+      "example": "Interactive example",
+      "balance": "Balance",
+      "accounts": "Your accounts",
+      "all": "All accounts",
+      "daily": "Everyday",
+      "savings": "Savings",
+      "hint": "Choose an account to see its activity.",
+      "register": "Account activity",
+      "recent": "Recent activity",
+      "available": "Available to spend",
+      "caption": "An illustrative workspace with sample amounts in EUR. Explore the accounts to see how the view changes.",
+      "action": "Make it yours",
+      "rows": {
+        "groceries": {
+          "title": "Weekly groceries",
+          "detail": "Food and groceries · Everyday"
+        },
+        "salary": {
+          "title": "Salary",
+          "detail": "Income · Everyday"
+        },
+        "coffee": {
+          "title": "Morning coffee",
+          "detail": "Eating out · Everyday"
+        },
+        "reserve": {
+          "title": "A little breathing room",
+          "detail": "Transfer to savings"
+        },
+        "journey": {
+          "title": "The next adventure",
+          "detail": "Transfer to savings"
+        }
+      }
+    },
+    "balance": {
+      "label": "Balance",
+      "title": "Find your",
+      "accent": "balance.",
+      "body": "Give your money a purpose. Leave a little room for life.",
+      "plan": "Plan",
+      "planBody": "Make space for the payments ahead.",
+      "save": "Save",
+      "saveBody": "Set money aside for what matters.",
+      "live": "Live",
+      "liveBody": "Know what is available for today.",
+      "caption": "A stronger foundation. A lighter state of mind."
+    },
+    "freedom": {
+      "label": "Freedom",
+      "title": "Feel grounded.",
+      "accent": "Live freely.",
+      "body": "A clearer relationship with your money starts with a little perspective.",
+      "returning": "Already at home here?",
+      "colophon": "Moniq · More than numbers"
+    }
   }
 }

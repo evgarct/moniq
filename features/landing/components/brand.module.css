@@ -41,9 +41,11 @@
 .logo { display: block; flex: none; width: clamp(104px, 12vw, 152px); }
 .logo svg { display: block; width: 100%; }
 .header nav { display: flex; align-items: center; gap: clamp(16px, 3vw, 48px); font-size: 14px; }
+.header nav a { display: inline-flex; align-items: center; min-height: 44px; }
 .header a:not(.logo) { text-underline-offset: 6px; }
 .header a:hover { text-decoration: underline; }
 .loginLink { border: 1px solid var(--brand-line); padding: 10px 16px; }
+.startLink { background: var(--brand-ink); color: var(--brand-paper); padding: 12px 18px; }
 .eyebrow { font-size: 11px; line-height: 1.5; letter-spacing: .16em; text-transform: uppercase; font-weight: 600; }
 .poster, .rive { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .rive { opacity: 0; }
@@ -54,6 +56,9 @@
   .page { --brand-paper: var(--card); }
   .header { min-height: 64px; }
   .chapterLink { display: none; }
+  .header nav { gap: 16px; font-size: 12px; }
+  .loginLink { padding: 10px 0; border: 0; }
+  .header nav .startLink { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .page { scroll-behavior: auto; }

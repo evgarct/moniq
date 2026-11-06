@@ -17,6 +17,7 @@
     "test:e2e:auth": "npm run test:e2e:setup && node scripts/verify-authenticated-app.mjs",
     "test:e2e:pwa": "node scripts/verify-pwa-shell.mjs",
     "test:e2e:add-transaction": "npm run test:e2e:setup && node scripts/verify-add-transaction.mjs",
+    "test:e2e:landing": "node scripts/verify-immersive-home.mjs",
     "storybook": "storybook dev -p 6008 --host 0.0.0.0 --ci",
     "build-storybook": "storybook build",
     "test-storybook": "vitest run --project=storybook",
