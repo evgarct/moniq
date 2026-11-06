@@ -106,26 +106,20 @@ Future recurring transactions are supported. Active schedules are expanded into 
 
 ### Recurring transaction tools
 
-Use `list_recurring_transactions` or `get_recurring_transaction_schedules` before editing or deleting recurring payments. A schedule's `start_date` is the first occurrence date, not just a future anchor. Supported frequencies are the presets `daily`, `weekly`, `monthly`, `quarterly` (every 3 months), and `yearly`, plus `custom` for any "every N days / weeks / months" cadence. A `custom` schedule must set `interval_count` (integer >= 1) and `interval_unit` (`day`, `week`, or `month`), for example `{ "frequency": "custom", "interval_count": 9, "interval_unit": "day" }` for every 9 days or `{ "frequency": "custom", "interval_count": 3, "interval_unit": "month" }` for every 3 months. Presets define their own interval: omit `interval_count`/`interval_unit` for them (echoing the stored values back from a `get` is fine; a conflicting pair is rejected). Month-based cadences keep the start date's day of month, clamped to the end of shorter months. `get_recurring_transaction_schedules` and the period reads return `interval_count` and `interval_unit` for every schedule.
+Use `get_recurring_transaction_schedules` before editing or deleting recurring payments. A schedule's `start_date` is the first occurrence date, not just a future anchor. Supported frequencies are the presets `daily`, `weekly`, `monthly`, `quarterly` (every 3 months), and `yearly`, plus `custom` for any "every N days / weeks / months" cadence. A `custom` schedule must set `interval_count` (integer >= 1) and `interval_unit` (`day`, `week`, or `month`), for example `{ "frequency": "custom", "interval_count": 9, "interval_unit": "day" }` for every 9 days or `{ "frequency": "custom", "interval_count": 3, "interval_unit": "month" }` for every 3 months. Presets define their own interval: omit `interval_count`/`interval_unit` for them (echoing the stored values back from a `get` is fine; a conflicting pair is rejected). Month-based cadences keep the start date's day of month, clamped to the end of shorter months. `get_recurring_transaction_schedules` and the period reads return `interval_count` and `interval_unit` for every schedule.
 
 Write tools:
 
 - `create_recurring_transaction_schedule` creates a new active series.
-- `create_recurring_transaction` is an alias for creating a new active series.
 - `update_recurring_transaction_schedule` patches a series template: send `schedule_id` and only the fields to change in `schedule` (for example just `category_id`). Omitted fields, including `start_date`, keep their stored values. Changing `frequency` to a different preset clears the stored interval pair unless the patch supplies one. The write is guarded: if the series changed between the read and the write, the call fails and you should read it again and retry.
-- `update_recurring_transaction` is an alias for patching a series template.
 - `reschedule_recurring_transaction_series_from_occurrence` shifts one occurrence and all following occurrences.
-- `reschedule_recurring_transaction` is an alias for shifting one occurrence and all following occurrences.
 - `update_recurring_transaction_occurrence` edits one occurrence. Use `transaction_id` for a materialized occurrence, or `schedule_id` plus `occurrence_date` for a generated occurrence from `get_transactions`.
-- `update_recurring_occurrence` is an alias for editing one occurrence.
 - `mark_recurring_transaction_occurrence_paid` marks one occurrence paid.
-- `mark_recurring_occurrence_paid` is an alias for marking one occurrence paid.
-- `delete_recurring_transaction_occurrence` deletes one occurrence by marking it skipped so it does not regenerate.
-- `skip_recurring_occurrence` and `delete_recurring_occurrence` both mark one occurrence skipped so it does not regenerate.
+- `skip_recurring_occurrence` marks one occurrence skipped so it stays hidden and does not regenerate. It is the only occurrence-skipping tool in the tool list.
 - `set_recurring_transaction_schedule_state` pauses or resumes a series.
-- `set_recurring_transaction_state` is an alias for pausing or resuming a series.
 - `delete_recurring_transaction_schedule` deletes the series while preserving paid history.
-- `delete_recurring_transaction` is an alias for deleting a series while preserving paid history.
+
+Legacy names (`list_recurring_transactions`, `create_recurring_transaction`, `update_recurring_transaction`, `set_recurring_transaction_state`, `delete_recurring_transaction`, `reschedule_recurring_transaction`, `update_recurring_occurrence`, `mark_recurring_occurrence_paid`, `delete_recurring_occurrence`, `delete_recurring_transaction_occurrence`) are no longer listed in `tools/list` so agents see one tool per action, but `tools/call` still accepts them and routes to the tools above. Do not document or recommend them.
 
 Recurring read and write tools return the full result as JSON in the text content (and in `structuredContent` for the widget), so read the schedule JSON instead of relying on the widget.
 

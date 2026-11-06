@@ -655,157 +655,6 @@ function recurringOccurrenceActionSchema({
   };
 }
 
-function recurringToolAliases() {
-  return [
-    {
-      name: "list_recurring_transactions",
-      title: "List recurring transactions",
-      description: "Alias of get_recurring_transaction_schedules. Read active and paused Moniq recurring transaction schedules.",
-      annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
-      _meta: moniqWidgetMeta("Reading recurring transactions", "Recurring transactions ready"),
-      outputSchema: widgetOutputSchema("Moniq recurring transactions"),
-      inputSchema: {
-        type: "object",
-        title: "Recurring schedule filters",
-        properties: {
-          states: {
-            type: "array",
-            title: "States",
-            items: { type: "string", enum: SCHEDULE_STATES },
-          },
-        },
-        additionalProperties: false,
-      },
-    },
-    {
-      name: "create_recurring_transaction",
-      title: "Create recurring transaction",
-      description: "Alias of create_recurring_transaction_schedule. Create a recurring Moniq transaction series.",
-      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
-      _meta: moniqWidgetMeta("Creating recurring transaction", "Recurring transaction created"),
-      outputSchema: widgetOutputSchema("Created recurring transaction"),
-      inputSchema: recurringScheduleInputSchema("Recurring transaction"),
-    },
-    {
-      name: "update_recurring_transaction",
-      title: "Update recurring transaction",
-      description: "Alias of update_recurring_transaction_schedule. Patch a recurring transaction series template: send only the fields to change.",
-      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
-      _meta: moniqWidgetMeta("Updating recurring transaction", "Recurring transaction updated"),
-      outputSchema: widgetOutputSchema("Updated recurring transaction"),
-      inputSchema: {
-        type: "object",
-        title: "Recurring transaction update",
-        properties: {
-          schedule_id: { type: "string", title: "Schedule ID" },
-          schedule: recurringScheduleProperties({ partial: true }),
-        },
-        required: ["schedule_id", "schedule"],
-        additionalProperties: false,
-      },
-    },
-    {
-      name: "set_recurring_transaction_state",
-      title: "Pause or resume recurring transaction",
-      description: "Alias of set_recurring_transaction_schedule_state. Set a recurring series state to active or paused.",
-      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
-      _meta: moniqWidgetMeta("Changing recurring transaction state", "Recurring transaction state changed"),
-      outputSchema: widgetOutputSchema("Recurring transaction state"),
-      inputSchema: {
-        type: "object",
-        title: "Recurring transaction state",
-        properties: {
-          schedule_id: { type: "string", title: "Schedule ID" },
-          state: { type: "string", title: "State", enum: SCHEDULE_STATES },
-        },
-        required: ["schedule_id", "state"],
-        additionalProperties: false,
-      },
-    },
-    {
-      name: "delete_recurring_transaction",
-      title: "Delete recurring transaction",
-      description: "Alias of delete_recurring_transaction_schedule. Delete a recurring series while preserving paid historical occurrences.",
-      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false, idempotentHint: false },
-      _meta: moniqWidgetMeta("Deleting recurring transaction", "Recurring transaction deleted"),
-      outputSchema: widgetOutputSchema("Deleted recurring transaction"),
-      inputSchema: {
-        type: "object",
-        title: "Recurring transaction to delete",
-        properties: {
-          schedule_id: { type: "string", title: "Schedule ID" },
-        },
-        required: ["schedule_id"],
-        additionalProperties: false,
-      },
-    },
-    {
-      name: "reschedule_recurring_transaction",
-      title: "Reschedule recurring transaction",
-      description: "Alias of reschedule_recurring_transaction_series_from_occurrence. Shift this and following occurrences from a chosen occurrence date.",
-      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
-      _meta: moniqWidgetMeta("Rescheduling recurring series", "Recurring series rescheduled"),
-      outputSchema: widgetOutputSchema("Rescheduled recurring transaction"),
-      inputSchema: {
-        type: "object",
-        title: "Recurring series reschedule",
-        properties: {
-          schedule_id: { type: "string", title: "Schedule ID" },
-          from_occurrence_date: { type: "string", title: "From date", description: "Occurrence date to shift from, YYYY-MM-DD." },
-          new_occurrence_date: { type: "string", title: "New date", description: "New date for that occurrence, YYYY-MM-DD." },
-        },
-        required: ["schedule_id", "from_occurrence_date", "new_occurrence_date"],
-        additionalProperties: false,
-      },
-    },
-    {
-      name: "update_recurring_occurrence",
-      title: "Update recurring occurrence",
-      description: "Alias of update_recurring_transaction_occurrence. Update one materialized or generated recurring occurrence.",
-      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
-      _meta: moniqWidgetMeta("Updating recurring occurrence", "Recurring occurrence updated"),
-      outputSchema: widgetOutputSchema("Updated recurring occurrence"),
-      inputSchema: recurringOccurrenceActionSchema({
-        title: "Recurring occurrence update",
-        valueSchema: {
-          type: "object",
-          title: "Occurrence values",
-          required: ["title", "amount", "occurred_at", "status", "kind"],
-          additionalProperties: false,
-          properties: directTransactionProperties(),
-        },
-      }),
-    },
-    {
-      name: "mark_recurring_occurrence_paid",
-      title: "Mark recurring occurrence paid",
-      description: "Alias of mark_recurring_transaction_occurrence_paid. Materialize a generated occurrence if needed, then mark it paid.",
-      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
-      _meta: moniqWidgetMeta("Marking recurring occurrence paid", "Recurring occurrence marked paid"),
-      outputSchema: widgetOutputSchema("Paid recurring occurrence"),
-      inputSchema: recurringOccurrenceActionSchema({ title: "Recurring occurrence to pay" }),
-    },
-    {
-      name: "skip_recurring_occurrence",
-      title: "Skip recurring occurrence",
-      description: "Mark one recurring occurrence skipped so it remains hidden and does not regenerate.",
-      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false, idempotentHint: false },
-      _meta: moniqWidgetMeta("Skipping recurring occurrence", "Recurring occurrence skipped"),
-      outputSchema: widgetOutputSchema("Skipped recurring occurrence"),
-      inputSchema: recurringOccurrenceActionSchema({ title: "Recurring occurrence to skip" }),
-    },
-    {
-      name: "delete_recurring_occurrence",
-      title: "Delete recurring occurrence",
-      description: "Alias of delete_recurring_transaction_occurrence. Mark one recurring occurrence skipped so it will not regenerate.",
-      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false, idempotentHint: false },
-      _meta: moniqWidgetMeta("Deleting recurring occurrence", "Recurring occurrence deleted"),
-      outputSchema: widgetOutputSchema("Deleted recurring occurrence"),
-      inputSchema: recurringOccurrenceActionSchema({ title: "Recurring occurrence to delete" }),
-    },
-  ];
-}
-
 function getMcpTools() {
   return [
         { name: "rename_pension_account", title: "Rename pension account", description: "Rename an existing locked pension account using its ID from get_pension_accounts. Changes only the display name, preserving valuations, contributions, transaction links and recurring schedules. Confirm the new name with the user.", annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: true }, inputSchema: { type: "object", properties: { wallet_id: { type: "string" }, name: { type: "string", minLength: 1 } }, required: ["wallet_id","name"], additionalProperties: false } },
@@ -1023,7 +872,7 @@ function getMcpTools() {
           name: "update_recurring_transaction_schedule",
           title: "Update recurring transaction",
           description:
-            "Update a recurring transaction series template. Send only the fields to change in schedule (for example just category_id or amount); omitted fields keep their stored values, including start_date. Read the series with get_recurring_transaction_schedules first to get schedule_id.",
+            "Update a recurring transaction series template. Send only the fields to change in schedule (for example just category_id or amount); omitted fields keep their stored values, including start_date. Read the series with get_recurring_transaction_schedules first to get schedule_id. Changes the whole series; to change a single payment use update_recurring_transaction_occurrence.",
           annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
           _meta: moniqWidgetMeta("Updating recurring transaction", "Recurring transaction updated"),
           outputSchema: widgetOutputSchema("Updated recurring transaction"),
@@ -1042,7 +891,7 @@ function getMcpTools() {
           name: "reschedule_recurring_transaction_series_from_occurrence",
           title: "Reschedule recurring series",
           description:
-            "Shift a recurring series from a specific occurrence onward by moving that occurrence to a new date. Use when the user wants this and following occurrences moved.",
+            "Shift a recurring series from a specific occurrence onward by moving that occurrence to a new date. Use when the user wants this and following occurrences moved; to move only one payment use update_recurring_transaction_occurrence.",
           annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
           _meta: moniqWidgetMeta("Rescheduling recurring series", "Recurring series rescheduled"),
           outputSchema: widgetOutputSchema("Rescheduled recurring transaction"),
@@ -1062,7 +911,7 @@ function getMcpTools() {
           name: "update_recurring_transaction_occurrence",
           title: "Update recurring occurrence",
           description:
-            "Update one occurrence of a recurring transaction. Use transaction_id for a materialized occurrence, or schedule_id plus occurrence_date for a generated occurrence.",
+            "Update one occurrence of a recurring transaction (amount, title, date, category, wallets), leaving the series template unchanged. Use transaction_id for a materialized occurrence, or schedule_id plus occurrence_date for a generated occurrence. To change every future payment use update_recurring_transaction_schedule.",
           annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
           _meta: moniqWidgetMeta("Updating recurring occurrence", "Recurring occurrence updated"),
           outputSchema: widgetOutputSchema("Updated recurring occurrence"),
@@ -1088,20 +937,20 @@ function getMcpTools() {
           inputSchema: recurringOccurrenceActionSchema({ title: "Recurring occurrence to pay" }),
         },
         {
-          name: "delete_recurring_transaction_occurrence",
-          title: "Delete recurring occurrence",
+          name: "skip_recurring_occurrence",
+          title: "Skip recurring occurrence",
           description:
-            "Delete one recurring occurrence by marking it skipped so it will not regenerate. Use for a single missed/cancelled occurrence, not the whole series.",
+            "Skip one recurring occurrence: it is marked skipped, stays hidden and does not regenerate. Use for a single missed or cancelled payment. To stop all future payments use delete_recurring_transaction_schedule or pause with set_recurring_transaction_schedule_state instead. Use transaction_id for a materialized occurrence, or schedule_id plus occurrence_date for a generated one.",
           annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false, idempotentHint: false },
-          _meta: moniqWidgetMeta("Deleting recurring occurrence", "Recurring occurrence deleted"),
-          outputSchema: widgetOutputSchema("Deleted recurring occurrence"),
-          inputSchema: recurringOccurrenceActionSchema({ title: "Recurring occurrence to delete" }),
+          _meta: moniqWidgetMeta("Skipping recurring occurrence", "Recurring occurrence skipped"),
+          outputSchema: widgetOutputSchema("Skipped recurring occurrence"),
+          inputSchema: recurringOccurrenceActionSchema({ title: "Recurring occurrence to skip" }),
         },
         {
           name: "set_recurring_transaction_schedule_state",
           title: "Pause or resume recurring transaction",
           description:
-            "Set a recurring transaction series state to active or paused. Paused series keep existing history and stop future generation.",
+            "Set a recurring transaction series state to active or paused. Paused series keep existing history and stop future generation. Reversible, unlike delete_recurring_transaction_schedule.",
           annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
           _meta: moniqWidgetMeta("Changing recurring transaction state", "Recurring transaction state changed"),
           outputSchema: widgetOutputSchema("Recurring transaction state"),
@@ -1120,7 +969,7 @@ function getMcpTools() {
           name: "delete_recurring_transaction_schedule",
           title: "Delete recurring transaction",
           description:
-            "Delete a recurring transaction series. Paid historical occurrences are preserved; future non-paid planned occurrences are removed.",
+            "Delete a recurring transaction series. Paid historical occurrences are preserved; future non-paid planned occurrences are removed. Not reversible; to stop temporarily use set_recurring_transaction_schedule_state, to drop one payment use skip_recurring_occurrence.",
           annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false, idempotentHint: false },
           _meta: moniqWidgetMeta("Deleting recurring transaction", "Recurring transaction deleted"),
           outputSchema: widgetOutputSchema("Deleted recurring transaction"),
@@ -1134,7 +983,6 @@ function getMcpTools() {
             additionalProperties: false,
           },
         },
-        ...recurringToolAliases(),
         {
           name: "create_category",
           title: "Create category",
