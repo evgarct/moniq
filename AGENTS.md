@@ -119,6 +119,8 @@ The canonical UI reference implementation is `stories/foundations/ui-playbook.st
 
 # Windows Environment
 
+- Treat `vercel env list` output as value-bearing: current CLI versions show Config values. Capture it in memory and emit only variable names, types, and target environments when inspecting configuration.
+
 - Do not attempt `npm install -g supabase` — the Supabase CLI rejects global npm installs. On Windows, download the binary from GitHub releases, extract with `tar -xzf`, and move `supabase.exe` to `C:\Users\PC\bin\` which is already in PATH.
 - The `claude` CLI is not on the bash PATH. Its full path is `C:\Users\PC\AppData\Roaming\Claude\claude-code\2.1.101\claude.exe`. Use this path or invoke via PowerShell when running `claude` commands in scripts.
 - `supabase login` requires a TTY and will fail in non-interactive shells. Always use `supabase login --token <token>` or set `SUPABASE_ACCESS_TOKEN` env var. The login token is the personal access token from supabase.com/dashboard/account/tokens — it is different from the project anon key.

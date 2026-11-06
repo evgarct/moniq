@@ -5,12 +5,15 @@
   --exhibit-action: oklch(52% .13 42);
   --exhibit-muted: oklch(47% .018 65);
   --exhibit-line: oklch(24% .009 65 / .22);
+  --exhibit-selection: oklch(91.8% .008 95);
   --exhibit-gutter: clamp(24px, 4.7vw, 96px);
   --exhibit-header: 88px;
   --brand-paper: var(--exhibit-paper);
   --brand-ink: var(--exhibit-ink);
   --brand-gutter: var(--exhibit-gutter);
   --brand-clay-text: var(--exhibit-clay);
+  --secondary: var(--exhibit-selection);
+  --secondary-foreground: var(--exhibit-ink);
   position: relative;
   isolation: isolate;
   background: var(--exhibit-paper);

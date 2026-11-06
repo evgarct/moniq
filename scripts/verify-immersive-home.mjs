@@ -37,7 +37,7 @@ async function checkGeometry(page) {
 }
 
 try {
-  for (const [name, viewport, locale, reducedMotion] of [
+  for (const [name, viewport, locale, reducedMotion, colorScheme = "light"] of [
     ["desktop", { width: 1440, height: 1000 }, "en", "no-preference"],
     ["compact-desktop", { width: 1366, height: 768 }, "en", "no-preference"],
     ["mobile", { width: 390, height: 844 }, "en", "no-preference"],
@@ -45,8 +45,10 @@ try {
     ["tiny-mobile-ru", { width: 320, height: 668 }, "ru", "no-preference"],
     ["wide", { width: 1920, height: 1080 }, "en", "no-preference"],
     ["reduced-motion", { width: 390, height: 844 }, "en", "reduce"],
+    ["dark-preference", { width: 1440, height: 1000 }, "en", "no-preference", "dark"],
+    ["dark-mobile", { width: 390, height: 844 }, "en", "no-preference", "dark"],
   ]) {
-    const context = await browser.newContext({ viewport, reducedMotion, colorScheme: "light" });
+    const context = await browser.newContext({ viewport, reducedMotion, colorScheme });
     const page = await context.newPage();
     page.setDefaultTimeout(10_000);
     console.log(`Checking ${name} (${locale})`);
@@ -102,21 +104,23 @@ try {
     const violations = await page.evaluate(async () => (await window.axe.run("main", { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21aa"] } })).violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => n.target) })));
     assert.deepEqual(violations, [], `Accessibility violations (${name})`);
     assert.deepEqual(errors, [], `Browser errors (${name})`);
-    report.push({ name, locale, viewport, reducedMotion, scenes: 5, keyboard: "passed", accessibility: "passed", console: "clean" });
+    report.push({ name, locale, viewport, reducedMotion, colorScheme, scenes: 5, keyboard: "passed", accessibility: "passed", console: "clean" });
     await context.close();
   }
 
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   const page = await context.newPage();
-  await page.goto(`${base}/en`);
+  await page.goto(`${base}/en`, { waitUntil: "networkidle" });
   await page.locator("header nav a[href$='/login']").click();
   await page.waitForURL("**/en/login");
+  await page.waitForLoadState("networkidle");
   await page.locator("input[type='email']").waitFor();
-  await page.goto(`${base}/en`);
+  await page.goto(`${base}/en`, { waitUntil: "networkidle" });
   await page.locator("#opening a[href$='/signup']").click();
   await page.waitForURL("**/en/signup");
+  await page.waitForLoadState("networkidle");
   await page.locator("input[type='email']").waitFor();
-  await page.goto(`${base}/en`);
+  await page.goto(`${base}/en`, { waitUntil: "networkidle" });
   await page.locator("header nav a[hreflang='ru']").click();
   await page.waitForURL("**/ru");
   assert.match(await page.locator("h1").innerText(), /цифры/);

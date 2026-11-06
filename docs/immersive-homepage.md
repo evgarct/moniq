@@ -59,7 +59,7 @@ final results here before publication.
 - Standalone TypeScript, production Next.js build, ESLint (no errors), design
   guard and Storybook-first guard passed. ESLint retains five pre-existing image
   warnings in the unrelated branding foundation story.
-- All 478 unit tests and 237 Storybook tests passed. The landing's eight stories
+- All 478 unit tests and the full Storybook suite passed. The landing's nine stories
   enforce WCAG contrast errors rather than treating accessibility as advisory.
 - `test:e2e:landing` passed against `next start`: 320, 360 and 390px mobile,
   1366, 1440 and 1920px desktop, English/Russian, reduced motion, reverse scroll,
@@ -80,6 +80,18 @@ Vercel Analytics scripts return 404; the smoke excludes only those exact hosted
 endpoints, following the existing authenticated-app test convention. Hindsight
 was unavailable during the audit (connection timeout), so decisions were checked
 against the current repository and supplied references.
+
+The product preview pins its selected and hovered account background to the
+scoped light palette, including when the application preference is dark.
+`DarkPreference` and the desktop/mobile dark-preference browser runs cover this
+boundary; the rest of the application keeps its own theme.
+
+The Vercel branch Preview builds, but its server returns 500 because that
+environment lacks `NEXT_PUBLIC_SUPABASE_URL` and
+`NEXT_PUBLIC_SUPABASE_ANON_KEY`. These are configured separately from local and
+Production environments. Preview runtime acceptance is blocked by those inputs;
+the local `next start` acceptance remains valid. Production data is not copied
+into Preview to work around the missing staging configuration.
 
 The retrospective added standing checks for dark-scene text inheritance and
 HTTP-first preview reuse. Existing design and verification skills were sufficient;

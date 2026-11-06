@@ -97,3 +97,16 @@ export const ReducedMotion: Story = {
   parameters: { chromatic: { disableSnapshot: false } },
   decorators: [(Story) => <><style>{`main [data-scene] { scroll-margin-top: 88px; } @media (prefers-reduced-motion: no-preference) { main [data-scene="opening"], main [data-scene="perspective"] { height: auto; } main [data-scene="opening"] > section, main [data-scene="perspective"] > section { position: relative; top: 0; } main [data-scene] figure, main [data-scene] section, main [data-scene] span { transform: none !important; animation: none !important; clip-path: none !important; } }`}</style><Story /></>],
 };
+
+export const DarkPreference: Story = {
+  globals: { theme: "dark" },
+  play: async ({ canvasElement }) => {
+    const chapter = canvasElement.querySelector("#product");
+    if (!(chapter instanceof HTMLElement)) throw new Error("Missing product chapter");
+    chapter.scrollIntoView({ behavior: "instant" });
+    const button = within(chapter).getByRole("button", { name: /All accounts/ });
+    await expect(button).toHaveAttribute("aria-pressed", "true");
+    const color = getComputedStyle(button).backgroundColor;
+    await expect(color).not.toBe("rgb(28, 28, 27)");
+  },
+};
