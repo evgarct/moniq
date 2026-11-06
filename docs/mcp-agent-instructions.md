@@ -237,7 +237,7 @@ Do not use this tool if required wallet/category/date/amount fields are missing.
 
 ### `submit_transaction_batch`
 
-Review flow for uncertain imports: drafts land in the Moniq Inbox and nothing is written to the ledger until the user approves them there. This is a supported flow, not a deprecated one; use `create_transactions` when every field is already confirmed.
+Send transactions to the Moniq Inbox for review. It creates a draft batch that the user confirms or edits in the app before anything is recorded in the ledger. Use it for imports from a bank screenshot, statement or file, when confidence is low, or when the user wants to check entries first. This is a supported flow, not a deprecated one. To record transactions the user has already confirmed, directly and immediately, use `create_transactions`.
 
 Use it when:
 
