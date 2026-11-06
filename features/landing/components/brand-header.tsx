@@ -26,6 +26,7 @@ export function BrandHeader({ showLogin = false }: { showLogin?: boolean }) {
           {nextLocale.toUpperCase()}
         </Link>
         {showLogin && <Link className={styles.loginLink} href="/login">{t("login")}</Link>}
+        {showLogin && <Link className={styles.startLink} href="/signup">{t("start")}</Link>}
       </nav>
     </header>
   );
