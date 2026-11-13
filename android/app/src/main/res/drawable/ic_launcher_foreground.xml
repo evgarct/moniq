@@ -1,15 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Moniq mark (two arcs meeting under a terracotta sun) inside the adaptive-icon safe zone. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M24,40 h60 a6,6 0 0 1 6,6 v22 a6,6 0 0 1 -6,6 h-60 a6,6 0 0 1 -6,-6 v-22 a6,6 0 0 1 6,-6 z" />
+        android:fillColor="#191919"
+        android:pathData="M31,42 L37,42 C46,44 52,52 54,66 C56,52 62,44 71,42 L77,42 L77,76 L69,76 L69,52 C61,55 57,63 55.2,76 L52.8,76 C51,63 47,55 39,52 L39,76 L31,76 Z" />
     <path
-        android:fillColor="#1B4332"
-        android:pathData="M18,50 h72 v8 h-72 z" />
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M30,64 h16 v6 h-16 z" />
+        android:fillColor="#CC785C"
+        android:pathData="M54,31m-6.5,0a6.5,6.5 0,1 1,13 0a6.5,6.5 0,1 1,-13 0" />
 </vector>

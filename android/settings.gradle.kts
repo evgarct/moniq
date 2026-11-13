@@ -19,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "MoniqWallet"
+rootProject.name = "Moniq"
 include(":app")

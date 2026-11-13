@@ -1,3 +1,6 @@
 <resources>
-    <string name="app_name">Moniq Wallet</string>
+    <string name="app_name">Moniq</string>
+    <string name="wallet_listener_label">Moniq: Google Wallet payments</string>
+    <string name="channel_wallet_name">Wallet payments</string>
+    <string name="channel_wallet_description">Payments captured from Google Wallet and recorded in Moniq</string>
 </resources>

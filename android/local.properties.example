@@ -1,6 +1,16 @@
 # Copy to local.properties (gitignored) and fill in.
 sdk.dir=C\:\\Users\\PC\\scoop\\apps\\android-clt\\current
 
-# Gabi's wallet-notification webhook (telegram-bot repo, /api/wallet-notification)
-wallet.webhook.url=https://form-telegram-bot.vercel.app/api/wallet-notification
-wallet.webhook.secret=
+# Moniq backend: the same /api routes the web app uses.
+moniq.api.url=https://moniq.fyi
+# Supabase project of that backend (NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY).
+moniq.supabase.url=
+moniq.supabase.anonKey=
+
+# Hermes agent API (OpenAI-compatible API server of the Hermes gateway) for the in-app chat.
+hermes.api.url=https://hermes.safronov.dev/agent
+hermes.api.key=
+
+# Google Wallet cards whose payments Hermes records: "last4:Moniq wallet name", comma separated.
+# A payment from any other card is kept as "Not linked" and never sent on its own.
+wallet.cards=
