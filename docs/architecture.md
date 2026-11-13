@@ -53,3 +53,8 @@ Moniq records technical performance events for Web Vitals, client fetches, API r
 - currencies are wallet-level attributes and allocations inherit the parent wallet currency.
 - category analytics must remain currency-separated instead of mixing EUR/CZK/RUB into one fake total.
 - cashflow analytics only aggregate settled `paid` transactions; `planned` and `skipped` are operational states for calendar and today flows rather than balance math.
+
+## Native clients
+
+- The Android app (`android/`) is a client of the same `/api/*` routes as the web app. It signs in with Supabase Auth and sends `Authorization: Bearer <access token>` plus `X-Moniq-Client: android`. `lib/supabase/server.ts` then builds a request-scoped client for that token, so RLS and every repository rule apply unchanged. Without the marker header a bearer value is ignored: MCP API keys and OAuth tokens keep their own key-hash path.
+- `POST /api/transactions` accepts `Idempotency-Key: <uuid>` for a single non-recurring entry. The key becomes the transaction id, and a repeated create with the same key is a no-op. The app derives the key from a captured Google Wallet notification, so a notification delivered twice or a retried upload records one payment.
