@@ -1144,8 +1144,27 @@ export async function createTransactionEntryBatch(entries: TransactionEntryInput
   }
 }
 
+async function findOwnTransactionId(
+  supabase: Awaited<ReturnType<typeof getAuthenticatedSupabase>>["supabase"],
+  userId: string,
+  transactionId: string,
+) {
+  const { data } = await supabase
+    .from("finance_transactions")
+    .select("id")
+    .eq("id", transactionId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  return data?.id ?? null;
+}
+
 export async function createTransaction(values: TransactionInput, preferredId?: string) {
   const { supabase, user } = await getAuthenticatedSupabase();
+
+  // A caller-supplied id is an idempotency key. Recognise a replay before validating: the first
+  // attempt already moved the balance, so re-checking funds would reject the identical retry.
+  if (preferredId && (await findOwnTransactionId(supabase, user.id, preferredId))) return;
+
   const snapshot = await getFinanceSnapshot();
 
   validateTransactionRelationships(values, snapshot);
@@ -1174,16 +1193,14 @@ export async function createTransaction(values: TransactionInput, preferredId?: 
   });
 
   if (error) {
-    // A caller-supplied id is an idempotency key: a retry of a create that already landed
-    // (lost response, WorkManager retry, repeated wallet notification) must not write twice.
-    if (preferredId && (error as { code?: string }).code === "23505") {
-      const { data: existing } = await supabase
-        .from("finance_transactions")
-        .select("id")
-        .eq("id", preferredId)
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (existing) return;
+    // Two concurrent creates with the same key both pass the lookup above; the primary key is
+    // the barrier, and the loser is a replay as long as the row is the caller's own.
+    if (
+      preferredId &&
+      (error as { code?: string }).code === "23505" &&
+      (await findOwnTransactionId(supabase, user.id, preferredId))
+    ) {
+      return;
     }
     throw new Error(normalizeFinanceRepositoryError(error));
   }
