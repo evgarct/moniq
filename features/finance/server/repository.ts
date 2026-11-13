@@ -1174,6 +1174,17 @@ export async function createTransaction(values: TransactionInput, preferredId?: 
   });
 
   if (error) {
+    // A caller-supplied id is an idempotency key: a retry of a create that already landed
+    // (lost response, WorkManager retry, repeated wallet notification) must not write twice.
+    if (preferredId && (error as { code?: string }).code === "23505") {
+      const { data: existing } = await supabase
+        .from("finance_transactions")
+        .select("id")
+        .eq("id", preferredId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (existing) return;
+    }
     throw new Error(normalizeFinanceRepositoryError(error));
   }
 }
