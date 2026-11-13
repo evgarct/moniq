@@ -17,7 +17,7 @@
 #>
 param (
     [Parameter(Mandatory = $true)]
-    [ValidateSet('Env', 'Devices', 'Pair', 'Connect', 'Build', 'Install', 'BuildAndInstall', 'Launch', 'Stop', 'Clear', 'Screenshot', 'DumpUi', 'GrantNotificationAccess', 'DumpNotifications', 'Logcat')]
+    [ValidateSet('Env', 'Devices', 'Pair', 'Connect', 'Build', 'Install', 'BuildAndInstall', 'Launch', 'Stop', 'Clear', 'Screenshot', 'DumpUi', 'GrantNotificationAccess', 'DumpNotifications', 'TestWalletNotification', 'Logcat')]
     [string]$Action,
 
     [string]$Ip = "192.168.0.152",
@@ -29,7 +29,7 @@ param (
 
 $ErrorActionPreference = "Stop"
 
-$PackageId = "com.evgarct.moniqwallet"
+$PackageId = "com.evgarct.moniq"
 $ListenerComponent = "$PackageId/.wallet.WalletNotificationListenerService"
 
 # 1. Environment initialization (same Scoop layout as Form's runbook)
@@ -162,6 +162,8 @@ switch ($Action) {
         if (-not $dev) { exit 1 }
         Write-Host "Granting notification listener access to $ListenerComponent on $dev..."
         & adb -s $dev shell cmd notification allow_listener $ListenerComponent
+        # The app posts its own "Recorded" / "Review" notifications (Android 13+ runtime permission).
+        & adb -s $dev shell pm grant $PackageId android.permission.POST_NOTIFICATIONS
     }
 
     'DumpNotifications' {
@@ -172,10 +174,21 @@ switch ($Action) {
         & adb -s $dev shell dumpsys notification --noredact
     }
 
+    'TestWalletNotification' {
+        # Debug builds accept a shell-posted notification tagged moniq-wallet-test as a Wallet payment.
+        # -Code is the merchant (title), -OutputPath the text, e.g. "235,00 Kc with Mastercard 5583".
+        $dev = Get-TargetDevice
+        if (-not $dev) { exit 1 }
+        $merchant = if ($Code) { $Code } else { "Moniq Test Shop" }
+        $text = if ($OutputPath) { $OutputPath } else { "12,00 EUR with Mastercard 0000" }
+        & adb -s $dev shell "cmd notification post -S bigtext -t '$merchant' moniq-wallet-test '$text'"
+    }
+
     'Logcat' {
         $dev = Get-TargetDevice
         if (-not $dev) { exit 1 }
-        Write-Host "Streaming Logcat for Moniq Wallet..."
-        & adb -s $dev logcat -v time -s MoniqWalletApp:* WalletNotificationListenerService:* WalletNotificationForwardWorker:* AndroidRuntime:E
+        Write-Host "Streaming Logcat for Moniq..."
+        $appPid = (& adb -s $dev shell pidof $PackageId).Trim()
+        if ($appPid) { & adb -s $dev logcat -v time --pid=$appPid } else { & adb -s $dev logcat -v time -s AndroidRuntime:E WM-WorkerWrapper:* }
     }
 }
