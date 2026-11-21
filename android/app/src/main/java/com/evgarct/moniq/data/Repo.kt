@@ -68,7 +68,11 @@ class Repo(private val context: Context, val net: Net, val sessions: SessionStor
     private suspend fun loadForecast() {
         val userId = sessions.current?.userId ?: return
         runCatching { net.api("GET", "/api/finance/forecast") }.onSuccess { json ->
-            _forecast.value = withContext(Dispatchers.Default) { parseForecast(json) }
+            // A late answer from a session that has since signed out must not show or cache its data.
+            if (sessions.current?.userId != userId) return@onSuccess
+            val parsed = withContext(Dispatchers.Default) { parseForecast(json) }
+            if (sessions.current?.userId != userId) return@onSuccess
+            _forecast.value = parsed
             withContext(Dispatchers.IO) { runCatching { forecastFile(userId).writeText(json.toString()) } }
         }
     }

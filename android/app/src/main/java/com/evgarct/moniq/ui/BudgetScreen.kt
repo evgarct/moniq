@@ -68,7 +68,8 @@ import kotlin.math.sin
 fun BudgetScreen(state: AppState) {
     val palette = LocalPalette.current
     val forecast by state.repo.forecast.collectAsStateWithLifecycle()
-    val today = remember { LocalDate.now() }
+    // Follows resume: across midnight or a month boundary the sentence and the month check update.
+    val today = state.currentDay
     val current = forecast?.takeIf { it.isFor(today) }
 
     CompositionLocalProvider(LocalHideAmounts provides state.hideAmounts) {

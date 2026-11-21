@@ -87,9 +87,14 @@ class AppState(val app: MoniqApp) {
         }
     }
 
+    /** The calendar day screens reason about; moves on when the app returns to the foreground. */
+    var currentDay by mutableStateOf(LocalDate.now())
+        private set
+
     /** Called when the app returns to the foreground: "today" may have moved on. */
     fun syncToday() {
         val today = LocalDate.now()
+        currentDay = today
         if (windowStart.isBefore(today) && selectedDate.isBefore(today)) {
             windowStart = today
             selectedDate = today
