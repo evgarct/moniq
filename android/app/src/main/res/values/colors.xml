@@ -1,5 +1,8 @@
 <resources>
     <color name="splash_bg">#191919</color>
-    <color name="icon_bg">#F5F6F4</color>
     <color name="terra">#CC785C</color>
+    <!-- Launcher icon, light system theme. values-night holds the dark set. -->
+    <color name="icon_bg">#F5F6F4</color>
+    <color name="icon_mark">#191919</color>
+    <color name="icon_sun">#CC785C</color>
 </resources>

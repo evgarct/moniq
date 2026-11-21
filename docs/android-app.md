@@ -11,6 +11,7 @@ Setup and code layout: [`android/README.md`](../android/README.md).
 | Today | Date, month calendar, a four-day strip, the day's Planned and Confirmed lists | snapshot transactions |
 | Balance | Cash, Goals (savings wallets with free balance and goal progress), Credit and debt, Investments (pension wallets and positions) | snapshot accounts, allocations, positions |
 | Wallet history | A wallet's balance and its paid entries for a month, grouped by day | snapshot transactions |
+| Budget | One sentence from Chronos, each budgeted envelope as a row (likely month-end spend "of" its budget, a line, one caption), two questions that open Hermes with that question asked | `GET /api/finance/forecast` (latest `spending_forecasts` run), cached on disk |
 | Transaction form | Expense, income, transfer (including two currencies), debt payment; paid or planned; repeat and end date | `POST/PATCH /api/transactions`, `PATCH /api/transaction-schedules/{id}` |
 | Hermes | Chat with the Hermes agent, streamed, with fact rows; Hermes's reports about Google Wallet payments appear here on their own | Hermes API server |
 | You | Google Wallet capture status, card rules, capture log, fingerprint lock, sign out | device storage |
@@ -24,6 +25,20 @@ Setup and code layout: [`android/README.md`](../android/README.md).
 - **Debt payments** to a loan or mortgage take principal and interest as two amounts; a credit card takes one.
 - **Amounts** show cents only when they exist. Totals never mix currencies.
 - **Fingerprint lock** is off by default and is switched on in You.
+- **Budget reads Chronos, it does not chart it.** The row shows the median (p50) against the budget;
+  the p10..p90 range turns into words only where it changes the story ("unless a big week comes" when
+  p90 crosses the budget). Forecast amounts are estimates and show no cents. Totals are only added up
+  when every envelope shares one currency; otherwise the sentence names the envelope instead. The
+  wording lives in `domain/Budget.kt` and is unit-tested (`BudgetTest`).
+- **Today carries one Chronos line** ("Enjoy Life ends ~8 210 Kč over. Forecast ›") only while an
+  envelope is expected to run over; tapping it opens Budget.
+- **Tab labels never wrap.** All tabs step 15sp to 13sp together; if a translation or a large system
+  font still does not fit, the inactive tabs become 44dp icons with their name as the spoken label
+  and the active one keeps its word (measured with `TextMeasurer`, not counted letters).
+- **Launcher icon** follows the system theme (`values-night/colors.xml` holds the dark set) and has a
+  separate one-colour `monochrome` layer for Android 13+ themed icons.
+- **Form messages sit above sheets.** The toast host is drawn after every sheet so a validation
+  message ("Choose a category") is readable while the form is open.
 
 ## Motion
 

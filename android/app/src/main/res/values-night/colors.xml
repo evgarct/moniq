@@ -1,0 +1,6 @@
+<resources>
+    <!-- Launcher icon, dark system theme: the app's own dark tokens, not an inversion. -->
+    <color name="icon_bg">#141413</color>
+    <color name="icon_mark">#F1F0EC</color>
+    <color name="icon_sun">#D98B6F</color>
+</resources>

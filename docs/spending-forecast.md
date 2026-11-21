@@ -28,6 +28,7 @@ The digest never waits for the model. If the service is down, the cron logs `spe
 | Cron route | `app/api/cron/spending-forecast/route.ts`, scheduled in `vercel.json` |
 | Table, source RPC, MCP read RPC | `supabase/migrations/20261026120000_spending_forecasts.sql` |
 | MCP tool | `get_spending_forecast` in `app/api/mcp/route.ts` |
+| App read (Android Budget tab) | `GET /api/finance/forecast` → `features/budget/server/spending-forecast-read.ts`; latest run through RLS (cookie or Android bearer), mapped by `features/budget/lib/spending-forecast-view.ts`, fullest envelope first |
 | SQL test | `supabase/tests/spending_forecast.sql` |
 
 ## Environment
