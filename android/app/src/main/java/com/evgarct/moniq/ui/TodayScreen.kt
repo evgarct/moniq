@@ -79,6 +79,9 @@ import com.evgarct.moniq.domain.dayCounts
 import com.evgarct.moniq.domain.dayItems
 import com.evgarct.moniq.domain.formatAmount
 import com.evgarct.moniq.domain.headerLabel
+import com.evgarct.moniq.domain.isFor
+import com.evgarct.moniq.domain.todayLine
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.evgarct.moniq.domain.iso
 import com.evgarct.moniq.domain.longLabel
 import com.evgarct.moniq.domain.monthYear
@@ -164,6 +167,19 @@ fun TodayScreen(state: AppState, snapshot: Snapshot, refreshing: Boolean, email:
                         Column {
                             T("Today", serif(38, lineHeight = 1.04f, tracking = -.02f))
                             T("and the next 3 days.", serif(38, italic = true, lineHeight = 1.04f, tracking = -.02f), color = palette.terra, maxLines = 1)
+                        }
+                    }
+                    // One short line from Chronos, only when an envelope is expected to run over.
+                    val forecast by state.repo.forecast.collectAsStateWithLifecycle()
+                    val overLine = forecast?.takeIf { it.isFor(today) }?.todayLine()
+                    if (overLine != null) {
+                        Row(
+                            Modifier.padding(top = 20.dp).fillMaxWidth().heightIn(min = 44.dp).rise(120)
+                                .tap(scale = .98f, label = "Open the forecast") { state.walletId = null; state.tab = 2 },
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            T(overLine, serif(17, lineHeight = 1.35f), Modifier.weight(1f).padding(end = 12.dp).amountVeil(), maxLines = 2)
+                            T("Forecast ›", sans(13, 500), color = palette.terraInk, maxLines = 1)
                         }
                     }
                     AnimatedVisibility(

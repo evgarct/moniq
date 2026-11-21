@@ -42,6 +42,11 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -267,6 +272,7 @@ private fun SignedInApp(state: AppState, snapshot: Snapshot, captures: List<Capt
                     if (shown != null) WalletScreen(state, snapshot, shown) { state.walletId = null } else Box(Modifier.fillMaxSize())
                 }
                 target == "tab:1" -> BalanceScreen(state, snapshot)
+                target == "tab:2" -> BudgetScreen(state)
                 else -> TodayScreen(state, snapshot, refreshing, email)
             }
         }
@@ -275,37 +281,68 @@ private fun SignedInApp(state: AppState, snapshot: Snapshot, captures: List<Capt
         Box(Modifier.align(Alignment.TopCenter).fillMaxWidth().background(LocalPalette.current.bg.copy(alpha = .94f))) { StatusBarSpacer() }
 
         TabBar(state, Modifier.align(Alignment.BottomCenter))
-        ToastHost(state, Modifier.align(Alignment.BottomCenter))
 
         TxMenuSheet(state, snapshot)
         AddSheet(state, snapshot)
         SettingsSheet(state, snapshot, captures, email, canLock)
         ChatScreen(state, captures)
+
+        // Above every sheet: a form's validation message must be readable while the form is open.
+        ToastHost(state, Modifier.align(Alignment.BottomCenter))
     }
 }
 
-/** Floating bar: the two tabs in an ink pill, Hermes as a breathing dot, and Add. */
+private data class TabSpec(val label: String, val icon: String, val viewport: Float)
+
+private val TABS = listOf(
+    TabSpec("Today", Glyph.CALENDAR, 24f),
+    TabSpec("Balance", Glyph.CASH, 20f),
+    TabSpec("Budget", "M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18zM12 11a1 1 0 1 0 0 2a1 1 0 1 0 0-2z", 24f),
+)
+
+/**
+ * Floating bar: the tabs in an ink pill, Hermes as a breathing dot, and Add. A label never wraps:
+ * every tab steps 15sp → 13sp together, and if a translation or a large system font still does
+ * not fit, the inactive tabs become 44dp icons while the active one keeps its word.
+ */
 @Composable
 private fun TabBar(state: AppState, modifier: Modifier = Modifier) {
     val palette = LocalPalette.current
+    val reduce = LocalReduceMotion.current
     Row(
         modifier.windowInsetsPadding(WindowInsets.navigationBars).padding(start = 20.dp, end = 20.dp, bottom = 20.dp).fillMaxWidth().rise(350, durationMs = 800),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         BoxWithConstraints(Modifier.weight(1f).height(60.dp).shadow(14.dp, RoundedCornerShape(30.dp)).background(palette.bar, RoundedCornerShape(30.dp)).padding(5.dp)) {
-            val half = maxWidth / 2
-            val x by animateDpAsState(half * state.tab, tween(if (LocalReduceMotion.current) 0 else Motion.INDICATOR, easing = Motion.Spring), label = "tab")
-            Box(Modifier.offset(x = x).size(half, 50.dp).background(palette.barHi, RoundedCornerShape(25.dp)))
+            val measurer = rememberTextMeasurer()
+            val density = LocalDensity.current
+            val slot = maxWidth / TABS.size
+            fun fits(size: Int) = TABS.all { tab ->
+                with(density) { measurer.measure(tab.label, sans(size, 500)).size.width.toDp() } <= slot - 12.dp
+            }
+            val labelSize = if (fits(15)) 15 else 13
+            val compact = labelSize == 13 && !fits(13)
+            val icon = 44.dp
+            val activeWidth = if (compact) maxWidth - icon * (TABS.size - 1) else slot
+            val spring = tween<Dp>(if (reduce) 0 else Motion.INDICATOR, easing = Motion.Spring)
+            val x by animateDpAsState(if (compact) icon * state.tab else slot * state.tab, spring, label = "tab")
+            val width by animateDpAsState(activeWidth, spring, label = "tabWidth")
+            Box(Modifier.offset(x = x).size(width, 50.dp).background(palette.barHi, RoundedCornerShape(25.dp)))
             Row(Modifier.fillMaxSize()) {
-                listOf("Today", "Balance").forEachIndexed { index, label ->
+                TABS.forEachIndexed { index, tab ->
+                    val active = index == state.tab
+                    val cell = if (!compact) Modifier.weight(1f) else if (active) Modifier.weight(1f) else Modifier.width(icon)
                     Box(
-                        Modifier.weight(1f).fillMaxSize().tap(scale = .97f, haptic = true) {
+                        cell.fillMaxHeight().tap(scale = .97f, haptic = true, label = tab.label) {
                             state.walletId = null
                             if (index == 0 && state.tab == 0) state.pickDate(LocalDate.now())
                             state.tab = index
                         },
                         contentAlignment = Alignment.Center,
-                    ) { T(label, sans(15, 500), color = palette.barInk, maxLines = 1) }
+                    ) {
+                        if (compact && !active) PathIcon(tab.icon, size = 22.dp, viewport = tab.viewport, stroke = 1.6.dp, color = palette.barInk)
+                        else T(tab.label, sans(labelSize, 500), color = palette.barInk, maxLines = 1)
+                    }
                 }
             }
         }

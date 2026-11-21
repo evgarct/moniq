@@ -38,6 +38,10 @@ class Repo(private val context: Context, val net: Net, val sessions: SessionStor
     private val _loadError = MutableStateFlow<String?>(null)
     val loadError: StateFlow<String?> = _loadError
 
+    /** Latest Chronos run; read-only, refreshed with the snapshot and cached like it. */
+    private val _forecast = MutableStateFlow<Forecast?>(null)
+    val forecast: StateFlow<Forecast?> = _forecast
+
     private val _toasts = MutableSharedFlow<String>(extraBufferCapacity = 8)
     val toasts: SharedFlow<String> = _toasts
 
@@ -47,7 +51,29 @@ class Repo(private val context: Context, val net: Net, val sessions: SessionStor
 
     init {
         sessions.current?.let { session ->
-            scope.launch { _snapshot.value = readCache(session.userId) }
+            scope.launch {
+                _snapshot.value = readCache(session.userId)
+                _forecast.value = readForecastCache(session.userId)
+            }
+        }
+    }
+
+    private fun forecastFile(userId: String) = File(context.filesDir, "forecast-$userId.json")
+
+    private suspend fun readForecastCache(userId: String): Forecast? = withContext(Dispatchers.IO) {
+        runCatching { parseForecast(JSONObject(forecastFile(userId).readText())) }.getOrNull()
+    }
+
+    /** Never blocks or fails the snapshot: without a forecast the Budget tab says so. */
+    private suspend fun loadForecast() {
+        val userId = sessions.current?.userId ?: return
+        runCatching { net.api("GET", "/api/finance/forecast") }.onSuccess { json ->
+            // A late answer from a session that has since signed out must not show or cache its data.
+            if (sessions.current?.userId != userId) return@onSuccess
+            val parsed = withContext(Dispatchers.Default) { parseForecast(json) }
+            if (sessions.current?.userId != userId) return@onSuccess
+            _forecast.value = parsed
+            withContext(Dispatchers.IO) { runCatching { forecastFile(userId).writeText(json.toString()) } }
         }
     }
 
@@ -79,6 +105,7 @@ class Repo(private val context: Context, val net: Net, val sessions: SessionStor
     suspend fun prepareSignIn(email: String, password: String) {
         val session = net.signIn(email, password)
         _snapshot.value = readCache(session.userId)
+        _forecast.value = readForecastCache(session.userId)
         reconciledThisLaunch = false
         scope.launch { refresh(silent = true) }
     }
@@ -90,14 +117,16 @@ class Repo(private val context: Context, val net: Net, val sessions: SessionStor
     suspend fun signOut() {
         val userId = sessions.current?.userId
         net.signOut()
-        withContext(Dispatchers.IO) { userId?.let { cacheFile(it).delete() } }
+        withContext(Dispatchers.IO) { userId?.let { cacheFile(it).delete(); forecastFile(it).delete() } }
         _snapshot.value = null
+        _forecast.value = null
         _loadError.value = null
         _signedIn.value = false
     }
 
     private fun handleSignedOut() {
         _snapshot.value = null
+        _forecast.value = null
         _signedIn.value = false
     }
 
@@ -113,6 +142,7 @@ class Repo(private val context: Context, val net: Net, val sessions: SessionStor
                         .onSuccess { runCatching { accept(net.api("GET", "/api/finance/snapshot")) } }
                 }
             }
+            scope.launch { loadForecast() }
             accept(net.api("GET", "/api/finance/snapshot"))
             _loadError.value = null
         } catch (_: SignedOutException) {

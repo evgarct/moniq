@@ -267,6 +267,12 @@ fun AddSheet(state: AppState, snapshot: Snapshot) {
         saved = true
     }
 
+    // `save` closes over this composition's values (category, wallets). A `::save` reference compares
+    // equal across recompositions, so a skipped SaveButton kept the first one and always saw the
+    // form as it opened ("Choose a category" forever). The button reads the latest copy at tap time.
+    val latestSave = remember(key) { arrayOfNulls<() -> Unit>(1) }
+    latestSave[0] = ::save
+
     // Save choreography: terracotta button, check pops, the sheet leaves, then the toast.
     LaunchedEffect(saved) {
         if (saved) {
@@ -442,7 +448,7 @@ fun AddSheet(state: AppState, snapshot: Snapshot) {
 
                 SaveButton(
                     label = if (series != null) "Save series" else if (edit != null) "Save changes" else "Save ${KIND_WORDS[kind]}",
-                    saved = saved, onClick = ::save,
+                    saved = saved, onClick = { latestSave[0]?.invoke() },
                 )
             }
         }
